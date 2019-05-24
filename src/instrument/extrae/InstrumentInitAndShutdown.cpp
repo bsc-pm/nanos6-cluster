@@ -16,6 +16,7 @@
 #include "InstrumentInitAndShutdown.hpp"
 #include "InstrumentThreadId.hpp"
 #include "InstrumentThreadLocalData.hpp"
+#include "InstrumentCluster.hpp"
 #include "instrument/api/InstrumentInitAndShutdown.hpp"
 #include "instrument/generic_ids/GenericIds.hpp"
 #include "instrument/support/InstrumentThreadLocalDataSupport.hpp"
@@ -90,6 +91,10 @@ namespace Instrument {
 				ExtraeAPI::define_event_type((extrae_type_t) EventType::THREAD, "Thread", 0, nullptr, nullptr);
 			}
 		}
+
+		// This is to define the cluster event names and messages
+		// TODO: Maybe this could be conditioned in cluster mode only.
+		defineClusterExtraeEvents();
 
 		// Register runtime states
 		{

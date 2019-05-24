@@ -16,6 +16,7 @@
 
 #include <ClusterManager.hpp>
 #include <ClusterNode.hpp>
+#include <InstrumentCluster.hpp>
 #include <MemoryAllocator.hpp>
 
 #pragma GCC visibility push(default)
@@ -84,12 +85,17 @@ void MPIMessenger::sendMessage(Message *msg, ClusterNode const *toNode, bool blo
 	assert(mpiDst < _wsize && mpiDst != _wrank);
 	assert(delv->header.size != 0);
 
+	Instrument::clusterMessageInitSend(msg, mpiDst);
+
 	if (block) {
 		ret = MPI_Send((void *)delv, msgSize, MPI_BYTE, mpiDst,
 				tag, INTRA_COMM);
 		MPIErrorHandler::handle(ret, INTRA_COMM);
 
 		msg->markAsDelivered();
+
+		Instrument::clusterMessageCompleteSend(msg);
+
 		return;
 	}
 
@@ -107,6 +113,8 @@ void MPIMessenger::sendMessage(Message *msg, ClusterNode const *toNode, bool blo
 
 	msg->setMessengerData((void *)request);
 	ClusterPollingServices::addPendingMessage(msg);
+
+	Instrument::clusterMessageCompleteSend(msg);
 }
 
 DataTransfer *MPIMessenger::sendData(const DataAccessRegion &region,

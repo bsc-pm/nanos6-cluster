@@ -97,6 +97,10 @@ namespace Instrument {
 
 			// 96XXXXX -- Tracing points
 				TRACING_POINT_BASE = 9600000,
+				
+			// 97XXXXX -- Cluster specific events
+				MESSAGE_SEND = 9700000,
+				MESSAGE_HANDLE = 9700100,
 	};
 
 

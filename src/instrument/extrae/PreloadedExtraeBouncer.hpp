@@ -71,6 +71,12 @@ namespace ExtraeAPI {
 	}
 	
 	
+	static inline void event(extrae_type_t type, extrae_value_t value)
+	{
+		ExtraeSymbolResolver<void, &Instrument::_Extrae_event_symbolName, extrae_type_t, extrae_value_t>::call(type, value);
+	}
+	
+	
 	static inline void register_codelocation_type (extrae_type_t t1, extrae_type_t t2, const char* s1, const char *s2)
 	{
 		ExtraeSymbolResolver<void, &Instrument::_Extrae_register_codelocation_type_symbolName, extrae_type_t, extrae_type_t, const char *, const char *>::call(t1, t2, s1, s2);

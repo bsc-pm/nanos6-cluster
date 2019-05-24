@@ -13,6 +13,7 @@
 #include "lowlevel/PaddedSpinLock.hpp"
 
 #include <ClusterManager.hpp>
+#include <InstrumentCluster.hpp>
 #include <Message.hpp>
 
 namespace ClusterPollingServices {

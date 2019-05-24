@@ -648,6 +648,7 @@ instrument_verbose_sources = \
 	src/instrument/support/InstrumentThreadLocalDataSupport.cpp \
 	src/instrument/verbose/InstrumentAddTask.cpp \
 	src/instrument/verbose/InstrumentBlockingAPI.cpp \
+	src/instrument/verbose/InstrumentCluster.cpp \
 	src/instrument/verbose/InstrumentComputePlaceManagement.cpp \
 	src/instrument/verbose/InstrumentDependenciesByAccess.cpp \
 	src/instrument/verbose/InstrumentDependenciesByAccessLinks.cpp \
@@ -666,6 +667,7 @@ instrument_extrae_sources = \
 	$(instrument_generic_ids_sources) \
 	src/instrument/extrae/ExtraeSymbolLiterals.cpp \
 	src/instrument/extrae/ExtraeSymbolResolver.cpp \
+	src/instrument/extrae/InstrumentCluster.cpp \
 	src/instrument/extrae/InstrumentExtrae.cpp \
 	src/instrument/extrae/InstrumentInitAndShutdown.cpp \
 	src/instrument/extrae/InstrumentReductions.cpp \
@@ -914,6 +916,7 @@ noinst_HEADERS = \
 	src/hardware-counters/rapl/RAPLHardwareCounters.hpp \
 	src/instrument/api/InstrumentAddTask.hpp \
 	src/instrument/api/InstrumentBlockingAPI.hpp \
+	src/instrument/api/InstrumentCluster.hpp \
 	src/instrument/api/InstrumentComputePlaceManagement.hpp \
 	src/instrument/api/InstrumentDataAccessTypes.hpp \
 	src/instrument/api/InstrumentDebug.hpp \
@@ -955,6 +958,7 @@ noinst_HEADERS = \
 	src/instrument/ctf/CTFTracepoints.hpp \
 	src/instrument/ctf/InstrumentAddTask.hpp \
 	src/instrument/ctf/InstrumentBlockingAPI.hpp \
+	src/instrument/ctf/InstrumentCluster.hpp \
 	src/instrument/ctf/InstrumentComputePlaceId.hpp \
 	src/instrument/ctf/InstrumentComputePlaceManagement.hpp \
 	src/instrument/ctf/InstrumentCPULocalData.hpp \
@@ -990,6 +994,7 @@ noinst_HEADERS = \
 	src/instrument/extrae/InstrumentAddTask.hpp \
 	src/instrument/extrae/InstrumentBlockingAPI.hpp \
 	src/instrument/extrae/InstrumentCommon.hpp \
+	src/instrument/extrae/InstrumentCluster.hpp \
 	src/instrument/extrae/InstrumentComputePlaceId.hpp \
 	src/instrument/extrae/InstrumentComputePlaceManagement.hpp \
 	src/instrument/extrae/InstrumentCPULocalData.hpp \
@@ -1028,6 +1033,7 @@ noinst_HEADERS = \
 	src/instrument/graph/GenerateEdges.hpp \
 	src/instrument/graph/InstrumentAddTask.hpp \
 	src/instrument/graph/InstrumentBlockingAPI.hpp \
+	src/instrument/graph/InstrumentCluster.hpp \
 	src/instrument/graph/InstrumentComputePlaceId.hpp \
 	src/instrument/graph/InstrumentComputePlaceManagement.hpp \
 	src/instrument/graph/InstrumentCPULocalData.hpp \
@@ -1094,6 +1100,7 @@ noinst_HEADERS = \
 	src/instrument/lint/InstrumentWorkerThread.hpp \
 	src/instrument/null/InstrumentAddTask.hpp \
 	src/instrument/null/InstrumentBlockingAPI.hpp \
+	src/instrument/null/InstrumentCluster.hpp \
 	src/instrument/null/InstrumentComputePlaceId.hpp \
 	src/instrument/null/InstrumentComputePlaceManagement.hpp \
 	src/instrument/null/InstrumentCPULocalData.hpp \
@@ -1126,6 +1133,7 @@ noinst_HEADERS = \
 	src/instrument/null/InstrumentWorkerThread.hpp \
 	src/instrument/stats/InstrumentAddTask.hpp \
 	src/instrument/stats/InstrumentBlockingAPI.hpp \
+	src/instrument/stats/InstrumentCluster.hpp \
 	src/instrument/stats/InstrumentComputePlaceId.hpp \
 	src/instrument/stats/InstrumentComputePlaceManagement.hpp \
 	src/instrument/stats/InstrumentCPULocalData.hpp \
@@ -1174,6 +1182,7 @@ noinst_HEADERS = \
 	src/instrument/support/introspection/ElfUtils/ElfUtilsCodeAddressInfo.hpp \
 	src/instrument/verbose/InstrumentAddTask.hpp \
 	src/instrument/verbose/InstrumentBlockingAPI.hpp \
+	src/instrument/verbose/InstrumentCluster.hpp \
 	src/instrument/verbose/InstrumentComputePlaceId.hpp \
 	src/instrument/verbose/InstrumentComputePlaceManagement.hpp \
 	src/instrument/verbose/InstrumentCPULocalData.hpp \
