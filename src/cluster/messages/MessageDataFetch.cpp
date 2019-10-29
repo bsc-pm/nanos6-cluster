@@ -11,8 +11,7 @@
 
 MessageDataFetch::MessageDataFetch(const ClusterNode *from,
 		DataAccessRegion const &remoteRegion)
-	: Message("MessageDataFetch", DATA_FETCH,
-		sizeof(DataFetchMessageContent), from)
+	: Message(DATA_FETCH, sizeof(DataFetchMessageContent), from)
 {
 	_content = reinterpret_cast<DataFetchMessageContent *>(_deliverable->payload);
 	_content->_remoteRegion = remoteRegion;

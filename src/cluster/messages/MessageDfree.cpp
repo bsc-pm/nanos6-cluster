@@ -11,7 +11,7 @@
 #include <DistributionPolicy.hpp>
 
 MessageDfree::MessageDfree(const ClusterNode *from) :
-	Message("MessageDfree", DFREE, sizeof(DfreeMessageContent), from)
+	Message(DFREE, sizeof(DfreeMessageContent), from)
 {
 	_content = reinterpret_cast<DfreeMessageContent *>(_deliverable->payload);
 }

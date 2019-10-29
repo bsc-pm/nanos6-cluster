@@ -12,8 +12,7 @@
 MessageSatisfiability::MessageSatisfiability(const ClusterNode *from,
 		void *offloadedTaskId,
 		TaskOffloading::SatisfiabilityInfo const &satInfo)
-	: Message("MessageSatisfiability", SATISFIABILITY,
-		sizeof(SatisfiabilityMessageContent), from)
+	: Message(SATISFIABILITY, sizeof(SatisfiabilityMessageContent), from)
 {
 	_content = reinterpret_cast<SatisfiabilityMessageContent *>(_deliverable->payload);
 	_content->_offloadedTaskId = offloadedTaskId;

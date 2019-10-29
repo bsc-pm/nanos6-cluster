@@ -12,7 +12,7 @@
 #include <VirtualMemoryManagement.hpp>
 
 MessageDmalloc::MessageDmalloc(const ClusterNode *from, size_t numDimensions)
-	: Message("MessageDmalloc", DMALLOC,
+	: Message(DMALLOC,
 		sizeof(DmallocMessageContent) + numDimensions * sizeof(size_t),
 		from)
 {

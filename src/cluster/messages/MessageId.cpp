@@ -18,8 +18,8 @@ namespace MessageId {
 	
 	uint32_t nextMessageId(MessageType type)
 	{
-		uint32_t ret = _nextMessageId[type]++;
-		assert(ret != messageMax);
+		const uint32_t ret = _nextMessageId[type]++;
+		assert(ret < messageMax);
 		
 		return ret;
 	}

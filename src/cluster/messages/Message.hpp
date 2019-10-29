@@ -19,9 +19,6 @@ class ClusterNode;
 class Message {
 public:
 	struct msg_header {
-		//! string containing the message type
-		char name[MSG_NAMELEN];
-		
 		//! the type of the message
 		MessageType type;
 		
@@ -57,7 +54,7 @@ protected:
 	
 public:
 	Message() = delete;
-	Message(const char* name, MessageType type, size_t size, const ClusterNode *from);
+	Message(MessageType type, size_t size, const ClusterNode *from);
 	
 	//! Construct a message from a received(?) Deliverable structure
 	Message(Deliverable *dlv)
@@ -75,7 +72,7 @@ public:
 	
 	inline const std::string getName() const
 	{
-		return std::string(_deliverable->header.name);
+		return std::string(MessageTypeStr[_deliverable->header.type]);
 	}
 	
 	//! \brief Returns the type of the Message

@@ -12,8 +12,7 @@
 MessageReleaseAccess::MessageReleaseAccess(const ClusterNode *from,
 		void *offloadedTaskId, DataAccessRegion const &region,
 		DataAccessType type, bool weak, int location)
-	: Message("MessageReleaseAccess", RELEASE_ACCESS,
-			sizeof(ReleaseAccessMessageContent), from)
+	: Message(RELEASE_ACCESS, sizeof(ReleaseAccessMessageContent), from)
 {
 	_content = reinterpret_cast<ReleaseAccessMessageContent *>(_deliverable->payload);
 	_content->_offloadedTaskId = offloadedTaskId;

@@ -9,8 +9,7 @@
 
 MessageTaskFinished::MessageTaskFinished(const ClusterNode *from,
 		void *offloadedTaskId)
-	: Message("MessageTaskFinished", TASK_FINISHED,
-		sizeof(TaskFinishedMessageContent), from)
+	: Message(TASK_FINISHED, sizeof(TaskFinishedMessageContent), from)
 {
 	_content = reinterpret_cast<TaskFinishedMessageContent *>(_deliverable->payload);
 	_content->_offloadedTaskId = offloadedTaskId;

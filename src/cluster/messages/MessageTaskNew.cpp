@@ -11,7 +11,6 @@
 
 #include <TaskOffloading.hpp>
 
-
 MessageTaskNew::MessageTaskNew(
 	const ClusterNode *from,
 	nanos6_task_info_t *taskInfo,
@@ -25,11 +24,12 @@ MessageTaskNew::MessageTaskNew(
 	void *argsBlock,
 	void *offloadedTaskId
 ) :
-	Message("MessageTaskNew", TASK_NEW,
+	Message(TASK_NEW,
 		sizeof(TaskNewMessageContent) +
 		numImplementations * sizeof(nanos6_task_implementation_info_t) +
 		numSatInfo * sizeof(TaskOffloading::SatisfiabilityInfo) +
-		argsBlockSize, from)
+		argsBlockSize,
+		from)
 {
 	assert(taskInfo != nullptr);
 	assert(taskInvocationInfo != nullptr);

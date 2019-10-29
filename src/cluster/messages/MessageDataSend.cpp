@@ -11,8 +11,7 @@
 
 MessageDataSend::MessageDataSend(const ClusterNode *from,
 		DataAccessRegion const &remoteRegion)
-	: Message("MessageDataSend", DATA_SEND, sizeof(DataSendMessageContent),
-		from)
+	: Message(DATA_SEND, sizeof(DataSendMessageContent), from)
 {
 	_content = reinterpret_cast<DataSendMessageContent *>(_deliverable->payload);
 	_content->_remoteRegion = remoteRegion;
