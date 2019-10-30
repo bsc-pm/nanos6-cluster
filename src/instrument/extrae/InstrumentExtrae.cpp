@@ -18,6 +18,7 @@ namespace Instrument {
 
 	const ConfigVariable<bool> _traceAsThreads("instrument.extrae.as_threads");
 	const ConfigVariable<unsigned int> _detailLevel("instrument.extrae.detail_level");
+	const ConfigVariable<bool> _extraeInstrumentCluster("instrument.extrae.instrument_cluster");
 
 	SpinLock _extraeLock;
 

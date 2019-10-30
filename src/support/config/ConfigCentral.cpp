@@ -60,6 +60,7 @@ void ConfigCentral::initialize()
 	// Extrae instrumentation
 	registerOption<bool_t>("instrument.extrae.as_threads", false);
 	registerOption<integer_t>("instrument.extrae.detail_level", 1);
+	registerOption<bool_t>("instrument.extrae.instrument_cluster", true);
 
 	// Graph instrumentation
 	registerOption<bool_t>("instrument.graph.display", false);

@@ -15,6 +15,9 @@
 namespace Instrument {
 	void defineClusterExtraeEvents()
 	{
+		if (!_extraeInstrumentCluster)
+			return;
+
 		//! Event variables
 		const char evtStr[CLUSTER_EVENTS][EVENT_PREFIX_SIZE] =
 				{ "Send ", "Handle "};
@@ -51,6 +54,9 @@ namespace Instrument {
 	void clusterMessageInitSend(Message const *msg, int receiver,
 		InstrumentationContext const &)
 	{
+		if (!_extraeInstrumentCluster)
+			return;
+
 		const unsigned int messageType = msg->getType();
 		extrae_type_t type = (extrae_type_t) EventType::MESSAGE_SEND;
 		extrae_value_t value = (extrae_value_t)(messageType + 1);
@@ -78,6 +84,9 @@ namespace Instrument {
 	void clusterMessageCompleteSend(Message const *,
 		InstrumentationContext const &)
 	{
+		if (!_extraeInstrumentCluster)
+			return;
+
 		extrae_type_t type = (extrae_type_t) EventType::MESSAGE_SEND;
 		extrae_value_t value = 0;
 
@@ -97,6 +106,9 @@ namespace Instrument {
 	void enterHandleReceivedMessage(Message const *msg, int senderId,
 		InstrumentationContext const &)
 	{
+		if (!_extraeInstrumentCluster)
+			return;
+
 		const unsigned int messageType = msg->getType();
 		extrae_type_t type = (extrae_type_t)EventType::MESSAGE_HANDLE;
 		extrae_value_t value = (extrae_value_t)(messageType + 1);
@@ -124,6 +136,9 @@ namespace Instrument {
 	void exitHandleReceivedMessage(Message const *,
 		InstrumentationContext const &)
 	{
+		if (!_extraeInstrumentCluster)
+			return;
+
 		extrae_type_t type = (extrae_type_t)EventType::MESSAGE_HANDLE;
 		extrae_value_t value = 0;
 

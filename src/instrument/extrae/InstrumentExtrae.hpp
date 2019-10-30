@@ -66,6 +66,7 @@ namespace Instrument {
 
 	extern const ConfigVariable<bool> _traceAsThreads;
 	extern const ConfigVariable<unsigned int> _detailLevel;
+	extern const ConfigVariable<bool> _extraeInstrumentCluster;
 
 	enum struct EventType {
 		// OmpSs common
@@ -97,7 +98,7 @@ namespace Instrument {
 
 			// 96XXXXX -- Tracing points
 				TRACING_POINT_BASE = 9600000,
-				
+
 			// 97XXXXX -- Cluster specific events
 				MESSAGE_SEND = 9700000,
 				MESSAGE_HANDLE = 9700100,
