@@ -30,3 +30,9 @@ libtool
 stamp-h1
 *.swp
 **cscope.out
+GPATH
+GRTAGS
+GTAGS
+TAGS
+common/
+compile_commands.json
