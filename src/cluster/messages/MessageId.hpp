@@ -12,7 +12,7 @@
 #include "MessageType.hpp"
 
 namespace MessageId {
-	
+
 	//! \brief Get the next available MessageId
 	uint32_t nextMessageId(MessageType type);
 }
