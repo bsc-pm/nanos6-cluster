@@ -12,6 +12,8 @@
 #define _GNU_SOURCE
 #endif
 
+#include <sys/personality.h>
+#include <unistd.h>
 #include <assert.h>
 #include <dlfcn.h>
 #include <stdio.h>
@@ -130,6 +132,23 @@ static int _nanos6_check_disabled_variant(char const *optimization, char const *
 		return -1;
 	}
 	return 0;
+}
+
+__attribute__ ((visibility ("hidden"), constructor(101)))
+void _nanos6_pre_loader(int argc, char* argv[], char * envp [])
+{
+	if (personality(-1) & ADDR_NO_RANDOMIZE) {
+		return;
+	}
+	if (personality(ADDR_NO_RANDOMIZE) == -1) {
+		fprintf(stderr,
+		        "Warning: personality could not be set, ASLR could be active\n");
+	} else {
+		execvpe(argv[0], argv, envp);
+		perror("execve");             /* execvpe() only returns on error */
+		exit(EXIT_FAILURE);
+	}
+
 }
 
 static int _nanos6_loader_impl(void)

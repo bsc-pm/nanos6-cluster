@@ -10,6 +10,9 @@
 
 #define ERROR_TEXT_SIZE 8192
 
+__attribute__ ((visibility ("hidden")))
+void _nanos6_pre_loader(int argc, char* argv[], char * envp []);
+
 __attribute__ ((visibility ("hidden"))) void _nanos6_loader(void);
 
 __attribute__ ((visibility ("hidden"))) extern void *_nanos6_lib_handle;
