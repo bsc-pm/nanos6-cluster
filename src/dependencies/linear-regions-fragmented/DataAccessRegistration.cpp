@@ -50,43 +50,43 @@ namespace DataAccessRegistration {
 
 
 	struct DataAccessStatusEffects {
-		bool _isRegistered;
-		bool _isSatisfied;
-		bool _enforcesDependency;
+		bool _isRegistered: 1 ;
+		bool _isSatisfied: 1 ;
+		bool _enforcesDependency: 1 ;
 
-		bool _hasNext;
-		bool _propagatesReadSatisfiabilityToNext;
-		bool _propagatesWriteSatisfiabilityToNext;
-		bool _propagatesConcurrentSatisfiabilityToNext;
-		bool _propagatesCommutativeSatisfiabilityToNext;
-		bool _propagatesReductionInfoToNext;
-		bool _propagatesReductionSlotSetToNext;
-		bool _makesNextTopmost;
-		bool _propagatesTopLevel;
-		bool _releasesCommutativeRegion;
+		bool _hasNext: 1 ;
+		bool _propagatesReadSatisfiabilityToNext: 1 ;
+		bool _propagatesWriteSatisfiabilityToNext: 1 ;
+		bool _propagatesConcurrentSatisfiabilityToNext: 1 ;
+		bool _propagatesCommutativeSatisfiabilityToNext: 1 ;
+		bool _propagatesReductionInfoToNext: 1 ;
+		bool _propagatesReductionSlotSetToNext: 1 ;
+		bool _makesNextTopmost: 1 ;
+		bool _propagatesTopLevel: 1 ;
+		bool _releasesCommutativeRegion: 1 ;
 
-		bool _propagatesReadSatisfiabilityToFragments;
-		bool _propagatesWriteSatisfiabilityToFragments;
-		bool _propagatesConcurrentSatisfiabilityToFragments;
-		bool _propagatesCommutativeSatisfiabilityToFragments;
-		bool _propagatesReductionInfoToFragments;
-		bool _propagatesReductionSlotSetToFragments;
+		bool _propagatesReadSatisfiabilityToFragments: 1 ;
+		bool _propagatesWriteSatisfiabilityToFragments: 1 ;
+		bool _propagatesConcurrentSatisfiabilityToFragments: 1 ;
+		bool _propagatesCommutativeSatisfiabilityToFragments: 1 ;
+		bool _propagatesReductionInfoToFragments: 1 ;
+		bool _propagatesReductionSlotSetToFragments: 1 ;
 
-		bool _makesReductionOriginalStorageAvailable;
-		bool _combinesReductionToPrivateStorage;
-		bool _combinesReductionToOriginal;
+		bool _makesReductionOriginalStorageAvailable: 1 ;
+		bool _combinesReductionToPrivateStorage: 1 ;
+		bool _combinesReductionToOriginal: 1 ;
 
-		bool _linksBottomMapAccessesToNextAndInhibitsPropagation;
+		bool _linksBottomMapAccessesToNextAndInhibitsPropagation: 1 ;
 
-		bool _isRemovable;
+		bool _isRemovable: 1 ;
 
-		bool _triggersTaskwaitWorkflow;
+		bool _triggersTaskwaitWorkflow: 1 ;
 
-		bool _propagatesDataReleaseStepToNext;
+		bool _propagatesDataReleaseStepToNext: 1 ;
 
-		bool _triggersDataRelease;
-		bool _triggersDataLinkRead;
-		bool _triggersDataLinkWrite;
+		bool _triggersDataRelease: 1 ;
+		bool _triggersDataLinkRead: 1 ;
+		bool _triggersDataLinkWrite: 1 ;
 
 	public:
 		DataAccessStatusEffects() :
@@ -835,8 +835,7 @@ namespace DataAccessRegistration {
 					Instrument::removedDataAccess(
 						access->getInstrumentationId());
 					accessStructures._accesses.erase(access);
-					ObjectAllocator<DataAccess>::deleteObject(
-						access);
+					ObjectAllocator<DataAccess>::deleteObject(access);
 				}
 			}
 
