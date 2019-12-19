@@ -28,6 +28,7 @@ void ClusterLocalityScheduler::addReadyTask(Task *task, ComputePlace *computePla
 		return;
 	}
 
+
 	std::vector<size_t> bytes(_clusterSize, 0);
 	bool canBeOffloaded = true;
 	DataAccessRegistration::processAllDataAccesses(task,
