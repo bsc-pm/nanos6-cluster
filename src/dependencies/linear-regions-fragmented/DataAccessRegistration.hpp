@@ -86,6 +86,7 @@ namespace DataAccessRegistration {
 		MemoryPlace const *location);
 
 	void handleEnterTaskwait(Task *task, ComputePlace *computePlace, CPUDependencyData &dependencyData);
+
 	void handleExitTaskwait(Task *task, ComputePlace *computePlace, CPUDependencyData &dependencyData);
 
 	//! \brief Mark a Taskwait fragment as completed
