@@ -42,7 +42,6 @@ public:
 
 private:
 	static ClusterManager *_singleton;
-
 	//! A vector of all ClusterNodes in the system.
 	//!
 	//! We might need to make this a map later on, when we start
@@ -78,10 +77,10 @@ public:
 	static void initialize();
 
 	//! \brief Notify all cluster nodes that we are shutting down
-	static void notifyShutdown();
+	static void shutdownPhase1();
 
 	//! \brief Shutdown the ClusterManager
-	static void shutdown();
+	static void shutdownPhase2();
 
 	//! \brief Get a vector containing all ClusterNode objects
 	//!

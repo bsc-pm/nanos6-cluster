@@ -10,7 +10,7 @@
 #include <DataTransferCompletion.hpp>
 
 MessageDataFetch::MessageDataFetch(const ClusterNode *from,
-		DataAccessRegion const &remoteRegion)
+	DataAccessRegion const &remoteRegion)
 	: Message(DATA_FETCH, sizeof(DataFetchMessageContent), from)
 {
 	_content = reinterpret_cast<DataFetchMessageContent *>(_deliverable->payload);
@@ -21,13 +21,13 @@ bool MessageDataFetch::handleMessage()
 {
 	ClusterMemoryNode *memoryPlace =
 		ClusterManager::getMemoryNode(getSenderId());
-	
+
 	DataTransfer *dt =
 		ClusterManager::sendDataRaw(_content->_remoteRegion, memoryPlace,
 				getId());
-	
+
 	ClusterPollingServices::addPendingDataTransfer(dt);
-	
+
 	return true;
 }
 

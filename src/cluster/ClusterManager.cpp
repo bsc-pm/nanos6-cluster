@@ -85,7 +85,7 @@ void ClusterManager::initialize()
 	assert(_singleton != nullptr);
 }
 
-void ClusterManager::notifyShutdown()
+void ClusterManager::shutdownPhase1()
 {
 	assert(_singleton != nullptr);
 
@@ -101,7 +101,7 @@ void ClusterManager::notifyShutdown()
 	}
 }
 
-void ClusterManager::shutdown()
+void ClusterManager::shutdownPhase2()
 {
 	assert(_singleton != nullptr);
 	delete _singleton;
