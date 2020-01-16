@@ -18,7 +18,7 @@ bool MessageSysFinish::handleMessage()
 	if (!nanos6_can_run_main()) {
 		ClusterManager::ShutdownCallback *callback =
 			ClusterManager::getShutdownCallback();
-		
+
 		//! We need to call the main callback.
 		while (callback == nullptr) {
 			//! We will spin to avoid the (not very likely) case that the
@@ -27,12 +27,12 @@ bool MessageSysFinish::handleMessage()
 			//! code has finished setting up everything.
 			callback = ClusterManager::getShutdownCallback();
 		}
-		
+
 		callback->invoke();
 	}
-	
+
 	//! Synchronize with all other cluster nodes at this point
 	ClusterManager::synchronizeAll();
-	
+
 	return true;
 }

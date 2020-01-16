@@ -69,6 +69,7 @@ private:
 			// Fill in the executor's taskinfo
 			executorInfo->implementations = (nanos6_task_implementation_info_t *)
 				malloc(sizeof(nanos6_task_implementation_info_t) * 1);
+
 			assert(executorInfo->implementations != nullptr);
 
 			executorInfo->implementation_count = 1;
@@ -89,11 +90,13 @@ private:
 				nullptr, sizeof(StreamExecutorArgsBlock),
 				flags
 			);
+
 			assert(executor != nullptr);
 
 			StreamExecutorArgsBlock *argsBlock =
 				(StreamExecutorArgsBlock *) executor->getArgsBlock();
 			assert(argsBlock != nullptr);
+
 
 			// Complete the args block of the executor
 			// Pass itself as arguments to access the body

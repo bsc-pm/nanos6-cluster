@@ -33,26 +33,26 @@ namespace ExecutionWorkflow {
 		{
 		}
 	};
-	
+
 	class ClusterDataLinkStep : public DataLinkStep {
 		//! The MemoryPlace that holds the data at the moment
 		MemoryPlace const *_sourceMemoryPlace;
-		
+
 		//! The MemoryPlace that requires the data
 		MemoryPlace const *_targetMemoryPlace;
-		
+
 		//! DataAccessRegion that the Step covers
 		DataAccessRegion _region;
-		
+
 		//! The task in which the access belongs to
 		Task *_task;
-		
+
 		//! read satisfiability at creation time
 		bool _read;
-		
+
 		//! write satisfiability at creation time
 		bool _write;
-		
+
 	public:
 		ClusterDataLinkStep(
 			MemoryPlace const *sourceMemoryPlace,
@@ -68,34 +68,34 @@ namespace ExecutionWorkflow {
 		{
 			access->setDataLinkStep(this);
 		}
-		
+
 		void linkRegion(
 			DataAccessRegion const &region,
 			MemoryPlace const *location,
 			bool read,
 			bool write
 		);
-		
+
 		//! Start the execution of the Step
 		void start();
 	};
-	
+
 	class ClusterDataCopyStep : public Step {
 		//! The MemoryPlace that the data will be copied from.
 		MemoryPlace const *_sourceMemoryPlace;
-		
+
 		//! The MemoryPlace that the data will be copied to.
 		MemoryPlace const *_targetMemoryPlace;
-		
+
 		//! A mapping of the address range in the source node to the target node.
 		RegionTranslation _targetTranslation;
-		
+
 		//! The task on behalf of which we perform the data copy
 		Task *_task;
-		
+
 		//! The data copy is for a taskwait
 		bool _isTaskwait;
-		
+
 	public:
 		ClusterDataCopyStep(
 			MemoryPlace const *sourceMemoryPlace,
@@ -111,18 +111,18 @@ namespace ExecutionWorkflow {
 			_isTaskwait(isTaskwait)
 		{
 		}
-		
+
 		//! Start the execution of the Step
 		void start();
 	};
-	
+
 	class ClusterDataReleaseStep : public DataReleaseStep {
 		//! identifier of the remote task
 		void *_remoteTaskIdentifier;
-		
+
 		//! the cluster node we need to notify
 		ClusterNode const *_offloader;
-		
+
 	public:
 		ClusterDataReleaseStep(
 			TaskOffloading::ClusterTaskContext *context,
@@ -133,23 +133,23 @@ namespace ExecutionWorkflow {
 		{
 			access->setDataReleaseStep(this);
 		}
-		
+
 		void releaseRegion(DataAccessRegion const &region,
 			MemoryPlace const *location);
-		
+
 		bool checkDataRelease(DataAccess const *access);
-		
+
 		void start();
 	};
-	
+
 	class ClusterExecutionStep : public Step {
 		std::vector<TaskOffloading::SatisfiabilityInfo> _satInfo;
 		ClusterNode *_remoteNode;
 		Task *_task;
-		
+
 	public:
 		ClusterExecutionStep(Task *task, ComputePlace *computePlace);
-		
+
 		//! Inform the execution Step about the existence of a
 		//! pending data copy.
 		//!
@@ -161,24 +161,24 @@ namespace ExecutionWorkflow {
 		//! \param[in] write is true if access is write-satisfied
 		void addDataLink(int source, DataAccessRegion const &region,
 			bool read, bool write);
-		
+
 		//! Start the execution of the Step
 		void start();
 	};
-	
+
 	class ClusterNotificationStep : public Step {
 		std::function<void ()> const _callback;
-		
+
 	public:
 		ClusterNotificationStep(std::function<void ()> const &callback) :
 			Step(), _callback(callback)
 		{
 		}
-		
+
 		//! Start the execution of the Step
 		void start();
 	};
-	
+
 	class ClusterUnpinningStep : public Step {
 	public:
 		ClusterUnpinningStep(
@@ -188,7 +188,7 @@ namespace ExecutionWorkflow {
 		{
 		}
 	};
-	
+
 	inline Step *clusterFetchData(
 		MemoryPlace const *source,
 		MemoryPlace const *target,
@@ -198,7 +198,7 @@ namespace ExecutionWorkflow {
 		assert(source != nullptr);
 		nanos6_device_t sourceType = source->getType();
 		assert(target == ClusterManager::getCurrentMemoryNode());
-		
+
 		//! Currently, we cannot have a cluster data copy where the source
 		//! location is in the Directory. This would mean that the data
 		//! have not been written yet (that's why they're not in a
@@ -207,21 +207,21 @@ namespace ExecutionWorkflow {
 		assert(!Directory::isDirectoryMemoryPlace(source) &&
 			"You're probably trying to read something "
 			"that has not been initialized yet!");
-		
+
 		//! The source device is a host MemoryPlace of the current
 		//! ClusterNode. We do not really need to perform a
 		//! DataTransfer
 		if ((sourceType == nanos6_host_device)) {
 			return new Step();
 		}
-		
+
 		assert(source->getType() == nanos6_cluster_device);
 		DataAccessObjectType objectType = access->getObjectType();
 		DataAccessType type = access->getType();
 		DataAccessRegion region = access->getAccessRegion();
 		bool isDistributedRegion =
 			VirtualMemoryManagement::isDistributedRegion(region);
-		
+
 		bool needsTransfer =
 			(
 			 	//! We need a DataTransfer for a taskwait access
@@ -252,15 +252,15 @@ namespace ExecutionWorkflow {
 			 	(objectType == access_type)
 				&& (type != WRITE_ACCESS_TYPE)
 			);
-		
+
 		if (needsTransfer) {
 			return new ClusterDataCopyStep(source, target, translation,
 					access->getOriginator(), (objectType == taskwait_type));
 		}
-		
+
 		return new Step();
 	}
-	
+
 	inline Step *clusterLinkData(
 		MemoryPlace const *source,
 		MemoryPlace const *target,
@@ -270,7 +270,7 @@ namespace ExecutionWorkflow {
 		assert(access->getObjectType() == access_type);
 		return new ClusterDataLinkStep(source, target, access);
 	}
-	
+
 	inline Step *clusterCopy(
 		MemoryPlace const *source,
 		MemoryPlace const *target,
@@ -279,7 +279,7 @@ namespace ExecutionWorkflow {
 	) {
 		assert(target != nullptr);
 		assert(access != nullptr);
-		
+
 		ClusterMemoryNode *current =
 			ClusterManager::getCurrentMemoryNode();
 		if (target->getType() != nanos6_cluster_device) {
@@ -289,7 +289,7 @@ namespace ExecutionWorkflow {
 			assert(!Directory::isDirectoryMemoryPlace(target));
 			target = current;
 		}
-		
+
 		if (target == current) {
 			return clusterFetchData(source, target, translation, access);
 		} else {
