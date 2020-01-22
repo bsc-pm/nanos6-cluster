@@ -16,17 +16,17 @@ namespace ClusterMemoryManagement {
 	{
 		return malloc(size);
 	}
-	
+
 	inline void dfree(void *ptr, size_t)
 	{
 		free(ptr);
 	}
-	
+
 	inline void *lmalloc(size_t size)
 	{
 		return malloc(size);
 	}
-	
+
 	inline void lfree(void *ptr, size_t)
 	{
 		free(ptr);

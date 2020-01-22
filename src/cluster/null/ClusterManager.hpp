@@ -25,69 +25,69 @@ public:
 	class ShutdownCallback
 	{
 	};
-	
+
 	static inline void initialize()
 	{
 	}
-	
-	static inline void notifyShutdown()
+
+	static inline void shutdownPhase1()
 	{
 	}
-	
-	static inline void shutdown()
+
+	static inline void shutdownPhase2()
 	{
 	}
-	
+
 	static inline ClusterNode *getClusterNode(__attribute__((unused)) int id)
 	{
 		static ClusterNode ourDummyNode;
 		return &ourDummyNode;
 	}
-	
+
 	static inline ClusterNode *getCurrentClusterNode()
 	{
 		static ClusterNode ourDummyNode;
 		return &ourDummyNode;
 	}
-	
+
 	static inline ClusterMemoryNode *getMemoryNode(__attribute__((unused)) int id)
 	{
 		static ClusterMemoryNode ourDummyNode;
 		return &ourDummyNode;
 	}
-	
+
 	static inline ClusterMemoryNode *getCurrentMemoryNode()
 	{
 		static ClusterMemoryNode ourDummyNode;
 		return &ourDummyNode;
 	}
-	
+
 	static inline bool isMasterNode()
 	{
 		return true;
 	}
-	
+
 	static inline int clusterSize()
 	{
 		return 1;
 	}
-	
+
 	static inline bool inClusterMode()
 	{
 		return false;
 	}
-	
+
 	static inline Message *checkMail()
 	{
 		return nullptr;
 	}
-	
+
 	static inline void testMessageCompletion(__attribute__((unused)) std::vector<Message *> &messages) {
 	}
-	
+
 	static inline void testDataTransferCompletion(__attribute__((unused)) std::vector<Message *> &transfer) {
 	}
-	
+
 	static inline DataTransfer *fetchDataRaw(
 		__attribute__((unused)) DataAccessRegion const &region,
 		__attribute__((unused)) MemoryPlace const *from,
@@ -96,7 +96,7 @@ public:
 	) {
 		return nullptr;
 	}
-	
+
 	static inline DataTransfer *sendDataRaw(
 		__attribute__((unused)) DataAccessRegion const &region,
 		__attribute__((unused)) MemoryPlace const *to,
@@ -105,13 +105,13 @@ public:
 	) {
 		return nullptr;
 	}
-	
+
 	static inline void setShutdownCallback(
 		__attribute__((unused)) void (*func)(void *),
 		__attribute__((unused)) void *args)
 	{
 	}
-	
+
 	static inline ShutdownCallback *getShutdownCallback()
 	{
 		return nullptr;
