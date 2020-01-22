@@ -134,6 +134,12 @@ static int _nanos6_check_disabled_variant(char const *optimization, char const *
 	return 0;
 }
 
+#ifdef USE_CLUSTER
+/*
+ * This constructor is required only in cluster compilation to avoid memory
+ * randomisation in multiple processes.  Otherwise we will be forced to modify
+ * the system file: /proc/sys/kernel/randomize_va_space.
+ */
 __attribute__ ((visibility ("hidden"), constructor(101)))
 void _nanos6_pre_loader(int argc, char* argv[], char * envp [])
 {
@@ -148,8 +154,8 @@ void _nanos6_pre_loader(int argc, char* argv[], char * envp [])
 		fprintf(stderr,
 		        "Warning: personality could not be set, ASLR could be active\n");
 	}
-
 }
+#endif // USE_CLUSTER
 
 static int _nanos6_loader_impl(void)
 {
