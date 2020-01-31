@@ -37,6 +37,7 @@ enum nanos6_task_constraints_api_t { nanos6_task_constraints_api = 1 };
 typedef struct
 {
 	size_t cost;
+	size_t stream;
 } nanos6_task_constraints_t;
 
 

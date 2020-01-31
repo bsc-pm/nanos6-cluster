@@ -766,8 +766,20 @@ public:
 			_taskInfo->implementations->get_constraints(_argsBlock, &constraints);
 			return constraints.cost;
 		}
-		return 0;
 
+		return 0;
+	}
+
+	//! \brief Get the task's stream
+	inline size_t getStream() const
+	{
+		if (hasConstrains()) {
+			nanos6_task_constraints_t constraints;
+			_taskInfo->implementations->get_constraints(_argsBlock, &constraints);
+			return constraints.stream;
+		}
+
+		return 0;
 	}
 
 	//! \brief Get the task's monitoring statistics

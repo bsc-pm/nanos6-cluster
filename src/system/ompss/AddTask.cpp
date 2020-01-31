@@ -72,12 +72,12 @@ Task *AddTask::createTask(
 		while (Throttle::engage(creator, workerThread));
 	}
 
-	bool isTaskfor = flags & nanos6_taskfor_task;
-	bool isTaskloop = flags & nanos6_taskloop_task;
+	bool isTaskfor = flags & nanos6_task_flag_t::nanos6_taskfor_task;
+	bool isTaskloop = flags & nanos6_task_flag_t::nanos6_taskloop_task;
 	bool isTaskloopFor = (isTaskloop && isTaskfor);
 	bool isStreamExecutor = flags & (1 << Task::stream_executor_flag);
 	size_t originalArgsBlockSize = argsBlockSize;
-	size_t taskSize;
+	size_t taskSize = 0;
 
 	// A taskloop for construct enables both taskloop and taskfor flags, but we must
 	// create a taskloop. Notice we first check the taskloop condition
