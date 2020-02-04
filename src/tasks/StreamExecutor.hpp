@@ -295,6 +295,7 @@ public:
 		TaskWait::taskWait("");
 
 		ConditionVariable *condVar = (ConditionVariable *) args;
+
 		assert(condVar != nullptr);
 
 		// Signal that the taskwait has been completed
