@@ -88,8 +88,7 @@ void MPIMessenger::sendMessage(Message *msg, ClusterNode const *toNode, bool blo
 	Instrument::clusterMessageInitSend(msg, mpiDst);
 
 	if (block) {
-		ret = MPI_Send((void *)delv, msgSize, MPI_BYTE, mpiDst,
-				tag, INTRA_COMM);
+		ret = MPI_Send((void *)delv, msgSize, MPI_BYTE, mpiDst, tag, INTRA_COMM);
 		MPIErrorHandler::handle(ret, INTRA_COMM);
 
 		msg->markAsDelivered();
@@ -99,16 +98,11 @@ void MPIMessenger::sendMessage(Message *msg, ClusterNode const *toNode, bool blo
 		return;
 	}
 
-	MPI_Request *request =
-		(MPI_Request *)MemoryAllocator::alloc(
-				sizeof(MPI_Request));
-	FatalErrorHandler::failIf(
-		request == nullptr,
-		"Could not allocate memory for MPI_Request"
-	);
+	MPI_Request *request = (MPI_Request *)MemoryAllocator::alloc(sizeof(MPI_Request));
+	FatalErrorHandler::failIf(request == nullptr, "Could not allocate memory for MPI_Request");
 
-	ret = MPI_Isend((void *)delv, msgSize, MPI_BYTE, mpiDst,
-			tag, INTRA_COMM, request);
+	ret = MPI_Isend((void *)delv, msgSize, MPI_BYTE, mpiDst, tag, INTRA_COMM, request);
+
 	MPIErrorHandler::handle(ret, INTRA_COMM);
 
 	msg->setMessengerData((void *)request);
@@ -117,12 +111,16 @@ void MPIMessenger::sendMessage(Message *msg, ClusterNode const *toNode, bool blo
 	Instrument::clusterMessageCompleteSend(msg);
 }
 
-DataTransfer *MPIMessenger::sendData(const DataAccessRegion &region,
-		const ClusterNode *to, int messageId, bool block)
-{
+DataTransfer *MPIMessenger::sendData(
+	const DataAccessRegion &region,
+	const ClusterNode *to,
+	int messageId,
+	bool block
+) {
 	int ret, tag;
 	const int mpiDst = to->getCommIndex();
 	void *address = region.getStartAddress();
+
 	const size_t size = region.getSize();
 
 	assert(mpiDst < _wsize && mpiDst != _wrank);
@@ -130,29 +128,29 @@ DataTransfer *MPIMessenger::sendData(const DataAccessRegion &region,
 	tag = (messageId << 8) | DATA_RAW;
 
 	if (block) {
-		ret = MPI_Send(address, size, MPI_BYTE, mpiDst, tag,
-				INTRA_COMM);
+		ret = MPI_Send(address, size, MPI_BYTE, mpiDst, tag, INTRA_COMM);
 		MPIErrorHandler::handle(ret, INTRA_COMM);
 
 		return nullptr;
 	}
 
 	MPI_Request *request = (MPI_Request *)MemoryAllocator::alloc(sizeof(MPI_Request));
-	FatalErrorHandler::failIf(
-		request == nullptr,
-		"Could not allocate memory for MPI_Request"
-	);
+
+	FatalErrorHandler::failIf(request == nullptr, "Could not allocate memory for MPI_Request");
 
 	ret = MPI_Isend(address, size, MPI_BYTE, mpiDst, tag, INTRA_COMM, request);
 	MPIErrorHandler::handle(ret, INTRA_COMM);
 
 	return new MPIDataTransfer(region, ClusterManager::getCurrentMemoryNode(),
-			to->getMemoryNode(), request);
+		to->getMemoryNode(), request);
 }
 
-DataTransfer *MPIMessenger::fetchData(const DataAccessRegion &region,
-		const ClusterNode *from, int messageId, bool block)
-{
+DataTransfer *MPIMessenger::fetchData(
+	const DataAccessRegion &region,
+	const ClusterNode *from,
+	int messageId,
+	bool block
+) {
 	int ret, tag;
 	const int mpiSrc = from->getCommIndex();
 	void *address = region.getStartAddress();
@@ -163,25 +161,22 @@ DataTransfer *MPIMessenger::fetchData(const DataAccessRegion &region,
 	tag = (messageId << 8) | DATA_RAW;
 
 	if (block) {
-		ret = MPI_Recv(address, size, MPI_BYTE, mpiSrc, tag,
-				INTRA_COMM, MPI_STATUS_IGNORE);
+		ret = MPI_Recv(address, size, MPI_BYTE, mpiSrc, tag, INTRA_COMM, MPI_STATUS_IGNORE);
 		MPIErrorHandler::handle(ret, INTRA_COMM);
 
 		return nullptr;
 	}
 
 	MPI_Request *request = (MPI_Request *)MemoryAllocator::alloc(sizeof(MPI_Request));
-	FatalErrorHandler::failIf(
-		request == nullptr,
-		"Could not allocate memory for MPI_Request"
-	);
 
-	ret = MPI_Irecv(address, size, MPI_BYTE, mpiSrc, tag, INTRA_COMM,
-			request);
+	FatalErrorHandler::failIf(request == nullptr, "Could not allocate memory for MPI_Request");
+
+	ret = MPI_Irecv(address, size, MPI_BYTE, mpiSrc, tag, INTRA_COMM, request);
+
 	MPIErrorHandler::handle(ret, INTRA_COMM);
 
 	return new MPIDataTransfer(region, from->getMemoryNode(),
-			ClusterManager::getCurrentMemoryNode(), request);
+		ClusterManager::getCurrentMemoryNode(), request);
 }
 
 void MPIMessenger::synchronizeAll(void)
@@ -221,19 +216,19 @@ Message *MPIMessenger::checkMail(void)
 
 	assert(count != 0);
 	ret = MPI_Recv((void *)msg, count, MPI_BYTE, status.MPI_SOURCE,
-			status.MPI_TAG, INTRA_COMM, MPI_STATUS_IGNORE);
+		status.MPI_TAG, INTRA_COMM, MPI_STATUS_IGNORE);
 	MPIErrorHandler::handle(ret, INTRA_COMM);
 
 	return GenericFactory<int, Message*, Message::Deliverable*>::getInstance().create(type, msg);
 }
 
-void MPIMessenger::testMessageCompletion(
-	std::vector<Message *> &messages
-) {
+void MPIMessenger::testMessageCompletion(std::vector<Message *> &messages)
+{
 	assert(!messages.empty());
 
 	const int msgCount = messages.size();
 	int ret, completedCount;
+
 	MPI_Request requests[msgCount];
 	int finished[msgCount];
 	MPI_Status status[msgCount];
@@ -262,13 +257,13 @@ void MPIMessenger::testMessageCompletion(
 	}
 }
 
-void MPIMessenger::testDataTransferCompletion(
-	std::vector<DataTransfer *> &transfers
-) {
+void MPIMessenger::testDataTransferCompletion(std::vector<DataTransfer *> &transfers)
+{
 	assert(!transfers.empty());
 
 	const int msgCount = transfers.size();
 	int ret, completedCount;
+
 	MPI_Request requests[msgCount];
 	int finished[msgCount];
 	MPI_Status status[msgCount];

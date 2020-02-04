@@ -25,7 +25,7 @@ namespace ExecutionWorkflow {
 		{
 		}
 	};
-	
+
 	class HostDataLinkStep : public Step {
 	public:
 		HostDataLinkStep(__attribute__((unused)) MemoryPlace const *sourceMemoryPlace,
@@ -37,7 +37,7 @@ namespace ExecutionWorkflow {
 		{
 		}
 	};
-	
+
 	class HostExecutionStep : public Step {
 		Task *_task;
 		ComputePlace *_computePlace;
@@ -47,11 +47,11 @@ namespace ExecutionWorkflow {
 			: Step(), _task(task), _computePlace(computePlace)
 		{
 		}
-		
+
 		//! Start the execution of the Step
 		void start();
 	};
-	
+
 	class HostNotificationStep : public Step {
 		std::function<void ()> const _callback;
 	public:
@@ -60,7 +60,7 @@ namespace ExecutionWorkflow {
 		) : _callback(callback)
 		{
 		}
-		
+
 		//! start the execution of the Step
 		inline void start()
 		{
@@ -69,7 +69,7 @@ namespace ExecutionWorkflow {
 			delete this;
 		}
 	};
-	
+
 	class HostUnpinningStep : public Step {
 	public:
 		HostUnpinningStep(

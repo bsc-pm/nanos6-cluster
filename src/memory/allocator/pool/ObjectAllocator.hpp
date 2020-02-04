@@ -16,27 +16,27 @@ template <typename T>
 class ObjectAllocator {
 public:
 	typedef ObjectCache<T> inner_type;
-	
+
 private:
 	static inner_type *_cache;
-	
+
 public:
 	static void initialize()
 	{
 		_cache = new ObjectCache<T>();
 	}
-	
+
 	static void shutdown()
 	{
 		delete _cache;
 	}
-	
+
 	template <typename... ARGS>
 	static inline T *newObject(ARGS &&... args)
 	{
 		return _cache->newObject(std::forward<ARGS>(args)...);
 	}
-	
+
 	static inline void deleteObject(T *ptr)
 	{
 		_cache->deleteObject(ptr);

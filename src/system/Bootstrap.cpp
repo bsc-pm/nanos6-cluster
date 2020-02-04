@@ -129,7 +129,6 @@ void nanos6_preinit(void)
 void nanos6_init(void)
 {
 	Instrument::threadWillSuspend(mainThread->getInstrumentationId());
-
 	StreamManager::initialize();
 }
 

@@ -24,7 +24,9 @@ void StreamManager::createFunction(
 	assert(_manager != nullptr);
 
 	// Create the new stream function
-	StreamFunction *streamFunction = new StreamFunction(function, args, callback, callbackArgs, label);
+	StreamFunction *streamFunction =
+		new StreamFunction(function, args, callback, callbackArgs, label);
+
 	assert(streamFunction != nullptr);
 
 	// Add the new function to be executed in the stream

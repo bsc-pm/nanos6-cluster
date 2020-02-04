@@ -23,24 +23,24 @@ public:
 	Messenger()
 	{
 	}
-	
+
 	virtual ~Messenger()
 	{
 	}
-	
+
 	//! \brief Send a message to a remote node
 	//!
 	//! \param[in] msg is the Message to send
 	//! \param[in] toNode is the receiver node
 	//! \param[in] block determines if the call will block until Message delivery
 	virtual void sendMessage(Message *msg, ClusterNode const *toNode, bool block = false) = 0;
-	
+
 	//! \brief A barrier across all nodes
 	//!
 	//! This is a collective operation that needs to be invoked
 	//! by all nodes
 	virtual void synchronizeAll(void) = 0;
-	
+
 	//! \brief Send a data region to a remote node, related to a previous message.
 	//!
 	//! \param[in] region is the data region to send
@@ -59,7 +59,7 @@ public:
 		int messageId,
 		bool block
 	) = 0;
-	
+
 	//! \brief Receive a data region from a remote node, related to a previous message
 	//!
 	//! \param[in] region is the data region to fetch
@@ -79,26 +79,26 @@ public:
 		int messageId,
 		bool block
 	) = 0;
-	
+
 	//! \brief Check for incoming messages
 	//!
 	//! Invoke the messenger to check from incoming messages
 	//!
 	//! \return A pointer to a message or nullptr if none has been received
 	virtual Message *checkMail() = 0;
-	
+
 	//! Get the index of the current node
 	virtual int getNodeIndex() const = 0;
-	
+
 	//! Get the index of the master node
 	virtual int getMasterIndex() const = 0;
-	
+
 	//! Get the size of the Cluster
 	virtual int getClusterSize() const = 0;
-	
+
 	//! Returns true if this is the master node
 	virtual bool isMasterNode() const = 0;
-	
+
 	//! \brief Test if sending Messages has completed
 	//!
 	//! This tests whether messages stored in the 'messages'
@@ -109,7 +109,7 @@ public:
 	virtual void testMessageCompletion(
 		std::vector<Message *> &messages
 	) = 0;
-	
+
 	//! \brief Test if pending DataTransfers have completed
 	//!
 	//! This tests whether DataTransfer objects stored in the 'transfers'

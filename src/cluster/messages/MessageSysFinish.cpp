@@ -16,8 +16,7 @@ MessageSysFinish::MessageSysFinish(const ClusterNode *from)
 bool MessageSysFinish::handleMessage()
 {
 	if (!nanos6_can_run_main()) {
-		ClusterManager::ShutdownCallback *callback =
-			ClusterManager::getShutdownCallback();
+		ClusterManager::ShutdownCallback *callback = ClusterManager::getShutdownCallback();
 
 		//! We need to call the main callback.
 		while (callback == nullptr) {
