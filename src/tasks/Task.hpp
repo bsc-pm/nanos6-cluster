@@ -751,28 +751,23 @@ public:
 	}
 
 	//! \brief Check whether cost is available for the task
-	inline bool hasCost() const
+	inline bool hasConstrains() const
 	{
-		if (_taskInfo != nullptr) {
-			if (_taskInfo->implementations != nullptr) {
-				return (_taskInfo->implementations->get_constraints != nullptr);
-			}
-		}
-
-		return false;
+		return (_taskInfo != nullptr
+			&& _taskInfo->implementations != nullptr
+			&& _taskInfo->implementations->get_constraints != nullptr);
 	}
 
 	//! \brief Get the task's cost
 	inline size_t getCost() const
 	{
-		size_t cost = 1;
-		if (hasCost()) {
+		if (hasConstrains()) {
 			nanos6_task_constraints_t constraints;
 			_taskInfo->implementations->get_constraints(_argsBlock, &constraints);
-			cost = constraints.cost;
+			return constraints.cost;
 		}
+		return 0;
 
-		return cost;
 	}
 
 	//! \brief Get the task's monitoring statistics

@@ -208,7 +208,12 @@ void AddTask::submitTask(Task *task, Task *parent, bool fromUserCode)
 		// Runtime Tracking Point - The created task has unresolved dependencies and is pending
 		TrackingPoints::taskIsPending(task);
 
-		ready = DataAccessRegistration::registerTaskDataAccesses(task, computePlace, computePlace->getDependencyData());
+		// No need to stop hardware counters, as the task was created just now
+		ready = DataAccessRegistration::registerTaskDataAccesses(
+			task,
+			computePlace,
+			computePlace->getDependencyData()
+		);
 	}
 
 	bool executesInDevice = (task->getDeviceType() != nanos6_host_device);
