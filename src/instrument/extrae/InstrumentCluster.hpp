@@ -7,10 +7,23 @@
 #ifndef INSTRUMENT_EXTRAE_CLUSTER_HPP
 #define INSTRUMENT_EXTRAE_CLUSTER_HPP
 
+#if HAVE_CONFIG_H
+#include <config.h>
+#endif
+
 #include "../api/InstrumentCluster.hpp"
 
+
 namespace Instrument {
+
+#ifdef USE_CLUSTER
 	void defineClusterExtraeEvents();
+#else
+	inline void defineClusterExtraeEvents()
+	{
+	}
+#endif
+
 }
 
 #endif //! INSTRUMENT_EXTRAE_CLUSTER_HPP

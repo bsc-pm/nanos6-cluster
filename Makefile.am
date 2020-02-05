@@ -648,7 +648,6 @@ instrument_verbose_sources = \
 	src/instrument/support/InstrumentThreadLocalDataSupport.cpp \
 	src/instrument/verbose/InstrumentAddTask.cpp \
 	src/instrument/verbose/InstrumentBlockingAPI.cpp \
-	src/instrument/verbose/InstrumentCluster.cpp \
 	src/instrument/verbose/InstrumentComputePlaceManagement.cpp \
 	src/instrument/verbose/InstrumentDependenciesByAccess.cpp \
 	src/instrument/verbose/InstrumentDependenciesByAccessLinks.cpp \
@@ -667,7 +666,6 @@ instrument_extrae_sources = \
 	$(instrument_generic_ids_sources) \
 	src/instrument/extrae/ExtraeSymbolLiterals.cpp \
 	src/instrument/extrae/ExtraeSymbolResolver.cpp \
-	src/instrument/extrae/InstrumentCluster.cpp \
 	src/instrument/extrae/InstrumentExtrae.cpp \
 	src/instrument/extrae/InstrumentInitAndShutdown.cpp \
 	src/instrument/extrae/InstrumentReductions.cpp \
@@ -706,6 +704,12 @@ vmm_cluster_sources = src/memory/vmm/cluster/VirtualMemoryManagement.cpp
 vmm_cluster_cppflags = -I$(srcdir)/src/memory/vmm/cluster
 
 if USE_CLUSTER
+instrument_verbose_sources += \
+	src/instrument/verbose/InstrumentCluster.cpp
+
+instrument_extrae_sources += \
+	src/instrument/extrae/InstrumentCluster.cpp
+
 memory_default_sources = $(memory_allocator_default_sources) $(vmm_cluster_sources)
 memory_default_cppflags = $(memory_allocator_default_cppflags) $(vmm_cluster_cppflags)
 memory_debug_sources = $(memory_default_sources)

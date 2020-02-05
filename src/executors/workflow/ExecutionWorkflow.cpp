@@ -13,6 +13,7 @@
 #include "memory/directory/Directory.hpp"
 #include "system/TrackingPoints.hpp"
 #include "tasks/TaskImplementation.hpp"
+#include "src/memory/directory/Directory.hpp"
 
 #include <ClusterManager.hpp>
 #include <DataAccess.hpp>
@@ -20,6 +21,7 @@
 #include <DataAccessRegistrationImplementation.hpp>
 #include <ExecutionWorkflowHost.hpp>
 #include <ExecutionWorkflowCluster.hpp>
+#include <ClusterManager.hpp>
 
 
 namespace ExecutionWorkflow {
