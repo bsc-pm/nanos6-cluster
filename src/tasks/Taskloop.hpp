@@ -68,7 +68,7 @@ public:
 
 		// Set a implementation defined chunksize if needed
 		if (_bounds.grainsize == 0) {
-			_bounds.grainsize = std::max(totalIterations /CPUManager::getTotalCPUs(), (size_t) 1);
+			_bounds.grainsize = std::max(totalIterations / CPUManager::getTotalCPUs(), (size_t) 1);
 		}
 	}
 

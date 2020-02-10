@@ -33,6 +33,19 @@ struct TaskDataAccesses {
 		TOTAL_FLAG_BITS
 	};
 	typedef std::bitset<TOTAL_FLAG_BITS> flags_t;
+
+	flags_t _flags = flags_t();
+
+	bool hasBeenDeleted() const
+	{
+		return _flags[HAS_BEEN_DELETED_BIT];
+	}
+
+	flags_t::reference hasBeenDeleted()
+	{
+		return _flags[HAS_BEEN_DELETED_BIT];
+	}
+
 #endif
 	//! This will handle the dependencies of nested tasks.
 	bottom_map_t _subaccessBottomMap;
@@ -44,10 +57,6 @@ struct TaskDataAccesses {
 
 	std::atomic<int> _deletableCount;
 	access_map_t *_accessMap;
-#ifndef NDEBUG
-	flags_t _flags;
-#endif
-
 
 	TaskDataAccesses() :
 		_subaccessBottomMap(),
@@ -58,10 +67,6 @@ struct TaskDataAccesses {
 		_commutativeMask(0),
 		_deletableCount(0),
 		_accessMap(nullptr)
-#ifndef NDEBUG
-		,
-		_flags()
-#endif
 	{
 	}
 
@@ -73,10 +78,6 @@ struct TaskDataAccesses {
 		_currentIndex(0),
 		_deletableCount(0),
 		_accessMap(nullptr)
-#ifndef NDEBUG
-		,
-		_flags()
-#endif
 	{
 		// Theoretically, 0.75 is a great load factor to prevent frequent rehashes
 		_subaccessBottomMap.max_load_factor(0.75);
@@ -104,18 +105,6 @@ struct TaskDataAccesses {
 	}
 
 	TaskDataAccesses(TaskDataAccesses const &other) = delete;
-
-#ifndef NDEBUG
-	bool hasBeenDeleted() const
-	{
-		return _flags[HAS_BEEN_DELETED_BIT];
-	}
-
-	flags_t::reference hasBeenDeleted()
-	{
-		return _flags[HAS_BEEN_DELETED_BIT];
-	}
-#endif
 
 	inline bool decreaseDeletableCount()
 	{

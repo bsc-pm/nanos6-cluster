@@ -24,8 +24,8 @@
 struct DataAccess;
 class Task;
 
-
-struct TaskDataAccesses {
+struct TaskDataAccesses 
+{
 	typedef PaddedTicketSpinLock<int> spinlock_t;
 
 	typedef IntrusiveLinearRegionMap<
@@ -45,14 +45,6 @@ struct TaskDataAccesses {
 		boost::intrusive::function_hook< BottomMapEntryLinkingArtifacts >
 	> subaccess_bottom_map_t;
 
-#ifndef NDEBUG
-	enum flag_bits {
-		HAS_BEEN_DELETED_BIT=0,
-		TOTAL_FLAG_BITS
-	};
-	typedef std::bitset<TOTAL_FLAG_BITS> flags_t;
-#endif
-
 	spinlock_t _lock;
 	accesses_t _accesses;
 	access_fragments_t _accessFragments;
@@ -64,7 +56,23 @@ struct TaskDataAccesses {
 	size_t _totalCommutativeBytes;
 
 #ifndef NDEBUG
-	flags_t _flags;
+	enum flag_bits {
+		HAS_BEEN_DELETED_BIT = 0,
+		TOTAL_FLAG_BITS
+	};
+	typedef std::bitset<TOTAL_FLAG_BITS> flags_t;
+
+	flags_t _flags = flags_t();
+
+	bool hasBeenDeleted() const
+	{
+		return _flags[HAS_BEEN_DELETED_BIT];
+	}
+
+	flags_t::reference hasBeenDeleted()
+	{
+		return _flags[HAS_BEEN_DELETED_BIT];
+	}
 #endif
 
 	TaskDataAccesses(__attribute__((unused)) TaskDataAccessesInfo taskAccessInfo)
@@ -73,9 +81,6 @@ struct TaskDataAccesses {
 		_subaccessBottomMap(),
 		_removalBlockers(0), _liveTaskwaitFragmentCount(0),
 		_totalCommutativeBytes(0)
-#ifndef NDEBUG
-		,_flags()
-#endif
 	{
 	}
 
@@ -83,18 +88,7 @@ struct TaskDataAccesses {
 
 	TaskDataAccesses(TaskDataAccesses const &other) = delete;
 
-#ifndef NDEBUG
-	bool hasBeenDeleted() const
-	{
-		return _flags[HAS_BEEN_DELETED_BIT];
-	}
-	flags_t::reference hasBeenDeleted()
-	{
-		return _flags[HAS_BEEN_DELETED_BIT];
-	}
-#endif
-
-	inline size_t getAdditionalMemorySize() const
+	constexpr inline size_t getAdditionalMemorySize() const
 	{
 		return 0;
 	}
