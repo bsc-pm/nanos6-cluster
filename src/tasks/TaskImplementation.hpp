@@ -60,6 +60,8 @@ inline Task::Task(
 	_parentSpawnCallback(nullptr),
 	_nestingLevel(0)
 {
+	// This asserts that the interface is used properly.
+
 	if (parent != nullptr) {
 		parent->addChild(this);
 		_nestingLevel = parent->getNestingLevel() + 1;

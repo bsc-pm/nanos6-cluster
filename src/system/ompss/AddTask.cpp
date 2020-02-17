@@ -105,8 +105,8 @@ Task *AddTask::createTask(
 			+ taskStatisticsSize);
 	} else {
 		// Alignment fixup
-		size_t missalignment = argsBlockSize & (DATA_ALIGNMENT_SIZE - 1);
-		size_t correction = (DATA_ALIGNMENT_SIZE - missalignment) & (DATA_ALIGNMENT_SIZE - 1);
+		const size_t missalignment = argsBlockSize & (DATA_ALIGNMENT_SIZE - 1);
+		const size_t correction = (DATA_ALIGNMENT_SIZE - missalignment) & (DATA_ALIGNMENT_SIZE - 1);
 		argsBlockSize += correction;
 
 		// Allocation and layout
@@ -197,8 +197,10 @@ void AddTask::submitTask(Task *task, Task *parent, bool fromUserCode)
 	}
 
 	bool ready = true;
-	nanos6_task_info_t *taskInfo = task->getTaskInfo();
+	const nanos6_task_info_t *taskInfo = task->getTaskInfo();
+
 	assert(taskInfo != 0);
+
 	if (taskInfo->register_depinfo != 0) {
 		assert(computePlace != nullptr);
 
@@ -216,8 +218,8 @@ void AddTask::submitTask(Task *task, Task *parent, bool fromUserCode)
 		);
 	}
 
-	bool executesInDevice = (task->getDeviceType() != nanos6_host_device);
-	bool isIf0 = task->isIf0();
+	const bool executesInDevice = (task->getDeviceType() != nanos6_host_device);
+	const bool isIf0 = task->isIf0();
 
 	assert(parent != nullptr || ready);
 	assert(parent != nullptr || !isIf0);
