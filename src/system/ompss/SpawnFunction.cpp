@@ -37,6 +37,7 @@ struct SpawnedFunctionArgsBlock {
 	void *_args;
 	SpawnFunction::function_t _completionCallback;
 	void *_completionArgs;
+	nanos6_task_constraints_t _constraints = {0, 0};
 
 	SpawnedFunctionArgsBlock() :
 		_function(nullptr),
@@ -54,7 +55,8 @@ void SpawnFunction::spawnFunction(
 	function_t completionCallback,
 	void *completionArgs,
 	char const *label,
-	bool fromUserCode
+	bool fromUserCode,
+	size_t streamId
 ) {
 	WorkerThread *workerThread = WorkerThread::getCurrentWorkerThread();
 	Task *creator = nullptr;
@@ -96,14 +98,24 @@ void SpawnFunction::spawnFunction(
 			// Use a copy since we do not know the actual lifetime of label
 			taskInfo->implementations[0].task_label = it->first.second.c_str();
 			taskInfo->implementations[0].declaration_source = "Spawned Task";
-			taskInfo->implementations[0].get_constraints = nullptr;
+
+			if (streamId == 0) {  // This optimises some checks latter
+				taskInfo->implementations[0].get_constraints = nullptr;
+			} else {
+				taskInfo->implementations[0].get_constraints
+					= SpawnFunction::spawnedFunctionGetConstraints;
+			}
 		}
+
+		assert ((streamId == 0 && taskInfo->implementations[0].get_constraints == nullptr)
+			|| (streamId > 0 && taskInfo->implementations[0].get_constraints != nullptr));
 	}
 
 	// Register the new task info
-	bool newTaskType = TaskInfo::registerTaskInfo(taskInfo);
-	if (newTaskType)
+	const bool newTaskType = TaskInfo::registerTaskInfo(taskInfo);
+	if (newTaskType) {
 		Instrument::registeredNewSpawnedTaskType(taskInfo);
+	}
 
 	// Create the task representing the spawned function
 	Task *task = AddTask::createTask(
@@ -113,14 +125,14 @@ void SpawnFunction::spawnFunction(
 	);
 	assert(task != nullptr);
 
-	SpawnedFunctionArgsBlock *argsBlock =
-		(SpawnedFunctionArgsBlock *) task->getArgsBlock();
+	SpawnedFunctionArgsBlock *argsBlock = (SpawnedFunctionArgsBlock *) task->getArgsBlock();
 	assert(argsBlock != nullptr);
 
 	argsBlock->_function = function;
 	argsBlock->_args = args;
 	argsBlock->_completionCallback = completionCallback;
 	argsBlock->_completionArgs = completionArgs;
+	argsBlock->_constraints.stream = streamId;
 
 	task->setSpawned();
 #ifdef EXTRAE_ENABLED
@@ -143,6 +155,16 @@ void SpawnFunction::spawnedFunctionWrapper(void *args, void *, nanos6_address_tr
 
 	// Call the user spawned function
 	argsBlock->_function(argsBlock->_args);
+}
+
+void SpawnFunction::spawnedFunctionGetConstraints(
+	void *args,
+	nanos6_task_constraints_t *const constraints
+) {
+	SpawnedFunctionArgsBlock *argsBlock = (SpawnedFunctionArgsBlock *) args;
+	assert(argsBlock != nullptr);
+
+	*constraints = argsBlock->_constraints;
 }
 
 void SpawnFunction::spawnedFunctionDestructor(void *args)
@@ -172,10 +194,10 @@ void nanos6_spawn_function(
 void nanos6_stream_spawn_function(
 	void (*function)(void *),
 	void *args,
-	void (*callback)(void *),
-	void *callback_args,
+	void (*completion_callback)(void *),
+	void *completion_args,
 	char const *label,
 	size_t stream_id
 ) {
-	StreamManager::createFunction(function, args, callback, callback_args, label, stream_id);
+	StreamManager::createFunction(function, args, completion_callback, completion_args, label, stream_id);
 }

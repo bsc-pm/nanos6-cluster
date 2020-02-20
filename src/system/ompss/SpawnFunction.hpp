@@ -63,7 +63,8 @@ public:
 		function_t completionCallback,
 		void *completionArgs,
 		char const *label,
-		bool fromUserCode = false
+		bool fromUserCode = false,
+		size_t streamId = 0
 	);
 
 	//! \brief Indicates whether the task type is spawned
@@ -91,6 +92,18 @@ private:
 		void *deviceEnv,
 		nanos6_address_translation_entry_t *translations
 	);
+
+	//! \brief Function to get spawned tasks constraints
+	//!
+	//! This function should receive the argsblock and write in the constraints parameter
+	//!
+	//! \param[in] argsBlock The pointer to the block of data for the parameters
+	//! \param[out] constraints A pointer to a nanos6_task_constraints_t
+	static void spawnedFunctionGetConstraints(
+		void *argsBlock,
+		nanos6_task_constraints_t * const constraints
+	);
+
 
 	//! \brief Function called when the spawned function has completed
 	//!
