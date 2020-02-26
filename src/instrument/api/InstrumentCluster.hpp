@@ -1,6 +1,6 @@
 /*
 	This file is part of Nanos6 and is licensed under the terms contained in the COPYING file.
-	
+
 	Copyright (C) 2018-2019 Barcelona Supercomputing Center (BSC)
 */
 
@@ -23,7 +23,7 @@ namespace Instrument {
 		InstrumentationContext const &context =
 				ThreadInstrumentationContext::getCurrent()
 	);
-	
+
 	//! This function is called when sending a Message has completed
 	//!
 	//! \param[in] msg is the Message which was sent
@@ -32,7 +32,7 @@ namespace Instrument {
 		InstrumentationContext const &context =
 				ThreadInstrumentationContext::getCurrent()
 	);
-	
+
 	//! This function is called when we start handling a received Message
 	//!
 	//! \param[in] msg is the Message we received and currently handling
@@ -43,7 +43,7 @@ namespace Instrument {
 		InstrumentationContext const &context =
 				ThreadInstrumentationContext::getCurrent()
 	);
-	
+
 	//! This function is called after we finished handling a received Message
 	//!
 	//! \param[in] msg is the Message we finished handling
