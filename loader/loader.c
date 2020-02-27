@@ -140,13 +140,13 @@ void _nanos6_pre_loader(int argc, char* argv[], char * envp [])
 	if (personality(-1) & ADDR_NO_RANDOMIZE) {
 		return;
 	}
-	if (personality(ADDR_NO_RANDOMIZE) == -1) {
-		fprintf(stderr,
-		        "Warning: personality could not be set, ASLR could be active\n");
-	} else {
+	if (argc > 0 && argv[0] != NULL && personality(ADDR_NO_RANDOMIZE) != -1) {
 		execvpe(argv[0], argv, envp);
 		perror("execve");             /* execvpe() only returns on error */
 		exit(EXIT_FAILURE);
+	} else {
+		fprintf(stderr,
+		        "Warning: personality could not be set, ASLR could be active\n");
 	}
 
 }
