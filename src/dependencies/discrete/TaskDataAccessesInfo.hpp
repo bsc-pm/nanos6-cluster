@@ -33,7 +33,7 @@ public:
 		}
 	}
 
-	inline size_t getAllocationSize()
+	inline size_t getAllocationSize() const
 	{
 		return _seqsSize + _addrSize + (_numDeps > 0 ? _alignSize : 0);
 	}
@@ -74,7 +74,7 @@ public:
 		return nullptr;
 	}
 
-	inline size_t getNumDeps()
+	inline size_t getNumDeps() const
 	{
 		return _numDeps;
 	}
