@@ -7,37 +7,23 @@
 #ifndef CLUSTER_RANDOM_SCHEDULER_HPP
 #define CLUSTER_RANDOM_SCHEDULER_HPP
 
-#include "scheduling/SchedulerInterface.hpp"
+#include "scheduling/schedulers/cluster/ClusterSchedulerInterface.hpp"
 #include "system/RuntimeInfo.hpp"
 
 #include <ClusterManager.hpp>
 
-class ClusterRandomScheduler : public SchedulerInterface {
-	//! Current cluster node
-	ClusterNode *_thisNode;
-
-	//! Number of cluster nodes
-	int _clusterSize;
+class ClusterRandomScheduler : public ClusterSchedulerInterface {
 
 public:
-	ClusterRandomScheduler()
+	ClusterRandomScheduler() : ClusterSchedulerInterface("ClusterRandomScheduler")
 	{
-		RuntimeInfo::addEntry("cluster-scheduler", "Cluster Scheduler", getName());
-		_thisNode = ClusterManager::getCurrentClusterNode();
-		_clusterSize = ClusterManager::clusterSize();
 	}
 
 	~ClusterRandomScheduler()
 	{
 	}
 
-	void addReadyTask(Task *task, ComputePlace *computePlace,
-			ReadyTaskHint hint = NO_HINT);
-
-	inline std::string getName() const
-	{
-		return "ClusterRandomScheduler";
-	}
+	void addReadyTask(Task *task, ComputePlace *computePlace, ReadyTaskHint hint = NO_HINT);
 };
 
 #endif // CLUSTER_RANDOM_SCHEDULER_HPP

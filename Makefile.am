@@ -400,8 +400,6 @@ common_sources = \
 	src/scheduling/schedulers/HostUnsyncScheduler.cpp \
 	src/scheduling/schedulers/SyncScheduler.cpp \
 	src/scheduling/schedulers/UnsyncScheduler.cpp \
-	src/scheduling/schedulers/cluster/ClusterLocalityScheduler.cpp \
-	src/scheduling/schedulers/cluster/ClusterRandomScheduler.cpp \
 	src/scheduling/schedulers/device/DeviceUnsyncScheduler.cpp \
 	src/support/GlobalLock.cpp \
 	src/support/config/ConfigCentral.cpp \
@@ -478,7 +476,9 @@ cluster_sources += \
 	src/cluster/polling-services/MessageDelivery.cpp \
 	src/cluster/polling-services/MessageHandler.cpp \
 	src/executors/workflow/cluster/ExecutionWorkflowCluster.cpp \
-	src/memory/directory/cluster/DistributionPolicy.cpp
+	src/memory/directory/cluster/DistributionPolicy.cpp \
+	src/scheduling/schedulers/cluster/ClusterLocalityScheduler.cpp \
+	src/scheduling/schedulers/cluster/ClusterRandomScheduler.cpp
 
 cluster_cppflags = \
 	-I$(srcdir)/src/cluster \
@@ -702,28 +702,6 @@ vmm_smp_cppflags = -I$(srcdir)/src/memory/vmm/smp
 
 vmm_cluster_sources = src/memory/vmm/cluster/VirtualMemoryManagement.cpp
 vmm_cluster_cppflags = -I$(srcdir)/src/memory/vmm/cluster
-
-if USE_CLUSTER
-instrument_verbose_sources += \
-	src/instrument/verbose/InstrumentCluster.cpp
-
-instrument_extrae_sources += \
-	src/instrument/extrae/InstrumentCluster.cpp
-
-memory_default_sources = $(memory_allocator_default_sources) $(vmm_cluster_sources)
-memory_default_cppflags = $(memory_allocator_default_cppflags) $(vmm_cluster_cppflags)
-memory_debug_sources = $(memory_default_sources)
-memory_debug_cppflags = $(memory_default_cppflags)
-else
-# memory_default_sources = $(memory_allocator_default_sources) $(vmm_smp_sources)
-# memory_default_cppflags = $(memory_allocator_default_cppflags) $(vmm_smp_cppflags)
-memory_default_sources = $(memory_allocator_debug_sources) $(vmm_smp_sources)
-memory_default_cppflags = $(memory_allocator_debug_cppflags) $(vmm_smp_cppflags)
-memory_debug_sources = $(memory_allocator_debug_sources) $(vmm_smp_sources)
-memory_debug_cppflags = $(memory_allocator_debug_cppflags) $(vmm_smp_cppflags)
-endif
-
-dist_memory_sources = $(memory_default_sources) $(memory_debug_sources)
 
 # Chronometers
 chronometers_sources =
@@ -1369,8 +1347,36 @@ EXTRA_DIST += \
 	tests/tap-driver.pl \
 	tests/tap-driver.sh
 
-common_libnanos6_cppflags = $(BOOST_CPPFLAGS) -DBOOST_ENABLE_ASSERT_DEBUG_HANDLER $(PTHREAD_CFLAGS) $(hwloc_CFLAGS) $(libnuma_CPPFLAGS) $(CUDA_CFLAGS) $(MPI_CXXFLAGS) $(memkind_CPPFLAGS) $(cluster_cppflags) $(workflow_cppflags) $(chronometers_cppflags) $(cpu_manager_cppflags) $(hardware_counters_cppflags) $(jemalloc_CPPFLAGS)
+if USE_CLUSTER
+instrument_verbose_sources += \
+	src/instrument/verbose/InstrumentCluster.cpp
+
+instrument_extrae_sources += \
+	src/instrument/extrae/InstrumentCluster.cpp
+
+noinst_HEADERS += \
+	src/scheduling/schedulers/cluster/ClusterSchedulerInterface.hpp \
+	src/scheduling/schedulers/cluster/ClusterLocalityScheduler.hpp \
+	src/scheduling/schedulers/cluster/ClusterRandomScheduler.hpp
+
+memory_default_sources = $(memory_allocator_default_sources) $(vmm_cluster_sources)
+memory_default_cppflags = $(memory_allocator_default_cppflags) $(vmm_cluster_cppflags)
+memory_debug_sources = $(memory_default_sources)
+memory_debug_cppflags = $(memory_default_cppflags)
+else
+# memory_default_sources = $(memory_allocator_default_sources) $(vmm_smp_sources)
+# memory_default_cppflags = $(memory_allocator_default_cppflags) $(vmm_smp_cppflags)
+memory_default_sources = $(memory_allocator_debug_sources) $(vmm_smp_sources)
+memory_default_cppflags = $(memory_allocator_debug_cppflags) $(vmm_smp_cppflags)
+memory_debug_sources = $(memory_allocator_debug_sources) $(vmm_smp_sources)
+memory_debug_cppflags = $(memory_allocator_debug_cppflags) $(vmm_smp_cppflags)
+endif
+
+dist_memory_sources = $(memory_default_sources) $(memory_debug_sources)
+
+common_libnanos6_cppflags = $(BOOST_CPPFLAGS) -DBOOST_ENABLE_ASSERT_DEBUG_HANDLER $(PTHREAD_CFLAGS) $(hwloc_CFLAGS) $(libnuma_CPPFLAGS) $(CUDA_CFLAGS) $(MPI_CXXFLAGS) $(memkind_CPPFLAGS) $(cluster_cppflags) $(workflow_cppflags) $(chronometers_cppflags) $(monitoring_cppflags) $(cpu_manager_cppflags) $(hardware_counters_cppflags) $(jemalloc_CPPFLAGS)
 common_libnanos6_ldflags = $(openacc_LIBS) $(AM_LDFLAGS) -version-info $(lib_current):$(lib_revision):$(lib_age) $(jemalloc_LIBS) $(PTHREAD_CFLAGS) $(PTHREAD_LIBS) $(LDFLAGS_NOUNDEFINED) $(hwloc_LIBS) $(libnuma_LIBS) $(DLOPEN_LIBS) $(CUDA_LIBS) $(MPI_CXXLDFLAGS) $(memkind_LIBS) $(cpu_manager_ldflags) $(hardware_counters_ldflags)
+
 
 # This is needed for debuggable spinlocks
 common_sources += $(introspection_sources)

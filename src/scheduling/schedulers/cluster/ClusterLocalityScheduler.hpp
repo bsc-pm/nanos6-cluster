@@ -7,37 +7,23 @@
 #ifndef CLUSTER_LOCALITY_SCHEDULER_HPP
 #define CLUSTER_LOCALITY_SCHEDULER_HPP
 
-#include "scheduling/SchedulerInterface.hpp"
+#include "scheduling/schedulers/cluster/ClusterSchedulerInterface.hpp"
 #include "system/RuntimeInfo.hpp"
 
 #include <ClusterManager.hpp>
 
-class ClusterLocalityScheduler : public SchedulerInterface {
-	//! Current cluster node
-	ClusterNode *_thisNode;
-
-	//! Number of cluster nodes
-	int _clusterSize;
+class ClusterLocalityScheduler : public ClusterSchedulerInterface {
 
 public:
-	ClusterLocalityScheduler()
+	ClusterLocalityScheduler() : ClusterSchedulerInterface("ClusterLocalityScheduler")
 	{
-		RuntimeInfo::addEntry("cluster-scheduler", "Cluster Scheduler", getName());
-		_thisNode = ClusterManager::getCurrentClusterNode();
-		_clusterSize = ClusterManager::clusterSize();
 	}
 
 	~ClusterLocalityScheduler()
 	{
 	}
 
-	void addReadyTask(Task *task, ComputePlace *computePlace,
-			ReadyTaskHint hint = NO_HINT);
-
-	inline std::string getName() const
-	{
-		return "ClusterLocalityScheduler";
-	}
+	void addReadyTask(Task *task, ComputePlace *computePlace, ReadyTaskHint hint = NO_HINT);
 };
 
 #endif // CLUSTER_LOCALITY_SCHEDULER_HPP
