@@ -104,9 +104,8 @@ public:
 	//! \param[in] id is the index of the ClusterNode we request
 	//!
 	//! \returns The ClusterNode object with index 'id'
-	static inline ClusterNode *getClusterNode(int id)
+	static inline ClusterNode *getClusterNode(size_t id)
 	{
-		assert(id >= 0);
 		assert(!_singleton->_clusterNodes.empty());
 		assert((size_t)id < _singleton->_clusterNodes.size());
 
