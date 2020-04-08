@@ -31,13 +31,14 @@ enum nanos6_task_execution_api_t { nanos6_task_execution_api = 1 };
 // NOTE: The full version depends also on nanos6_major_api
 //       That is:   nanos6_major_api . nanos6_task_constraints_api
 //! \brief This needs to be incremented every time there is an update to nanos6_task_constraints_t
-enum nanos6_task_constraints_api_t { nanos6_task_constraints_api = 1 };
+enum nanos6_task_constraints_api_t { nanos6_task_constraints_api = 3 };
 
 
 typedef struct
 {
 	size_t cost;
 	size_t stream;
+	size_t node;
 } nanos6_task_constraints_t;
 
 
