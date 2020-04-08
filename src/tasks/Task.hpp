@@ -782,7 +782,18 @@ public:
 		return 0;
 	}
 
-	//! \brief Get the task's monitoring statistics
+	//! \brief Get the task's stream
+	inline size_t getNode() const
+	{
+		if (hasConstrains()) {
+			nanos6_task_constraints_t constraints;
+			_taskInfo->implementations->get_constraints(_argsBlock, &constraints);
+			return constraints.node;
+		}
+		return 0xFFFF;
+	}
+
+	//! \brief Get the task's statistics
 	inline TaskStatistics *getTaskStatistics()
 	{
 		return _taskStatistics;
