@@ -10,6 +10,7 @@
 #include <string>
 
 #include "SchedulerInterface.hpp"
+#include "LocalScheduler.hpp"
 #include "schedulers/cluster/ClusterLocalityScheduler.hpp"
 #include "schedulers/cluster/ClusterRandomScheduler.hpp"
 #include "system/RuntimeInfo.hpp"
@@ -22,15 +23,19 @@ class ClusterScheduler : public SchedulerInterface {
 public:
 	ClusterScheduler()
 	{
-		ConfigVariable<std::string> clusterSchedulerName("cluster.scheduling_policy");
+		if (ClusterManager::inClusterMode()) {
+			ConfigVariable<std::string> clusterSchedulerName("cluster.scheduling_policy");
 
-		if (clusterSchedulerName.getValue() == "random") {
-			_clusterSchedulerImplementation = new ClusterRandomScheduler();
-		} else if (clusterSchedulerName.getValue() == "locality") {
-			_clusterSchedulerImplementation = new ClusterLocalityScheduler();
+			if (clusterSchedulerName.getValue() == "random") {
+				_clusterSchedulerImplementation = new ClusterRandomScheduler();
+			} else if (clusterSchedulerName.getValue() == "locality") {
+				_clusterSchedulerImplementation = new ClusterLocalityScheduler();
+			} else {
+				FatalErrorHandler::warnIf(true, "Unknown cluster scheduler:", clusterSchedulerName.getValue(), ". Using default: locality");
+				_clusterSchedulerImplementation = new ClusterLocalityScheduler();
+			}
 		} else {
-			FatalErrorHandler::warnIf(true, "Unknown cluster scheduler:", clusterSchedulerName.getValue(), ". Using default: locality");
-			_clusterSchedulerImplementation = new ClusterLocalityScheduler();
+			_clusterSchedulerImplementation = new LocalScheduler();
 		}
 	}
 

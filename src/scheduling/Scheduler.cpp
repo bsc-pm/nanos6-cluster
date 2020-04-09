@@ -4,22 +4,23 @@
 	Copyright (C) 2015-2019 Barcelona Supercomputing Center (BSC)
 */
 
-#include "ClusterScheduler.hpp"
-#include "LocalScheduler.hpp"
 #include "Scheduler.hpp"
+#include "system/RuntimeInfo.hpp"
 
-#include <ClusterManager.hpp>
+#ifdef USE_CLUSTER
+#include "ClusterScheduler.hpp"
+typedef ClusterScheduler instanceScheduler;
+#else
+#include "LocalScheduler.hpp"
+typedef LocalScheduler instanceScheduler;
+#endif
+
 
 SchedulerInterface *Scheduler::_instance;
 
 void Scheduler::initialize()
 {
-	bool clusterEnabled = ClusterManager::inClusterMode();
-	if (clusterEnabled) {
-		_instance = new ClusterScheduler();
-	} else {
-		_instance = new LocalScheduler();
-	}
+	_instance = new instanceScheduler();
 
 	assert(_instance != nullptr);
 	RuntimeInfo::addEntry("scheduler", "Scheduler", _instance->getName());

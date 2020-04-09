@@ -1252,7 +1252,6 @@ noinst_HEADERS = \
 	src/monitoring/TaskMonitor.hpp \
 	src/monitoring/TaskStatistics.hpp \
 	src/monitoring/TasktypeStatistics.hpp \
-	src/scheduling/ClusterScheduler.hpp \
 	src/scheduling/LocalScheduler.hpp \
 	src/scheduling/ReadyQueue.hpp \
 	src/scheduling/Scheduler.hpp \
@@ -1355,6 +1354,7 @@ instrument_extrae_sources += \
 	src/instrument/extrae/InstrumentCluster.cpp
 
 noinst_HEADERS += \
+	src/scheduling/ClusterScheduler.hpp \
 	src/scheduling/schedulers/cluster/ClusterSchedulerInterface.hpp \
 	src/scheduling/schedulers/cluster/ClusterLocalityScheduler.hpp \
 	src/scheduling/schedulers/cluster/ClusterRandomScheduler.hpp
