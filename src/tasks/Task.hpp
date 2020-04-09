@@ -38,6 +38,10 @@ class WorkerThread;
 #pragma GCC diagnostic push
 #pragma GCC diagnostic error "-Wunused-result"
 
+// TODO: Mercurium defines this value hard coded, we must use a better approach
+// and update it here and there in case of change.
+#define DEFAULT_NODE_VALUE 0xFFFF
+
 using namespace ExecutionWorkflow;
 
 class Task {
@@ -790,7 +794,7 @@ public:
 			_taskInfo->implementations->get_constraints(_argsBlock, &constraints);
 			return constraints.node;
 		}
-		return 0xFFFF;
+		return DEFAULT_NODE_VALUE;
 	}
 
 	//! \brief Get the task's statistics

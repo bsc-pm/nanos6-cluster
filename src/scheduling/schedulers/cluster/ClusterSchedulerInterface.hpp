@@ -1,7 +1,7 @@
 /*
 	This file is part of Nanos6 and is licensed under the terms contained in the COPYING file.
 
-	Copyright (C) 2019 Barcelona Supercomputing Center (BSC)
+	Copyright (C) 2020 Barcelona Supercomputing Center (BSC)
 */
 
 #ifndef CLUSTER_SCHEDULER_INTERFACE_HPP
@@ -23,6 +23,18 @@ protected:
 	//! Scheduler name
 	const std::string _name;
 
+	//! Function to pass the task to the local scheduler or call the execute function in workflow
+	//! when the task is remote.
+	void addReadyLocalOrExecuteRemote(
+		size_t nodeId,
+		Task *task,
+		ComputePlace *computePlace,
+		ReadyTaskHint hint);
+
+	//! Handle constrains for cluster. Must return true only if some constrains where found and used
+	//! properly.
+	bool handleClusterSchedulerConstrains(Task *task, ComputePlace *computePlace, ReadyTaskHint hint);
+
 public:
 	ClusterSchedulerInterface(const std::string &name)
 		: _thisNode(ClusterManager::getCurrentClusterNode()),
@@ -42,6 +54,7 @@ public:
 	}
 
 	virtual void addReadyTask(Task *task, ComputePlace *computePlace, ReadyTaskHint hint = NO_HINT) = 0;
+
 };
 
 #endif // CLUSTER_SCHEDULER_INTERFACE_HPP

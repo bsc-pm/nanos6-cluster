@@ -477,6 +477,7 @@ cluster_sources += \
 	src/cluster/polling-services/MessageHandler.cpp \
 	src/executors/workflow/cluster/ExecutionWorkflowCluster.cpp \
 	src/memory/directory/cluster/DistributionPolicy.cpp \
+	src/scheduling/schedulers/cluster/ClusterSchedulerInterface.cpp \
 	src/scheduling/schedulers/cluster/ClusterLocalityScheduler.cpp \
 	src/scheduling/schedulers/cluster/ClusterRandomScheduler.cpp
 

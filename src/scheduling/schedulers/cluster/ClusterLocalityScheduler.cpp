@@ -16,18 +16,14 @@
 #include <ExecutionWorkflow.hpp>
 #include <VirtualMemoryManagement.hpp>
 
-void ClusterLocalityScheduler::addReadyTask(Task *task, ComputePlace *computePlace,
-		ReadyTaskHint hint)
-{
-	//! We do not offload spawned functions, if0 tasks, remote task
-	//! and tasks that already have an ExecutionWorkflow created for
-	//! them
-	if ((task->isSpawned() || task->isIf0() || task->isRemote() ||
-		task->getWorkflow() != nullptr)) {
-		SchedulerInterface::addReadyTask(task, computePlace, hint);
+void ClusterLocalityScheduler::addReadyTask(
+	Task *task,
+	ComputePlace *computePlace,
+	ReadyTaskHint hint
+) {
+	if (ClusterSchedulerInterface::handleClusterSchedulerConstrains(task, computePlace, hint)) {
 		return;
 	}
-
 
 	std::vector<size_t> bytes(_clusterSize, 0);
 	bool canBeOffloaded = true;
@@ -46,8 +42,7 @@ void ClusterLocalityScheduler::addReadyTask(Task *task, ComputePlace *computePla
 			}
 
 			if (Directory::isDirectoryMemoryPlace(location)) {
-				Directory::HomeNodesArray *homeNodes =
-					Directory::find(region);
+				Directory::HomeNodesArray *homeNodes = Directory::find(region);
 
 				for (const auto &entry : *homeNodes) {
 					location = entry->getHomeNode();
@@ -87,16 +82,7 @@ void ClusterLocalityScheduler::addReadyTask(Task *task, ComputePlace *computePla
 
 	assert(!bytes.empty());
 	std::vector<size_t>::iterator it = bytes.begin();
-	size_t nodeId = std::distance(it, std::max_element(it, it + _clusterSize));
+	const size_t nodeId = std::distance(it, std::max_element(it, it + _clusterSize));
 
-	ClusterNode *targetNode = ClusterManager::getClusterNode(nodeId);
-	assert(targetNode != nullptr);
-	if (targetNode == _thisNode) {
-		SchedulerInterface::addReadyTask(task, computePlace, hint);
-		return;
-	}
-
-	ClusterMemoryNode *memoryNode = targetNode->getMemoryNode();
-	assert(memoryNode != nullptr);
-	ExecutionWorkflow::executeTask(task, targetNode, memoryNode);
+	addReadyLocalOrExecuteRemote(nodeId, task, computePlace, hint);
 }

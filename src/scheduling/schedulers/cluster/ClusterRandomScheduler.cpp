@@ -13,15 +13,12 @@
 #include <ExecutionWorkflow.hpp>
 #include <VirtualMemoryManagement.hpp>
 
-void ClusterRandomScheduler::addReadyTask(Task *task, ComputePlace *computePlace,
-		ReadyTaskHint hint)
-{
-	//! We do not offload spawned functions, if0 tasks, remote task
-	//! and tasks that already have an ExecutionWorkflow created for
-	//! them
-	if ((task->isSpawned() || task->isIf0() || task->isRemote() ||
-		task->getWorkflow() != nullptr)) {
-		SchedulerInterface::addReadyTask(task, computePlace, hint);
+void ClusterRandomScheduler::addReadyTask(
+	Task *task,
+	ComputePlace *computePlace,
+	ReadyTaskHint hint
+) {
+	if (ClusterSchedulerInterface::handleClusterSchedulerConstrains(task, computePlace, hint)) {
 		return;
 	}
 
@@ -46,18 +43,5 @@ void ClusterRandomScheduler::addReadyTask(Task *task, ComputePlace *computePlace
 	std::mt19937 eng(rd());
 	std::uniform_int_distribution<> distr(0, _clusterSize - 1);
 
-	ClusterNode *targetNode = ClusterManager::getClusterNode(distr(eng));
-	assert(targetNode != nullptr);
-
-	if (targetNode == _thisNode) {
-		//! Execute task locally
-		SchedulerInterface::addReadyTask(task, computePlace, hint);
-		return;
-	}
-
-	ClusterMemoryNode *memoryNode = targetNode->getMemoryNode();
-	assert(memoryNode != nullptr);
-
-	//! Offload task
-	ExecutionWorkflow::executeTask(task, targetNode, memoryNode);
+	addReadyLocalOrExecuteRemote(distr(eng), task, computePlace, hint);
 }
