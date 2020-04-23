@@ -1,7 +1,7 @@
 /*
 	This file is part of Nanos6 and is licensed under the terms contained in the COPYING file.
 
-	Copyright (C) 2019 Barcelona Supercomputing Center (BSC)
+	Copyright (C) 2019-2020 Barcelona Supercomputing Center (BSC)
 */
 
 #ifndef DIRECTORY_HPP
@@ -18,19 +18,19 @@ class DataAccessRegion;
 class Directory {
 	//! \brief A map of the home nodes of memory regions
 	static HomeNodeMap _homeNodes;
-	
+
 	//! \brief A MemoryPlace that 'points' to the Directory
 	//!
 	//! We use this MemoryPlace in every case we mean that
 	//! we need to consult with the Directory in order to ask
 	//! the actual location of a DataAccess
 	static MemoryPlace _directoryMemoryPlace;
-	
+
 public:
 	//! Exposing a type that describes the array of home nodes for a given
 	//! memory region
 	typedef HomeNodeMap::HomeNodesArray HomeNodesArray;
-	
+
 	//! \brief Check if a MemoryPlace is the Directory MemoryPlace
 	//!
 	//! \param[in] memoryPlace is the MemoryPlace we are checking
@@ -41,7 +41,7 @@ public:
 	{
 		return (memoryPlace == &_directoryMemoryPlace);
 	}
-	
+
 	//! \brief Check if the id is the id of the Directory MemoryPlace
 	//!
 	//! \param[in] index is the MemoryPlace index of the MemoryPlace we are
@@ -52,7 +52,7 @@ public:
 	{
 		return (index == _directoryMemoryPlace.getIndex());
 	}
-	
+
 	//! \brief Retrieve the Directory MemoryPlace
 	//!
 	//! \returns a pointer to the Directory MemoryPlace
@@ -60,7 +60,7 @@ public:
 	{
 		return &_directoryMemoryPlace;
 	}
-	
+
 	//! \brief insert a region to the directory
 	//!
 	//! \param[in] region is the DataAccessRegion to insert
@@ -70,7 +70,7 @@ public:
 	{
 		_homeNodes.insert(region, homeNode);
 	}
-	
+
 	//! \brief find the home nodes of all the subregions of a region
 	//!
 	//! This method returns an array of HomeMapEntry elements which
@@ -86,7 +86,7 @@ public:
 	{
 		return _homeNodes.find(region);
 	}
-	
+
 	//! \brief Remove a region from the Directory
 	//!
 	//! Remove the tracking of a DataAccessRegion inside the Directory.

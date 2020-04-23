@@ -1,7 +1,7 @@
 /*
 	This file is part of Nanos6 and is licensed under the terms contained in the COPYING file.
 
-	Copyright (C) 2018 Barcelona Supercomputing Center (BSC)
+	Copyright (C) 2018-2020 Barcelona Supercomputing Center (BSC)
 */
 
 #include <nanos6/cluster.h>
@@ -40,7 +40,7 @@ extern "C" void *nanos6_dmalloc(
 	if (size == 0) {
 		return nullptr;
 	}
-	
+
 	return ClusterMemoryManagement::dmalloc(size, policy, num_dimensions, dimensions);
 }
 
@@ -54,7 +54,7 @@ extern "C" void *nanos6_lmalloc(size_t size)
 	if (size == 0) {
 		return nullptr;
 	}
-	
+
 	return ClusterMemoryManagement::lmalloc(size);
 }
 

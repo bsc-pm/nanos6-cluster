@@ -1,7 +1,7 @@
 /*
 	This file is part of Nanos6 and is licensed under the terms contained in the COPYING file.
 
-	Copyright (C) 2019 Barcelona Supercomputing Center (BSC)
+	Copyright (C) 2019-2020 Barcelona Supercomputing Center (BSC)
 */
 
 #include "memory/directory/Directory.hpp"
@@ -19,11 +19,11 @@ namespace ClusterDirectory {
 		void *address = region.getStartAddress();
 		size_t size = region.getSize();
 		size_t clusterSize = ClusterManager::clusterSize();
-		
+
 		size_t blockSize = size / clusterSize;
 		size_t residual = size % clusterSize;
 		size_t numBlocks = (blockSize > 0) ? clusterSize : 0;
-		
+
 		char *ptr = (char *)address;
 		for (size_t i = 0; i < numBlocks; ++i) {
 			DataAccessRegion newRegion((void *)ptr, blockSize);
@@ -31,18 +31,18 @@ namespace ClusterDirectory {
 			Directory::insert(newRegion, homeNode);
 			ptr += blockSize;
 		}
-		
+
 		//! Add an extra entry to the first node for any residual
 		//! uncovered region.
 		if (residual > 0) {
 			DataAccessRegion newRegion((void *)ptr, residual);
 			ClusterMemoryNode *homeNode = ClusterManager::getMemoryNode(0);
 			assert(homeNode != nullptr);
-			
+
 			Directory::insert(newRegion, homeNode);
 		}
 	}
-	
+
 	void registerAllocation(DataAccessRegion const &region,
 			nanos6_data_distribution_t policy,
 			__attribute__((unused)) size_t nrDimensions,
@@ -52,7 +52,7 @@ namespace ClusterDirectory {
 			case nanos6_equpart_distribution:
 				assert(nrDimensions == 0);
 				assert(dimensions == nullptr);
-				
+
 				registerAllocationEqupart(region);
 				break;
 			case nanos6_block_distribution:
@@ -64,7 +64,7 @@ namespace ClusterDirectory {
 				);
 		}
 	}
-	
+
 	void unregisterAllocation(DataAccessRegion const &region)
 	{
 		//! Erase from Directory

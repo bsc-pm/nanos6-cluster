@@ -33,19 +33,11 @@ nanos6_task_invocation_info_t SpawnFunction::_spawnedFunctionInvocationInfo = { 
 
 //! Args block of spawned functions
 struct SpawnedFunctionArgsBlock {
-	SpawnFunction::function_t _function;
-	void *_args;
-	SpawnFunction::function_t _completionCallback;
-	void *_completionArgs;
+	SpawnFunction::function_t _function = nullptr;
+	void *_args = nullptr;
+	SpawnFunction::function_t _completionCallback = nullptr;
+	void *_completionArgs = nullptr;
 	nanos6_task_constraints_t _constraints = { .cost = 0, .stream = 0, .node = DEFAULT_NODE_VALUE};
-
-	SpawnedFunctionArgsBlock() :
-		_function(nullptr),
-		_args(nullptr),
-		_completionCallback(nullptr),
-		_completionArgs(nullptr)
-	{
-	}
 };
 
 

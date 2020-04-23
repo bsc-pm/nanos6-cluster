@@ -44,6 +44,10 @@ class WorkerThread;
 
 using namespace ExecutionWorkflow;
 
+// TODO: Mercurium defines this value hard coded, we must use a better approach
+// and update it here and there in case of change.
+#define DEFAULT_NODE_VALUE 0xFFFF
+
 class Task {
 public:
 	enum {

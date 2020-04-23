@@ -1,7 +1,7 @@
 /*
 	This file is part of Nanos6 and is licensed under the terms contained in the COPYING file.
 
-	Copyright (C) 2018 Barcelona Supercomputing Center (BSC)
+	Copyright (C) 2018-2020 Barcelona Supercomputing Center (BSC)
 */
 
 #ifndef NANOS6_CLUSTER_H
@@ -24,10 +24,10 @@ extern "C" {
 typedef enum {
 	//! Equally-partitioned distribution among all memory nodes
 	nanos6_equpart_distribution = 0,
-	
+
 	//! Block distribution
 	nanos6_block_distribution,
-	
+
 	//! Block cyclic distribution
 	nanos6_cyclic_distribution
 } nanos6_data_distribution_t;
