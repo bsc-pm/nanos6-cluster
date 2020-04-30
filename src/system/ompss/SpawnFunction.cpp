@@ -38,6 +38,22 @@ struct SpawnedFunctionArgsBlock {
 	SpawnFunction::function_t _completionCallback = nullptr;
 	void *_completionArgs = nullptr;
 	nanos6_task_constraints_t _constraints = { .cost = 0, .stream = 0, .node = DEFAULT_NODE_VALUE};
+
+	void set(
+		SpawnFunction::function_t function,
+		void *args,
+		SpawnFunction::function_t completion_callback,
+		void *completion_args,
+		size_t stream_id
+	) {
+		_function = function;
+		_args = args;
+		_completionCallback = completion_callback;
+		_completionArgs = completion_args;
+		_constraints.stream = stream_id;
+	}
+
+
 };
 
 
@@ -120,11 +136,7 @@ void SpawnFunction::spawnFunction(
 	SpawnedFunctionArgsBlock *argsBlock = (SpawnedFunctionArgsBlock *) task->getArgsBlock();
 	assert(argsBlock != nullptr);
 
-	argsBlock->_function = function;
-	argsBlock->_args = args;
-	argsBlock->_completionCallback = completionCallback;
-	argsBlock->_completionArgs = completionArgs;
-	argsBlock->_constraints.stream = streamId;
+	argsBlock->set(function, args, completionCallback, completionArgs, streamId);
 
 	task->setSpawned();
 #ifdef EXTRAE_ENABLED

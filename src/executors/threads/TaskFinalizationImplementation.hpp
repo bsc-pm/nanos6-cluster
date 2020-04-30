@@ -124,10 +124,10 @@ void TaskFinalization::disposeTask(Task *task)
 		assert(task->hasFinished());
 
 		disposable = task->unlinkFromParent();
-		bool isTaskfor = task->isTaskfor();
-		bool isTaskloop = task->isTaskloop();
-		bool isSpawned = task->isSpawned();
-		bool isStreamExecutor = task->isStreamExecutor();
+		const bool isTaskfor = task->isTaskfor();
+		const bool isTaskloop = task->isTaskloop();
+		const bool isSpawned = task->isSpawned();
+		const bool isStreamExecutor = task->isStreamExecutor();
 
 		if (task->isDisposable()) {
 			Instrument::destroyTask(task->getInstrumentationTaskId());

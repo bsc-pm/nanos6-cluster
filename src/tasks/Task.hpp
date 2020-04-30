@@ -822,8 +822,7 @@ public:
 		return _flags[remote_flag];
 	}
 
-	inline void setClusterContext(
-		TaskOffloading::ClusterTaskContext *clusterContext)
+	inline void setClusterContext(TaskOffloading::ClusterTaskContext *clusterContext)
 	{
 		_clusterContext = clusterContext;
 	}
