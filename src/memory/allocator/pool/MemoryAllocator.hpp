@@ -20,15 +20,21 @@ struct DataAccess;
 
 class MemoryAllocator {
 private:
+
+	static MemoryAllocator *_singleton;
+
 	typedef std::map<size_t, MemoryPool *> size_to_pool_t;
 
-	static std::vector<MemoryPoolGlobal *> _globalMemoryPool;
-	static std::vector<size_to_pool_t> _localMemoryPool;
+	std::vector<MemoryPoolGlobal *> _globalMemoryPool;
+	std::vector<size_to_pool_t> _localMemoryPool;
 
-	static size_to_pool_t _externalMemoryPool;
-	static SpinLock _externalMemoryPoolLock;
+	SpinLock _externalMemoryPoolLock;
+	size_to_pool_t _externalMemoryPool;
 
-	static MemoryPool *getPool(size_t size);
+	MemoryPool *getPool(size_t size);
+
+	MemoryAllocator(size_t numaNodeCount, size_t cpuCount);
+	~MemoryAllocator();
 
 public:
 	static void initialize();
@@ -52,6 +58,7 @@ public:
 	static T *newObject(Args &&... args)
 	{
 		void *ptr = MemoryAllocator::alloc(sizeof(T));
+		assert(ptr != nullptr);
 		new (ptr) T(std::forward<Args>(args)...);
 		return (T*)ptr;
 	}
@@ -59,9 +66,11 @@ public:
 	template <typename T>
 	static void deleteObject(T *ptr)
 	{
+		assert(ptr != nullptr);
 		ptr->~T();
 		MemoryAllocator::free(ptr, sizeof(T));
 	}
+
 };
 
 template<typename T>

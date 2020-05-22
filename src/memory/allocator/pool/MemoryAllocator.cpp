@@ -9,39 +9,75 @@
 #include "hardware/HardwareInfo.hpp"
 #include <VirtualMemoryManagement.hpp>
 
-#include "MemoryPool.hpp"
-
 #include "MemoryAllocator.hpp"
 #include "ObjectAllocator.hpp"
 
-std::vector<MemoryPoolGlobal *> MemoryAllocator::_globalMemoryPool;
-std::vector<MemoryAllocator::size_to_pool_t> MemoryAllocator::_localMemoryPool;
-MemoryAllocator::size_to_pool_t MemoryAllocator::_externalMemoryPool;
-SpinLock MemoryAllocator::_externalMemoryPoolLock;
+#include "MemoryPool.hpp"
+#include "MemoryPoolGlobal.hpp"
+
+
+MemoryAllocator *MemoryAllocator::_singleton = nullptr;
+
+MemoryAllocator::MemoryAllocator(size_t numaNodeCount, size_t cpuCount) :
+	_globalMemoryPool(numaNodeCount),
+	_localMemoryPool(cpuCount),
+	_externalMemoryPool()
+{
+	assert(cpuCount > 0);
+
+	for (size_t i = 0; i < numaNodeCount; ++i) {
+		_globalMemoryPool[i] = new MemoryPoolGlobal(i);
+	}
+
+
+}
+
+MemoryAllocator::~MemoryAllocator()
+{
+	for (auto &it : _externalMemoryPool) {
+		delete it.second;
+	}
+
+	for (auto &it : _localMemoryPool) {
+		for (auto &it_i : it) {
+			delete it_i.second;
+		}
+	}
+
+	for (auto &it : _globalMemoryPool) {
+		delete it;
+	}
+
+	_localMemoryPool.clear();
+	_globalMemoryPool.clear();
+}
+
+// Static functions start here
 
 MemoryPool *MemoryAllocator::getPool(size_t size)
 {
-	WorkerThread *thread = WorkerThread::getCurrentWorkerThread();
-	size_t cpuId;
-	size_t numaNodeId;
 	MemoryPool *pool = nullptr;
 
 	// Round to the nearest multiple of the cache line size
-	size_t cacheLineSize = HardwareInfo::getCacheLineSize();
+	const size_t cacheLineSize = HardwareInfo::getCacheLineSize();
 	const size_t roundedSize = (size + cacheLineSize - 1) & ~(cacheLineSize - 1);
 	const size_t cacheLines = roundedSize / cacheLineSize;
 
 	assert (roundedSize > 0);
+	WorkerThread *thread = WorkerThread::getCurrentWorkerThread();
 
 	if (thread != nullptr) {
 		CPU *currentCPU = thread->getComputePlace();
 
 		if (currentCPU != nullptr) {
-			cpuId = currentCPU->getIndex();
-			numaNodeId = currentCPU->getNumaNodeId();
+			const size_t cpuId = currentCPU->getIndex();
+			assert(cpuId < _localMemoryPool.size());
 
 			auto it = _localMemoryPool[cpuId].find(cacheLines);
 			if (it == _localMemoryPool[cpuId].end()) {
+				const size_t numaNodeId = currentCPU->getNumaNodeId();
+				assert(numaNodeId < _globalMemoryPool.size());
+
 				// No pool of this size locally
 				pool = new MemoryPool(_globalMemoryPool[numaNodeId], roundedSize);
 				_localMemoryPool[cpuId][cacheLines] = pool;
@@ -52,10 +88,10 @@ MemoryPool *MemoryAllocator::getPool(size_t size)
 	}
 
 	if (pool == nullptr) {
-		std::lock_guard<SpinLock> guard(_externalMemoryPoolLock);
+		std::lock_guard<SpinLock> guard(_singleton->_externalMemoryPoolLock);
 		auto it = _externalMemoryPool.find(cacheLines);
 		if (it == _externalMemoryPool.end()) {
-			pool = new MemoryPool(_globalMemoryPool[0], roundedSize);
+			pool = new MemoryPool(_singleton->_globalMemoryPool[0], roundedSize);
 			_externalMemoryPool[cacheLines] = pool;
 		} else {
 			pool = it->second;
@@ -67,17 +103,14 @@ MemoryPool *MemoryAllocator::getPool(size_t size)
 
 void MemoryAllocator::initialize()
 {
+	const size_t numaNodeCount
+		= HardwareInfo::getMemoryPlaceCount(nanos6_device_t::nanos6_host_device);
+	const size_t cpuCount = CPUManager::getTotalCPUs();
+
 	VirtualMemoryManagement::initialize();
 
-	size_t numaNodeCount = HardwareInfo::getMemoryPlaceCount(nanos6_device_t::nanos6_host_device);
-	size_t cpuCount = HardwareInfo::getComputePlaceCount(nanos6_device_t::nanos6_host_device);
-	_globalMemoryPool.resize(numaNodeCount);
-
-	for (size_t i = 0; i < numaNodeCount; ++i) {
-		_globalMemoryPool[i] = new MemoryPoolGlobal(i);
-	}
-
-	_localMemoryPool.resize(cpuCount);
+	assert(_singleton == nullptr);
+	_singleton = new MemoryAllocator(numaNodeCount, cpuCount);
 
 	//! Initialize the Object caches
 	ObjectAllocator<DataAccess>::initialize();
@@ -87,36 +120,33 @@ void MemoryAllocator::initialize()
 
 void MemoryAllocator::shutdown()
 {
-	for (size_t i = 0; i < _globalMemoryPool.size(); ++i) {
-		delete _globalMemoryPool[i];
-	}
-
-	for (size_t i = 0; i < _localMemoryPool.size(); ++i) {
-		for (auto it = _localMemoryPool[i].begin(); it != _localMemoryPool[i].end(); ++it) {
-			delete it->second;
-		}
-	}
-
-	for (auto it = _externalMemoryPool.begin(); it != _externalMemoryPool.end(); ++it) {
-		delete it->second;
-	}
-
 	//! Initialize the Object caches
 	ObjectAllocator<BottomMapEntry>::shutdown();
 	ObjectAllocator<ReductionInfo>::shutdown();
 	ObjectAllocator<DataAccess>::shutdown();
+
+	assert(_singleton != nullptr);
+	delete _singleton;
+	_singleton = nullptr;
+
+	VirtualMemoryManagement::shutdown();
 }
+
 
 void *MemoryAllocator::alloc(size_t size)
 {
-	MemoryPool *pool = getPool(size);
+	assert(_singleton != nullptr);
+	MemoryPool *pool = _singleton->getPool(size);
 
+	assert(pool != nullptr);
 	return pool->getChunk();
 }
 
 void MemoryAllocator::free(void *chunk, size_t size)
 {
-	MemoryPool *pool = getPool(size);
+	assert(_singleton != nullptr);
+	MemoryPool *pool = _singleton->getPool(size);
 
+	assert(pool != nullptr);
 	pool->returnChunk(chunk);
 }
