@@ -32,74 +32,74 @@ public:
 			_function(func), _args(args)
 		{
 		}
-		
+
 		inline void invoke()
 		{
 			assert(_function != nullptr);
 			_function(_args);
 		}
 	};
-	
+
 private:
-	//! Number of cluster nodes
-	static int _clusterSize;
-	
+	static ClusterManager *_singleton;
+
 	//! A vector of all ClusterNodes in the system.
 	//!
 	//! We might need to make this a map later on, when we start
 	//! adding/removing nodes
-	static std::vector<ClusterNode *> _clusterNodes;
-	
+	std::vector<ClusterNode *> _clusterNodes;
+
 	//! ClusterNode object of the current node
-	static ClusterNode *_thisNode;
-	
+	ClusterNode * _thisNode;
+
 	//! ClusterNode of the master node
-	static ClusterNode *_masterNode;
-	
+	ClusterNode * _masterNode;
+
 	//! Messenger object for cluster communication.
-	static Messenger *_msn;
-	
+	Messenger * _msn;
+
 	//! The ShutdownCallback for this ClusterNode.
 	//! At the moment this is an atomic variable, because we might have
 	//! to poll for this, until it's set from external code. For example,
 	//! this could happen if a remote node tries to shutdown (because
 	//! we received a MessageSysFinish before the loader setting the
 	//! callback.
-	static std::atomic<ShutdownCallback *> _callback;
-	
-	//! Internal helper function to initialize cluster support with a
-	//! particular communicator type
-	static void initializeCluster(std::string const &commType);
-	
-	//! private constructor. This is a singleton.
-	ClusterManager()
-	{}
+	std::atomic<ShutdownCallback *> _callback;
+
+	//! private constructors. This is a singleton.
+	ClusterManager();
+
+	ClusterManager(std::string const &commType);
+
+	~ClusterManager();
+
 public:
 	//! \brief Initialize the ClusterManager
 	static void initialize();
-	
+
 	//! \brief Notify all cluster nodes that we are shutting down
 	static void notifyShutdown();
-	
+
 	//! \brief Shutdown the ClusterManager
 	static void shutdown();
-	
+
 	//! \brief Get a vector containing all ClusterNode objects
 	//!
 	//! \returns A vector containing all ClusterNode objects
 	static inline std::vector<ClusterNode *> const &getClusterNodes()
 	{
-		return _clusterNodes;
+		assert(!_singleton->_clusterNodes.empty());
+		return _singleton->_clusterNodes;
 	}
-	
+
 	//! \brief Get the ClusterNode representing the master node
 	//!
 	//! \returns the master node ClusterNode
 	static inline ClusterNode *getMasterNode()
 	{
-		return _masterNode;
+		return _singleton->_masterNode;
 	}
-	
+
 	//! \brief Get the ClusterNode with index 'id'
 	//!
 	//! \param[in] id is the index of the ClusterNode we request
@@ -107,17 +107,20 @@ public:
 	//! \returns The ClusterNode object with index 'id'
 	static inline ClusterNode *getClusterNode(int id)
 	{
-		return _clusterNodes[id];
+		assert(id >= 0);
+		assert(size_t(id) < _singleton->_clusterNodes.size());
+		return _singleton->_clusterNodes[id];
 	}
-	
+
 	//! \brief Get the current ClusterNode
 	//!
 	//! \returns the ClusterNode object of the current node
 	static inline ClusterNode *getCurrentClusterNode()
 	{
-		return _thisNode;
+		assert(_singleton->_thisNode != nullptr);
+		return _singleton->_thisNode;
 	}
-	
+
 	//! \brief Get The ClusterMemoryNode with index id;
 	//!
 	//! \param[in] id is the index of the ClusterMemoryNode we request
@@ -125,35 +128,38 @@ public:
 	//! \returns The ClusterMemoryNode object with index 'id'
 	static inline ClusterMemoryNode *getMemoryNode(int id)
 	{
-		assert(_clusterNodes[id] != nullptr);
-		return _clusterNodes[id]->getMemoryNode();
+		assert(!_singleton->_clusterNodes.empty());
+		assert(_singleton->_clusterNodes[id] != nullptr);
+		return _singleton->_clusterNodes[id]->getMemoryNode();
 	}
-	
+
 	//! \brief Get the current ClusterMemoryNode
 	//!
 	//! \returns the ClusterMemoryNode object of the current node
 	static inline ClusterMemoryNode *getCurrentMemoryNode()
 	{
-		assert(_thisNode != nullptr);
-		return _thisNode->getMemoryNode();
+		assert(_singleton->_thisNode != nullptr);
+		return _singleton->_thisNode->getMemoryNode();
 	}
-	
+
 	//! \brief Check if current node is the master
 	//!
 	//! \returns true if the current node is the master
 	static inline bool isMasterNode()
 	{
-		return _masterNode == _thisNode;
+		assert(_singleton->_thisNode != nullptr);
+		assert(_singleton->_masterNode != nullptr);
+		return _singleton->_masterNode == _singleton->_thisNode;
 	}
-	
+
 	//! \brief Get the number of cluster nodes
 	//!
 	//! \returns the number of cluster nodes
 	static inline int clusterSize()
 	{
-		return _clusterSize;
+		return _singleton->_clusterNodes.size();
 	}
-	
+
 	//! \brief Check if we run in cluster mode
 	//!
 	//! We run in cluster mode, if we have compiled with cluster support,
@@ -163,7 +169,8 @@ public:
 	//! \returns true if we run in cluster mode
 	static inline bool inClusterMode()
 	{
-		return _clusterSize > 1;
+		assert(_singleton->_clusterNodes.size() >= 1);
+		return _singleton->_clusterNodes.size() > 1;
 	}
 
 	//! \brief Check for incoming messages
@@ -174,10 +181,10 @@ public:
 	//!		nullptr
 	static inline Message *checkMail()
 	{
-		assert(_msn != nullptr);
-		return _msn->checkMail();
+		assert(_singleton->_msn != nullptr);
+		return _singleton->_msn->checkMail();
 	}
-	
+
 	//! \brief Send a Message to a remote Node
 	//!
 	//! This is just a wrapper on top of the Messenger API
@@ -186,13 +193,12 @@ public:
 	//! \param[in] recipient is the remote node to send the Message
 	//! \param[in] if block is true the the call will block until the
 	//!		Message is sent
-	static inline void sendMessage(Message *msg,
-			ClusterNode const *recipient, bool block = false)
+	static inline void sendMessage(Message *msg, ClusterNode const *recipient, bool block = false)
 	{
-		assert(_msn != nullptr);
+		assert(_singleton->_msn != nullptr);
 		assert(msg != nullptr);
 		assert(recipient != nullptr);
-		_msn->sendMessage(msg, recipient, block);
+		_singleton->_msn->sendMessage(msg, recipient, block);
 	}
 
 	//! \brief Test Messages for completion
@@ -201,26 +207,24 @@ public:
 	//!
 	//! \param[in] messages is a vector containing Message objects
 	//!		to check for completion
-	static inline void testMessageCompletion(
-		std::vector<Message *> &messages
-	) {
-		assert(_msn != nullptr);
-		_msn->testMessageCompletion(messages);
+	static inline void testMessageCompletion(std::vector<Message *> &messages)
+	{
+		assert(_singleton->_msn != nullptr);
+		_singleton->_msn->testMessageCompletion(messages);
 	}
-	
+
 	//! \brief Test DataTransfers for completion
 	//!
 	//! This is just a wrapper on top of the Messenger API
 	//!
 	//! \param[in] transfers is a vector containing DataTransfer objects
 	//!		to check for completion
-	static inline void testDataTransferCompletion(
-		std::vector<DataTransfer *> &transfers
-	) {
-		assert(_msn != nullptr);
-		_msn->testDataTransferCompletion(transfers);
+	static inline void testDataTransferCompletion(std::vector<DataTransfer *> &transfers)
+	{
+		assert(_singleton->_msn != nullptr);
+		_singleton->_msn->testDataTransferCompletion(transfers);
 	}
-	
+
 	//! \brief Fetch a DataAccessRegion from a remote node
 	//!
 	//! \param[in] region is the address region to fetch
@@ -238,13 +242,13 @@ public:
 		int messageId,
 		bool block = false
 	) {
-		assert(_msn != nullptr);
+		assert(_singleton->_msn != nullptr);
 		assert(from != nullptr);
-		
+
 		ClusterNode const *remoteNode = getClusterNode(from->getIndex());
-		return _msn->fetchData(region, remoteNode, messageId, block);
+		return _singleton->_msn->fetchData(region, remoteNode, messageId, block);
 	}
-	
+
 	//! \brief Send a DataAccessRegion to a remote node
 	//!
 	//! \param[in] region is the address region to send
@@ -262,13 +266,13 @@ public:
 		int messageId,
 		bool block = false
 	) {
-		assert(_msn != nullptr);
+		assert(_singleton->_msn != nullptr);
 		assert(to != nullptr);
-		
+
 		ClusterNode const *remoteNode = getClusterNode(to->getIndex());
-		return _msn->sendData(region, remoteNode, messageId, block);
+		return _singleton->_msn->sendData(region, remoteNode, messageId, block);
 	}
-	
+
 	//! \brief Initiate a data fetch operation
 	//!
 	//! \param[in] region is the local region we want to update with data
@@ -286,21 +290,20 @@ public:
 	static inline DataTransfer *fetchData(DataAccessRegion const &region,
 		MemoryPlace const *from, bool block = false)
 	{
-		assert(_msn != nullptr);
+		assert(_singleton->_msn != nullptr);
 		assert(from != nullptr);
-		
-		ClusterNode const *remoteNode =
-			getClusterNode(from->getIndex());
-		
+
+		ClusterNode const *remoteNode = getClusterNode(from->getIndex());
+
 		//! At the moment we do not translate addresses on remote
 		//! nodes, so the region we are fetching, on the remote node is
 		//! the same as the local one
-		MessageDataFetch msg(_thisNode, region);
-		_msn->sendMessage(&msg, remoteNode, true);
-		
+		MessageDataFetch msg(_singleton->_thisNode, region);
+		_singleton->_msn->sendMessage(&msg, remoteNode, true);
+
 		return fetchDataRaw(region, from, msg.getId(), block);
 	}
-	
+
 	//! \brief Initiate a data send operation
 	//!
 	//! \param[in] region is the local region we send to the remote node
@@ -318,21 +321,20 @@ public:
 	static inline DataTransfer *sendData(DataAccessRegion const &region,
 		MemoryPlace const *to, bool block = false)
 	{
-		assert(_msn != nullptr);
+		assert(_singleton->_msn != nullptr);
 		assert(to != nullptr);
-		
-		ClusterNode const *remoteNode =
-			getClusterNode(to->getIndex());
-		
+
+		ClusterNode const *remoteNode = getClusterNode(to->getIndex());
+
 		//! At the moment we do not translate addresses on remote
 		//! nodes, so the region we are sending, on the remote node is
 		//! the same as the local one
-		MessageDataSend msg(_thisNode, region);
-		_msn->sendMessage(&msg, remoteNode, true);
-		
+		MessageDataSend msg(_singleton->_thisNode, region);
+		_singleton->_msn->sendMessage(&msg, remoteNode, true);
+
 		return sendDataRaw(region, to, msg.getId(), block);
 	}
-	
+
 	//! \brief A barrier across all cluster nodes
 	//!
 	//! This is a collective operation. It needs to be invoked by all
@@ -342,11 +344,11 @@ public:
 	static inline void synchronizeAll()
 	{
 		if (inClusterMode()) {
-			assert(_msn != nullptr);
-			_msn->synchronizeAll();
+			assert(_singleton->_msn != nullptr);
+			_singleton->_msn->synchronizeAll();
 		}
 	}
-	
+
 	//! \brief Set a callback function to invoke when we have to shutdown
 	//!
 	//! The callback is of the form 'void callback(void*)' and it will be
@@ -356,15 +358,16 @@ public:
 	//! \param[in] args is the callback function argument
 	static inline void setShutdownCallback(void (*func)(void *), void *args)
 	{
-		_callback.store(new ShutdownCallback(func, args));
+		_singleton->_callback.store(new ShutdownCallback(func, args));
 	}
-	
+
 	//! \brief Get the shutdown callback
 	//!
 	//! \returns the ShutdownCallback
 	static inline ShutdownCallback *getShutdownCallback()
 	{
-		return _callback.load();
+		assert(_singleton);
+		return _singleton->_callback.load();
 	}
 };
 

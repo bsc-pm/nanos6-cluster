@@ -13,15 +13,18 @@
 
 #include <ClusterNode.hpp>
 
-int ClusterManager::_clusterSize;
-std::vector<ClusterNode *> ClusterManager::_clusterNodes;
-ClusterNode *ClusterManager::_thisNode = nullptr;
-ClusterNode *ClusterManager::_masterNode = nullptr;
-Messenger *ClusterManager::_msn = nullptr;
-std::atomic<ClusterManager::ShutdownCallback *> ClusterManager::_callback;
+ClusterManager *ClusterManager::_singleton = nullptr;
 
+ClusterManager::ClusterManager() :
+	_clusterNodes(1),
+	_thisNode(new ClusterNode(0, 0)),
+	_masterNode(_thisNode),
+	_msn(nullptr)
+{
+	_clusterNodes[0] = _thisNode;
+}
 
-void ClusterManager::initializeCluster(std::string const &commType)
+ClusterManager::ClusterManager(std::string const &commType)
 {
 	_msn = GenericFactory<std::string, Messenger *>::getInstance().create(commType);
 	assert(_msn);
@@ -29,19 +32,20 @@ void ClusterManager::initializeCluster(std::string const &commType)
 	/** These are communicator-type indices. At the moment we have an
 	 * one-to-one mapping between communicator-type and runtime-type
 	 * indices for cluster nodes */
-	_clusterSize = _msn->getClusterSize();
-	int nodeIndex = _msn->getNodeIndex();
-	int masterIndex = _msn->getMasterIndex();
+	const size_t clusterSize = _msn->getClusterSize();
+	const int nodeIndex = _msn->getNodeIndex();
+	const int masterIndex = _msn->getMasterIndex();
 
-	_clusterNodes.resize(_clusterSize);
-	for (int i = 0; i < _clusterSize; ++i) {
+	_clusterNodes.resize(clusterSize);
+
+	for (size_t i = 0; i < clusterSize; ++i) {
 		_clusterNodes[i] = new ClusterNode(i, i);
 	}
 
 	_thisNode = _clusterNodes[nodeIndex];
 	_masterNode = _clusterNodes[masterIndex];
 
-	if (inClusterMode()) {
+	if (clusterSize > 1) {
 		ClusterPollingServices::initialize();
 	}
 
@@ -49,40 +53,7 @@ void ClusterManager::initializeCluster(std::string const &commType)
 	_callback.store(nullptr);
 }
 
-void ClusterManager::initialize()
-{
-	ConfigVariable<std::string> commType("cluster.communication");
-	RuntimeInfo::addEntry("cluster_communication", "Cluster Communication Implementation", commType);
-
-	/** If a communicator has not been specified through the
-	 * cluster.communication config variable we will not
-	 * initialize the cluster support of Nanos6 */
-	if (commType.getValue() != "disabled") {
-		initializeCluster(commType.getValue());
-		return;
-	}
-
-	_thisNode = new ClusterNode(0, 0);
-	_masterNode = _thisNode;
-	_clusterNodes.emplace_back(_thisNode);
-	_clusterSize = 1;
-}
-
-void ClusterManager::notifyShutdown()
-{
-	if (isMasterNode() && inClusterMode()) {
-		for (ClusterNode *slaveNode : _clusterNodes) {
-			if (slaveNode != _thisNode) {
-				MessageSysFinish msg(_thisNode);
-				_msn->sendMessage(&msg, slaveNode, true);
-			}
-		}
-
-		_msn->synchronizeAll();
-	}
-}
-
-void ClusterManager::shutdown()
+ClusterManager::~ClusterManager()
 {
 	for (auto &node : _clusterNodes) {
 		delete node;
@@ -93,7 +64,45 @@ void ClusterManager::shutdown()
 	}
 
 	delete _msn;
+}
 
-	_thisNode = nullptr;
-	_masterNode = nullptr;
+void ClusterManager::initialize()
+{
+	assert(_singleton == nullptr);
+	ConfigVariable<std::string> commType("cluster.communication");
+
+	RuntimeInfo::addEntry("cluster_communication", "Cluster Communication Implementation", commType);
+
+	/** If a communicator has not been specified through the
+	 * cluster.communication config variable we will not
+	 * initialize the cluster support of Nanos6 */
+	if (commType.getValue() != "disabled") {
+		_singleton = new ClusterManager(commType.getValue());
+		return;
+	}
+
+	_singleton = new ClusterManager();
+	assert(_singleton != nullptr);
+}
+
+void ClusterManager::notifyShutdown()
+{
+	assert(_singleton != nullptr);
+
+	if (_singleton->isMasterNode() && _singleton->inClusterMode()) {
+		for (ClusterNode *slaveNode : _singleton->_clusterNodes) {
+			if (slaveNode != _singleton->_thisNode) {
+				MessageSysFinish msg(_singleton->_thisNode);
+				_singleton->_msn->sendMessage(&msg, slaveNode, true);
+			}
+		}
+
+		_singleton->_msn->synchronizeAll();
+	}
+}
+
+void ClusterManager::shutdown()
+{
+	delete _singleton;
+	_singleton = nullptr;
 }
