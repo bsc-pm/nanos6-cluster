@@ -41,7 +41,9 @@ void HardwareInfo::shutdown()
 	for (int i = 0; i < nanos6_device_t::nanos6_device_type_num; ++i) {
 		if (_infos[i] != nullptr) {
 			delete _infos[i];
+			_infos[i] = nullptr;
 		}
 	}
+	_infos.clear();
 }
 

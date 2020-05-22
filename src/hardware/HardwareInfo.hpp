@@ -39,11 +39,16 @@ public:
 
 	static inline ComputePlace *getComputePlace(nanos6_device_t type, int index)
 	{
+		assert(_infos.size() > 0);
+		assert(_infos[type] != nullptr);
 		return _infos[type]->getComputePlace(index);
 	}
 
 	static inline size_t getValidMemoryPlaceCount(nanos6_device_t type)
 	{
+		assert(_infos.size() > 0);
+		assert(_infos[type] != nullptr);
+
 		if (type == nanos6_host_device) {
 			HostInfo *hostInfo = (HostInfo *)_infos[type];
 			return hostInfo->getValidMemoryPlaceCount();
@@ -54,31 +59,43 @@ public:
 
 	static inline size_t getMemoryPlaceCount(nanos6_device_t type)
 	{
+		assert(_infos.size() > 0);
+		assert(_infos[type] != nullptr);
 		return _infos[type]->getMemoryPlaceCount();
 	}
 
 	static inline MemoryPlace *getMemoryPlace(nanos6_device_t type, int index)
 	{
+		assert(_infos.size() > 0);
+		assert(_infos[type] != nullptr);
 		return _infos[type]->getMemoryPlace(index);
 	}
 
 	static DeviceInfo *getDeviceInfo(nanos6_device_t type)
 	{
+		assert(_infos.size() > 0);
+		assert(_infos[type] != nullptr);
 		return _infos[type];
 	}
 
 	static inline size_t getCacheLineSize()
 	{
+		assert(_infos.size() > 0);
+		assert(_infos[nanos6_device_t::nanos6_host_device] != nullptr);
 		return ((HostInfo *) _infos[nanos6_device_t::nanos6_host_device])->getCacheLineSize();
 	}
 
 	static inline size_t getPageSize()
 	{
+		assert(_infos.size() > 0);
+		assert(_infos[nanos6_device_t::nanos6_host_device] != nullptr);
 		return ((HostInfo *) _infos[nanos6_device_t::nanos6_host_device])->getPageSize();
 	}
 
 	static inline size_t getPhysicalMemorySize()
 	{
+		assert(_infos.size() > 0);
+		assert(_infos[nanos6_device_t::nanos6_host_device] != nullptr);
 		return ((HostInfo *) _infos[nanos6_device_t::nanos6_host_device])->getPhysicalMemorySize();
 	}
 
