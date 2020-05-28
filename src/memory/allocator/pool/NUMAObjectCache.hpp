@@ -18,8 +18,8 @@ class NUMAObjectCache {
 
 	typedef std::deque<T *> pool_t;
 	typedef struct {
-		pool_t _pool;
 		PaddedSpinLock<> _lock;
+		pool_t _pool;
 	} NUMApool_t;
 
 	std::deque<NUMApool_t> _NUMAPools;
@@ -28,7 +28,7 @@ public:
 	NUMAObjectCache(size_t NUMANodeCount)
 		: _NUMANodeCount(NUMANodeCount)
 	{
-		_NUMAPools.resize(_NUMANodeCount + 1);
+		_NUMAPools.resize(NUMANodeCount + 1);
 	}
 
 	~NUMAObjectCache()
@@ -44,15 +44,18 @@ public:
 	 */
 	inline int fillCPUPool(size_t numaId, std::deque<T *> &pool, size_t requestedObjects)
 	{
+		assert(numaId < _NUMAPools.size());
+		assert(requestedObjects > 0);
+
 		std::lock_guard<PaddedSpinLock<>> lock(_NUMAPools[numaId]._lock);
 		pool_t &numaPool = _NUMAPools[numaId]._pool;
 
-		size_t poolSize = numaPool.size();
+		const size_t poolSize = numaPool.size();
 		if (poolSize == 0) {
 			return 0;
 		}
 
-		size_t nrObjects = std::min(requestedObjects, poolSize);
+		const size_t nrObjects = std::min(requestedObjects, poolSize);
 		std::move(numaPool.begin(), numaPool.begin() + nrObjects, std::front_inserter(pool));
 		numaPool.erase(numaPool.begin(), numaPool.begin() + nrObjects);
 
@@ -66,6 +69,8 @@ public:
 	 */
 	void returnObjects(size_t numaId, std::deque<T *> &pool)
 	{
+		assert(numaId < _NUMAPools.size());
+
 		std::lock_guard<PaddedSpinLock<>> lock(_NUMAPools[numaId]._lock);
 		pool_t &numaPool = _NUMAPools[numaId]._pool;
 		std::move(pool.begin(), pool.end(), std::back_inserter(numaPool));

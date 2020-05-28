@@ -16,7 +16,7 @@
 
 template<typename T>
 class ObjectCache {
-	
+
 	/** An object cache is built in two layers, one CPU and one NUMA layer.
 	 *
 	 * Allocations will happen through the local CPU cache, or the external
@@ -32,15 +32,17 @@ class ObjectCache {
 	std::vector<CPUObjectCache<T> *> _CPUCaches;
 	CPUObjectCache<T> *_externalObjectCache;
 	SpinLock _externalLock;
-	
+
 public:
 	ObjectCache()
 	{
-		size_t numaNodeCount = HardwareInfo::getMemoryPlaceCount(nanos6_device_t::nanos6_host_device);
-		size_t cpuCount = CPUManager::getTotalCPUs();
+		const size_t numaNodeCount =
+			HardwareInfo::getMemoryPlaceCount(nanos6_device_t::nanos6_host_device);
+		const size_t cpuCount = CPUManager::getTotalCPUs();
+
 		std::vector<CPU *> const &cpus = CPUManager::getCPUListReference();
 		assert(cpus.size() == cpuCount);
-		
+
 		_NUMACache = new NUMAObjectCache<T>(numaNodeCount);
 		_CPUCaches.resize(cpuCount);
 		for (size_t i = 0; i < cpuCount; ++i) {
@@ -57,7 +59,7 @@ public:
 						numaNodeCount
 					);
 	}
-	
+
 	~ObjectCache()
 	{
 		delete _NUMACache;
@@ -66,34 +68,29 @@ public:
 		}
 		delete _externalObjectCache;
 	}
-	
+
 	template<typename... TS>
 	inline T *newObject(TS &&... args)
 	{
-		CPU *cpu = nullptr;
 		WorkerThread *thread = WorkerThread::getCurrentWorkerThread();
-		if (thread != nullptr) {
-			cpu = thread->getComputePlace();
-		}
-		
-		if (thread == nullptr || cpu == nullptr) {
+		CPU *cpu = (thread != nullptr ? thread->getComputePlace() : nullptr);
+
+		if (cpu == nullptr) {
 			std::lock_guard<SpinLock> guard(_externalLock);
 			return _externalObjectCache->newObject(std::forward<TS>(args)...);
 		} else {
-			size_t cpuId = cpu->getIndex();
+			const size_t cpuId = cpu->getIndex();
+			assert(cpuId < _CPUCaches.size());
 			return _CPUCaches[cpuId]->newObject(std::forward<TS>(args)...);
 		}
 	}
-	
+
 	inline void deleteObject(T *ptr)
 	{
-		CPU *cpu = nullptr;
 		WorkerThread *thread = WorkerThread::getCurrentWorkerThread();
-		if (thread != nullptr) {
-			cpu = thread->getComputePlace();
-		}
-		
-		if (thread == nullptr || cpu == nullptr) {
+		CPU *cpu = (thread != nullptr ? thread->getComputePlace() : nullptr);
+
+		if (cpu == nullptr) {
 			std::lock_guard<SpinLock> guard(_externalLock);
 			_externalObjectCache->deleteObject(ptr);
 		} else {

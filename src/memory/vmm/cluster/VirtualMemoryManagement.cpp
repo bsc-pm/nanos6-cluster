@@ -90,7 +90,7 @@ static std::vector<DataAccessRegion> findMappedRegions()
 static DataAccessRegion findSuitableMemoryRegion()
 {
 	std::vector<DataAccessRegion> maps = findMappedRegions();
-	size_t length = maps.size();
+	const size_t length = maps.size();
 	DataAccessRegion gap;
 
 	// Find the biggest gap locally
@@ -125,8 +125,7 @@ static DataAccessRegion findSuitableMemoryRegion()
 			}
 
 			MemoryPlace *memoryNode = remote->getMemoryNode();
-			ClusterManager::fetchDataRaw(buffer, memoryNode,
-					messageId, true);
+			ClusterManager::fetchDataRaw(buffer, memoryNode, messageId, true);
 
 			gap = gap.intersect(remoteGap);
 		}
@@ -183,10 +182,10 @@ void VirtualMemoryManagement::initialize()
 	if (address == nullptr) {
 		DataAccessRegion gap = findSuitableMemoryRegion();
 		address = gap.getStartAddress();
-		FatalErrorHandler::failIf(gap.getSize() < size,
-			"Cannot allocate virtual memory region");
+		FatalErrorHandler::failIf(gap.getSize() < size, "Cannot allocate virtual memory region");
 	}
 
+	assert(_allocations.empty());
 	_allocations.resize(1);
 	_allocations[0] = new VirtualMemoryAllocation(address, size);
 
@@ -202,18 +201,22 @@ void VirtualMemoryManagement::shutdown()
 	for (auto &vma : _localNUMAVMA) {
 		delete vma;
 	}
+
 	delete _genericVMA;
 
 	for (auto &alloc : _allocations) {
 		delete alloc;
 	}
+
+	_localNUMAVMA.clear();
+	_allocations.clear();
 }
 
 void VirtualMemoryManagement::setupMemoryLayout(void *address, size_t distribSize, size_t localSize)
 {
 	ClusterNode *current = ClusterManager::getCurrentClusterNode();
-	int nodeIndex = current->getIndex();
-	int clusterSize = ClusterManager::clusterSize();
+	const int nodeIndex = current->getIndex();
+	const int clusterSize = ClusterManager::clusterSize();
 
 	void *distribAddress = (void *)((char *)address + clusterSize * localSize);
 	_genericVMA = new VirtualMemoryArea(distribAddress, distribSize);
@@ -231,30 +234,33 @@ void VirtualMemoryManagement::setupMemoryLayout(void *address, size_t distribSiz
 	}
 
 	// We have one VMA per NUMA node. At the moment we divide the local
-	// address space equally among these areas
-	size_t numaNodeCount = HardwareInfo::getMemoryPlaceCount(nanos6_device_t::nanos6_host_device);
+	// address space equally among these areas.
+	assert(_localNUMAVMA.empty());
+	const size_t numaNodeCount =
+		HardwareInfo::getMemoryPlaceCount(nanos6_device_t::nanos6_host_device);
 	_localNUMAVMA.resize(numaNodeCount);
 
 	// Divide the address space between the NUMA nodes and the
 	// making sure that all areas have a size that is multiple
 	// of PAGE_SIZE
-	size_t localPages = localSize / HardwareInfo::getPageSize();
-	size_t pagesPerNUMA = localPages / numaNodeCount;
+	const size_t pageSize = HardwareInfo::getPageSize();
+	const size_t localPages = localSize / pageSize;
+	const size_t pagesPerNUMA = localPages / numaNodeCount;
+	const size_t sizePerNUMA = pagesPerNUMA * pageSize;
+
 	size_t extraPages = localPages % numaNodeCount;
-	size_t sizePerNUMA = pagesPerNUMA * HardwareInfo::getPageSize();
 	char *ptr = (char *)localAddress;
 	for (size_t i = 0; i < numaNodeCount; ++i) {
 		size_t numaSize = sizePerNUMA;
 		if (extraPages > 0) {
-			numaSize += HardwareInfo::getPageSize();
+			numaSize += pageSize;
 			extraPages--;
 		}
 		_localNUMAVMA[i] = new VirtualMemoryArea(ptr, numaSize);
 
 		// Register the region with the Directory
 		DataAccessRegion numaRegion(ptr, numaSize);
-		Directory::insert(numaRegion, HardwareInfo::getMemoryPlace(
-					nanos6_host_device, i));
+		Directory::insert(numaRegion, HardwareInfo::getMemoryPlace(nanos6_host_device, i));
 
 		ptr += numaSize;
 	}

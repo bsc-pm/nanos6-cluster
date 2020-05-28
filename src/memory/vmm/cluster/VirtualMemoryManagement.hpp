@@ -17,16 +17,16 @@ class VirtualMemoryManagement {
 private:
 	//! memory allocations from OS
 	static std::vector<VirtualMemoryAllocation *> _allocations;
-	
+
 	//! addresses for local NUMA allocations
 	static std::vector<VirtualMemoryArea *> _localNUMAVMA;
-	
+
 	//! addresses for generic allocations
 	static VirtualMemoryArea *_genericVMA;
-	
+
 	//! Setting up the memory layout
 	static void setupMemoryLayout(void *address, size_t distribSize, size_t localSize);
-	
+
 	//! private constructor, this is a singleton.
 	VirtualMemoryManagement()
 	{
@@ -34,7 +34,7 @@ private:
 public:
 	static void initialize();
 	static void shutdown();
-	
+
 	/** allocate a block of generic addresses.
 	 *
 	 * This region is meant to be used for allocations that can be mapped
@@ -45,7 +45,7 @@ public:
 	{
 		return _genericVMA->allocBlock(size);
 	}
-	
+
 	/** allocate a block of local addresses on a NUMA node.
 	 *
 	 * \param size the size to allocate
@@ -56,7 +56,7 @@ public:
 		VirtualMemoryArea *vma = _localNUMAVMA.at(NUMAId);
 		return vma->allocBlock(size);
 	}
-	
+
 	//! return the NUMA node id of the node containing 'ptr' or
 	//! the NUMA node count if not found
 	static inline size_t findNUMA(void *ptr)
@@ -66,11 +66,11 @@ public:
 				return i;
 			}
 		}
-		
+
 		//! Non-NUMA allocation
 		return _localNUMAVMA.size();
 	}
-	
+
 	//! \brief Check if a region is within the distributed memory region
 	//!
 	//! \param[in] region the DataAccessRegion to check
@@ -81,7 +81,7 @@ public:
 		return _genericVMA->includesRange(region.getStartAddress(),
 				region.getSize());
 	}
-	
+
 	//! \brief Check if a memory region is (cluster) local memory
 	//!
 	//! \param[in] region the DataAccessRegion to check
@@ -96,10 +96,10 @@ public:
 				return true;
 			}
 		}
-		
+
 		return false;
 	}
-	
+
 	//! \brief Check if a memory region can handled correctly by Cluster
 	//!
 	//! \param[in] region the DataAccessRegion to check

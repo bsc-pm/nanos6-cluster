@@ -17,8 +17,8 @@
 template <typename T>
 class CPUObjectCache {
 	NUMAObjectCache<T> *_NUMAObjectCache;
-	size_t _NUMANodeId;
-	size_t _numaNodeCount;
+	const size_t _NUMANodeId;
+	const size_t _numaNodeCount;
 
 	size_t _allocationSize;
 
@@ -45,6 +45,7 @@ public:
 		: _NUMAObjectCache(pool), _NUMANodeId(numaId),
 		_numaNodeCount(numaNodeCount), _allocationSize (1)
 	{
+		assert(numaId <= numaNodeCount);
 		_available.resize(numaNodeCount + 1);
 	}
 
@@ -59,7 +60,8 @@ public:
 		pool_t &local = _available[_NUMANodeId];
 		if (local.empty()) {
 			//! Try to recycle from NUMA pool
-			size_t allocated = _NUMAObjectCache->fillCPUPool(_NUMANodeId, local, 2 * _allocationSize);
+			const size_t allocated =
+				_NUMAObjectCache->fillCPUPool(_NUMANodeId, local, 2 * _allocationSize);
 
 			//! If NUMA pool did not have objects allocate new memory
 			if (allocated == 0) {
@@ -68,8 +70,8 @@ public:
 
 				_allocationSize *= 2;
 
-				T *ptr = (T *) MemoryAllocator::alloc(
-						_allocationSize * sizeof(T));
+				T *ptr = (T *) MemoryAllocator::alloc(_allocationSize * sizeof(T));
+
 				for (size_t i = 0; i < _allocationSize; ++i) {
 					local.push_back(&ptr[i]);
 				}
@@ -85,8 +87,8 @@ public:
 	//! Deallocate an object
 	void deleteObject(T *ptr)
 	{
-		size_t nodeId = VirtualMemoryManagement::findNUMA((void *)ptr);
-
+		const size_t nodeId = VirtualMemoryManagement::findNUMA((void *)ptr);
+		assert (nodeId < _available.size());
 		ptr->~T();
 
 		_available[nodeId].push_front(ptr);
