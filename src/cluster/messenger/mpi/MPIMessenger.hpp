@@ -22,13 +22,14 @@ class Message;
 
 class MPIMessenger : public Messenger {
 private:
-	int _wrank, _wsize;
+	// Default value useful for asserts
+	int _wrank = -1, _wsize = -1;
 	MPI_Comm INTRA_COMM, PARENT_COMM;
-	
+
 public:
 	MPIMessenger();
 	~MPIMessenger();
-	
+
 	void sendMessage(Message *msg, ClusterNode const *toNode, bool block = false);
 	void synchronizeAll(void);
 	DataTransfer *sendData(const DataAccessRegion &region, const ClusterNode *toNode, int messageId, bool block);
@@ -36,24 +37,27 @@ public:
 	Message *checkMail();
 	void testMessageCompletion(std::vector<Message *> &messages);
 	void testDataTransferCompletion(std::vector<DataTransfer *> &transfers);
-	
+
 	inline int getNodeIndex() const
 	{
+		assert(_wrank >= 0);
 		return _wrank;
 	}
-	
+
 	inline int getMasterIndex() const
 	{
 		return 0;
 	}
-	
+
 	inline int getClusterSize() const
 	{
+		assert(_wsize > 0);
 		return _wsize;
 	}
-	
+
 	inline bool isMasterNode() const
 	{
+		assert(_wrank >= 0);
 		return _wrank == 0;
 	}
 };
@@ -62,7 +66,7 @@ public:
 namespace
 {
 	Messenger *createMPImsn() { return new MPIMessenger; }
-	
+
 	const bool __attribute__((unused))_registered_MPI_msn =
 		REGISTER_MSN_CLASS("mpi-2sided", createMPImsn);
 }
