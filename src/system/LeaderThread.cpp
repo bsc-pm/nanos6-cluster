@@ -17,7 +17,7 @@
 #include <InstrumentThreadManagement.hpp>
 
 
-LeaderThread *LeaderThread::_singleton;
+LeaderThread *LeaderThread::_singleton = nullptr;
 
 
 void LeaderThread::initialize(CPU *leaderThreadCPU)
@@ -44,6 +44,7 @@ void LeaderThread::shutdown()
 
 void LeaderThread::body()
 {
+	assert(_singleton != nullptr);
 	initializeHelperThread();
 	Instrument::threadHasResumed(getInstrumentationId());
 	// Minimum polling interval in microseconds

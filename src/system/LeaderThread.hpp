@@ -69,6 +69,7 @@ public:
 	//! \return true if the current thread is the leader
 	static inline bool isLeaderThread()
 	{
+		assert(_singleton != nullptr);
 		KernelLevelThread *thread = static_cast<KernelLevelThread *> (getCurrentKernelLevelThread());
 		if (thread == nullptr) {
 			return false;
