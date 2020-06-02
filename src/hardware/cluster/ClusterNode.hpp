@@ -23,30 +23,31 @@ private:
 public:
 	ClusterNode(int index, int commIndex)
 		: ComputePlace(index, nanos6_device_t::nanos6_cluster_device),
+		_memoryNode(new ClusterMemoryNode(index, commIndex)),
 		_commIndex(commIndex)
 	{
-		_memoryNode = new ClusterMemoryNode(index, commIndex);
+		assert(_memoryNode != nullptr);
+		assert (_commIndex >= 0);
 	}
 	
 	~ClusterNode()
 	{
+		assert(_memoryNode != nullptr);
+		delete _memoryNode;
 	}
 	
 	//! \brief Get the MemoryNode of the cluster node
 	inline ClusterMemoryNode *getMemoryNode() const
 	{
+		assert(_memoryNode != nullptr);
 		return _memoryNode;
 	}
-	
-	//! \brief Get the index of the ClusterNode
-	inline int getIndex() const
-	{
-		return _index;
-	}
-	
+
+
 	//! \brief Get the communicator index of the ClusterNode
 	inline int getCommIndex() const
 	{
+		assert (_commIndex >= 0);
 		return _commIndex;
 	}
 };
