@@ -78,7 +78,8 @@ void HomeNodeMap::erase(DataAccessRegion const &region)
 		region,
 		[&] (HomeNodeMap::iterator pos) -> bool {
 			HomeMapEntry *entry = &(*pos);
-			BaseType::erase(entry);	
+			BaseType::erase(entry);
+			delete entry;
 			return true;
 		},
 		[&] (DataAccessRegion missingRegion) -> bool 
