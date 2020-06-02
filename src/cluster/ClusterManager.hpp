@@ -108,7 +108,9 @@ public:
 	static inline ClusterNode *getClusterNode(int id)
 	{
 		assert(id >= 0);
-		assert(size_t(id) < _singleton->_clusterNodes.size());
+		assert(!_singleton->_clusterNodes.empty());
+		assert(id < _singleton->_clusterNodes.size());
+
 		return _singleton->_clusterNodes[id];
 	}
 
@@ -157,6 +159,7 @@ public:
 	//! \returns the number of cluster nodes
 	static inline int clusterSize()
 	{
+		assert(!_singleton->_clusterNodes.empty());
 		return _singleton->_clusterNodes.size();
 	}
 
@@ -169,7 +172,7 @@ public:
 	//! \returns true if we run in cluster mode
 	static inline bool inClusterMode()
 	{
-		assert(_singleton->_clusterNodes.size() >= 1);
+		assert(!_singleton->_clusterNodes.empty());
 		return _singleton->_clusterNodes.size() > 1;
 	}
 
@@ -287,9 +290,11 @@ public:
 	//!		object which can be used to track the completion of the
 	//!		data transfer. In blocking mode this always returns
 	//!		nullptr
-	static inline DataTransfer *fetchData(DataAccessRegion const &region,
-		MemoryPlace const *from, bool block = false)
-	{
+	static inline DataTransfer *fetchData(
+		DataAccessRegion const &region,
+		MemoryPlace const *from,
+		bool block = false
+	) {
 		assert(_singleton->_msn != nullptr);
 		assert(from != nullptr);
 
@@ -318,8 +323,10 @@ public:
 	//!		object which can be used to track the completion of the
 	//!		data transfer. In blocking mode this always returns
 	//!		nullptr
-	static inline DataTransfer *sendData(DataAccessRegion const &region,
-		MemoryPlace const *to, bool block = false)
+	static inline DataTransfer *sendData(
+		DataAccessRegion const &region,
+		MemoryPlace const *to,
+		bool block = false)
 	{
 		assert(_singleton->_msn != nullptr);
 		assert(to != nullptr);
@@ -366,7 +373,6 @@ public:
 	//! \returns the ShutdownCallback
 	static inline ShutdownCallback *getShutdownCallback()
 	{
-		assert(_singleton);
 		return _singleton->_callback.load();
 	}
 };

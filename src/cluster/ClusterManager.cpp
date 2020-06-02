@@ -103,6 +103,7 @@ void ClusterManager::notifyShutdown()
 
 void ClusterManager::shutdown()
 {
+	assert(_singleton != nullptr);
 	delete _singleton;
 	_singleton = nullptr;
 }
