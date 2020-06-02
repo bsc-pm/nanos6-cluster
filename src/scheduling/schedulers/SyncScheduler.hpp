@@ -72,7 +72,7 @@ public:
 		uint64_t totalCPUsPow2 = SchedulerSupport::roundToNextPowOf2(_totalComputePlaces);
 		assert(SchedulerSupport::isPowOf2(totalCPUsPow2));
 
-		size_t totalNUMANodes = HardwareInfo::getMemoryPlaceCount(nanos6_host_device);
+		const size_t totalNUMANodes = HardwareInfo::getMemoryPlaceCount(nanos6_host_device);
 
 		// Use a queue per NUMA node and a special queue
 		// for cases where there is no compute place

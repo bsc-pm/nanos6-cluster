@@ -27,6 +27,7 @@ void ClusterLocalityScheduler::addReadyTask(
 
 	std::vector<size_t> bytes(_clusterSize, 0);
 	bool canBeOffloaded = true;
+
 	DataAccessRegistration::processAllDataAccesses(task,
 		[&](const DataAccess *access) -> bool {
 			const MemoryPlace *location = access->getLocation();
@@ -47,26 +48,15 @@ void ClusterLocalityScheduler::addReadyTask(
 				for (const auto &entry : *homeNodes) {
 					location = entry->getHomeNode();
 
-					size_t nodeId;
-					if (location->getType() == nanos6_host_device) {
-						nodeId = _thisNode->getIndex();
-					} else {
-						nodeId = location->getIndex();
-					}
+					const size_t nodeId = getNodeIdForLocation(location);
 
-					DataAccessRegion subregion =
-						region.intersect(entry->getAccessRegion());
+					DataAccessRegion subregion = region.intersect(entry->getAccessRegion());
 					bytes[nodeId] += subregion.getSize();
 				}
 
 				delete homeNodes;
 			} else {
-				size_t nodeId;
-				if (location->getType() == nanos6_host_device) {
-					nodeId = _thisNode->getIndex();
-				} else {
-					nodeId = location->getIndex();
-				}
+				const size_t nodeId = getNodeIdForLocation(location);
 
 				bytes[nodeId] += region.getSize();
 			}
@@ -76,7 +66,7 @@ void ClusterLocalityScheduler::addReadyTask(
 	);
 
 	if (!canBeOffloaded) {
-		SchedulerInterface::addReadyTask(task, computePlace, hint);
+		addLocalReadyTask(task, computePlace, hint);
 		return;
 	}
 

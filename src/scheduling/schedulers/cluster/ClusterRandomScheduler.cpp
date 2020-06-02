@@ -4,8 +4,6 @@
 	Copyright (C) 2019-2020 Barcelona Supercomputing Center (BSC)
 */
 
-#include <random>
-
 #include "ClusterRandomScheduler.hpp"
 
 #include <ClusterManager.hpp>
@@ -35,13 +33,9 @@ void ClusterRandomScheduler::addReadyTask(
 	);
 
 	if (!canBeOffloaded) {
-		SchedulerInterface::addReadyTask(task, computePlace, hint);
+		addLocalReadyTask(task, computePlace, hint);
 		return;
 	}
-
-	std::random_device rd;
-	std::mt19937 eng(rd());
-	std::uniform_int_distribution<> distr(0, _clusterSize - 1);
 
 	addReadyLocalOrExecuteRemote(distr(eng), task, computePlace, hint);
 }

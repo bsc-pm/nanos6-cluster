@@ -17,7 +17,7 @@ bool ClusterSchedulerInterface::handleClusterSchedulerConstrains(
 	//! and tasks that already have an ExecutionWorkflow created for
 	//! them
 	if (task->isSpawned() || task->isIf0() || task->isRemote() || task->getWorkflow() != nullptr) {
-		SchedulerInterface::addReadyTask(task, computePlace, hint);
+		addLocalReadyTask(task, computePlace, hint);
 		return true;
 	}
 
@@ -42,7 +42,7 @@ void ClusterSchedulerInterface::addReadyLocalOrExecuteRemote(
 	assert(targetNode != nullptr);
 
 	if (targetNode == _thisNode) {
-		SchedulerInterface::addReadyTask(task, computePlace, hint);
+		addLocalReadyTask(task, computePlace, hint);
 		return;
 	}
 

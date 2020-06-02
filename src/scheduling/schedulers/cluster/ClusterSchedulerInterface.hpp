@@ -15,7 +15,8 @@
 class ClusterSchedulerInterface : public SchedulerInterface {
 protected:
 	//! Current cluster node
-	const ClusterNode *_thisNode;
+	ClusterNode *_thisNode;
+	ClusterNode *_lastScheduledNode;
 
 	//! Number of cluster nodes
 	int _clusterSize;
@@ -35,11 +36,18 @@ protected:
 	//! properly.
 	bool handleClusterSchedulerConstrains(Task *task, ComputePlace *computePlace, ReadyTaskHint hint);
 
+	void addLocalReadyTask(Task *task, ComputePlace *computePlace, ReadyTaskHint hint = NO_HINT)
+	{
+		_lastScheduledNode = _thisNode;
+		SchedulerInterface::addReadyTask(task, computePlace, hint);
+	}
+
 public:
 	ClusterSchedulerInterface(const std::string &name)
 		: _thisNode(ClusterManager::getCurrentClusterNode()),
-		  _clusterSize(ClusterManager::clusterSize()),
-		  _name(name)
+		_lastScheduledNode(nullptr),
+		_clusterSize(ClusterManager::clusterSize()),
+		_name(name)
 	{
 		RuntimeInfo::addEntry("cluster-scheduler", "Cluster Scheduler", _name);
 	}

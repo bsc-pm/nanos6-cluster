@@ -1,7 +1,7 @@
 /*
 	This file is part of Nanos6 and is licensed under the terms contained in the COPYING file.
 
-	Copyright (C) 2019 Barcelona Supercomputing Center (BSC)
+	Copyright (C) 2019-2020 Barcelona Supercomputing Center (BSC)
 */
 
 #ifndef CLUSTER_LOCALITY_SCHEDULER_HPP
@@ -13,9 +13,19 @@
 #include <ClusterManager.hpp>
 
 class ClusterLocalityScheduler : public ClusterSchedulerInterface {
+private:
+	inline size_t getNodeIdForLocation(MemoryPlace const *location) const
+	{
+		if (location->getType() == nanos6_host_device) {
+			return _thisNode->getIndex();
+		}
+
+		return location->getIndex();
+	}
 
 public:
-	ClusterLocalityScheduler() : ClusterSchedulerInterface("ClusterLocalityScheduler")
+	ClusterLocalityScheduler()
+		: ClusterSchedulerInterface("ClusterLocalityScheduler")
 	{
 	}
 

@@ -31,8 +31,15 @@ public:
 			} else if (clusterSchedulerName.getValue() == "locality") {
 				_clusterSchedulerImplementation = new ClusterLocalityScheduler();
 			} else {
-				FatalErrorHandler::warnIf(true, "Unknown cluster scheduler:", clusterSchedulerName.getValue(), ". Using default: locality");
+				// This is the default.
 				_clusterSchedulerImplementation = new ClusterLocalityScheduler();
+
+				assert(_clusterSchedulerImplementation != nullptr);
+
+				FatalErrorHandler::warnIf(true,
+					"Unknown cluster scheduler:", clusterSchedulerName.getValue(),
+					". Using default: ", _clusterSchedulerImplementation->getName()
+				);
 			}
 		} else {
 			_clusterSchedulerImplementation = new LocalScheduler();
@@ -44,8 +51,7 @@ public:
 		delete _clusterSchedulerImplementation;
 	}
 
-	inline void addReadyTask(Task *task, ComputePlace *computePlace,
-			ReadyTaskHint hint = NO_HINT)
+	inline void addReadyTask(Task *task, ComputePlace *computePlace, ReadyTaskHint hint = NO_HINT)
 	{
 		_clusterSchedulerImplementation->addReadyTask(task, computePlace, hint);
 	}

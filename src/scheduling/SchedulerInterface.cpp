@@ -40,7 +40,7 @@ SchedulerInterface::SchedulerInterface()
 		computePlaceCount, policy, _enablePriority,
 		_enableImmediateSuccessor);
 
-	size_t totalDevices = (nanos6_device_t::nanos6_device_type_num);
+	const size_t totalDevices = (nanos6_device_t::nanos6_device_type_num);
 
 	for (size_t i = 0; i < totalDevices; i++) {
 		_deviceSchedulers[i] = nullptr;
