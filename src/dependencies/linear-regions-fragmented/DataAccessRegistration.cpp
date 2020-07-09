@@ -756,15 +756,17 @@ namespace DataAccessRegistration {
 			step->releaseRegion(access->getAccessRegion(), access->getLocation());
 		}
 
-		bool linksRead = initialStatus._triggersDataLinkRead != updatedStatus._triggersDataLinkRead;
-		bool linksWrite = initialStatus._triggersDataLinkWrite != updatedStatus._triggersDataLinkWrite;
+		const bool linksRead = initialStatus._triggersDataLinkRead != updatedStatus._triggersDataLinkRead;
+		const bool linksWrite = initialStatus._triggersDataLinkWrite != updatedStatus._triggersDataLinkWrite;
 		if (linksRead || linksWrite) {
 			assert(access->hasDataLinkStep());
 
-			ExecutionWorkflow::DataLinkStep *step =
-				access->getDataLinkStep();
-			step->linkRegion(access->getAccessRegion(),
-				access->getLocation(), linksRead, linksWrite);
+			ExecutionWorkflow::DataLinkStep *step = access->getDataLinkStep();
+
+			step->linkRegion(
+				access->getAccessRegion(),
+				access->getLocation(), linksRead, linksWrite
+			);
 
 			if (updatedStatus._triggersDataLinkRead && updatedStatus._triggersDataLinkWrite) {
 				access->unsetDataLinkStep();
@@ -801,7 +803,10 @@ namespace DataAccessRegistration {
 							assert(dataAccess->receivedReductionInfo() || dataAccess->allocatedReductionInfo());
 							assert(access->receivedReductionInfo());
 							assert(dataAccess->getReductionInfo() == access->getReductionInfo());
-							assert(dataAccess->getReductionSlotSet().size() == access->getReductionSlotSet().size());
+
+							assert(dataAccess->getReductionSlotSet().size() ==
+								access->getReductionSlotSet().size()
+							);
 
 							dataAccess->getReductionSlotSet() |= access->getReductionSlotSet();
 
@@ -840,16 +845,19 @@ namespace DataAccessRegistration {
 			}
 
 			if (accessStructures._removalBlockers == 0) {
-				if (task->decreaseRemovalBlockingCount())
+				if (task->decreaseRemovalBlockingCount()) {
 					hpDependencyData._removableTasks.push_back(task);
+				}
 			}
 		}
 	}
 
 
 	static inline void removeBottomMapTaskwaitOrTopLevelSink(
-		DataAccess *access, TaskDataAccesses &accessStructures, __attribute__((unused)) Task *task)
-	{
+		DataAccess *access,
+		TaskDataAccesses &accessStructures,
+		__attribute__((unused)) Task *task
+	) {
 		assert(access != nullptr);
 		assert(task != nullptr);
 		assert(access->getOriginator() == task);
@@ -931,8 +939,11 @@ namespace DataAccessRegistration {
 
 
 	static inline void upgradeAccess(
-		DataAccess *dataAccess, DataAccessType accessType, bool weak, reduction_type_and_operator_index_t reductionTypeAndOperatorIndex)
-	{
+		DataAccess *dataAccess,
+		DataAccessType accessType,
+		bool weak,
+		reduction_type_and_operator_index_t reductionTypeAndOperatorIndex
+	) {
 		assert(dataAccess != nullptr);
 		assert(!dataAccess->hasBeenDiscounted());
 
@@ -2787,19 +2798,20 @@ namespace DataAccessRegistration {
 		TaskDataAccesses &accessStructures = task->getDataAccesses();
 		assert(!accessStructures.hasBeenDeleted());
 
-		Instrument::registerTaskAccess(task->getInstrumentationTaskId(),
-			NO_ACCESS_TYPE, false, region.getStartAddress(),
-			region.getSize());
+		Instrument::registerTaskAccess(
+			task->getInstrumentationTaskId(),
+			NO_ACCESS_TYPE,
+			false,
+			region.getStartAddress(),
+			region.getSize()
+		);
 
-		DataAccess *newLocalAccess =
-			createAccess(task, access_type, NO_ACCESS_TYPE,
-				/* not weak */ false, region);
+		// false argument means no weak
+		DataAccess *newLocalAccess = createAccess(task, access_type, NO_ACCESS_TYPE, false, region);
 
 		DataAccessStatusEffects initialStatus(newLocalAccess);
-		newLocalAccess->setNewInstrumentationId(
-			task->getInstrumentationTaskId());
-		newLocalAccess->setReadSatisfied(
-			Directory::getDirectoryMemoryPlace());
+		newLocalAccess->setNewInstrumentationId(task->getInstrumentationTaskId());
+		newLocalAccess->setReadSatisfied(Directory::getDirectoryMemoryPlace());
 		newLocalAccess->setWriteSatisfied();
 		newLocalAccess->setConcurrentSatisfied();
 		newLocalAccess->setCommutativeSatisfied();
@@ -2820,9 +2832,14 @@ namespace DataAccessRegistration {
 		accessStructures._accesses.insert(*newLocalAccess);
 
 		CPUDependencyData hpDependencyData;
-		handleDataAccessStatusChanges(initialStatus, updatedStatus,
-			newLocalAccess, accessStructures, task,
-			hpDependencyData);
+		handleDataAccessStatusChanges(
+			initialStatus,
+			updatedStatus,
+			newLocalAccess,
+			accessStructures,
+			task,
+			hpDependencyData
+		);
 	}
 
 	void unregisterLocalAccess(Task *task, DataAccessRegion const &region)

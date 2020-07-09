@@ -25,12 +25,10 @@
 
 
 namespace IntrusiveLinearRegionMapInternals {
-	struct address_t
-	{
+	struct address_t {
 		void *_address;
 
-		inline address_t(void *address)
-			: _address(address)
+		inline address_t(void *address) : _address(address)
 		{
 		}
 
@@ -42,8 +40,7 @@ namespace IntrusiveLinearRegionMapInternals {
 
 
 	template <typename ContentType>
-	struct KeyOfNodeArtifact
-	{
+	struct KeyOfNodeArtifact {
 #if BOOST_VERSION >= 106200
 		typedef address_t type;
 

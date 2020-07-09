@@ -28,8 +28,8 @@ public:
 		void (*_function)(void *);
 		void *_args;
 	public:
-		ShutdownCallback(void (*func)(void *), void *args) :
-			_function(func), _args(args)
+		ShutdownCallback(void (*func)(void *), void *args)
+			: _function(func), _args(args)
 		{
 		}
 

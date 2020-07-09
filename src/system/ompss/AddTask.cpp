@@ -188,12 +188,8 @@ void AddTask::submitTask(Task *task, Task *parent, bool fromUserCode)
 
 	// Compute the task priority only when the scheduler is
 	// considering the task priorities
-	if (Scheduler::isPriorityEnabled()) {
-		if (task->computePriority()) {
-			Instrument::taskHasNewPriority(
-				task->getInstrumentationTaskId(),
-				task->getPriority());
-		}
+	if (Scheduler::isPriorityEnabled() && task->computePriority()) {
+		Instrument::taskHasNewPriority(task->getInstrumentationTaskId(), task->getPriority());
 	}
 
 	bool ready = true;

@@ -151,12 +151,10 @@ static DataAccessRegion findSuitableMemoryRegion()
 		MemoryPlace *masterMemory = master->getMemoryNode();
 
 		// First send my local gap to master node
-		ClusterManager::sendDataRaw(buffer, masterMemory, messageId,
-				true);
+		ClusterManager::sendDataRaw(buffer, masterMemory, messageId, true);
 
 		// Then receive the intersection of all gaps
-		ClusterManager::fetchDataRaw(buffer, masterMemory, messageId,
-				true);
+		ClusterManager::fetchDataRaw(buffer, masterMemory, messageId, true);
 	}
 
 	return gap;

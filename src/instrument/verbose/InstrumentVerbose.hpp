@@ -65,8 +65,11 @@ namespace Instrument {
 			ConcurrentUnorderedListSlotManager::Slot _queueSlot;
 			std::ostringstream _contents;
 
-			LogEntry(timestamp_t timestamp, ConcurrentUnorderedListSlotManager::Slot queueSlot, std::ostringstream const &contents)
-				: _timestamp(timestamp), _queueSlot(queueSlot), _contents()
+			LogEntry(
+				timestamp_t timestamp,
+				ConcurrentUnorderedListSlotManager::Slot queueSlot,
+				std::ostringstream const &contents
+			) : _timestamp(timestamp), _queueSlot(queueSlot), _contents()
 			{
 				_contents << contents.str();
 			}

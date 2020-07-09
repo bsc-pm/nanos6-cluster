@@ -24,7 +24,7 @@
 struct DataAccess;
 class Task;
 
-struct TaskDataAccesses 
+struct TaskDataAccesses
 {
 	typedef PaddedTicketSpinLock<int> spinlock_t;
 
@@ -77,9 +77,12 @@ struct TaskDataAccesses
 
 	TaskDataAccesses(__attribute__((unused)) TaskDataAccessesInfo taskAccessInfo)
 		: _lock(),
-		_accesses(), _accessFragments(), _taskwaitFragments(),
+		_accesses(),
+		_accessFragments(),
+		_taskwaitFragments(),
 		_subaccessBottomMap(),
-		_removalBlockers(0), _liveTaskwaitFragmentCount(0),
+		_removalBlockers(0),
+		_liveTaskwaitFragmentCount(0),
 		_totalCommutativeBytes(0)
 	{
 	}

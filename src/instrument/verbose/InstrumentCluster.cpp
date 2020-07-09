@@ -12,6 +12,7 @@
 using namespace Instrument::Verbose;
 
 namespace Instrument {
+
 	void clusterMessageInitSend(
 		Message const *msg,
 		int receiverId,

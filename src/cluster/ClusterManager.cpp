@@ -15,8 +15,8 @@
 
 ClusterManager *ClusterManager::_singleton = nullptr;
 
-ClusterManager::ClusterManager() :
-	_clusterNodes(1),
+ClusterManager::ClusterManager()
+	: _clusterNodes(1),
 	_thisNode(new ClusterNode(0, 0)),
 	_masterNode(_thisNode),
 	_msn(nullptr)

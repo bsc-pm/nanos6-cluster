@@ -12,23 +12,19 @@
 #include <InstrumentInstrumentationContext.hpp>
 
 namespace Instrument {
-	inline void clusterMessageInitSend(Message const *, int,
-			InstrumentationContext const &)
+	inline void clusterMessageInitSend(Message const *, int, InstrumentationContext const &)
 	{
 	}
 
-	inline void clusterMessageCompleteSend(Message const *,
-			InstrumentationContext const &)
+	inline void clusterMessageCompleteSend(Message const *, InstrumentationContext const &)
 	{
 	}
 
-	inline void enterHandleReceivedMessage(Message const *, int,
-			InstrumentationContext const &)
+	inline void enterHandleReceivedMessage(Message const *, int, InstrumentationContext const &)
 	{
 	}
 
-	inline void exitHandleReceivedMessage(Message const *,
-			InstrumentationContext const &)
+	inline void exitHandleReceivedMessage(Message const *, InstrumentationContext const &)
 	{
 	}
 }

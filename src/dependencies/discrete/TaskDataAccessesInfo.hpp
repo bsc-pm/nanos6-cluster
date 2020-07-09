@@ -47,8 +47,9 @@ public:
 	{
 		assert(_allocationAddress != nullptr || _numDeps == 0);
 
-		if (_addrSize != 0)
+		if (_addrSize != 0) {
 			return static_cast<void **>(_allocationAddress);
+		}
 
 		return nullptr;
 	}

@@ -57,16 +57,16 @@ void VirtualMemoryManagement::setupMemoryLayout(
 	const std::vector<MemoryPlace *> &numaNodes
 ) {
 	void *address = allocation->getAddress();
-	size_t size = allocation->getSize();
-	size_t numaNodeCount = numaNodes.size();
+	const size_t size = allocation->getSize();
+	const size_t numaNodeCount = numaNodes.size();
 
 	// Divide the address space between the NUMA nodes and the
 	// making sure that all areas have a size that is multiple
 	// of PAGE_SIZE
-	size_t localPages = size / HardwareInfo::getPageSize();
-	size_t pagesPerNUMA = localPages / numaNodeCount;
+	const size_t localPages = size / HardwareInfo::getPageSize();
+	const size_t pagesPerNUMA = localPages / numaNodeCount;
+	const size_t sizePerNUMA = pagesPerNUMA * HardwareInfo::getPageSize();
 	size_t extraPages = localPages % numaNodeCount;
-	size_t sizePerNUMA = pagesPerNUMA * HardwareInfo::getPageSize();
 	char *ptr = (char *) address;
 	for (size_t i = 0; i < numaNodeCount; ++i) {
 		size_t nodeId = numaNodes[i]->getIndex();

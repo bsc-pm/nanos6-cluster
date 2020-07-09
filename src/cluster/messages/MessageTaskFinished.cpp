@@ -20,11 +20,11 @@ bool MessageTaskFinished::handleMessage()
 	Task *task = (Task *)_content->_offloadedTaskId;
 	ExecutionWorkflow::Step *step = task->getExecutionStep();
 	assert(step != nullptr);
-	
+
 	task->setExecutionStep(nullptr);
 	step->releaseSuccessors();
 	delete step;
-	
+
 	return true;
 }
 

@@ -78,8 +78,7 @@ public:
 	//! \return true if the region is within distributed memory
 	static inline bool isDistributedRegion(DataAccessRegion const &region)
 	{
-		return _genericVMA->includesRange(region.getStartAddress(),
-				region.getSize());
+		return _genericVMA->includesRange(region.getStartAddress(), region.getSize());
 	}
 
 	//! \brief Check if a memory region is (cluster) local memory
@@ -89,10 +88,8 @@ public:
 	//! \returns true if the region is within local memory
 	static inline bool isLocalRegion(DataAccessRegion const &region)
 	{
-		for (size_t i = 0; i < _localNUMAVMA.size(); ++i) {
-			if (_localNUMAVMA[i]->includesRange(
-					region.getStartAddress(),
-					region.getSize())) {
+		for (const auto &it : _localNUMAVMA) {
+			if (it->includesRange(region.getStartAddress(), region.getSize())) {
 				return true;
 			}
 		}

@@ -85,8 +85,7 @@ public:
 		// We need the size of allocations to be a multiple of page size
 		allocation_size = ROUND_UP(allocation_size, HardwareInfo::getPageSize());
 
-		VirtualMemoryAllocation *alloc = new VirtualMemoryAllocation(
-			nullptr, allocation_size);
+		VirtualMemoryAllocation *alloc = new VirtualMemoryAllocation(nullptr, allocation_size);
 
 		_allocations.push_back(alloc);
 		_localNUMAVMA[numaNodeId].push_back(
@@ -115,17 +114,17 @@ public:
 		return _localNUMAVMA.size();
 	}
 
-	static inline bool isDistributedRegion(const DataAccessRegion&)
+	static constexpr inline bool isDistributedRegion(const DataAccessRegion&)
 	{
 		return false;
 	}
 
-	static inline bool isLocalRegion(const DataAccessRegion&)
+	static constexpr inline bool isLocalRegion(const DataAccessRegion&)
 	{
 		return false;
 	}
 
-	static inline bool isClusterMemory(const DataAccessRegion&)
+	static constexpr inline bool isClusterMemory(const DataAccessRegion&)
 	{
 		return false;
 	}

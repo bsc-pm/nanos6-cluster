@@ -63,7 +63,8 @@ bool LinearRegionMap<ContentType>::processIntersecting(
 }
 
 
-template <typename ContentType> template <typename IntersectingProcessorType, typename MissingProcessorType>
+template <typename ContentType>
+template <typename IntersectingProcessorType, typename MissingProcessorType>
 bool LinearRegionMap<ContentType>::processIntersectingAndMissing(
 	DataAccessRegion const &region,
 	IntersectingProcessorType intersectingProcessor,
@@ -111,7 +112,10 @@ bool LinearRegionMap<ContentType>::processIntersectingAndMissing(
 													// is missing the "bool" return type
 		} else {
 			assert(position->getAccessRegion().getEndAddress() > region.getEndAddress());
-			assert((position->getAccessRegion().getStartAddress() >= lastEnd) || (position->getAccessRegion().getStartAddress() < region.getStartAddress()));
+
+			assert((position->getAccessRegion().getStartAddress() >= lastEnd)
+				|| (position->getAccessRegion().getStartAddress() < region.getStartAddress())
+			);
 
 			cont = intersectingProcessor(position); // NOTE: an error here indicates that the lambda
 													// is missing the "bool" return type
@@ -133,7 +137,8 @@ bool LinearRegionMap<ContentType>::processIntersectingAndMissing(
 }
 
 
-template <typename ContentType> template <typename PredicateType>
+template <typename ContentType>
+template <typename PredicateType>
 bool LinearRegionMap<ContentType>::exists(DataAccessRegion const &region, PredicateType condition)
 {
 	iterator it = _map.lower_bound(region.getStartAddress());

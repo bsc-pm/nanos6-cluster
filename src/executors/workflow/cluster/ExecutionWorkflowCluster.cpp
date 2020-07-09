@@ -25,13 +25,10 @@ namespace ExecutionWorkflow {
 		bool write
 	) {
 		assert(_targetMemoryPlace != nullptr);
-		TaskOffloading::SatisfiabilityInfo satInfo(region,
-			location->getIndex(), read, write);
+		TaskOffloading::SatisfiabilityInfo satInfo(region, location->getIndex(), read, write);
 
-		TaskOffloading::ClusterTaskContext *clusterTaskContext =
-			_task->getClusterContext();
-		TaskOffloading::sendSatisfiability(_task,
-			clusterTaskContext->getRemoteNode(), satInfo);
+		TaskOffloading::ClusterTaskContext *clusterTaskContext = _task->getClusterContext();
+		TaskOffloading::sendSatisfiability(_task, clusterTaskContext->getRemoteNode(), satInfo);
 		size_t linkedBytes = region.getSize();
 
 		//! We need to account for linking both read and write
@@ -66,15 +63,13 @@ namespace ExecutionWorkflow {
 		//! The current node is the source node. We just propagate
 		//! the info we 've gathered
 		assert(_successors.size() == 1);
-		ClusterExecutionStep *execStep =
-			(ClusterExecutionStep *)_successors[0];
+		ClusterExecutionStep *execStep = (ClusterExecutionStep *)_successors[0];
 
 		assert(_read || _write);
-		execStep->addDataLink(_sourceMemoryPlace->getIndex(),
-			_region, _read, _write);
+		execStep->addDataLink(_sourceMemoryPlace->getIndex(), _region, _read, _write);
 
 		releaseSuccessors();
-		size_t linkedBytes = _region.getSize();
+		const size_t linkedBytes = _region.getSize();
 		//! If at the moment of offloading the access is not both
 		//! read and write satisfied, then the info will be linked
 		//! later on. In this case, we just account for the bytes that
@@ -147,23 +142,27 @@ namespace ExecutionWorkflow {
 			return;
 		}
 
-		DataTransfer *dt;
 		Instrument::logMessage(
 			Instrument::ThreadInstrumentationContext::getCurrent(),
 			"ClusterDataCopyStep fetching data from Node:",
 			_sourceMemoryPlace->getIndex()
 		);
-		dt = ClusterManager::fetchData(
+
+		DataTransfer *dt = ClusterManager::fetchData(
 			_targetTranslation._hostRegion,
-			_sourceMemoryPlace);
+			_sourceMemoryPlace
+		);
 
 		dt->setCompletionCallback(
 			[&]() {
 				//! If this data copy is performed for a taskwait we
 				//! don't need to update the location here.
 				DataAccessRegistration::updateTaskDataAccessLocation(
-						_task, _targetTranslation._hostRegion,
-						_targetMemoryPlace, _isTaskwait);
+					_task,
+					_targetTranslation._hostRegion,
+					_targetMemoryPlace,
+					_isTaskwait
+				);
 				this->releaseSuccessors();
 				delete this;
 			}

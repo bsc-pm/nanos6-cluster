@@ -19,8 +19,7 @@ namespace Instrument {
 			return;
 
 		//! Event variables
-		const char evtStr[CLUSTER_EVENTS][EVENT_PREFIX_SIZE] =
-				{ "Send ", "Handle "};
+		const char evtStr[CLUSTER_EVENTS][EVENT_PREFIX_SIZE] = { "Send ", "Handle "};
 
 		extrae_type_t extraeType[CLUSTER_EVENTS] = {
 			(extrae_type_t) EventType::MESSAGE_SEND,
@@ -46,13 +45,11 @@ namespace Instrument {
 			char typeStr[32] = "Message ";
 			strncat(typeStr, evtStr[event], EVENT_PREFIX_SIZE);
 
-			ExtraeAPI::define_event_type(extraeType[event], typeStr,
-					totalTypes, values, valueStr);
+			ExtraeAPI::define_event_type(extraeType[event], typeStr, totalTypes, values, valueStr);
 		}
 	}
 
-	void clusterMessageInitSend(Message const *msg, int receiver,
-		InstrumentationContext const &)
+	void clusterMessageInitSend(Message const *msg, int receiver, InstrumentationContext const &)
 	{
 		if (!_extraeInstrumentCluster)
 			return;
@@ -67,8 +64,8 @@ namespace Instrument {
 		ce.UserFunction = EXTRAE_USER_FUNCTION_NONE;
 		ce.nEvents = 1;
 		ce.nCommunications = 1;
-		ce.Communications = (extrae_user_communication_t *)
-			alloca(sizeof(extrae_user_communication_t));
+		ce.Communications =
+			(extrae_user_communication_t *) alloca(sizeof(extrae_user_communication_t));
 		ce.Types = &type;
 		ce.Values = &value;
 
@@ -81,8 +78,7 @@ namespace Instrument {
 		ExtraeAPI::emit_CombinedEvents(&ce);
 	}
 
-	void clusterMessageCompleteSend(Message const *,
-		InstrumentationContext const &)
+	void clusterMessageCompleteSend(Message const *, InstrumentationContext const &)
 	{
 		if (!_extraeInstrumentCluster)
 			return;
@@ -103,8 +99,7 @@ namespace Instrument {
 		ExtraeAPI::emit_CombinedEvents(&ce);
 	}
 
-	void enterHandleReceivedMessage(Message const *msg, int senderId,
-		InstrumentationContext const &)
+	void enterHandleReceivedMessage(Message const *msg, int senderId, InstrumentationContext const &)
 	{
 		if (!_extraeInstrumentCluster)
 			return;
@@ -119,8 +114,8 @@ namespace Instrument {
 		ce.UserFunction = EXTRAE_USER_FUNCTION_NONE;
 		ce.nEvents = 1;
 		ce.nCommunications = 1;
-		ce.Communications = (extrae_user_communication_t *)
-			alloca(sizeof(extrae_user_communication_t));
+		ce.Communications =
+			(extrae_user_communication_t *) alloca(sizeof(extrae_user_communication_t));
 		ce.Types = &type;
 		ce.Values = &value;
 
@@ -133,8 +128,7 @@ namespace Instrument {
 		ExtraeAPI::emit_CombinedEvents(&ce);
 	}
 
-	void exitHandleReceivedMessage(Message const *,
-		InstrumentationContext const &)
+	void exitHandleReceivedMessage(Message const *, InstrumentationContext const &)
 	{
 		if (!_extraeInstrumentCluster)
 			return;

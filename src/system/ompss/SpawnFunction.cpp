@@ -76,10 +76,12 @@ void SpawnFunction::spawnFunction(
 	_pendingSpawnedFunctions++;
 
 	nanos6_task_info_t *taskInfo = nullptr;
+
 	{
 		task_info_key_t taskInfoKey(function, (label != nullptr ? label : ""));
 
 		std::lock_guard<SpinLock> guard(_spawnedFunctionInfosLock);
+
 		auto itAndBool = _spawnedFunctionInfos.emplace(
 			std::make_pair(taskInfoKey, nanos6_task_info_t())
 		);

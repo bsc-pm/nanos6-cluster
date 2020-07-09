@@ -25,7 +25,7 @@ namespace ExecutionWorkflow {
 		{
 		}
 	};
-	
+
 	class ClusterDataLinkStep : public DataLinkStep {
 		ClusterDataLinkStep(
 			__attribute__((unused)) MemoryPlace const *sourceMemoryPlace,
@@ -35,7 +35,7 @@ namespace ExecutionWorkflow {
 		{
 		}
 	};
-	
+
 	class ClusterDataCopyStep : public Step {
 	public:
 		ClusterDataCopyStep(
@@ -47,7 +47,7 @@ namespace ExecutionWorkflow {
 		{
 		}
 	};
-	
+
 	class ClusterExecutionStep : public Step {
 	public:
 		ClusterExecutionStep(
@@ -57,7 +57,7 @@ namespace ExecutionWorkflow {
 		{
 		}
 	};
-	
+
 	class ClusterNotificationStep : public Step {
 	public:
 		ClusterNotificationStep(
@@ -66,7 +66,7 @@ namespace ExecutionWorkflow {
 		{
 		}
 	};
-	
+
 	class ClusterUnpinningStep : public Step {
 	public:
 		ClusterUnpinningStep(
@@ -76,7 +76,7 @@ namespace ExecutionWorkflow {
 		{
 		}
 	};
-	
+
 	class ClusterDataReleaseStep : public DataReleaseStep {
 	public:
 		ClusterDataReleaseStep(
@@ -86,7 +86,7 @@ namespace ExecutionWorkflow {
 		{
 		}
 	};
-	
+
 	inline Step *clusterCopy(
 		__attribute__((unused)) MemoryPlace const *source,
 		__attribute__((unused)) MemoryPlace const *target,

@@ -28,22 +28,22 @@ struct DataAccessBase {
 	#else
 		typedef boost::intrusive::link_mode<boost::intrusive::safe_link> link_mode_t;
 	#endif
-	
+
 	//! Links used by the list of accesses of a Task
 	TaskDataAccessHooks _taskDataAccessLinks;
-	
+
 	//! Type of access: read, write, ...
 	DataAccessType _type;
-	
+
 	//! True iff the access is weak
 	bool _weak;
-	
+
 	//! Tasks to which the access corresponds
 	Task *_originator;
-	
+
 	//! An identifier for the instrumentation
 	Instrument::data_access_id_t _instrumentationId;
-	
+
 	DataAccessBase(
 		DataAccessType type,
 		bool weak,

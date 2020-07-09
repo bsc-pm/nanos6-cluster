@@ -36,15 +36,20 @@ namespace Instrument {
 		inline bool operator()(nanos6_task_info_t *a, nanos6_task_info_t *b) const;
 	};
 
-	typedef std::set<nanos6_task_info_t *>              user_fct_map_t;
+	typedef std::set<nanos6_task_info_t *> user_fct_map_t;
 
 	struct scope_tracing_point_info_t {
 		std::string _name;
 		std::string _startDescription;
 		std::string _endDescription;
 
-		scope_tracing_point_info_t(std::string const &name, std::string const &startDescription, std::string const &endDescription)
-			: _name(name), _startDescription(startDescription), _endDescription(endDescription)
+		scope_tracing_point_info_t(
+			std::string const &name,
+			std::string const &startDescription,
+			std::string const &endDescription
+		) : _name(name),
+			_startDescription(startDescription),
+			_endDescription(endDescription)
 		{
 		}
 	};
@@ -53,8 +58,11 @@ namespace Instrument {
 		std::string _name;
 		std::vector<std::string> _valueDescriptions;
 
-		enumerated_tracing_point_info_t(std::string const &name, std::vector<std::string> const &valueDescriptions)
-			: _name(name), _valueDescriptions(valueDescriptions)
+		enumerated_tracing_point_info_t(
+			std::string const &name,
+			std::vector<std::string> const &valueDescriptions
+		) : _name(name),
+			_valueDescriptions(valueDescriptions)
 		{
 		}
 	};
@@ -105,24 +113,29 @@ namespace Instrument {
 	};
 
 
-	typedef enum { NANOS_NO_STATE, NANOS_NOT_RUNNING, NANOS_STARTUP, NANOS_SHUTDOWN, NANOS_ERROR, NANOS_IDLE,
-						NANOS_RUNTIME, NANOS_RUNNING, NANOS_SYNCHRONIZATION, NANOS_SCHEDULING, NANOS_CREATION,
-						NANOS_THREAD_CREATION,
-						NANOS_EVENT_STATE_TYPES
+	typedef enum {
+		NANOS_NO_STATE, NANOS_NOT_RUNNING,
+		NANOS_STARTUP, NANOS_SHUTDOWN,
+		NANOS_ERROR, NANOS_IDLE,
+		NANOS_RUNTIME, NANOS_RUNNING,
+		NANOS_SYNCHRONIZATION, NANOS_SCHEDULING,
+		NANOS_CREATION, NANOS_THREAD_CREATION,
+		NANOS_EVENT_STATE_TYPES
 	} nanos6_event_state_t;
 
-	extern char const                               *_eventStateValueStr[];
+	extern char const *_eventStateValueStr[];
 
-	typedef enum { NANOS_OUTSIDE_REDUCTION, NANOS_ALLOCATE_REDUCTION_INFO,
-						NANOS_RETRIEVE_REDUCTION_STORAGE, NANOS_ALLOCATE_REDUCTION_STORAGE,
-						NANOS_INITIALIZE_REDUCTION_STORAGE, NANOS_COMBINE_REDUCTION_STORAGE,
-						NANOS_REDUCTION_STATE_TYPES
+	typedef enum {
+		NANOS_OUTSIDE_REDUCTION, NANOS_ALLOCATE_REDUCTION_INFO,
+		NANOS_RETRIEVE_REDUCTION_STORAGE, NANOS_ALLOCATE_REDUCTION_STORAGE,
+		NANOS_INITIALIZE_REDUCTION_STORAGE, NANOS_COMBINE_REDUCTION_STORAGE,
+		NANOS_REDUCTION_STATE_TYPES
 	} nanos6_reduction_state_t;
 
-	extern char const                               *_reductionStateValueStr[];
+	extern char const *_reductionStateValueStr[];
 
 	extern SpinLock _userFunctionMapLock;
-	extern user_fct_map_t                            _userFunctionMap;
+	extern user_fct_map_t _userFunctionMap;
 
 	extern std::atomic<size_t> _nextTaskId;
 	extern std::atomic<size_t> _readyTasks;
@@ -144,8 +157,17 @@ namespace Instrument {
 
 	inline bool ExtraeTaskInfoCompare::operator()(nanos6_task_info_t *a, nanos6_task_info_t *b) const
 	{
-		std::string labelA(a->implementations[0].task_label != nullptr ? a->implementations[0].task_label : a->implementations[0].declaration_source);
-		std::string labelB(b->implementations[0].task_label != nullptr ? b->implementations[0].task_label : b->implementations[0].declaration_source);
+		std::string labelA(
+			a->implementations[0].task_label != nullptr
+			? a->implementations[0].task_label
+			: a->implementations[0].declaration_source
+		);
+
+		std::string labelB(
+			b->implementations[0].task_label != nullptr
+			? b->implementations[0].task_label
+			: b->implementations[0].declaration_source
+		);
 
 		if (labelA != labelB) {
 			return (labelA < labelB);
