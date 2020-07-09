@@ -239,30 +239,31 @@ namespace ExecutionWorkflow {
 		/* TODO: Once we have correct management for the Task symbols here
 			* we should create the corresponding allocation steps. */
 
-		DataAccessRegistration::processAllDataAccesses(task,
+		DataAccessRegistration::processAllDataAccesses(
+			task,
 			[&](DataAccess *dataAccess) -> bool {
 				assert(dataAccess != nullptr);
 				DataAccessRegion const &region = dataAccess->getAccessRegion();
 
 				MemoryPlace const *currLocation = dataAccess->getLocation();
-				Step *step;
+
 				if (ClusterManager::inClusterMode()
 					&& Directory::isDirectoryMemoryPlace(currLocation)
 					&& targetComputePlace->getType() == nanos6_host_device) {
 
-					Directory::HomeNodesArray *homeNodes = Directory::find(region);
+					Directory::HomeNodesArray const *homeNodes = Directory::find(region);
 
 					for (const auto &entry : *homeNodes) {
 						currLocation = entry->getHomeNode();
-						const DataAccessRegion subregion
-							= region.intersect(entry->getAccessRegion());
+						const DataAccessRegion subregion = region.intersect(entry->getAccessRegion());
 						RegionTranslation translation(subregion, subregion.getStartAddress());
 
-						step = workflow->createDataCopyStep(
+						Step *step = workflow->createDataCopyStep(
 							currLocation,
 							targetMemoryPlace,
 							translation,
-							dataAccess);
+							dataAccess
+						);
 
 						workflow->enforceOrder(step, executionStep);
 						workflow->addRootStep(step);
@@ -276,7 +277,7 @@ namespace ExecutionWorkflow {
 						* At the moment (and since we support only cluster and SMP
 						* we can use a dummy RegionTranslation */
 					RegionTranslation translation(region, region.getStartAddress());
-					step = workflow->createDataCopyStep(
+					Step *step = workflow->createDataCopyStep(
 						currLocation,
 						targetMemoryPlace,
 						translation,
@@ -287,9 +288,9 @@ namespace ExecutionWorkflow {
 					workflow->addRootStep(step);
 				}
 
-				step = workflow->createDataReleaseStep(task, dataAccess);
-				workflow->enforceOrder(executionStep, step);
-				workflow->enforceOrder(step, notificationStep);
+				Step *releaseStep = workflow->createDataReleaseStep(task, dataAccess);
+				workflow->enforceOrder(executionStep, releaseStep);
+				workflow->enforceOrder(releaseStep, notificationStep);
 
 				return true;
 			}
