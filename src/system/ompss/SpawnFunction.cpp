@@ -30,7 +30,6 @@ std::map<SpawnFunction::task_info_key_t, nanos6_task_info_t> SpawnFunction::_spa
 SpinLock SpawnFunction::_spawnedFunctionInfosLock;
 nanos6_task_invocation_info_t SpawnFunction::_spawnedFunctionInvocationInfo = { "Spawned from external code" };
 
-
 //! Args block of spawned functions
 struct SpawnedFunctionArgsBlock {
 	SpawnFunction::function_t _function = nullptr;
@@ -52,8 +51,6 @@ struct SpawnedFunctionArgsBlock {
 		_completionArgs = completion_args;
 		_constraints.stream = stream_id;
 	}
-
-
 };
 
 
@@ -93,7 +90,6 @@ void SpawnFunction::spawnFunction(
 			// New task info
 			taskInfo->implementations = (nanos6_task_implementation_info_t *)
 				malloc(sizeof(nanos6_task_implementation_info_t));
-			assert(taskInfo->implementations != nullptr);
 
 			taskInfo->implementation_count = 1;
 			taskInfo->implementations[0].run = SpawnFunction::spawnedFunctionWrapper;

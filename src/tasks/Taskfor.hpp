@@ -230,7 +230,16 @@ public:
 	) override
 	{
 		assert(isRunnable());
-		Task::reinitialize(argsBlock, argsBlockSize, taskInfo, taskInvokationInfo, parent, instrumentationTaskId, flags);
+
+		Task::reinitialize(
+			argsBlock,
+			argsBlockSize,
+			taskInfo,
+			taskInvokationInfo,
+			parent,
+			instrumentationTaskId,
+			flags);
+
 		_bounds.lower_bound = 0;
 		_bounds.upper_bound = 0;
 		_bounds.grainsize = 0;

@@ -39,8 +39,7 @@ MessageTaskNew::MessageTaskNew(
 
 	_content = reinterpret_cast<TaskNewMessageContent *>(_deliverable->payload);
 	memcpy(&_content->_taskInfo, taskInfo, sizeof(nanos6_task_info_t));
-	memcpy(&_content->_taskInvocationInfo, taskInvocationInfo,
-		sizeof(nanos6_task_invocation_info_t));
+	memcpy(&_content->_taskInvocationInfo, taskInvocationInfo, sizeof(nanos6_task_invocation_info_t));
 	memcpy(&_content->_flags, &flags, sizeof(flags));
 	memcpy(&_content->_argsBlockSize, &argsBlockSize, sizeof(argsBlockSize));
 	memcpy(&_content->_numImplementations, &numImplementations, sizeof(numImplementations));
@@ -51,8 +50,7 @@ MessageTaskNew::MessageTaskNew(
 		numImplementations * sizeof(nanos6_task_implementation_info_t));
 
 	if (satInfo != nullptr) {
-		memcpy(getSatInfoPtr(), satInfo,
-			numSatInfo * sizeof(TaskOffloading::SatisfiabilityInfo));
+		memcpy(getSatInfoPtr(), satInfo, numSatInfo * sizeof(TaskOffloading::SatisfiabilityInfo));
 	}
 
 	if (argsBlock != nullptr) {

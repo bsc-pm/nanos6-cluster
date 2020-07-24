@@ -19,6 +19,7 @@ class DataAccessRegion;
 class MemoryPlace;
 
 class HomeNodeMap : public IntrusiveLinearRegionMap<HomeMapEntry, boost::intrusive::function_hook< HomeMapEntryLinkingArtifacts > > {
+
 	typedef IntrusiveLinearRegionMap<
 		HomeMapEntry,
 		boost::intrusive::function_hook<HomeMapEntryLinkingArtifacts>
@@ -41,8 +42,7 @@ public:
 	}
 
 	//! \brief Insert a region in the map
-	void insert(DataAccessRegion const &region,
-		MemoryPlace const *homeNode);
+	void insert(DataAccessRegion const &region, MemoryPlace const *homeNode);
 
 	//! \brief Find the home nodes of a region
 	HomeNodesArray *find(DataAccessRegion const &region);

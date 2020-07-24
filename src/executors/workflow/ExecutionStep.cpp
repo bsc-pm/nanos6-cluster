@@ -9,7 +9,7 @@
 #include <DataAccess.hpp>
 
 namespace ExecutionWorkflow {
-	
+
 	DataLinkStep::DataLinkStep(DataAccess *access) :
 		Step(),
 		/* We count twice the bytes of the region, because we
@@ -17,7 +17,7 @@ namespace ExecutionWorkflow {
 		_bytesToLink(2 * access->getAccessRegion().getSize())
 	{
 	}
-	
+
 	DataReleaseStep::DataReleaseStep(DataAccess *access) :
 		Step(),
 		_type(access->getType()),

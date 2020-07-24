@@ -36,8 +36,7 @@ public:
 	//! \param[in] memoryPlace is the MemoryPlace we are checking
 	//!
 	//! \returns true if memoryPlace is the Directory MemoryPlace
-	static inline bool isDirectoryMemoryPlace(
-			MemoryPlace const *memoryPlace)
+	static inline bool isDirectoryMemoryPlace(MemoryPlace const *memoryPlace)
 	{
 		return (memoryPlace == &_directoryMemoryPlace);
 	}

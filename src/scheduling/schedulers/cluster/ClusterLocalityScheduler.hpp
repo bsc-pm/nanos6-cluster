@@ -24,8 +24,7 @@ private:
 	}
 
 public:
-	ClusterLocalityScheduler()
-		: ClusterSchedulerInterface("ClusterLocalityScheduler")
+	ClusterLocalityScheduler() : ClusterSchedulerInterface("ClusterLocalityScheduler")
 	{
 	}
 

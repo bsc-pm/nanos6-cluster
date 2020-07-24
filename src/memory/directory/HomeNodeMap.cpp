@@ -16,14 +16,15 @@ void HomeNodeMap::insert(
 	MemoryPlace const *homeNode
 ) {
 	std::lock_guard<spinlock_t> guard(lock);
+
 	processIntersectingAndMissing(
 		region,
 		[&] (HomeNodeMap::iterator pos) -> bool {
 			HomeMapEntry *entry = &(*pos);
 
-			FatalErrorHandler::failIf(true,
-				"We do not support updating the home node ",
-				"of a region. (Region: ",
+			FatalErrorHandler::failIf(
+				true,
+				"We do not support updating the home node of a region. (Region: ",
 				entry->getAccessRegion(),
 				")"
 			);
@@ -32,8 +33,7 @@ void HomeNodeMap::insert(
 			return true;
 		},
 		[&] (DataAccessRegion missingRegion) -> bool {
-			HomeMapEntry *entry =
-				new HomeMapEntry(missingRegion, homeNode);
+			HomeMapEntry *entry = new HomeMapEntry(missingRegion, homeNode);
 			BaseType::insert(*entry);
 
 			return true;
@@ -41,8 +41,7 @@ void HomeNodeMap::insert(
 	);
 }
 
-HomeNodeMap::HomeNodesArray *
-HomeNodeMap::find(DataAccessRegion const &region)
+HomeNodeMap::HomeNodesArray *HomeNodeMap::find(DataAccessRegion const &region)
 {
 	HomeNodesArray *ret = new HomeNodesArray();
 
@@ -54,12 +53,10 @@ HomeNodeMap::find(DataAccessRegion const &region)
 			ret->push_back(entry);
 			return true;
 		},
-		[&] (DataAccessRegion missingRegion) -> bool
-		{
+		[&] (DataAccessRegion missingRegion) -> bool {
 			FatalErrorHandler::failIf(
 				true,
-				"Asking the home node of an unkown ",
-				"region: ",
+				"Asking the home node of an unkown region: ",
 				missingRegion
 			);
 
@@ -85,8 +82,7 @@ void HomeNodeMap::erase(DataAccessRegion const &region)
 		[&] (DataAccessRegion missingRegion) -> bool {
 			FatalErrorHandler::failIf(
 				true,
-				"Trying to erase an unknown home node",
-				" mapping for region: ",
+				"Trying to erase an unknown home node mapping for region: ",
 				missingRegion
 			);
 

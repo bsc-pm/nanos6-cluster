@@ -1,7 +1,7 @@
 /*
 	This file is part of Nanos6 and is licensed under the terms contained in the COPYING file.
 
-	Copyright (C) 2019 Barcelona Supercomputing Center (BSC)
+	Copyright (C) 2019-2020 Barcelona Supercomputing Center (BSC)
 */
 
 #ifndef MESSAGE_TASKNEW_HPP
@@ -19,23 +19,23 @@ class MessageTaskNew : public Message {
 		//! Necessary info for duplicating the task on the remote node
 		nanos6_task_info_t _taskInfo;
 		nanos6_task_invocation_info_t _taskInvocationInfo;
-		
+
 		//! The flags of the task
 		size_t _flags;
-		
+
 		//! The size of the Task's argsBlock
 		size_t _argsBlockSize;
-		
+
 		//! The number of task implementations
 		size_t _numImplementations;
-		
+
 		//! The number of satisfiability information entries
 		size_t _numSatInfo;
-		
+
 		//! An opaque id that that will uniquely identifies the
 		//! offloaded task
 		void *_offloadedTaskId;
-		
+
 		//! buffer holding all the variable length information we need
 		//! to send across.
 		//!
@@ -49,17 +49,17 @@ class MessageTaskNew : public Message {
 		//! If you need to change this layout amend the previous.
 		char _msgData[];
 	};
-	
+
 	//! pointer to message payload
 	TaskNewMessageContent *_content;
-	
+
 	//! Returns a pointer in the Message memory holding the task
 	//! implementation info
 	inline nanos6_task_implementation_info_t *getImplementationsPtr() const
 	{
 		return (nanos6_task_implementation_info_t *)_content->_msgData;
 	}
-	
+
 	//! Returns a pointer in the Message memory holding the satisfiability
 	//! information we have
 	inline TaskOffloading::SatisfiabilityInfo *getSatInfoPtr() const
@@ -67,29 +67,33 @@ class MessageTaskNew : public Message {
 		return (TaskOffloading::SatisfiabilityInfo *)
 			(getImplementationsPtr() + _content->_numImplementations);
 	}
-	
+
 	//! Returns a pointer in the Message memory holding the argsBlock
 	inline void *getArgsBlockPtr() const
 	{
-		return (void *)
-			(getSatInfoPtr() + _content->_numSatInfo);
+		return (void *) (getSatInfoPtr() + _content->_numSatInfo);
 	}
-	
+
 public:
-	MessageTaskNew(const ClusterNode *from, nanos6_task_info_t *taskInfo,
-		nanos6_task_invocation_info_t *taskInvokationInfo, size_t flags,
+	MessageTaskNew(
+		const ClusterNode *from,
+		nanos6_task_info_t *taskInfo,
+		nanos6_task_invocation_info_t *taskInvokationInfo,
+		size_t flags,
 		size_t numImplementations,
 		nanos6_task_implementation_info_t *taskImplementations,
-		size_t numSatInfo, TaskOffloading::SatisfiabilityInfo const *satInfo,
-		size_t argsBlockSize, void *argsBlock,
-		void *offloadedTaskId);
-	
-	MessageTaskNew(Deliverable *dlv)
-		: Message(dlv)
+		size_t numSatInfo,
+		TaskOffloading::SatisfiabilityInfo const *satInfo,
+		size_t argsBlockSize,
+		void *argsBlock,
+		void *offloadedTaskId
+	);
+
+	MessageTaskNew(Deliverable *dlv) : Message(dlv)
 	{
 		_content = reinterpret_cast<TaskNewMessageContent *>(_deliverable->payload);
 	}
-	
+
 	//! Get the task_info_t of the offloaded task
 	//!
 	//! This returns a pointer in memory of the Message. The calling site
@@ -100,7 +104,7 @@ public:
 	{
 		return &_content->_taskInfo;
 	}
-	
+
 	//! Get the task_invocation_info_t of the offloaded task
 	//!
 	//! This returns a pointer in memory of the Message. The calling site
@@ -111,19 +115,19 @@ public:
 	{
 		return &_content->_taskInvocationInfo;
 	}
-	
+
 	//! Get the task flags
 	inline size_t getFlags() const
 	{
 		return _content->_flags;
 	}
-	
+
 	//! Get the task id of the offloaded Task
 	inline void *getOffloadedTaskId() const
 	{
 		return _content->_offloadedTaskId;
 	}
-	
+
 	//! Get an array of the available task implementations
 	//!
 	//! This returns a pointer in Message memory holding the information of
@@ -131,17 +135,16 @@ public:
 	//! copying out from this memory or making sure that the Message is not
 	//! deleted for as long as it is needed. The method also returns the
 	//! number of the available task implementations.
-	inline nanos6_task_implementation_info_t *getImplementations(
-		size_t &numImplementations) const
+	inline nanos6_task_implementation_info_t *getImplementations(size_t &numImplementations) const
 	{
 		numImplementations = _content->_numImplementations;
 		if (numImplementations == 0) {
 			return nullptr;
 		}
-		
+
 		return getImplementationsPtr();
 	}
-	
+
 	//! Get an array of the available satisfiability information we have
 	//!
 	//! This returns a pointer in memory of the Message. The calling site
@@ -149,17 +152,16 @@ public:
 	//! the memory of the MessageTaskNew is not deallocated for as long as
 	//! it is needed. The method also returns the number of available
 	//! SatisfiabilityInfo structs included in the Message.
-	inline TaskOffloading::SatisfiabilityInfo *getSatisfiabilityInfo(
-		size_t &numSatInfo) const
+	inline TaskOffloading::SatisfiabilityInfo *getSatisfiabilityInfo(size_t &numSatInfo) const
 	{
 		numSatInfo = _content->_numSatInfo;
 		if (numSatInfo == 0) {
 			return nullptr;
 		}
-		
+
 		return getSatInfoPtr();
 	}
-	
+
 	//! Get a pointer to the Task's argsBlock
 	//!
 	//! This returns a pointer in memory of the Message. The calling site
@@ -173,19 +175,19 @@ public:
 		if (argsBlockSize == 0) {
 			return nullptr;
 		}
-		
+
 		return getArgsBlockPtr();
 	}
-	
+
 	bool handleMessage();
-	
+
 	inline std::string toString() const
 	{
 		std::stringstream ss;
 		ss << "[offloadedTaskId:" << _content->_offloadedTaskId
 			<< " numSatInfo:" << _content->_numSatInfo
 			<< "]";
-		
+
 		return ss.str();
 	}
 };

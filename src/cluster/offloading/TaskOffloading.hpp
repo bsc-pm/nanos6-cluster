@@ -1,7 +1,7 @@
 /*
 	This file is part of Nanos6 and is licensed under the terms contained in the COPYING file.
 
-	Copyright (C) 2018 Barcelona Supercomputing Center (BSC)
+	Copyright (C) 2018-2020 Barcelona Supercomputing Center (BSC)
 */
 
 #ifndef TASK_OFFLOADING_HPP
@@ -20,7 +20,7 @@ class MessageTaskNew;
 class Task;
 
 namespace TaskOffloading {
-	
+
 	//! \brief Offload a Task to a remote ClusterNode
 	//!
 	//! \param[in] task is the Task we are offloading
@@ -29,15 +29,14 @@ namespace TaskOffloading {
 	//! \param[in] remoteNode is the ClusterNode to which we are offloading
 	void offloadTask(Task *task, std::vector<SatisfiabilityInfo> const &satInfo,
 			ClusterNode const *remoteNode);
-	
+
 	//! \brief Send note that remote task finished
 	//!
 	//! \param[in] offloadedTaskId is the task identifier on the offloader
 	//!		node
 	//! \param[in] offloader is the ClusterNode that offloaded the task
-	void sendRemoteTaskFinished(void *offloadedTaskId,
-			ClusterNode *offloader);
-	
+	void sendRemoteTaskFinished(void *offloadedTaskId, ClusterNode *offloader);
+
 	//! \brief Send satisfiability information to an offloaded Task
 	//!
 	//! \param[in] task is the offloaded task
@@ -47,7 +46,7 @@ namespace TaskOffloading {
 	//!		sending
 	void sendSatisfiability(Task *task, ClusterNode *remoteNode,
 			SatisfiabilityInfo const &satInfo);
-	
+
 	//! \brief Propagate satisfiability information for a remote task
 	//!
 	//! \param[in] offloadedTaskId is the task identifier of the offloader
@@ -56,20 +55,19 @@ namespace TaskOffloading {
 	//! \param[in] satInfo is satisfiability info we are propagating
 	void propagateSatisfiability(void *offloadedTaskId,
 			ClusterNode *offloader, SatisfiabilityInfo const &satInfo);
-	
+
 	//! \brief Propagate satisfiability information to a local task
 	//!
 	//! \param[in] task the local Task to which we propagate satisfiability
 	//! \param[in] satInfo the satisfiability updates we propagate
 	void propagateSatisfiability(Task *task, SatisfiabilityInfo const &satInfo);
-	
+
 	//! \brief Propagate multiple satisfiability updates to a local task
 	//!
 	//! \param[in] task the local Task to which we propagate satisfiability
 	//! \param[in[ satInfo a vector of SatisfiabilityInfo structs we propagate
-	void propagateSatisfiability(Task *task,
-			std::vector<SatisfiabilityInfo> const &satInfo);
-	
+	void propagateSatisfiability(Task *task, std::vector<SatisfiabilityInfo> const &satInfo);
+
 	//! \brief Notify that a region is released on a remote node
 	//!
 	//! \param[in] offloadedTaskId is the task identifier of the offloader
@@ -85,7 +83,7 @@ namespace TaskOffloading {
 			DataAccessRegion const &region,
 			DataAccessType type, bool weak,
 			MemoryPlace const *location);
-	
+
 	//! \brief Release a region of an offloaded Task
 	//!
 	//! \param[in] task is the offloaded task
@@ -97,12 +95,12 @@ namespace TaskOffloading {
 	void releaseRemoteAccess(Task *task, DataAccessRegion const &region,
 			DataAccessType type, bool weak,
 			MemoryPlace const *location);
-	
+
 	//! \brief Create and submit a remote task
 	//!
 	//! \param[in] msg the MessageTaskNew of the remote Task
 	void remoteTaskWrapper(MessageTaskNew *msg);
-	
+
 	//! \brief Completion callback for a remote task
 	//!
 	//! \param[in] msg the MessageTaskNew of the remote Task

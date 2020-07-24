@@ -92,7 +92,6 @@ void MPIMessenger::sendMessage(Message *msg, ClusterNode const *toNode, bool blo
 		MPIErrorHandler::handle(ret, INTRA_COMM);
 
 		msg->markAsDelivered();
-
 		Instrument::clusterMessageCompleteSend(msg);
 
 		return;
@@ -102,7 +101,6 @@ void MPIMessenger::sendMessage(Message *msg, ClusterNode const *toNode, bool blo
 	FatalErrorHandler::failIf(request == nullptr, "Could not allocate memory for MPI_Request");
 
 	ret = MPI_Isend((void *)delv, msgSize, MPI_BYTE, mpiDst, tag, INTRA_COMM, request);
-
 	MPIErrorHandler::handle(ret, INTRA_COMM);
 
 	msg->setMessengerData((void *)request);
@@ -117,7 +115,7 @@ DataTransfer *MPIMessenger::sendData(
 	int messageId,
 	bool block
 ) {
-	int ret, tag;
+	int ret;
 	const int mpiDst = to->getCommIndex();
 	void *address = region.getStartAddress();
 
@@ -125,7 +123,7 @@ DataTransfer *MPIMessenger::sendData(
 
 	assert(mpiDst < _wsize && mpiDst != _wrank);
 
-	tag = (messageId << 8) | DATA_RAW;
+	int tag = (messageId << 8) | DATA_RAW;
 
 	if (block) {
 		ret = MPI_Send(address, size, MPI_BYTE, mpiDst, tag, INTRA_COMM);
@@ -151,14 +149,14 @@ DataTransfer *MPIMessenger::fetchData(
 	int messageId,
 	bool block
 ) {
-	int ret, tag;
+	int ret;
 	const int mpiSrc = from->getCommIndex();
 	void *address = region.getStartAddress();
 	size_t size = region.getSize();
 
 	assert(mpiSrc < _wsize && mpiSrc != _wrank);
 
-	tag = (messageId << 8) | DATA_RAW;
+	int tag = (messageId << 8) | DATA_RAW;
 
 	if (block) {
 		ret = MPI_Recv(address, size, MPI_BYTE, mpiSrc, tag, INTRA_COMM, MPI_STATUS_IGNORE);
@@ -237,8 +235,7 @@ void MPIMessenger::testMessageCompletion(std::vector<Message *> &messages)
 		Message *msg = messages[i];
 		assert(msg != nullptr);
 
-		MPI_Request *req =
-			(MPI_Request *)msg->getMessengerData();
+		MPI_Request *req = (MPI_Request *)msg->getMessengerData();
 		assert(req != nullptr);
 
 		requests[i] = *req;
@@ -248,7 +245,7 @@ void MPIMessenger::testMessageCompletion(std::vector<Message *> &messages)
 	MPIErrorHandler::handleErrorInStatus(ret, status, completedCount, INTRA_COMM);
 
 	for (int i = 0; i < completedCount; ++i) {
-		int index = finished[i];
+		const int index = finished[i];
 		Message *msg = messages[index];
 
 		msg->markAsDelivered();

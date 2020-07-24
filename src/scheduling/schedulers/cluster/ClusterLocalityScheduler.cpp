@@ -28,7 +28,8 @@ void ClusterLocalityScheduler::addReadyTask(
 	std::vector<size_t> bytes(_clusterSize, 0);
 	bool canBeOffloaded = true;
 
-	DataAccessRegistration::processAllDataAccesses(task,
+	DataAccessRegistration::processAllDataAccesses(
+		task,
 		[&](const DataAccess *access) -> bool {
 			const MemoryPlace *location = access->getLocation();
 			if (location == nullptr) {
@@ -43,7 +44,7 @@ void ClusterLocalityScheduler::addReadyTask(
 			}
 
 			if (Directory::isDirectoryMemoryPlace(location)) {
-				Directory::HomeNodesArray *homeNodes = Directory::find(region);
+				const Directory::HomeNodesArray *homeNodes = Directory::find(region);
 
 				for (const auto &entry : *homeNodes) {
 					location = entry->getHomeNode();

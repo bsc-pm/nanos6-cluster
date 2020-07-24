@@ -19,15 +19,15 @@ class MemoryPlace;
 class Task;
 
 namespace ExecutionWorkflow {
-	
+
 	//! A function that sets up a data transfer between two MemoryPlace
 	typedef std::function<Step *(MemoryPlace const *, MemoryPlace const *,
 		RegionTranslation const &, DataAccess *)> data_transfer_function_t;
-	
+
 	//! A map that stores the functions that perform data transfers between
 	//! two MemoryPlaces, depending on their type (nanos6_device_t).
 	typedef std::vector<std::vector<data_transfer_function_t> > transfers_map_t;
-	
+
 	inline Step *nullCopy(
 		__attribute__((unused))MemoryPlace const *source,
 		__attribute__((unused))MemoryPlace const *target,
@@ -36,13 +36,13 @@ namespace ExecutionWorkflow {
 	) {
 		return new Step();
 	}
-	
+
 	extern transfers_map_t _transfersMap;
-	
+
 	class WorkflowBase {
 		//! Root steps of the workflow
 		std::vector<Step *> _rootSteps;
-		
+
 	public:
 		//! \brief Creates an AllocationAndPinningStep.
 		//!
@@ -60,7 +60,7 @@ namespace ExecutionWorkflow {
 			RegionTranslation &regionTranslation,
 			MemoryPlace const *memoryPlace
 		);
-		
+
 		//! \brief Creates a DataCopyStep.
 		//!
 		//! A DataCopyStep copies (if necessary) the (host-addressed)
@@ -82,7 +82,7 @@ namespace ExecutionWorkflow {
 			RegionTranslation const &targetTranslation,
 			DataAccess *access
 		);
-		
+
 		//! \brief Creates an ExecutionStep.
 		//!
 		//! An ExecutionStep executes the task on assigned computePlace.
@@ -90,11 +90,8 @@ namespace ExecutionWorkflow {
 		//! \param[in] task is the Task for which we build the execution step
 		//! \param[in] computePlace is the ComputePlace on which the task will
 		//!	       be executed.
-		Step *createExecutionStep(
-			Task *task,
-			ComputePlace *computePlace
-		);
-		
+		Step *createExecutionStep(Task *task, ComputePlace *computePlace);
+
 		//! \brief Creates a NotificationStep.
 		//!
 		//! A NotificationStep performs the cleanup of Task after
@@ -109,7 +106,7 @@ namespace ExecutionWorkflow {
 			std::function<void ()> const &callback,
 			ComputePlace *computePlace
 		);
-		
+
 		//! \brief Creates an UnpinningStep.
 		//!
 		//! An UnpinningStep unpins the region of the targetTranslation
@@ -123,7 +120,7 @@ namespace ExecutionWorkflow {
 			MemoryPlace const *targetMemoryPlace,
 			RegionTranslation const &targetTranslation
 		);
-		
+
 		//! \brief Creates a DataReleaseStep.
 		//!
 		//! A DataReleaseStep triggers events related to the release
@@ -131,11 +128,8 @@ namespace ExecutionWorkflow {
 		//!
 		//! \param[in] task is the Task for which we release an access.
 		//! \param[in] access is the DataAccess that we are releasing.
-		Step *createDataReleaseStep(
-			Task const *task,
-			DataAccess *access
-		);
-		
+		Step *createDataReleaseStep(Task const *task, DataAccess *access);
+
 		// \brief Enforces order between two steps of the Task execution.
 		//
 		// Create execute-after relationship between the two Steps of the workflow
@@ -146,11 +140,11 @@ namespace ExecutionWorkflow {
 			if (predecessor == nullptr || successor == nullptr) {
 				return;
 			}
-			
+
 			predecessor->addSuccessor(successor);
 			successor->addPredecessor();
 		}
-		
+
 		//! \brief Add a root step to the Workflow.
 		//!
 		//! Root steps of the workflow are those Steps that do not have
@@ -160,7 +154,7 @@ namespace ExecutionWorkflow {
 		{
 			_rootSteps.push_back(root);
 		}
-		
+
 		//! \brief Starts the execution of the workflow.
 		//!
 		//! This will start the execution of the root steps of the workflow.
@@ -169,7 +163,7 @@ namespace ExecutionWorkflow {
 		//! workflow consists of.
 		void start();
 	};
-	
+
 	// NOTE: objects of this class self-destruct when they finish
 	template <typename CONTENTS_T>
 	class Workflow : public WorkflowBase, CONTENTS_T {
@@ -180,7 +174,7 @@ namespace ExecutionWorkflow {
 		{
 		}
 	};
-	
+
 	//! \brief Creates a new workflow object that inherits
 	//! from CONTENTS_T and is constructed with the argsPack
 	//! parameters.
@@ -189,7 +183,7 @@ namespace ExecutionWorkflow {
 	{
 		return new Workflow<CONTENTS_T>(std::forward<TS>(argsPack)...);
 	}
-	
+
 	struct TaskExecutionWorkflowData {
 		std::vector<RegionTranslation> _symbolTranslations;
 
@@ -198,7 +192,7 @@ namespace ExecutionWorkflow {
 		{
 		}
 	};
-	
+
 	//! \brief Create a workflow for executing a task
 	//!
 	//! \param[in] task is the Task we want to execute
@@ -207,12 +201,8 @@ namespace ExecutionWorkflow {
 	//! \param[in] targetMemoryPlace is the memory place that will be used for the
 	//!            execution of the task, i.e. a MemoryPlace that is directly
 	//!            accessible by targetComputePlace.
-	void executeTask(
-		Task *task,
-		ComputePlace *targetComputePlace,
-		MemoryPlace *targetMemoryPlace
-	);
-	
+	void executeTask(Task *task, ComputePlace *targetComputePlace, MemoryPlace *targetMemoryPlace);
+
 	//! \brief Creates a workflow for handling taskwaits
 	//!
 	//! \param[in] task is the Task to which the taskwait fragment belongs to

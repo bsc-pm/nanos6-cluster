@@ -17,12 +17,11 @@ class Task;
 struct DataAccessLink {
 	Task *_task;
 	DataAccessObjectType _objectType;
-	
-	DataAccessLink()
-		: _task(nullptr)
+
+	DataAccessLink() : _task(nullptr)
 	{
 	}
-	
+
 	DataAccessLink(Task *task, DataAccessObjectType objectType)
 		: _task(task), _objectType(objectType)
 	{

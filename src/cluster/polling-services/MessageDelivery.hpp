@@ -10,7 +10,7 @@
 class Message;
 
 namespace ClusterPollingServices {
-		
+
 	//! \brief Add a pending message to the queue
 	//!
 	//! Adds a Message that has been sent in a non-blocking
@@ -19,10 +19,10 @@ namespace ClusterPollingServices {
 	//!
 	//! \param[in] msg is a pending Message
 	void addPendingMessage(Message *msg);
-	
+
 	//! Initialize the polling service
 	void registerMessageDelivery();
-	
+
 	//! Shutdown the polling service
 	void unregisterMessageDelivery();
 }
