@@ -32,22 +32,33 @@ namespace DataAccessRegistration {
 	//! \param[in] reductionIndex an index that identifies the reduction within the task
 
 	void registerTaskDataAccess(
-		Task *task, DataAccessType accessType, bool weak, void *address, size_t length,
-		reduction_type_and_operator_index_t reductionTypeAndOperatorIndex, reduction_index_t reductionIndex, int symbolIndex);
+		Task *task, DataAccessType accessType,
+		bool weak,
+		void *address,
+		size_t length,
+		reduction_type_and_operator_index_t reductionTypeAndOperatorIndex,
+		reduction_index_t reductionIndex,
+		int symbolIndex
+	);
 
 	//! \brief Performs the task dependency registration procedure
 	//!
 	//! \param[in] task the Task whose dependencies need to be calculated
 	//!
 	//! \returns true if the task is already ready
-	bool registerTaskDataAccesses(Task *task, ComputePlace *computePlace, CPUDependencyData &hpDependencyData);
+	bool registerTaskDataAccesses(
+		Task *task,
+		ComputePlace *computePlace,
+		CPUDependencyData &hpDependencyData
+	);
 
 	void unregisterTaskDataAccesses(
 		Task *task,
 		ComputePlace *computePlace,
 		CPUDependencyData &hpDependencyData,
 		MemoryPlace *location = nullptr,
-		bool fromBusyThread = false);
+		bool fromBusyThread = false
+	);
 
 	void releaseAccessRegion(
 		Task *task, void * address,
@@ -55,10 +66,18 @@ namespace DataAccessRegistration {
 		bool weak,
 		ComputePlace *computePlace,
 		CPUDependencyData &hpDependencyData,
-		MemoryPlace const *location = nullptr);
+		MemoryPlace const *location = nullptr
+	);
 
-	void handleEnterTaskwait(Task *task, ComputePlace *computePlace, CPUDependencyData &dependencyData);
-	void handleExitTaskwait(Task *task, ComputePlace *computePlace, CPUDependencyData &dependencyData);
+	void handleEnterTaskwait(Task *task,
+		ComputePlace *computePlace,
+		CPUDependencyData &dependencyData
+	);
+
+	void handleExitTaskwait(Task *task,
+		ComputePlace *computePlace,
+		CPUDependencyData &dependencyData
+	);
 
 	void combineTaskReductions(Task *task, ComputePlace *computePlace);
 	void translateReductionAddresses(Task *task, ComputePlace *computePlace,

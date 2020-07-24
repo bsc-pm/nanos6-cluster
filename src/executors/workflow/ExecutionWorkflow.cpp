@@ -27,11 +27,11 @@
 namespace ExecutionWorkflow {
 
 	transfers_map_t _transfersMap {
-			/*  host      cuda     opencl    cluster   */
-	/* host */	{ nullCopy, nullCopy, nullCopy, clusterCopy },
-	/* cuda */	{ nullCopy, nullCopy, nullCopy, nullCopy },
-	/* opencl */	{ nullCopy, nullCopy, nullCopy, nullCopy },
-	/* cluster */	{ clusterCopy, nullCopy, nullCopy, clusterCopy }
+		/*  host      cuda     opencl    cluster   */
+		/* host */ { nullCopy, nullCopy, nullCopy, clusterCopy },
+		/* cuda */ { nullCopy, nullCopy, nullCopy, nullCopy },
+		/* opencl */ { nullCopy, nullCopy, nullCopy, nullCopy },
+		/* cluster */ { clusterCopy, nullCopy, nullCopy, clusterCopy }
 	};
 
 	Step *WorkflowBase::createAllocationAndPinningStep(
@@ -40,19 +40,16 @@ namespace ExecutionWorkflow {
 	) {
 		switch (memoryPlace->getType()) {
 			case nanos6_host_device:
-				return new HostAllocationAndPinningStep(
-						regionTranslation, memoryPlace);
+				return new HostAllocationAndPinningStep(regionTranslation, memoryPlace);
 			case nanos6_cluster_device:
-				return new ClusterAllocationAndPinningStep(
-						regionTranslation, memoryPlace);
+				return new ClusterAllocationAndPinningStep(regionTranslation, memoryPlace);
 			case nanos6_cuda_device:
 			case nanos6_openacc_device:
 			case nanos6_opencl_device:
 			default:
 				FatalErrorHandler::failIf(
 					true,
-					"Execution workflow does not support this "
-					"device yet"
+					"Execution workflow does not support this device yet"
 				);
 				break;
 		}
@@ -68,8 +65,8 @@ namespace ExecutionWorkflow {
 		DataAccess *access
 	) {
 		/* At the moment we do not support data copies for accesses
-		 * of the following types. This essentially mean that devices,
-		 * e.g. Cluster, CUDA, do not support these accesses. */
+			* of the following types. This essentially mean that devices,
+			* e.g. Cluster, CUDA, do not support these accesses. */
 		if (access->getType() == REDUCTION_ACCESS_TYPE ||
 			access->getType() == COMMUTATIVE_ACCESS_TYPE ||
 			access->getType() == CONCURRENT_ACCESS_TYPE
@@ -81,16 +78,16 @@ namespace ExecutionWorkflow {
 		//assert(sourceMemoryPlace != nullptr);
 
 		nanos6_device_t sourceType =
-			(sourceMemoryPlace == nullptr)
-				? nanos6_host_device
-				: sourceMemoryPlace->getType();
+			(sourceMemoryPlace == nullptr) ? nanos6_host_device : sourceMemoryPlace->getType();
+
 		nanos6_device_t targetType = targetMemoryPlace->getType();
 
 		return _transfersMap[sourceType][targetType](
-				sourceMemoryPlace,
-				targetMemoryPlace,
-				targetTranslation,
-				access);
+			sourceMemoryPlace,
+			targetMemoryPlace,
+			targetTranslation,
+			access
+		);
 	}
 
 	Step *WorkflowBase::createExecutionStep(Task *task, ComputePlace *computePlace)
@@ -106,8 +103,7 @@ namespace ExecutionWorkflow {
 			default:
 				FatalErrorHandler::failIf(
 					true,
-					"Execution workflow does not support "
-					"this device yet"
+					"Execution workflow does not support this device yet"
 				);
 				break;
 		}
@@ -121,8 +117,7 @@ namespace ExecutionWorkflow {
 		ComputePlace *computePlace
 	) {
 		nanos6_device_t type =
-			(computePlace == nullptr) ?
-				nanos6_host_device : computePlace->getType();
+			(computePlace == nullptr) ? nanos6_host_device : computePlace->getType();
 
 		switch (type) {
 			case nanos6_host_device:
@@ -135,8 +130,7 @@ namespace ExecutionWorkflow {
 			default:
 				FatalErrorHandler::failIf(
 					true,
-					"Execution workflow does not support "
-					"this device yet"
+					"Execution workflow does not support this device yet"
 				);
 				break;
 		}
@@ -145,21 +139,19 @@ namespace ExecutionWorkflow {
 		return nullptr;
 	}
 
-	Step *WorkflowBase::createDataReleaseStep(
-		Task const *task,
-		DataAccess *access
-	) {
+	Step *WorkflowBase::createDataReleaseStep(Task const *task, DataAccess *access)
+	{
 		if (task->isRemote()) {
-			return new ClusterDataReleaseStep(
-					task->getClusterContext(), access);
+			return new ClusterDataReleaseStep(task->getClusterContext(), access);
 		}
 
 		return new DataReleaseStep(access);
 	}
 
-	Step *WorkflowBase::createUnpinningStep(MemoryPlace const *targetMemoryPlace,
-			RegionTranslation const &targetTranslation)
-	{
+	Step *WorkflowBase::createUnpinningStep(
+		MemoryPlace const *targetMemoryPlace,
+		RegionTranslation const &targetTranslation
+	) {
 		switch (targetMemoryPlace->getType()) {
 			case nanos6_host_device:
 				return new HostUnpinningStep(targetMemoryPlace, targetTranslation);
@@ -171,8 +163,7 @@ namespace ExecutionWorkflow {
 			default:
 				FatalErrorHandler::failIf(
 					true,
-					"Execution workflow does not support "
-					"this device yet"
+					"Execution workflow does not support this device yet"
 				);
 				break;
 		}
@@ -188,18 +179,14 @@ namespace ExecutionWorkflow {
 		}
 	}
 
-	void executeTask(
-		Task *task,
-		ComputePlace *targetComputePlace,
-		MemoryPlace *targetMemoryPlace
-	) {
+	void executeTask(Task *task, ComputePlace *targetComputePlace, MemoryPlace *targetMemoryPlace)
+	{
 		/* The workflow has already been created for this Task.
-		 * At this point the Task has been assigned to a WorkerThread
-		 * because all its pending DataCopy steps have been completed
-		 * and it's ready to actually run */
+			* At this point the Task has been assigned to a WorkerThread
+			* because all its pending DataCopy steps have been completed
+			* and it's ready to actually run */
 		if (task->getWorkflow() != nullptr) {
-			ExecutionWorkflow::Step *executionStep =
-				task->getExecutionStep();
+			ExecutionWorkflow::Step *executionStep = task->getExecutionStep();
 
 			assert(executionStep != nullptr);
 			executionStep->start();
@@ -214,33 +201,29 @@ namespace ExecutionWorkflow {
 		//! MemoryPlace.
 		task->setMemoryPlace(targetMemoryPlace);
 
-		//int numSymbols = task->getSymbolNum();
+		// int numSymbols = task->getSymbolNum();
 		Workflow<TaskExecutionWorkflowData> *workflow =
 			createWorkflow<TaskExecutionWorkflowData>(0 /* numSymbols */);
 
-		Step *executionStep =
-			workflow->createExecutionStep(task, targetComputePlace);
+		Step *executionStep = workflow->createExecutionStep(task, targetComputePlace);
 
 		Step *notificationStep = workflow->createNotificationStep(
 			[=]() {
 				WorkerThread *currThread = WorkerThread::getCurrentWorkerThread();
 
-				CPU *cpu = nullptr;
-				if (currThread != nullptr) {
-					cpu = currThread->getComputePlace();
-				}
+				CPU * const cpu =
+					(currThread != nullptr) ? currThread->getComputePlace() : nullptr;
 
 				CPUDependencyData localDependencyData;
-				CPUDependencyData &hpDependencyData = (cpu != nullptr) ?
-					cpu->getDependencyData() : localDependencyData;
+				CPUDependencyData &hpDependencyData =
+					(cpu != nullptr) ? cpu->getDependencyData() : localDependencyData;
 
 				if (task->markAsFinished(cpu/* cpu */)) {
 					DataAccessRegistration::unregisterTaskDataAccesses(
 						task,
 						cpu, /*cpu, */
 						hpDependencyData,
-						targetMemoryPlace
-					);
+						targetMemoryPlace);
 
 					TaskFinalization::taskFinished(task, cpu);
 					if (task->markAsReleased()) {
@@ -259,7 +242,7 @@ namespace ExecutionWorkflow {
 		DataAccessRegistration::processAllDataAccesses(task,
 			[&](DataAccess *dataAccess) -> bool {
 				assert(dataAccess != nullptr);
-				DataAccessRegion region = dataAccess->getAccessRegion();
+				DataAccessRegion const &region = dataAccess->getAccessRegion();
 
 				MemoryPlace const *currLocation = dataAccess->getLocation();
 				Step *step;
@@ -271,11 +254,9 @@ namespace ExecutionWorkflow {
 
 					for (const auto &entry : *homeNodes) {
 						currLocation = entry->getHomeNode();
-						DataAccessRegion subregion = entry->getAccessRegion();
-
-						subregion = region.intersect(subregion);
-						RegionTranslation translation(subregion,
-														subregion.getStartAddress());
+						const DataAccessRegion subregion
+							= region.intersect(entry->getAccessRegion());
+						RegionTranslation translation(subregion, subregion.getStartAddress());
 
 						step = workflow->createDataCopyStep(
 							currLocation,
@@ -296,17 +277,17 @@ namespace ExecutionWorkflow {
 						* we can use a dummy RegionTranslation */
 					RegionTranslation translation(region, region.getStartAddress());
 					step = workflow->createDataCopyStep(
-							currLocation,
-							targetMemoryPlace,
-							translation,
-							dataAccess);
+						currLocation,
+						targetMemoryPlace,
+						translation,
+						dataAccess
+					);
 
 					workflow->enforceOrder(step, executionStep);
 					workflow->addRootStep(step);
 				}
 
-				step = workflow->createDataReleaseStep(task,
-						dataAccess);
+				step = workflow->createDataReleaseStep(task, dataAccess);
 				workflow->enforceOrder(executionStep, step);
 				workflow->enforceOrder(step, notificationStep);
 
@@ -329,12 +310,11 @@ namespace ExecutionWorkflow {
 		workflow->start();
 	}
 
-	void setupTaskwaitWorkflow(
-		Task *task,
-		DataAccess *taskwaitFragment
-	) {
+	void setupTaskwaitWorkflow(Task *task, DataAccess *taskwaitFragment)
+	{
 		ComputePlace *computePlace = nullptr;
 		WorkerThread *currentThread = WorkerThread::getCurrentWorkerThread();
+
 		if (currentThread != nullptr) {
 			computePlace = currentThread->getComputePlace();
 		}
@@ -352,21 +332,22 @@ namespace ExecutionWorkflow {
 			workflow->createNotificationStep(
 				[=]() {
 					/* We cannot re-use the 'computePlace', we need to
-					 * retrieve the current Thread and associated
-					 * ComputePlace */
+						* retrieve the current Thread and associated
+						* ComputePlace */
 					ComputePlace *releasingComputePlace = nullptr;
 					WorkerThread *releasingThread = WorkerThread::getCurrentWorkerThread();
+
 					if (releasingThread != nullptr) {
 						releasingComputePlace = releasingThread->getComputePlace();
 					}
 
 					/* Here, we are always using a local CPUDependencyData
-					 * object, to avoid the issue where we end-up calling
-					 * this while the thread is already in the dependency
-					 * system, using the CPUDependencyData of its
-					 * ComputePlace. This is a *TEMPORARY* solution, until
-					 * we fix how we handle taskwaits in a more clean
-					 * way. */
+						* object, to avoid the issue where we end-up calling
+						* this while the thread is already in the dependency
+						* system, using the CPUDependencyData of its
+						* ComputePlace. This is a *TEMPORARY* solution, until
+						* we fix how we handle taskwaits in a more clean
+						* way. */
 					CPUDependencyData localDependencyData;
 
 					DataAccessRegistration::releaseTaskwaitFragment(
@@ -381,10 +362,8 @@ namespace ExecutionWorkflow {
 				computePlace
 			);
 
-		MemoryPlace const *currLocation =
-			taskwaitFragment->getLocation();
-		MemoryPlace const *targetLocation =
-			taskwaitFragment->getOutputLocation();
+		MemoryPlace const *currLocation = taskwaitFragment->getLocation();
+		MemoryPlace const *targetLocation = taskwaitFragment->getOutputLocation();
 
 		//! No need to perform any copy for this taskwait fragment
 		if (targetLocation == nullptr) {
@@ -393,13 +372,12 @@ namespace ExecutionWorkflow {
 			return;
 		}
 
-		Step *copyStep =
-			workflow->createDataCopyStep(
-				currLocation,
-				targetLocation,
-				translation,
-				taskwaitFragment
-			);
+		Step *copyStep = workflow->createDataCopyStep(
+			currLocation,
+			targetLocation,
+			translation,
+			taskwaitFragment
+		);
 
 		workflow->addRootStep(copyStep);
 		workflow->enforceOrder(copyStep, notificationStep);

@@ -57,7 +57,7 @@ void StreamManager::synchronizeAllStreams()
 {
 	assert(_manager != nullptr);
 
-	size_t numTaskwaits = _manager->_executors.size();
+	const size_t numTaskwaits = _manager->_executors.size();
 	// Create an array of taskwaits and an array of condition variables
 	StreamFunction *taskwaits[numTaskwaits];
 	ConditionVariable condVars[numTaskwaits];

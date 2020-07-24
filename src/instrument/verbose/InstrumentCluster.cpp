@@ -12,9 +12,11 @@
 using namespace Instrument::Verbose;
 
 namespace Instrument {
-	void clusterMessageInitSend(Message const *msg, int receiverId,
-		InstrumentationContext const &context)
-	{
+	void clusterMessageInitSend(
+		Message const *msg,
+		int receiverId,
+		InstrumentationContext const &context
+	) {
 		LogEntry *logEntry = getLogEntry(context);
 		assert(logEntry != nullptr);
 
@@ -28,20 +30,22 @@ namespace Instrument {
 		addLogEntry(logEntry);
 	}
 
-	void clusterMessageCompleteSend(Message const *msg,
-		InstrumentationContext const &context)
+	void clusterMessageCompleteSend(Message const *msg, InstrumentationContext const &context)
 	{
 		LogEntry *logEntry = getLogEntry(context);
 		assert(logEntry != nullptr);
 
 		logEntry->appendLocation(context);
-		logEntry->_contents <<
-			" <-- SendClusterMessage id:" << msg->getId();
+		logEntry->_contents << " <-- SendClusterMessage id:" << msg->getId();
+
+		addLogEntry(logEntry);
 	}
 
-	void enterHandleReceivedMessage(Message const *msg, int senderId,
-		InstrumentationContext const &context)
-	{
+	void enterHandleReceivedMessage(
+		Message const *msg,
+		int senderId,
+		InstrumentationContext const &context
+	) {
 		LogEntry *logEntry = getLogEntry(context);
 		assert(logEntry != nullptr);
 
@@ -55,15 +59,13 @@ namespace Instrument {
 		addLogEntry(logEntry);
 	}
 
-	void exitHandleReceivedMessage(Message const *msg,
-		InstrumentationContext const &context)
+	void exitHandleReceivedMessage(Message const *msg, InstrumentationContext const &context)
 	{
 		LogEntry *logEntry = getLogEntry(context);
 		assert(logEntry != nullptr);
 
 		logEntry->appendLocation(context);
-		logEntry->_contents <<
-			" <-- HandleClusterMessage id:" << msg->getId();
+		logEntry->_contents << " <-- HandleClusterMessage id:" <<  msg->getId();
 
 		addLogEntry(logEntry);
 	}

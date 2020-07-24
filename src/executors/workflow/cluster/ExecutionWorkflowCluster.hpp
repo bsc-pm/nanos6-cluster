@@ -124,18 +124,15 @@ namespace ExecutionWorkflow {
 		ClusterNode const *_offloader;
 
 	public:
-		ClusterDataReleaseStep(
-			TaskOffloading::ClusterTaskContext *context,
-			DataAccess *access
-		) : DataReleaseStep(access),
+		ClusterDataReleaseStep(TaskOffloading::ClusterTaskContext *context, DataAccess *access)
+			: DataReleaseStep(access),
 			_remoteTaskIdentifier(context->getRemoteIdentifier()),
 			_offloader(context->getRemoteNode())
 		{
 			access->setDataReleaseStep(this);
 		}
 
-		void releaseRegion(DataAccessRegion const &region,
-			MemoryPlace const *location);
+		void releaseRegion(DataAccessRegion const &region, MemoryPlace const *location);
 
 		bool checkDataRelease(DataAccess const *access);
 
@@ -143,6 +140,7 @@ namespace ExecutionWorkflow {
 	};
 
 	class ClusterExecutionStep : public Step {
+	private:
 		std::vector<TaskOffloading::SatisfiabilityInfo> _satInfo;
 		ClusterNode *_remoteNode;
 		Task *_task;
@@ -159,19 +157,19 @@ namespace ExecutionWorkflow {
 		//! \param[in] size is the size of the region being copied.
 		//! \param[in] read is true if access is read-satisfied
 		//! \param[in] write is true if access is write-satisfied
-		void addDataLink(int source, DataAccessRegion const &region,
-			bool read, bool write);
+		void addDataLink(int source, DataAccessRegion const &region, bool read, bool write);
 
 		//! Start the execution of the Step
 		void start();
 	};
 
 	class ClusterNotificationStep : public Step {
+	private:
 		std::function<void ()> const _callback;
 
 	public:
-		ClusterNotificationStep(std::function<void ()> const &callback) :
-			Step(), _callback(callback)
+		ClusterNotificationStep(std::function<void ()> const &callback)
+			: Step(), _callback(callback)
 		{
 		}
 
@@ -219,8 +217,7 @@ namespace ExecutionWorkflow {
 		DataAccessObjectType objectType = access->getObjectType();
 		DataAccessType type = access->getType();
 		DataAccessRegion region = access->getAccessRegion();
-		bool isDistributedRegion =
-			VirtualMemoryManagement::isDistributedRegion(region);
+		bool isDistributedRegion = VirtualMemoryManagement::isDistributedRegion(region);
 
 		bool needsTransfer =
 			(
@@ -254,8 +251,13 @@ namespace ExecutionWorkflow {
 			);
 
 		if (needsTransfer) {
-			return new ClusterDataCopyStep(source, target, translation,
-					access->getOriginator(), (objectType == taskwait_type));
+			return new ClusterDataCopyStep(
+				source,
+				target,
+				translation,
+				access->getOriginator(),
+				(objectType == taskwait_type)
+			);
 		}
 
 		return new Step();
@@ -292,9 +294,9 @@ namespace ExecutionWorkflow {
 
 		if (target == current) {
 			return clusterFetchData(source, target, translation, access);
-		} else {
-			return clusterLinkData(source, target, translation, access);
 		}
+
+		return clusterLinkData(source, target, translation, access);
 	}
 }
 

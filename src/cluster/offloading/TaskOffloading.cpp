@@ -37,10 +37,7 @@ namespace TaskOffloading {
 		std::vector<SatisfiabilityInfo> _satInfo;
 		PaddedSpinLock<> _lock;
 
-		RemoteTaskInfo()
-			: _localTask(nullptr),
-			_satInfo(),
-			_lock()
+		RemoteTaskInfo() : _localTask(nullptr), _satInfo(), _lock()
 		{
 		}
 	};
@@ -61,9 +58,7 @@ namespace TaskOffloading {
 		//! Lock to protect access to the map
 		PaddedSpinLock<> _lock;
 
-		RemoteTasks()
-			: _taskMap(),
-			_lock()
+		RemoteTasks() : _taskMap(), _lock()
 		{
 		}
 
@@ -71,8 +66,7 @@ namespace TaskOffloading {
 		//! within this map. If this is the first access to this entry
 		//! we will create it and return a reference to the new
 		//! RemoteTaskInfo object
-		RemoteTaskInfo &getTaskInfo(void *offloadedTaskId,
-				int offloaderId)
+		RemoteTaskInfo &getTaskInfo(void *offloadedTaskId, int offloaderId)
 		{
 			auto key = std::make_pair(offloadedTaskId, offloaderId);
 
@@ -96,56 +90,50 @@ namespace TaskOffloading {
 	//! This is our map for all the remote tasks, currently on the node
 	static RemoteTasks _remoteTasks;
 
-	void propagateSatisfiability(Task *localTask,
-			SatisfiabilityInfo const &satInfo)
+	void propagateSatisfiability(Task *localTask, SatisfiabilityInfo const &satInfo)
 	{
 		assert(localTask != nullptr);
 		assert(!satInfo.empty());
 
-		WorkerThread *currentThread =
-			WorkerThread::getCurrentWorkerThread();
+		WorkerThread *currentThread = WorkerThread::getCurrentWorkerThread();
 
-		CPU *cpu = (currentThread == nullptr) ? nullptr :
-				currentThread->getComputePlace();
+		CPU * const cpu = (currentThread == nullptr) ? nullptr : currentThread->getComputePlace();
 
 		CPUDependencyData localDependencyData;
-		CPUDependencyData &hpDependencyData = (cpu != nullptr) ?
-			cpu->getDependencyData() : localDependencyData;
+		CPUDependencyData &hpDependencyData =
+			(cpu != nullptr) ? cpu->getDependencyData() : localDependencyData;
 
-		MemoryPlace const *loc;
 		if (!Directory::isDirectoryMemoryPlace(satInfo._src)) {
-			loc = ClusterManager::getMemoryNode(satInfo._src);
+			MemoryPlace const *loc = ClusterManager::getMemoryNode(satInfo._src);
 			DataAccessRegistration::propagateSatisfiability(
-					localTask, satInfo._region, cpu,
-					hpDependencyData, satInfo._readSat,
-					satInfo._writeSat, loc);
+				localTask, satInfo._region, cpu,
+				hpDependencyData, satInfo._readSat,
+				satInfo._writeSat, loc
+			);
 
 			return;
 		}
 
 		// The access is in the Directory. Retrieve the home nodes and
 		// propagate satisfiability per region
-		Directory::HomeNodesArray *array =
-			Directory::find(satInfo._region);
+		Directory::HomeNodesArray *array = Directory::find(satInfo._region);
 		assert(!array->empty());
 
 		for (HomeMapEntry const *entry : *array) {
-			loc = entry->getHomeNode();
-			DataAccessRegion entryRegion =
-				entry->getAccessRegion();
-			DataAccessRegion subRegion =
-				satInfo._region.intersect(entryRegion);
+			MemoryPlace const *loc = entry->getHomeNode();
+			DataAccessRegion entryRegion = entry->getAccessRegion();
+			DataAccessRegion subRegion = satInfo._region.intersect(entryRegion);
 
 			DataAccessRegistration::propagateSatisfiability(
 				localTask, subRegion, cpu, hpDependencyData,
-				satInfo._readSat, satInfo._writeSat, loc);
+				satInfo._readSat, satInfo._writeSat, loc
+			);
 		}
 
 		delete array;
 	}
 
-	void propagateSatisfiability(Task *localTask,
-			std::vector<SatisfiabilityInfo> const &satInfo)
+	void propagateSatisfiability(Task *localTask, std::vector<SatisfiabilityInfo> const &satInfo)
 	{
 		assert(localTask != nullptr);
 		assert(!satInfo.empty());
@@ -155,75 +143,68 @@ namespace TaskOffloading {
 		}
 	}
 
-	static void unregisterRemoteTask(void *offloadedTaskId,
-			ClusterNode *offloader)
+	static void unregisterRemoteTask(void *offloadedTaskId, ClusterNode *offloader)
 	{
 		assert(offloader != nullptr);
-		_remoteTasks.eraseTaskInfo(offloadedTaskId,
-				offloader->getIndex());
+		_remoteTasks.eraseTaskInfo(offloadedTaskId, offloader->getIndex());
 	}
 
-	void offloadTask(Task *task, std::vector<SatisfiabilityInfo> const &satInfo,
-			ClusterNode const *remoteNode)
-	{
+	void offloadTask(
+		Task *task,
+		std::vector<SatisfiabilityInfo> const &satInfo,
+		ClusterNode const *remoteNode
+	) {
 		assert(task != nullptr);
 		assert(remoteNode != nullptr);
 
 		ClusterNode const *thisNode = ClusterManager::getCurrentClusterNode();
 		nanos6_task_info_t *taskInfo = task->getTaskInfo();
-		nanos6_task_invocation_info_t *taskInvocationInfo =
-			task->getTaskInvokationInfo();
+		nanos6_task_invocation_info_t *taskInvocationInfo = task->getTaskInvokationInfo();
 		size_t flags = task->getFlags();
 		void *argsBlock = task->getArgsBlock();
 		size_t argsBlockSize = task->getArgsBlockSize();
 		size_t nrSatInfo = satInfo.size();
-		SatisfiabilityInfo const *satInfoPtr = (nrSatInfo == 0) ? nullptr :
-						satInfo.data();
+		SatisfiabilityInfo const *satInfoPtr = (nrSatInfo == 0) ? nullptr : satInfo.data();
 
-		MessageTaskNew *msg =
-			new MessageTaskNew(thisNode, taskInfo,
-					taskInvocationInfo, flags,
-					taskInfo->implementation_count,
-					taskInfo->implementations, nrSatInfo,
-					satInfoPtr, argsBlockSize, argsBlock,
-					(void *)task);
+		MessageTaskNew *msg = new MessageTaskNew(
+			thisNode, taskInfo,
+			taskInvocationInfo, flags,
+			taskInfo->implementation_count, taskInfo->implementations,
+			nrSatInfo, satInfoPtr,
+			argsBlockSize, argsBlock,
+			(void *)task
+		);
 
 		ClusterManager::sendMessage(msg, remoteNode);
 	}
 
-	void sendRemoteTaskFinished(void *offloadedTaskId,
-			ClusterNode *offloader)
+	void sendRemoteTaskFinished(void *offloadedTaskId, ClusterNode *offloader)
 	{
 		unregisterRemoteTask(offloadedTaskId, offloader);
 		MessageTaskFinished *msg =
-			new MessageTaskFinished(
-				ClusterManager::getCurrentClusterNode(),
-				offloadedTaskId);
+			new MessageTaskFinished(ClusterManager::getCurrentClusterNode(), offloadedTaskId);
 
 		ClusterManager::sendMessage(msg, offloader);
 	}
 
-	void sendSatisfiability(Task *task, ClusterNode *remoteNode,
-			SatisfiabilityInfo const &satInfo)
+	void sendSatisfiability(Task *task, ClusterNode *remoteNode, SatisfiabilityInfo const &satInfo)
 	{
 		assert(task != nullptr);
 		assert(remoteNode != nullptr);
 		assert(!satInfo.empty());
 
 		ClusterNode *current = ClusterManager::getCurrentClusterNode();
-		MessageSatisfiability *msg =
-			new MessageSatisfiability(current, (void *)task,
-					satInfo);
+		MessageSatisfiability *msg = new MessageSatisfiability(current, (void *)task, satInfo);
 
 		ClusterManager::sendMessage(msg, remoteNode);
 	}
 
-	void propagateSatisfiability(void *offloadedTaskId, ClusterNode *offloader,
-			SatisfiabilityInfo const &satInfo)
-	{
-		RemoteTaskInfo &taskInfo =
-			_remoteTasks.getTaskInfo(offloadedTaskId,
-					offloader->getIndex());
+	void propagateSatisfiability(
+		void *offloadedTaskId,
+		ClusterNode *offloader,
+		SatisfiabilityInfo const &satInfo
+	) {
+		RemoteTaskInfo &taskInfo = _remoteTasks.getTaskInfo(offloadedTaskId, offloader->getIndex());
 
 		taskInfo._lock.lock();
 		if (taskInfo._localTask == nullptr) {
@@ -240,11 +221,14 @@ namespace TaskOffloading {
 		}
 	}
 
-	void sendRemoteAccessRelease(void *offloadedTaskId,
-			ClusterNode const *offloader,
-			DataAccessRegion const &region, DataAccessType type,
-			bool weak, MemoryPlace const *location)
-	{
+	void sendRemoteAccessRelease(
+		void *offloadedTaskId,
+		ClusterNode const *offloader,
+		DataAccessRegion const &region,
+		DataAccessType type,
+		bool weak,
+		MemoryPlace const *location
+	) {
 		assert(location != nullptr);
 
 		// If location is a host device on this node it is a cluster
@@ -255,39 +239,40 @@ namespace TaskOffloading {
 
 		ClusterNode *current = ClusterManager::getCurrentClusterNode();
 		MessageReleaseAccess *msg =
-			new MessageReleaseAccess(current, offloadedTaskId,
-					region, type, weak,
-					location->getIndex());
+			new MessageReleaseAccess(current, offloadedTaskId, region, type, weak, location->getIndex());
 
 		ClusterManager::sendMessage(msg, offloader);
 	}
 
-	void releaseRemoteAccess(Task *task, DataAccessRegion const &region,
-			DataAccessType type, bool weak, MemoryPlace const *location)
-	{
+	void releaseRemoteAccess(
+		Task *task,
+		DataAccessRegion const &region,
+		DataAccessType type,
+		bool weak,
+		MemoryPlace const *location
+	) {
 		assert(task != nullptr);
 		assert(location->getType() == nanos6_cluster_device);
 
-		WorkerThread *currentThread =
-			WorkerThread::getCurrentWorkerThread();
+		WorkerThread *currentThread = WorkerThread::getCurrentWorkerThread();
 
-		CPU *cpu = (currentThread == nullptr) ? nullptr :
-				currentThread->getComputePlace();
+		CPU * const cpu = (currentThread == nullptr) ? nullptr : currentThread->getComputePlace();
 
 		CPUDependencyData localDependencyData;
-		CPUDependencyData &hpDependencyData = (cpu != nullptr) ?
-			cpu->getDependencyData() : localDependencyData;
+		CPUDependencyData &hpDependencyData =
+			(cpu != nullptr) ? cpu->getDependencyData() : localDependencyData;
 
-		DataAccessRegistration::releaseAccessRegion(task, region, type,
-				weak, cpu, hpDependencyData, location);
+		DataAccessRegistration::releaseAccessRegion(
+			task, region, type, weak, cpu,
+			hpDependencyData, location
+		);
 	}
 
 	void remoteTaskWrapper(MessageTaskNew *msg)
 	{
 		assert(msg != nullptr);
 
-		ClusterNode *offloader =
-			ClusterManager::getClusterNode(msg->getSenderId());
+		ClusterNode *offloader = ClusterManager::getClusterNode(msg->getSenderId());
 
 		nanos6_task_info_t *taskInfo = msg->getTaskInfo();
 		void *offloadedTaskId = msg->getOffloadedTaskId();
@@ -297,8 +282,7 @@ namespace TaskOffloading {
 			msg->getImplementations(numTaskImplementations);
 
 		taskInfo->implementations = taskImplementations;
-		nanos6_task_invocation_info_t *taskInvocationInfo =
-			msg->getTaskInvocationInfo();
+		nanos6_task_invocation_info_t *taskInvocationInfo = msg->getTaskInvocationInfo();
 
 		size_t argsBlockSize;
 		void *argsBlock = msg->getArgsBlock(argsBlockSize);
@@ -319,16 +303,14 @@ namespace TaskOffloading {
 
 		task->markAsRemote();
 		TaskOffloading::ClusterTaskContext *clusterContext =
-			new TaskOffloading::ClusterTaskContext(
-					offloadedTaskId, offloader);
+			new TaskOffloading::ClusterTaskContext(offloadedTaskId, offloader);
 
 		task->setClusterContext(clusterContext);
 
 		// Register remote Task with TaskOffloading mechanism before
 		// submitting it to the dependency system
 		RemoteTaskInfo &remoteTaskInfo =
-			_remoteTasks.getTaskInfo(offloadedTaskId,
-					offloader->getIndex());
+			_remoteTasks.getTaskInfo(offloadedTaskId, offloader->getIndex());
 
 		std::lock_guard<PaddedSpinLock<>> lock(remoteTaskInfo._lock);
 		assert(remoteTaskInfo._localTask == nullptr);
@@ -345,8 +327,7 @@ namespace TaskOffloading {
 
 		// Propagate satisfiability embedded in the Message
 		size_t numSatInfo;
-		TaskOffloading::SatisfiabilityInfo *satInfo =
-			msg->getSatisfiabilityInfo(numSatInfo);
+		TaskOffloading::SatisfiabilityInfo *satInfo = msg->getSatisfiabilityInfo(numSatInfo);
 		for (size_t i = 0; i < numSatInfo; ++i) {
 			propagateSatisfiability(task, satInfo[i]);
 		}
@@ -363,8 +344,7 @@ namespace TaskOffloading {
 		assert(msg != nullptr);
 
 		void *offloadedTaskId = msg->getOffloadedTaskId();
-		ClusterNode *offloader =
-			ClusterManager::getClusterNode(msg->getSenderId());
+		ClusterNode *offloader = ClusterManager::getClusterNode(msg->getSenderId());
 
 		sendRemoteTaskFinished(offloadedTaskId, offloader);
 

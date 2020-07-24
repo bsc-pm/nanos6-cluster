@@ -217,14 +217,12 @@ public:
 	//! \brief The body of a stream executor
 	inline void body(nanos6_address_translation_entry_t * = nullptr) override
 	{
-		StreamFunction *function;
 		while (!_mustShutdown.load()) {
-			function = nullptr;
 			_spinlock.lock();
 
 			if (!_queue.empty()) {
 				// Get the first function in the stream's queue
-				function = _queue.front();
+				StreamFunction *function = _queue.front();
 				assert(function != nullptr);
 				_queue.pop_front();
 

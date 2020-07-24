@@ -88,13 +88,23 @@ namespace ExecutionWorkflow {
 	}
 
 	void ClusterDataReleaseStep::releaseRegion(
-		DataAccessRegion const &region, MemoryPlace const *location
+		DataAccessRegion const &region,
+		MemoryPlace const *location
 	) {
 		Instrument::logMessage(
 			Instrument::ThreadInstrumentationContext::getCurrent(),
-			"releasing remote region:", region);
-		TaskOffloading::sendRemoteAccessRelease(_remoteTaskIdentifier,
-				_offloader, region, _type, _weak, location);
+			"releasing remote region:",
+			region
+		);
+
+		TaskOffloading::sendRemoteAccessRelease(
+			_remoteTaskIdentifier,
+			_offloader,
+			region,
+			_type,
+			_weak,
+			location
+		);
 
 		if ((_bytesToRelease -= region.getSize()) == 0) {
 			delete this;
@@ -103,20 +113,20 @@ namespace ExecutionWorkflow {
 
 	bool ClusterDataReleaseStep::checkDataRelease(DataAccess const *access)
 	{
-		bool releases = (access->getObjectType() == taskwait_type)
+		const bool releases = (access->getObjectType() == taskwait_type)
 			&& access->getOriginator()->isSpawned()
 			&& access->readSatisfied()
 			&& access->writeSatisfied();
 
 		Instrument::logMessage(
 			Instrument::ThreadInstrumentationContext::getCurrent(),
-			"Checking DataRelease access:",
-			access->getInstrumentationId(),
+			"Checking DataRelease access:", access->getInstrumentationId(),
 			" object_type:", access->getObjectType(),
 			" spawned originator:", access->getOriginator()->isSpawned(),
 			" read:", access->readSatisfied(),
 			" write:", access->writeSatisfied(),
-			" releases:", releases);
+			" releases:", releases
+		);
 
 		return releases;
 	}
@@ -162,29 +172,27 @@ namespace ExecutionWorkflow {
 		ClusterPollingServices::addPendingDataTransfer(dt);
 	}
 
-	ClusterExecutionStep::ClusterExecutionStep(
-		Task *task,
-		ComputePlace *computePlace
-	) : Step(),
+	ClusterExecutionStep::ClusterExecutionStep(Task *task, ComputePlace *computePlace)
+		: Step(),
 		_satInfo(),
 		_remoteNode(reinterpret_cast<ClusterNode *>(computePlace)),
 		_task(task)
 	{
 		assert(computePlace->getType() == nanos6_cluster_device);
+
 		TaskOffloading::ClusterTaskContext *clusterContext =
-			new TaskOffloading::ClusterTaskContext((void *)_task,
-					_remoteNode);
+			new TaskOffloading::ClusterTaskContext((void *)_task, _remoteNode);
 		_task->setClusterContext(clusterContext);
 	}
 
-	void ClusterExecutionStep::addDataLink(int source,
-		DataAccessRegion const &region, bool read, bool write)
-	{
+	void ClusterExecutionStep::addDataLink(
+		int source,
+		DataAccessRegion const &region,
+		bool read,
+		bool write
+	) {
 		std::lock_guard<SpinLock> guard(_lock);
-		_satInfo.push_back(
-			TaskOffloading::SatisfiabilityInfo(region, source,
-				read, write)
-		);
+		_satInfo.push_back( TaskOffloading::SatisfiabilityInfo(region, source, read, write) );
 	}
 
 	void ClusterExecutionStep::start()

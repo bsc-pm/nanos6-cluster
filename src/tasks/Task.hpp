@@ -86,7 +86,8 @@ private:
 	//! Number of children that are still not finished, +1 if not blocked
 	std::atomic<int> _countdownToBeWokenUp;
 
-	//! Number of children that are still alive (may have live references to data from this task), +1 for dependencies
+	//! Number of children that are still alive (may have live references to data from this task),
+	//! +1 for dependencies
 	std::atomic<int> _removalCount;
 
 	//! Task to which this one is closely nested
@@ -267,7 +268,7 @@ public:
 	//! \returns true iff the change makes this task become ready
 	inline bool finishChild() __attribute__((warn_unused_result))
 	{
-		int countdown = (_countdownToBeWokenUp.fetch_sub(1, std::memory_order_relaxed) - 1);
+		const int countdown = (_countdownToBeWokenUp.fetch_sub(1, std::memory_order_relaxed) - 1);
 		assert(countdown >= 0);
 		return (countdown == 0);
 	}
@@ -277,7 +278,7 @@ public:
 	//! \returns true iff the change makes this task become disposable
 	inline bool removeChild(__attribute__((unused)) Task *child) __attribute__((warn_unused_result))
 	{
-		int countdown = (_removalCount.fetch_sub(1, std::memory_order_relaxed) - 1);
+		const int countdown = (_removalCount.fetch_sub(1, std::memory_order_relaxed) - 1);
 		assert(countdown >= 0);
 		return (countdown == 0);
 	}
@@ -293,7 +294,7 @@ public:
 	//! \returns true iff the change makes this task become ready or disposable
 	inline bool decreaseRemovalBlockingCount()
 	{
-		int countdown = (_removalCount.fetch_sub(1, std::memory_order_relaxed) - 1);
+		const int countdown = (_removalCount.fetch_sub(1, std::memory_order_relaxed) - 1);
 		assert(countdown >= 0);
 		return (countdown == 0);
 	}
@@ -439,7 +440,7 @@ public:
 	//! \returns true if the change makes the task become ready
 	inline bool markAsBlocked()
 	{
-		int countdown = (_countdownToBeWokenUp.fetch_sub(1, std::memory_order_relaxed) - 1);
+		const int countdown = (_countdownToBeWokenUp.fetch_sub(1, std::memory_order_relaxed) - 1);
 		assert(countdown >= 0);
 		return (countdown == 0);
 	}
@@ -473,9 +474,9 @@ public:
 	{
 		if (_taskInfo->implementations[0].device_type_id != nanos6_host_device) {
 			return (_computePlace == nullptr);
-		} else {
-			return (_thread == nullptr);
 		}
+
+		return (_thread == nullptr);
 	}
 
 	//! \brief Indicates if it can be woken up
@@ -501,7 +502,8 @@ public:
 		assert(countdown >= 0);
 
 		// If it is 0 (unblocked), do not increment
-		while (countdown > 0 && !_countdownToBeWokenUp.compare_exchange_strong(countdown, countdown + 1)) {
+		while (countdown > 0
+			&& !_countdownToBeWokenUp.compare_exchange_strong(countdown, countdown + 1)) {
 		}
 
 		return (countdown > 0);
@@ -512,7 +514,7 @@ public:
 	//! \returns true if this task is unblocked
 	inline bool enableScheduling()
 	{
-		int countdown = (_countdownToBeWokenUp.fetch_sub(1, std::memory_order_relaxed) - 1);
+		const int countdown = (_countdownToBeWokenUp.fetch_sub(1, std::memory_order_relaxed) - 1);
 		assert(countdown >= 0);
 		return (countdown == 0);
 	}
@@ -544,7 +546,7 @@ public:
 	//! \returns true if the task becomes ready
 	bool decreasePredecessors(int amount=1)
 	{
-		int res = (_predecessorCount-= amount);
+		const int res = (_predecessorCount-= amount);
 		assert(res >= 0);
 		return (res == 0);
 	}
@@ -657,7 +659,7 @@ public:
 	//! \returns true iff the dependencies can be released
 	inline bool decreaseReleaseCount(int amount = 1)
 	{
-		int count = (_countdownToRelease -= amount);
+		const int count = (_countdownToRelease -= amount);
 		assert(count >= 0);
 		return (count == 0);
 	}
