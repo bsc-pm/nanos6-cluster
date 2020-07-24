@@ -98,6 +98,10 @@ static DataAccessRegion findSuitableMemoryRegion()
 		void *previousEnd = maps[i - 1].getEndAddress();
 		void *nextStart = maps[i].getStartAddress();
 
+		if (previousEnd >= nextStart) {
+			continue;
+		}
+
 		DataAccessRegion region(previousEnd, nextStart);
 		if (region.getSize() > gap.getSize()) {
 			gap = region;
