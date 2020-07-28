@@ -110,7 +110,7 @@ public:
 #ifndef NDEBUG
 		abort();
 #else
-		exit(1);
+		exit(EXIT_FAILURE);
 #endif
 	}
 
@@ -133,7 +133,7 @@ public:
 #ifndef NDEBUG
 		abort();
 #else
-		exit(1);
+		exit(EXIT_FAILURE);
 #endif
 	}
 
@@ -157,7 +157,7 @@ public:
 #ifndef NDEBUG
 		abort();
 #else
-		exit(1);
+		exit(EXIT_FAILURE);
 #endif
 	}
 

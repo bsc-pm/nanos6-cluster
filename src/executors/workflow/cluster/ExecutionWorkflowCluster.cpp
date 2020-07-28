@@ -26,12 +26,11 @@ namespace ExecutionWorkflow {
 	) {
 		assert(_targetMemoryPlace != nullptr);
 
-                if (location->getType() != nanos6_cluster_device) {
+		if (location->getType() != nanos6_cluster_device) {
 			location = ClusterManager::getCurrentMemoryNode();
-                }
+		}
 
-		TaskOffloading::SatisfiabilityInfo satInfo(region,
-			location->getIndex(), read, write);
+		TaskOffloading::SatisfiabilityInfo satInfo(region, location->getIndex(), read, write);
 
 		TaskOffloading::ClusterTaskContext *clusterTaskContext = _task->getClusterContext();
 		TaskOffloading::sendSatisfiability(_task, clusterTaskContext->getRemoteNode(), satInfo);
@@ -150,18 +149,19 @@ namespace ExecutionWorkflow {
 			return;
 		}
 
-                if (!_needsTransfer && !_isTaskwait) {
-                        //! Perform the data access registration but not the data
-                        //! fetch.
-                        DataAccessRegistration::updateTaskDataAccessLocation(
-                                            _task,
-                                            _targetTranslation._hostRegion,
-                                            _targetMemoryPlace,
-                                            _isTaskwait);
-                        releaseSuccessors();
+		if (!_needsTransfer && !_isTaskwait) {
+			//! Perform the data access registration but not the data
+			//! fetch.
+			DataAccessRegistration::updateTaskDataAccessLocation(
+				_task,
+				_targetTranslation._hostRegion,
+				_targetMemoryPlace,
+				_isTaskwait
+			);
+			releaseSuccessors();
 			delete this;
 			return;
-                }
+		}
 
 
 		Instrument::logMessage(

@@ -86,8 +86,8 @@ namespace ExecutionWorkflow {
 		//! The data copy is for a taskwait
 		bool _isTaskwait;
 
-                //! An actual data transfer is required
-                bool _needsTransfer;
+		//! An actual data transfer is required
+		bool _needsTransfer;
 
 	public:
 		ClusterDataCopyStep(
@@ -96,14 +96,14 @@ namespace ExecutionWorkflow {
 			RegionTranslation const &targetTranslation,
 			Task *task,
 			bool isTaskwait,
-                        bool needsTransfer
+			bool needsTransfer
 		) : Step(),
 			_sourceMemoryPlace(sourceMemoryPlace),
 			_targetMemoryPlace(targetMemoryPlace),
 			_targetTranslation(targetTranslation),
 			_task(task),
 			_isTaskwait(isTaskwait),
-                        _needsTransfer(needsTransfer)
+			_needsTransfer(needsTransfer)
 		{
 		}
 
