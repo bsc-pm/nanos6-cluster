@@ -24,16 +24,6 @@ class ComputePlace;
 class MemoryPlace;
 
 namespace ExecutionWorkflow {
-	class ClusterAllocationAndPinningStep : public Step {
-	public:
-		ClusterAllocationAndPinningStep(
-			__attribute__((unused)) RegionTranslation &regionTranslation,
-			__attribute__((unused)) MemoryPlace const *memoryPlace
-		) : Step ()
-		{
-		}
-	};
-
 	class ClusterDataLinkStep : public DataLinkStep {
 		//! The MemoryPlace that holds the data at the moment
 		MemoryPlace const *_sourceMemoryPlace;
@@ -175,16 +165,6 @@ namespace ExecutionWorkflow {
 
 		//! Start the execution of the Step
 		void start();
-	};
-
-	class ClusterUnpinningStep : public Step {
-	public:
-		ClusterUnpinningStep(
-			__attribute__((unused)) MemoryPlace const *targetMemoryPlace,
-			__attribute__((unused)) RegionTranslation const &targetTranslation
-		) : Step()
-		{
-		}
 	};
 
 	inline Step *clusterFetchData(

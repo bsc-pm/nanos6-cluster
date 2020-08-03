@@ -140,6 +140,8 @@ namespace ExecutionWorkflow {
 	void ClusterDataCopyStep::start()
 	{
 		assert(ClusterManager::getCurrentMemoryNode() == _targetMemoryPlace);
+		assert(_sourceMemoryPlace->getType() == nanos6_cluster_device);
+		assert(_targetMemoryPlace->getType() == nanos6_cluster_device);
 
 		//! No data transfer needed, data is already here.
 		if (_sourceMemoryPlace == _targetMemoryPlace) {
@@ -150,8 +152,9 @@ namespace ExecutionWorkflow {
 
 		Instrument::logMessage(
 			Instrument::ThreadInstrumentationContext::getCurrent(),
-			"ClusterDataCopyStep fetching data from Node:",
-			_sourceMemoryPlace->getIndex()
+			"ClusterDataCopyStep for:", _targetTranslation._hostRegion,
+			" from Node:", _sourceMemoryPlace->getIndex(),
+			" to Node:", _targetMemoryPlace->getIndex()
 		);
 
 		DataTransfer *dt = ClusterManager::fetchData(

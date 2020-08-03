@@ -34,30 +34,6 @@ namespace ExecutionWorkflow {
 		/* cluster */ { clusterCopy, nullCopy, nullCopy, clusterCopy }
 	};
 
-	Step *WorkflowBase::createAllocationAndPinningStep(
-		RegionTranslation &regionTranslation,
-		MemoryPlace const *memoryPlace
-	) {
-		switch (memoryPlace->getType()) {
-			case nanos6_host_device:
-				return new HostAllocationAndPinningStep(regionTranslation, memoryPlace);
-			case nanos6_cluster_device:
-				return new ClusterAllocationAndPinningStep(regionTranslation, memoryPlace);
-			case nanos6_cuda_device:
-			case nanos6_openacc_device:
-			case nanos6_opencl_device:
-			default:
-				FatalErrorHandler::failIf(
-					true,
-					"Execution workflow does not support this device yet"
-				);
-				break;
-		}
-
-		//! Silencing annoying compiler warning
-		return nullptr;
-	}
-
 	Step *WorkflowBase::createDataCopyStep(
 		MemoryPlace const *sourceMemoryPlace,
 		MemoryPlace const *targetMemoryPlace,
@@ -146,30 +122,6 @@ namespace ExecutionWorkflow {
 		}
 
 		return new DataReleaseStep(access);
-	}
-
-	Step *WorkflowBase::createUnpinningStep(
-		MemoryPlace const *targetMemoryPlace,
-		RegionTranslation const &targetTranslation
-	) {
-		switch (targetMemoryPlace->getType()) {
-			case nanos6_host_device:
-				return new HostUnpinningStep(targetMemoryPlace, targetTranslation);
-			case nanos6_cluster_device:
-				return new ClusterUnpinningStep(targetMemoryPlace, targetTranslation);
-			case nanos6_cuda_device:
-			case nanos6_openacc_device:
-			case nanos6_opencl_device:
-			default:
-				FatalErrorHandler::failIf(
-					true,
-					"Execution workflow does not support this device yet"
-				);
-				break;
-		}
-
-		//! Silencing annoying compiler warning
-		return nullptr;
 	}
 
 	void WorkflowBase::start()

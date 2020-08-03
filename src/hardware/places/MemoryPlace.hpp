@@ -18,8 +18,8 @@ class ComputePlace;
 class MemoryPlace {
 protected:
 	AddressSpace *_addressSpace;
-	int _index;	
-	nanos6_device_t _type;	
+	const int _index;	
+	const nanos6_device_t _type;	
 	
 public:
 	MemoryPlace(int index, nanos6_device_t type, AddressSpace *addressSpace = nullptr)

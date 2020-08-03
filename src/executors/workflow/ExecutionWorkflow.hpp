@@ -44,22 +44,6 @@ namespace ExecutionWorkflow {
 		std::vector<Step *> _rootSteps;
 
 	public:
-		//! \brief Creates an AllocationAndPinningStep.
-		//!
-		//! An AllocationAndPinningStep fins a mapping of the host
-		//! region passes through the regionTranslation on the
-		//! memoryPlace and sets the _deviceStartAddress accordingly.
-		//!
-		//! \param[inout] when the method is called, regionTranslation
-		//! 		  includes the DataAccessRegion we are allocating. The
-		//!		  Step when it runs, sets up within the regionTranslation
-		//!		  the device address at which the the allocation happened
-		//! \param[in] memoryPlace is the MemoryPlace describing the device to
-		//!	       which the allocation needs to be performed.
-		Step *createAllocationAndPinningStep(
-			RegionTranslation &regionTranslation,
-			MemoryPlace const *memoryPlace
-		);
 
 		//! \brief Creates a DataCopyStep.
 		//!
@@ -105,20 +89,6 @@ namespace ExecutionWorkflow {
 		Step *createNotificationStep(
 			std::function<void ()> const &callback,
 			ComputePlace *computePlace
-		);
-
-		//! \brief Creates an UnpinningStep.
-		//!
-		//! An UnpinningStep unpins the region of the targetTranslation
-		//! on the targetMemoryPlace.
-		//!
-		//! \param[in] targetMemoryPlace is the memoryPlace that includes the
-		//!	       DataAccessRegion we are unpinning.
-		//! \param[in] targetTranslation describes the DataAccessRegion and
-		//! 	       its mapping in the target device.
-		Step *createUnpinningStep(
-			MemoryPlace const *targetMemoryPlace,
-			RegionTranslation const &targetTranslation
 		);
 
 		//! \brief Creates a DataReleaseStep.

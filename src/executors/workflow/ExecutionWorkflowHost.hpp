@@ -16,15 +16,6 @@ class Task;
 struct DataAccess;
 
 namespace ExecutionWorkflow {
-	class HostAllocationAndPinningStep : public Step {
-	public:
-		HostAllocationAndPinningStep(
-			__attribute__((unused)) RegionTranslation &regionTranslation,
-			__attribute__((unused)) MemoryPlace const *memoryPlace
-		) : Step()
-		{
-		}
-	};
 
 	class HostDataLinkStep : public Step {
 	public:
@@ -67,16 +58,6 @@ namespace ExecutionWorkflow {
 			_callback();
 			releaseSuccessors();
 			delete this;
-		}
-	};
-
-	class HostUnpinningStep : public Step {
-	public:
-		HostUnpinningStep(
-			__attribute__((unused)) MemoryPlace const *targetMemoryPlace,
-			__attribute__((unused)) RegionTranslation const &targetTranslation
-		) : Step()
-		{
 		}
 	};
 };

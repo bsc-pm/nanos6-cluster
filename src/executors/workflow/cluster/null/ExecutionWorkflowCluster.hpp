@@ -16,15 +16,6 @@ class MemoryPlace;
 struct DataAccess;
 
 namespace ExecutionWorkflow {
-	class ClusterAllocationAndPinningStep : public Step {
-	public:
-		ClusterAllocationAndPinningStep(
-			__attribute__((unused)) RegionTranslation &regionTranslation,
-			__attribute__((unused)) MemoryPlace const *memoryPlace
-		) : Step()
-		{
-		}
-	};
 
 	class ClusterDataLinkStep : public DataLinkStep {
 		ClusterDataLinkStep(
@@ -62,16 +53,6 @@ namespace ExecutionWorkflow {
 	public:
 		ClusterNotificationStep(
 			__attribute__((unused)) std::function<void ()> const &callback
-		) : Step()
-		{
-		}
-	};
-
-	class ClusterUnpinningStep : public Step {
-	public:
-		ClusterUnpinningStep(
-			__attribute__((unused)) MemoryPlace const *targetMemoryPlace,
-			__attribute__((unused)) RegionTranslation const &targetTranslation
 		) : Step()
 		{
 		}

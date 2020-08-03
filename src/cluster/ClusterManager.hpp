@@ -269,6 +269,8 @@ public:
 	) {
 		assert(_singleton->_msn != nullptr);
 		assert(to != nullptr);
+		assert(to->getType() == nanos6_cluster_device);
+		assert(to->getIndex() != _singleton->_thisNode->getIndex());
 
 		ClusterNode const *remoteNode = getClusterNode(to->getIndex());
 		return _singleton->_msn->sendData(region, remoteNode, messageId, block);
@@ -295,8 +297,11 @@ public:
 	) {
 		assert(_singleton->_msn != nullptr);
 		assert(from != nullptr);
+		assert(from->getType() == nanos6_cluster_device);
 
 		ClusterNode const *remoteNode = getClusterNode(from->getIndex());
+
+		assert(remoteNode != _singleton->_thisNode);
 
 		//! At the moment we do not translate addresses on remote
 		//! nodes, so the region we are fetching, on the remote node is
@@ -328,8 +333,11 @@ public:
 	{
 		assert(_singleton->_msn != nullptr);
 		assert(to != nullptr);
+		assert(to->getType() == nanos6_cluster_device);
 
 		ClusterNode const *remoteNode = getClusterNode(to->getIndex());
+
+		assert(remoteNode != _singleton->_thisNode);
 
 		//! At the moment we do not translate addresses on remote
 		//! nodes, so the region we are sending, on the remote node is
