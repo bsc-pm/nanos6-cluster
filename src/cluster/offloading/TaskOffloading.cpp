@@ -233,11 +233,12 @@ namespace TaskOffloading {
 
 		// If location is a host device on this node it is a cluster
 		// device from the point of view of the remote node
-		if (location->getType() == nanos6_host_device) {
+		if (location->getType() != nanos6_cluster_device) {
 			location = ClusterManager::getCurrentMemoryNode();
 		}
 
 		ClusterNode *current = ClusterManager::getCurrentClusterNode();
+
 		MessageReleaseAccess *msg =
 			new MessageReleaseAccess(current, offloadedTaskId, region, type, weak, location->getIndex());
 

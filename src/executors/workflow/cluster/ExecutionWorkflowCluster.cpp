@@ -25,7 +25,13 @@ namespace ExecutionWorkflow {
 		bool write
 	) {
 		assert(_targetMemoryPlace != nullptr);
-		TaskOffloading::SatisfiabilityInfo satInfo(region, location->getIndex(), read, write);
+
+                if (location->getType() != nanos6_cluster_device) {
+			location = ClusterManager::getCurrentMemoryNode();
+                }
+
+		TaskOffloading::SatisfiabilityInfo satInfo(region,
+			location->getIndex(), read, write);
 
 		TaskOffloading::ClusterTaskContext *clusterTaskContext = _task->getClusterContext();
 		TaskOffloading::sendSatisfiability(_task, clusterTaskContext->getRemoteNode(), satInfo);
