@@ -16,9 +16,7 @@
 #include <cassert>
 #include <mutex>
 
-
 class Task;
-
 
 namespace Instrument {
 	inline task_id_t enterCreateTask(
@@ -52,12 +50,12 @@ namespace Instrument {
 		ce.nCommunications = 0;
 
 		// Generate graph information
-		if (_detailLevel >= 1) {
+		if (Extrae::_detailTaskGraph) {
 			ce.nCommunications++;
 		}
 
 		// Precise task count (not sampled)
-		if (_detailLevel >= 1) {
+		if (Extrae::_detailTaskCount) {
 			ce.nEvents += 1;
 		}
 
@@ -76,7 +74,7 @@ namespace Instrument {
 		}
 
 		// Precise task count (not sampled)
-		if (_detailLevel >= 1) {
+		if (Extrae::_detailTaskCount) {
 			ce.Types[2] = (extrae_type_t) EventType::LIVE_TASKS;
 			ce.Values[2] = (extrae_value_t) liveTasks;
 		}
@@ -86,7 +84,7 @@ namespace Instrument {
 		}
 
 		// Generate graph information
-		if (_detailLevel >= 1) {
+		if (Extrae::_detailTaskGraph) {
 			ce.Communications[0].type = EXTRAE_USER_SEND;
 			ce.Communications[0].tag = (extrae_comm_tag_t) instantiation_dependency_tag;
 			ce.Communications[0].size = 0;

@@ -11,6 +11,11 @@
 
 
 namespace Instrument {
+	namespace Extrae {
+		bool _detailTaskGraph = false;
+		bool _detailTaskCount = false;
+	}
+
 	bool _initialized = false;
 	std::map<tracing_point_type_t, std::string> _delayedNumericTracingPoints;
 	std::map<tracing_point_type_t, scope_tracing_point_info_t> _delayedScopeTracingPoints;

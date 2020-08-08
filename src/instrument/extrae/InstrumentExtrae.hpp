@@ -28,6 +28,11 @@
 
 
 namespace Instrument {
+	namespace Extrae {
+		extern bool _detailTaskGraph;
+		extern bool _detailTaskCount;
+	}
+
 	enum {
 		THREADS_AND_CPUS_LEVEL = 2
 	};

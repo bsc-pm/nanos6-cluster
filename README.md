@@ -187,6 +187,22 @@ To solve it, define the following config: `instrument.extrae.as_threads = true`
 The resulting trace will show the activity of the actual threads instead of the activity at each CPU.
 In the future, this problem will be fixed.
 
+By default the generated trace contains a lot of information. To
+control or limit that there are two environment variables like:
+`NANOS6_EXTRAE_DETAIL_LEVEL` and `NANOS6_EXTRAE`.
+
+`NANOS6_EXTRAE` contains a coma separated list of areas similar to
+`NANOS6_VERBOSE`:
+
+<table><tbody>
+<tr><td> <strong>Section</strong> </td><td> <strong>Description</strong> </td></tr>
+<tr><td> <em>TaskGraph</em> </td><td> Generate the task graph events </td></tr>
+<tr><td> <em>TaskCount</em> </td><td> Task count sampled </td></tr>
+</tbody></table>
+
+The case is ignored, and the `all` keyword enables all of them (the default).
+Additionally, and area can have the `!` prepended to it to disable it.
+For instance, `NANOS6_EXTRAE=all,!TaskGraph`.
 
 ### Tracing a Nanos6 application with CTF (Experimental)
 

@@ -30,12 +30,12 @@ namespace Instrument {
 		ce.nCommunications = 0;
 
 		// Precise task count (not sampled)
-		if (_detailLevel >= 1) {
+		if (Extrae::_detailTaskCount) {
 			ce.nEvents += 1;
 		}
 
 		// Generate graph information
-		if (_detailLevel >= 1) {
+		if (Extrae::_detailTaskGraph) {
 			taskId._taskInfo->_lock.lock();
 			ce.nCommunications += taskId._taskInfo->_predecessors.size();
 		}
@@ -79,7 +79,7 @@ namespace Instrument {
 		ce.Values[4] = (extrae_value_t) taskId._taskInfo->_priority;
 
 		// Generate graph information
-		if (_detailLevel >= 1) {
+		if (Extrae::_detailTaskGraph) {
 			int index = 0;
 			for (auto const &taskAndTag : taskId._taskInfo->_predecessors) {
 				ce.Communications[index].type = EXTRAE_USER_RECV;
@@ -96,7 +96,7 @@ namespace Instrument {
 		size_t readyTasks = --_readyTasks;
 
 		// Precise task count (not sampled)
-		if (_detailLevel >= 1) {
+		if (Extrae::_detailTaskCount) {
 			ce.Types[5] = (extrae_type_t) EventType::READY_TASKS;
 			ce.Values[5] = (extrae_value_t) readyTasks;
 
@@ -135,7 +135,7 @@ namespace Instrument {
 		ce.nCommunications = 0;
 
 		// Precise task count (not sampled)
-		if (_detailLevel >= 1) {
+		if (Extrae::_detailTaskCount) {
 			ce.nEvents += 1;
 		}
 
@@ -187,7 +187,7 @@ namespace Instrument {
 		size_t liveTasks = --_liveTasks;
 
 		// Precise task count (not sampled)
-		if (_detailLevel >= 1) {
+		if (Extrae::_detailTaskCount) {
 			ce.Types[5] = (extrae_type_t) EventType::LIVE_TASKS;
 			ce.Values[5] = (extrae_value_t) liveTasks;
 
@@ -234,7 +234,7 @@ namespace Instrument {
 
 		if (first) {
 			// Precise task count (not sampled)
-			if (_detailLevel >= 1) {
+			if (Extrae::_detailTaskCount) {
 				ce.nEvents += 1;
 			}
 		}
@@ -296,7 +296,7 @@ namespace Instrument {
 			size_t readyTasks = --_readyTasks;
 
 			// Precise task count (not sampled)
-			if (_detailLevel >= 1) {
+			if (Extrae::_detailTaskCount) {
 				ce.Types[5] = (extrae_type_t) EventType::READY_TASKS;
 				ce.Values[5] = (extrae_value_t) readyTasks;
 
@@ -341,7 +341,7 @@ namespace Instrument {
 		size_t parentInTaskwait = 0;
 		if (last) {
 			// Precise task count (not sampled)
-			if (_detailLevel >= 1) {
+			if (Extrae::_detailTaskCount) {
 				ce.nEvents += 1;
 			}
 
@@ -400,7 +400,7 @@ namespace Instrument {
 			size_t liveTasks = --_liveTasks;
 
 			// Precise task count (not sampled)
-			if (_detailLevel >= 1) {
+			if (Extrae::_detailTaskCount) {
 				ce.Types[5] = (extrae_type_t) EventType::LIVE_TASKS;
 				ce.Values[5] = (extrae_value_t) liveTasks;
 

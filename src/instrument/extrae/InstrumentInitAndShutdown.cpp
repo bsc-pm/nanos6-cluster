@@ -9,6 +9,7 @@
 #include <dlfcn.h>
 #include <mutex>
 #include <sstream>
+#include <algorithm>
 
 #include <nanos6/debug.h>
 
@@ -22,7 +23,9 @@
 #include "instrument/support/InstrumentThreadLocalDataSupport.hpp"
 #include "system/RuntimeInfo.hpp"
 #include "system/ompss/SpawnFunction.hpp"
+#include "lowlevel/TokenizedEnvironmentVariable.hpp"
 
+using namespace Instrument::Extrae;
 
 namespace Instrument {
 
@@ -54,6 +57,28 @@ namespace Instrument {
 
 	void initialize()
 	{
+		TokenizedEnvironmentVariable<std::string> extraeAreas("NANOS6_EXTRAE", ',', "all");
+
+		for (auto area : extraeAreas) {
+			std::transform(area.begin(), area.end(), area.begin(), ::tolower);
+			if (area == "all") {
+				_detailTaskGraph =  true;
+				_detailTaskCount =  true;
+			} else if (area == "taskgraph") {
+				_detailTaskGraph =  true;
+			} else if (area == "taskcount") {
+				_detailTaskCount =  true;
+
+			} else if (area == "!taskgraph") {
+				_detailTaskGraph =  false;
+			} else if (area == "!taskcount") {
+				_detailTaskCount =  false;
+
+			} else {
+				std::cerr << "Warning: ignoring unknown '" << area << "' extrae instrumentation" << std::endl;
+			}
+		}
+
 		// This is a workaround to avoid an extrae segfault
 		if ((getenv("EXTRAE_ON") == nullptr) && (getenv("EXTRAE_CONFIG_FILE") == nullptr)) {
 			setenv("EXTRAE_ON", "1", 0);

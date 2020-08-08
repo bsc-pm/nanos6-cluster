@@ -30,8 +30,8 @@ namespace Instrument {
 
 		// Generate control dependency information
 		// At level 1 we show "explicit" blocking calls but not taskwait dependencies
-		if (_detailLevel >= 1) {
-			ce.nCommunications ++;
+		if (Extrae::_detailTaskGraph) {
+			ce.nCommunications++;
 		}
 
 		ce.Types  = (extrae_type_t *)  alloca (ce.nEvents * sizeof (extrae_type_t) );
@@ -58,7 +58,7 @@ namespace Instrument {
 
 		// Generate control dependency information
 		// At level 1 we show "explicit" blocking calls but not taskwait dependencies
-		if (_detailLevel >= 1) {
+		if (Extrae::_detailTaskGraph) {
 			ce.Communications[0].type = EXTRAE_USER_SEND;
 			ce.Communications[0].tag = (extrae_comm_tag_t) control_dependency_tag;
 			ce.Communications[0].size = taskId._taskInfo->_taskId;
@@ -94,7 +94,7 @@ namespace Instrument {
 	) {
 		// Generate control dependency information
 		// At level 1 we show "explicit" blocking calls but not taskwait dependencies
-		if (_detailLevel < 1) {
+		if (!Extrae::_detailTaskGraph) {
 			return;
 		}
 

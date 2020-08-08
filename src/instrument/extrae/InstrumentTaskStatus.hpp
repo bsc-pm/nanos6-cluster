@@ -24,7 +24,7 @@ namespace Instrument {
 		__attribute__((unused)) InstrumentationContext const &context
 	) {
 		// Non-precise task count (sampled)
-		if (_detailLevel < 1) {
+		if (!Extrae::_detailTaskCount) {
 			return;
 		}
 
