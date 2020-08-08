@@ -40,6 +40,7 @@ namespace Instrument {
 
 		extern bool _verboseAddTask;
 		extern bool _verboseBlocking;
+		extern bool _verboseClusterMessages;
 		extern bool _verboseComputePlaceManagement;
 		extern bool _verboseDependenciesAutomataMessages;
 		extern bool _verboseDependenciesByAccess;

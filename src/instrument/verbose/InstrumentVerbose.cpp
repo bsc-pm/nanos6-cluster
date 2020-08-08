@@ -12,6 +12,7 @@ namespace Instrument {
 	namespace Verbose {
 		bool _verboseAddTask = false;
 		bool _verboseBlocking = false;
+		bool _verboseClusterMessages = false;
 		bool _verboseComputePlaceManagement = false;
 		bool _verboseDependenciesAutomataMessages = false;
 		bool _verboseDependenciesByAccess = false;

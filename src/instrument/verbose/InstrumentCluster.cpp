@@ -18,6 +18,10 @@ namespace Instrument {
 		int receiverId,
 		InstrumentationContext const &context
 	) {
+		if (!_verboseClusterMessages) {
+			return;
+		}
+
 		LogEntry *logEntry = getLogEntry(context);
 		assert(logEntry != nullptr);
 
@@ -33,6 +37,10 @@ namespace Instrument {
 
 	void clusterMessageCompleteSend(Message const *msg, InstrumentationContext const &context)
 	{
+		if (!_verboseClusterMessages) {
+			return;
+		}
+
 		LogEntry *logEntry = getLogEntry(context);
 		assert(logEntry != nullptr);
 
@@ -47,6 +55,10 @@ namespace Instrument {
 		int senderId,
 		InstrumentationContext const &context
 	) {
+		if (!_verboseClusterMessages) {
+			return;
+		}
+
 		LogEntry *logEntry = getLogEntry(context);
 		assert(logEntry != nullptr);
 
@@ -62,6 +74,10 @@ namespace Instrument {
 
 	void exitHandleReceivedMessage(Message const *msg, InstrumentationContext const &context)
 	{
+		if (!_verboseClusterMessages) {
+			return;
+		}
+
 		LogEntry *logEntry = getLogEntry(context);
 		assert(logEntry != nullptr);
 

@@ -46,6 +46,7 @@ namespace Instrument {
 			if (area == "all") {
 				_verboseAddTask = true;
 				_verboseBlocking = true;
+				_verboseClusterMessages = true;
 				_verboseComputePlaceManagement = true;
 				_verboseDependenciesAutomataMessages = true;
 				_verboseDependenciesByAccess = true;
@@ -63,6 +64,8 @@ namespace Instrument {
 				_verboseAddTask = true;
 			} else if (area == "blocking") {
 				_verboseBlocking = true;
+			} else if (area == "clustermessages") {
+				_verboseClusterMessages = true;
 			} else if (area == "computeplacemanagement") {
 				_verboseComputePlaceManagement = true;
 			} else if (area == "dependenciesautomatamessages") {
@@ -94,6 +97,8 @@ namespace Instrument {
 				_verboseAddTask = false;
 			} else if (area == "!blocking") {
 				_verboseBlocking = false;
+			} else if (area == "!clustermessages") {
+				_verboseClusterMessages = false;
 			} else if (area == "!computeplacemanagement") {
 				_verboseComputePlaceManagement = false;
 			} else if (area == "!dependenciesautomatamessages") {
@@ -136,7 +141,6 @@ namespace Instrument {
 #ifdef __ANDROID__
 		}
 #endif
-
 		_concurrentUnorderedListExternSlot = _concurrentUnorderedListSlotManager.getSlot();
 	}
 
