@@ -6,6 +6,3 @@
 
 #include <ObjectAllocator.hpp>
 
-template<> ObjectAllocator<DataAccess>::inner_type *ObjectAllocator<DataAccess>::_cache = nullptr;
-template<> ObjectAllocator<ReductionInfo>::inner_type *ObjectAllocator<ReductionInfo>::_cache = nullptr;
-template<> ObjectAllocator<BottomMapEntry>::inner_type *ObjectAllocator<BottomMapEntry>::_cache = nullptr;
