@@ -138,30 +138,6 @@ public:
 	}
 
 	template<typename... TS>
-	static inline void check(bool success, TS... reasonParts)
-	{
-		if (__builtin_expect(success, 1)) {
-			return;
-		}
-
-		std::ostringstream oss;
-		oss << "Error: ";
-		emitReasonParts(oss, reasonParts...);
-		oss << std::endl;
-
-		{
-			std::lock_guard<SpinLock> guard(_errorLock);
-			std::cerr << oss.str();
-		}
-
-#ifndef NDEBUG
-		abort();
-#else
-		exit(1);
-#endif
-	}
-
-	template<typename... TS>
 	static inline void failIf(bool failure, TS... reasonParts)
 	{
 		if (__builtin_expect(!failure, 1)) {

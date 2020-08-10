@@ -140,33 +140,30 @@ namespace ExecutionWorkflow {
 		if (task->getWorkflow() != nullptr) {
 			ExecutionWorkflow::Step *executionStep = task->getExecutionStep();
 
-                        if (executionStep == nullptr) 
-                        {
-                            /* This task has already executed and has been
-                             * waiting for its children to complete. 
-                             *
-                             * NOTE: task->getWorkflow() is actually a dangling
-                             *       pointer as the workflow has already been deleted.
-                             */
-                            WorkerThread *currThread = WorkerThread::getCurrentWorkerThread();
-                            CPU *cpu = nullptr;
-                            if (currThread != nullptr) {
-                                    cpu = currThread->getComputePlace();
-                            }
+			if (executionStep == nullptr) {
+				/* This task has already executed and has been
+					* waiting for its children to complete. 
+					*
+					* NOTE: task->getWorkflow() is actually a dangling
+					*       pointer as the workflow has already been deleted.
+					*/
+				WorkerThread *currThread = WorkerThread::getCurrentWorkerThread();
+				CPU *cpu = nullptr;
+				if (currThread != nullptr) {
+					cpu = currThread->getComputePlace();
+				}
 
-                            assert (task->hasFinished());
-                            if (task->mustDelayRelease()) {
-                                if (task->markAllChildrenAsFinished(cpu)) {
-                                }
-                            }
-                            if (task->markAsReleased()) {
-                                    TaskFinalization::disposeTask(task);
-                            }
-                        }
-                        else
-                        {
-                            executionStep->start();
-                        }
+				assert (task->hasFinished());
+				if (task->mustDelayRelease()) {
+					if (task->markAllChildrenAsFinished(cpu)) {
+					}
+				}
+				if (task->markAsReleased()) {
+					TaskFinalization::disposeTask(task);
+				}
+			} else {
+				executionStep->start();
+			}
 
 			return;
 		}

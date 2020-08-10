@@ -41,24 +41,29 @@ private:
 	memkind_t _memoryKind;
 #endif
 
-	void fillPool()
+	void fillPool(size_t allocSize = 0)
 	{
-		_curAvailable = _globalAllocSize;
+		if (allocSize == 0) {
+			allocSize = _globalAllocSize;
+		}
+
+		_curAvailable = allocSize;
 #if HAVE_MEMKIND
-		int rc = memkind_posix_memalign(_memoryKind, &_curMemoryChunk, _pageSize, _globalAllocSize);
-		FatalErrorHandler::check(
-			rc == MEMKIND_SUCCESS,
-			" When trying to allocate a memory chunk for the global allocator");
+		int rc = memkind_posix_memalign(_memoryKind, &_curMemoryChunk, _pageSize, allocSize);
+		FatalErrorHandler::failIf(
+			rc != MEMKIND_SUCCESS,
+			" When trying to allocate a memory chunk for the global allocator"
+		);
 #else
-		_curMemoryChunk = VirtualMemoryManagement::allocLocalNUMA(_globalAllocSize, _NUMANodeId);
+		_curMemoryChunk = VirtualMemoryManagement::allocLocalNUMA(allocSize, _NUMANodeId);
 		FatalErrorHandler::failIf(
 			_curMemoryChunk == nullptr,
 			" Could not allocate a memory chunk for the global allocator."
-			);
+		);
 
 #endif
 		if (numa_available() != -1) {
-			numa_setlocal_memory(_curMemoryChunk, _globalAllocSize);
+			numa_setlocal_memory(_curMemoryChunk, allocSize);
 		}
 
 		_oldMemoryChunks.push_back(_curMemoryChunk);
@@ -83,14 +88,15 @@ public:
 
 		FatalErrorHandler::failIf(
 			(_globalAllocSize % _memoryChunkSize) != 0,
-			" Pool size and chunk size must be multiples of each other");
+			" Pool size and chunk size must be multiples of each other"
+		);
 
 #if HAVE_MEMKIND
 		int rc = memkind_create_kind(MEMKIND_MEMTYPE_DEFAULT,
 		                             MEMKIND_POLICY_PREFERRED_LOCAL,
 		                             (memkind_bits_t)0, &_memoryKind);
-		FatalErrorHandler::check(rc == MEMKIND_SUCCESS,
-		                         " When trying to create a new memory kind");
+
+		FatalErrorHandler::failIf(rc != MEMKIND_SUCCESS, " When trying to create a new memory kind");
 #endif
 
 		fillPool();
@@ -123,11 +129,11 @@ public:
 		if (chunkSize < minSize) {
 			// Get minimum acceptable chunkSize
 			chunkSize = ((minSize + _memoryChunkSize - 1) / _memoryChunkSize) * _memoryChunkSize;
-			_memoryChunkSize = chunkSize;
+			// _memoryChunkSize.setValue(chunkSize);
 
 			if (_curAvailable < chunkSize) {
-				_globalAllocSize = ((_globalAllocSize + _memoryChunkSize - 1) / _memoryChunkSize) * _memoryChunkSize;
-				fillPool();
+				// _globalAllocSize.setValue(((_globalAllocSize + _memoryChunkSize - 1) / _memoryChunkSize) * _memoryChunkSize);
+				fillPool(chunkSize);
 			}
 		}
 
