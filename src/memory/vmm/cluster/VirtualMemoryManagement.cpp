@@ -120,8 +120,7 @@ static DataAccessRegion findSuitableMemoryRegion()
 		DataAccessRegion remoteGap;
 		DataAccessRegion buffer(&remoteGap, sizeof(remoteGap));
 
-		std::vector<ClusterNode *> const &nodes =
-			ClusterManager::getClusterNodes();
+		std::vector<ClusterNode *> const &nodes = ClusterManager::getClusterNodes();
 
 		for (ClusterNode *remote : nodes) {
 			if (remote == ClusterManager::getCurrentClusterNode()) {
@@ -142,8 +141,7 @@ static DataAccessRegion findSuitableMemoryRegion()
 			}
 
 			MemoryPlace *memoryNode = remote->getMemoryNode();
-			ClusterManager::sendDataRaw(buffer, memoryNode,
-					messageId, true);
+			ClusterManager::sendDataRaw(buffer, memoryNode, messageId, true);
 		}
 	} else {
 		DataAccessRegion buffer(&gap, sizeof(gap));

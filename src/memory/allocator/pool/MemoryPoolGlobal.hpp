@@ -60,8 +60,8 @@ private:
 			_curMemoryChunk == nullptr,
 			" Could not allocate a memory chunk for the global allocator."
 		);
-
 #endif
+
 		if (numa_available() != -1) {
 			numa_setlocal_memory(_curMemoryChunk, allocSize);
 		}
@@ -118,7 +118,8 @@ public:
 			if (_curAvailable != 0) {
 				// Chunk size was changed previously, update
 				// also alloc size to make all sizes fit again
-				_globalAllocSize = ((_globalAllocSize + _memoryChunkSize - 1) / _memoryChunkSize) * _memoryChunkSize;
+				_globalAllocSize =
+					((_globalAllocSize + _memoryChunkSize - 1) / _memoryChunkSize) * _memoryChunkSize ;
 			}
 
 			fillPool();
@@ -129,10 +130,9 @@ public:
 		if (chunkSize < minSize) {
 			// Get minimum acceptable chunkSize
 			chunkSize = ((minSize + _memoryChunkSize - 1) / _memoryChunkSize) * _memoryChunkSize;
-			// _memoryChunkSize.setValue(chunkSize);
 
 			if (_curAvailable < chunkSize) {
-				// _globalAllocSize.setValue(((_globalAllocSize + _memoryChunkSize - 1) / _memoryChunkSize) * _memoryChunkSize);
+				// _globalAllocSize = ((_globalAllocSize + _memoryChunkSize - 1) / _memoryChunkSize) * _memoryChunkSize;
 				fillPool(chunkSize);
 			}
 		}

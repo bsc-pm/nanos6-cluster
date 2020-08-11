@@ -22,10 +22,7 @@ class VirtualMemoryAllocation {
 	void unmap(void *addr, size_t size)
 	{
 		int ret = munmap(addr, size);
-		FatalErrorHandler::failIf(
-			ret != 0,
-			"Could not unmap memory allocation"
-		);
+		FatalErrorHandler::failIf(ret != 0, "Could not unmap memory allocation");
 	}
 
 public:
@@ -35,16 +32,13 @@ public:
 		/** For the moment we are using fixed memory protection and
 		 * allocation flags, but in the future we could make those
 		 * arguments fields of the class */
-		int prot = PROT_READ|PROT_WRITE;
+		const int prot = PROT_READ|PROT_WRITE;
 		int flags = MAP_ANONYMOUS|MAP_PRIVATE|MAP_NORESERVE;
 		if (_address != nullptr) {
 			flags |= MAP_FIXED;
 		}
 		void *ret = mmap(_address, _size, prot, flags, -1, 0);
-		FatalErrorHandler::failIf(
-			ret == MAP_FAILED,
-			"mapping virtual address space failed"
-		);
+		FatalErrorHandler::failIf(ret == MAP_FAILED, "mapping virtual address space failed");
 
 		_address = ret;
 	}

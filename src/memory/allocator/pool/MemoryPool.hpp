@@ -14,34 +14,9 @@
 class MemoryPool {
 private:
 	// There is one pool per CPU. No need to lock
-	MemoryPoolGlobal *_globalAllocator;
+	MemoryPoolGlobal * const _globalAllocator;
 	const size_t _chunkSize;
 	void *_topChunk;
-
-	void fillPool()
-	{
-		size_t globalChunkSize;
-		_topChunk = _globalAllocator->getMemory(_chunkSize, globalChunkSize);
-
-		// If globalChunkSize % _chunkSize != 0, some memory will be
-		// left unused
-		const size_t numChunks = globalChunkSize / _chunkSize;
-
-		FatalErrorHandler::failIf(
-			numChunks == 0,
-			"Memory returned from global pool is smaller than chunk size (", _chunkSize, "B)"
-		);
-
-		void *prevChunk = _topChunk;
-		for (size_t i = 1; i < numChunks; ++i) {
-			// Link chunks to each other, by writing a pointer to
-			// the next chunk in this chunk
-			NEXT_CHUNK(prevChunk) = (char *)_topChunk + (i * _chunkSize);
-			prevChunk = (char *)_topChunk + (i * _chunkSize);
-		}
-
-		NEXT_CHUNK(prevChunk) = nullptr;
-	}
 
 	MemoryPool() = delete;
 
@@ -57,8 +32,27 @@ public:
 
 	void *getChunk()
 	{
-		if (_topChunk == nullptr) {
-			fillPool();
+		if (_topChunk == nullptr) { // Fill Pool
+			size_t globalChunkSize;
+			_topChunk = _globalAllocator->getMemory(_chunkSize, globalChunkSize);
+
+			// If globalChunkSize % _chunkSize != 0, some memory will be left unused
+			const size_t numChunks = globalChunkSize / _chunkSize;
+
+			FatalErrorHandler::failIf(
+				numChunks == 0,
+				"Memory returned from global pool is smaller than chunk size (", _chunkSize, "B)"
+			);
+
+			void *prevChunk = _topChunk;
+			for (size_t i = 1; i < numChunks; ++i) {
+				// Link chunks to each other, by writing a pointer to
+				// the next chunk in this chunk
+				NEXT_CHUNK(prevChunk) = (char *)_topChunk + (i * _chunkSize);
+				prevChunk = (char *)_topChunk + (i * _chunkSize);
+			}
+
+			NEXT_CHUNK(prevChunk) = nullptr;
 		}
 
 		void *chunk = _topChunk;
