@@ -86,19 +86,24 @@ namespace ExecutionWorkflow {
 		//! The data copy is for a taskwait
 		bool _isTaskwait;
 
+                //! An actual data transfer is required
+                bool _needsTransfer;
+
 	public:
 		ClusterDataCopyStep(
 			MemoryPlace const *sourceMemoryPlace,
 			MemoryPlace const *targetMemoryPlace,
 			RegionTranslation const &targetTranslation,
 			Task *task,
-			bool isTaskwait
+			bool isTaskwait,
+                        bool needsTransfer
 		) : Step(),
 			_sourceMemoryPlace(sourceMemoryPlace),
 			_targetMemoryPlace(targetMemoryPlace),
 			_targetTranslation(targetTranslation),
 			_task(task),
-			_isTaskwait(isTaskwait)
+			_isTaskwait(isTaskwait),
+                        _needsTransfer(needsTransfer)
 		{
 		}
 
@@ -230,15 +235,15 @@ namespace ExecutionWorkflow {
 				&& (type != WRITE_ACCESS_TYPE)
 			);
 
-		if (needsTransfer) {
-			return new ClusterDataCopyStep(
-				source,
-				target,
-				translation,
-				access->getOriginator(),
-				(objectType == taskwait_type)
-			);
-		}
+                return new ClusterDataCopyStep(
+                        source,
+                        target,
+                        translation,
+                        access->getOriginator(),
+                        (objectType == taskwait_type),
+                        needsTransfer
+                );
+
 
 		return new Step();
 	}

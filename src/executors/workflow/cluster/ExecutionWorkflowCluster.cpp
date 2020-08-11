@@ -150,6 +150,20 @@ namespace ExecutionWorkflow {
 			return;
 		}
 
+                if (!_needsTransfer && !_isTaskwait) {
+                        //! Perform the data access registration but not the data
+                        //! fetch.
+                        DataAccessRegistration::updateTaskDataAccessLocation(
+                                            _task,
+                                            _targetTranslation._hostRegion,
+                                            _targetMemoryPlace,
+                                            _isTaskwait);
+                        releaseSuccessors();
+			delete this;
+			return;
+                }
+
+
 		Instrument::logMessage(
 			Instrument::ThreadInstrumentationContext::getCurrent(),
 			"ClusterDataCopyStep for:", _targetTranslation._hostRegion,
