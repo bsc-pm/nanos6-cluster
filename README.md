@@ -261,19 +261,21 @@ By default it generates a lot of information.
 This is controlled by the `instrument.verbose.areas` config, which can contain a list of areas.
 The areas are the following:
 
-<table><tbody><tr><td> <strong>Section</strong> </td><td> <strong>Description</strong>
-</td></tr><tr><td> <em>AddTask</em> </td><td> Task creation
-</td></tr><tr><td> <em>DependenciesAutomataMessages</em> </td><td> Show messages between automatas with `NANOS6_DEPENDENCIES=discrete`
-</td></tr><tr><td> <em>DependenciesByAccess</em> </td><td> Dependencies by their accesses
-</td></tr><tr><td> <em>DependenciesByAccessLinks</em> </td><td> Dependencies by the links between the accesses to the same data
-</td></tr><tr><td> <em>DependenciesByGroup</em> </td><td> Dependencies by groups of tasks that determine common predecessors and common successors
-</td></tr><tr><td> <em>LeaderThread</em> </td><td>
-</td></tr><tr><td> <em>TaskExecution</em> </td><td> Task execution
-</td></tr><tr><td> <em>TaskStatus</em> </td><td> Task status transitions
-</td></tr><tr><td> <em>TaskWait</em> </td><td> Entering and exiting taskwaits
-</td></tr><tr><td> <em>ThreadManagement</em> </td><td> Thread creation, activation and suspension
-</td></tr><tr><td> <em>UserMutex</em> </td><td> User-side mutexes (critical)
-</td></tr></tbody></table>
+<table><tbody>
+<tr><td> <strong>Section</strong> </td><td> <strong>Description</strong> </td></tr>
+<tr><td> <em>AddTask</em> </td><td> Task creation </td></tr>
+<tr><td> <em>DependenciesAutomataMessages</em> </td><td> Show messages between automatas with `NANOS6_DEPENDENCIES=discrete` </td></tr>
+<tr><td> <em>DependenciesByAccess</em> </td><td> Dependencies by their accesses </td></tr>
+<tr><td> <em>DependenciesByAccessLinks</em> </td><td> Dependencies by the links between the accesses to the same data </td></tr>
+<tr><td> <em>DependenciesByGroup</em> </td><td> Dependencies by groups of tasks that determine common predecessors and common successors </td></tr>
+<tr><td> <em>LeaderThread</em> </td><td> Instrument Leader thread </td></tr>
+<tr><td> <em>MemoryAllocation</em> </td><td> Instrument the pool memory allocation </td></tr>
+<tr><td> <em>TaskExecution</em> </td><td> Task execution </td></tr>
+<tr><td> <em>TaskStatus</em> </td><td> Task status transitions </td></tr>
+<tr><td> <em>TaskWait</em> </td><td> Entering and exiting taskwaits </td></tr>
+<tr><td> <em>ThreadManagement</em> </td><td> Thread creation, activation and suspension </td></tr>
+<tr><td> <em>UserMutex</em> </td><td> User-side mutexes (critical) </td></tr>
+</tbody></table>
 
 The case is ignored, and the `all` keyword enables all of them.
 Additionally, and area can have the `!` prepended to it to disable it.

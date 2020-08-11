@@ -82,7 +82,7 @@ void ConfigCentral::initialize()
 	registerOption<string_t>("instrument.verbose.areas", {
 		"all", "!ComputePlaceManagement", "!DependenciesByAccess",
 		"!DependenciesByAccessLinks", "!DependenciesByGroup",
-		"!LeaderThread", "!TaskStatus", "!ThreadManagement"
+		"!LeaderThread", "!TaskStatus", "!ThreadManagement", "!MemoryAllocation"
 	});
 	registerOption<bool_t>("instrument.verbose.dump_only_on_exit", false);
 	registerOption<string_t>("instrument.verbose.output_file", "/dev/stderr");

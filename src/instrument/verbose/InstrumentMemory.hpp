@@ -23,11 +23,18 @@ namespace Instrument {
 
 		void allocatorInitialize()
 		{
+			if (!_verboseMemoryAllocation) {
+				return;
+			}
 			_objectCounter = 0;
 		}
 
 		void allocatorShutdown()
 		{
+			if (!_verboseMemoryAllocation) {
+				return;
+			}
+
 			if (_objectCounter > 0) {
 
 				InstrumentationContext const &context = ThreadInstrumentationContext::getCurrent();
@@ -46,11 +53,17 @@ namespace Instrument {
 
 		void allocateObject()
 		{
+			if (!_verboseMemoryAllocation) {
+				return;
+			}
 			_objectCounter++;
 		}
 
 		void deallocateObject()
 		{
+			if (!_verboseMemoryAllocation) {
+				return;
+			}
 			_objectCounter--;
 		}
 
