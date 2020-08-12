@@ -853,9 +853,7 @@ namespace DataAccessRegistration {
 	}
 
 
-	static inline void removeBottomMapTaskwaitOrTopLevelSink(
-		DataAccess *access,
-		TaskDataAccesses &accessStructures,
+	static inline void removeBottomMapTaskwaitOrTopLevelSink( DataAccess *access, TaskDataAccesses &accessStructures,
 		__attribute__((unused)) Task *task
 	) {
 		assert(access != nullptr);
@@ -887,7 +885,7 @@ namespace DataAccessRegistration {
 			});
 
 		//! We are about to delete the taskwait fragment. Before doing so,
-		//! move the location info back to the original access
+		//! move the location info and data release step back to the original access
 		accessStructures._accesses.processIntersecting(
 			access->getAccessRegion(),
 			[&](TaskDataAccesses::accesses_t::iterator position) -> bool {
@@ -900,6 +898,11 @@ namespace DataAccessRegistration {
 						access->getAccessRegion(),
 						accessStructures);
 				originalAccess->setLocation(access->getLocation());
+
+				if (access->hasDataReleaseStep()) {
+					originalAccess->setDataReleaseStep(access->getDataReleaseStep());
+					access->unsetDataReleaseStep();
+				}
 
 				return true;
 			});
