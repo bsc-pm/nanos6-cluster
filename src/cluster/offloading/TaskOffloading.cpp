@@ -62,41 +62,16 @@ namespace TaskOffloading {
 		{
 		}
 
-		//! This must be the first access to this entry we will create it and return a reference to
-		//! the new RemoteTaskInfo object
-		RemoteTaskInfo &createTaskInfo(void *offloadedTaskId, int offloaderId)
-		{
-			auto key = std::make_pair(offloadedTaskId, offloaderId);
-
-			std::lock_guard<PaddedSpinLock<>> guard(_lock);
-			remote_map_t::iterator it = _taskMap.lower_bound(key);
-
-			//! Check that the key doesn't exist already
-			assert(it == _taskMap.end() || _taskMap.key_comp()(key, it->first));
-
-			// Insert with hint to avoid another lookup
-			it = _taskMap.emplace_hint(
-				it,
-				std::piecewise_construct,
-				std::forward_as_tuple(std::move(key)),
-				std::tuple<>()
-			);
-
-
-			return it->second;
-		}
 		//! This will return a reference to the RemoteTaskInfo entry
 		//! within this map. If this is the first access to this entry
-		//! we will fail to prevent a race condition.
+		//! we will create it and return a reference to the new
+		//! RemoteTaskInfo object
 		RemoteTaskInfo &getTaskInfo(void *offloadedTaskId, int offloaderId)
 		{
 			auto key = std::make_pair(offloadedTaskId, offloaderId);
 
 			std::lock_guard<PaddedSpinLock<>> guard(_lock);
-			remote_map_t::iterator it = _taskMap.find(key);
-			assert(it != _taskMap.end());
-
-			return it->second;
+			return _taskMap[key];
 		}
 
 		//! This erases a map entry. It assumes that there is already
@@ -107,10 +82,8 @@ namespace TaskOffloading {
 
 			std::lock_guard<PaddedSpinLock<>> guard(_lock);
 
-			remote_map_t::iterator it = _taskMap.find(key);
-			assert(it != _taskMap.end());
-
-			_taskMap.erase(it);
+			assert(_taskMap.find(key) != _taskMap.end());
+			_taskMap.erase(key);
 		}
 	};
 
@@ -338,7 +311,7 @@ namespace TaskOffloading {
 		// Register remote Task with TaskOffloading mechanism before
 		// submitting it to the dependency system
 		RemoteTaskInfo &remoteTaskInfo =
-			_remoteTasks.createTaskInfo(offloadedTaskId, offloader->getIndex());
+			_remoteTasks.getTaskInfo(offloadedTaskId, offloader->getIndex());
 
 		std::lock_guard<PaddedSpinLock<>> lock(remoteTaskInfo._lock);
 		assert(remoteTaskInfo._localTask == nullptr);
