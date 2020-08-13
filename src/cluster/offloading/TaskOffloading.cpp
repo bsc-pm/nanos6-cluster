@@ -82,8 +82,10 @@ namespace TaskOffloading {
 
 			std::lock_guard<PaddedSpinLock<>> guard(_lock);
 
-			assert(_taskMap.find(key) != _taskMap.end());
-			_taskMap.erase(key);
+			remote_map_t::iterator it = _taskMap.find(key);
+			assert(it != _taskMap.end());
+
+			_taskMap.erase(it);
 		}
 	};
 
