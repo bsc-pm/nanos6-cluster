@@ -23,7 +23,8 @@ MemoryAllocator *MemoryAllocator::_singleton = nullptr;
 MemoryAllocator::MemoryAllocator(size_t numaNodeCount, size_t cpuCount) :
 	_globalMemoryPool(numaNodeCount),
 	_localMemoryPool(cpuCount),
-	_externalMemoryPool()
+	_externalMemoryPool(),
+	_cacheLineSize(HardwareInfo::getCacheLineSize())
 {
 	assert(cpuCount > 0);
 
@@ -59,8 +60,8 @@ bool MemoryAllocator::getPool(size_t size, bool useCPUPool, MemoryPool *&pool)
 	pool = nullptr;
 
 	// Round to the nearest multiple of the cache line size
-	const size_t cacheLineSize = HardwareInfo::getCacheLineSize();
-	const size_t roundedSize = (size + cacheLineSize - 1) & ~(cacheLineSize - 1);
+	const size_t cacheLineSize = _singleton->_cacheLineSize;
+	const size_t roundedSize = (size + _cacheLineSize - 1) & ~(_cacheLineSize - 1);
 	const size_t cacheLines = roundedSize / cacheLineSize;
 	bool isExternal;
 
@@ -109,6 +110,7 @@ bool MemoryAllocator::getPool(size_t size, bool useCPUPool, MemoryPool *&pool)
 
 void MemoryAllocator::initialize()
 {
+	// This is a cached vale.
 	const size_t numaNodeCount
 		= HardwareInfo::getMemoryPlaceCount(nanos6_device_t::nanos6_host_device);
 	const size_t cpuCount = CPUManager::getTotalCPUs();

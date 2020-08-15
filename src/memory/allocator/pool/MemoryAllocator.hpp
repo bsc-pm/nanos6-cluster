@@ -36,6 +36,10 @@ private:
 	MemoryAllocator(size_t numaNodeCount, size_t cpuCount);
 	~MemoryAllocator();
 
+	// Cache this value to avoid shutdown collisions with HardwareInfo
+	// We assume this vale not change during the execution.
+	const size_t _cacheLineSize;
+
 public:
 	static void initialize();
 	static void shutdown();

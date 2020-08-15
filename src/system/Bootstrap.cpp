@@ -171,8 +171,8 @@ void nanos6_shutdown(void)
 
 	ClusterManager::shutdownPhase2();
 
-	MemoryAllocator::shutdown();
 	HardwareInfo::shutdown();
+	MemoryAllocator::shutdown();
 	RuntimeInfoEssentials::shutdown();
 	TurboSettings::shutdown();
 }
