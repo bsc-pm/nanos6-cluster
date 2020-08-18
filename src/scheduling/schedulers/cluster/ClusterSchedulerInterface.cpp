@@ -23,6 +23,7 @@ bool ClusterSchedulerInterface::handleClusterSchedulerConstrains(
 
 	if (task->hasConstrains()) {
 		const size_t nodeId = task->getNode();
+		FatalErrorHandler::failIf((int)nodeId >= ClusterManager::clusterSize(), "node in node() constraint out of range");
 		if (nodeId != DEFAULT_NODE_VALUE) {
 			addReadyLocalOrExecuteRemote(nodeId, task, computePlace, hint);
 			return true;
