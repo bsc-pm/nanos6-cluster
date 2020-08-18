@@ -14,6 +14,7 @@
 #include "tasks/Task.hpp"
 #include "tasks/TaskImplementation.hpp"
 
+#include "ClusterManager.hpp"
 #include <InstrumentTaskStatus.hpp>
 
 class SchedulerInterface {
@@ -39,7 +40,7 @@ public:
 		if (task->isMainTask() && !_mainFirstRunCompleted) {
 			Task *expected = nullptr;
 			bool exchanged = _mainTask.compare_exchange_strong(expected, task);
-			FatalErrorHandler::failIf(!exchanged);
+			FatalErrorHandler::failIf(!exchanged, "_mainTask was not nullptr");
 			CPUManager::forcefullyResumeFirstCPU();
 			return;
 		}
@@ -81,7 +82,7 @@ public:
 		if (computePlaceType == nanos6_host_device) {
 #ifdef EXTRAE_ENABLED
 			Task *result = nullptr;
-			if (CPUManager::isFirstCPU(computePlace->getIndex())) {
+			if (ClusterManager::isMasterNode() && CPUManager::isFirstCPU(computePlace->getIndex())) {
 				 while (!_mainFirstRunCompleted) {
 					if (_mainTask != nullptr) {
 						result = _mainTask;
