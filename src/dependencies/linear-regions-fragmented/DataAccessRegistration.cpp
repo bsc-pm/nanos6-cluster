@@ -189,7 +189,8 @@ namespace DataAccessRegistration {
 						// in order to be able to propagate a nested reduction ReductionInfo outside
 						&& ((access->getType() != WRITE_ACCESS_TYPE) && (access->getType() != READWRITE_ACCESS_TYPE));
 					_propagatesReductionSlotSetToNext = false; // ReductionSlotSet is propagated through the fragments
-					_propagatesDataReleaseStepToNext = false;  // DataReleaseStep is propagated through the fragments
+					// Occasionally data release step needs to be propagated here
+					_propagatesDataReleaseStepToNext = access->complete() && access->hasDataReleaseStep();
 				} else if (
 					(access->getObjectType() == fragment_type)
 					|| (access->getObjectType() == taskwait_type)
