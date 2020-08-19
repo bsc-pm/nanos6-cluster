@@ -67,14 +67,14 @@ public:
 	 * This is typically called from a CPUNUMAObjectCache in order to return
 	 * objects related with a different NUMA node than the one it belongs.
 	 */
-	void returnObjects(size_t numaId, std::deque<T *> &pool)
+	void returnObjects(size_t numaId, std::deque<T *> &pool, size_t start = 0)
 	{
 		assert(numaId < _NUMAPools.size());
 
 		std::lock_guard<PaddedSpinLock<>> lock(_NUMAPools[numaId]._lock);
 		pool_t &numaPool = _NUMAPools[numaId]._pool;
-		std::move(pool.begin(), pool.end(), std::back_inserter(numaPool));
-		pool.erase(pool.begin(), pool.end());
+		std::move(pool.begin() + start, pool.end(), std::back_inserter(numaPool));
+		pool.erase(pool.begin() + start, pool.end());
 	}
 };
 

@@ -92,8 +92,16 @@ public:
 		ptr->~T();
 
 		_available[nodeId].push_front(ptr);
-		if ((nodeId != _NUMANodeId) && (_available[nodeId].size() == 64)) {
-			_NUMAObjectCache->returnObjects(nodeId, _available[nodeId]);
+
+		// Return free objects to NUMA object cache
+		if (nodeId != _NUMANodeId) {
+			if (_available[nodeId].size() >= 64) {
+				_NUMAObjectCache->returnObjects(nodeId, _available[nodeId]);
+			}
+		} else if (_available[nodeId].size() >= _allocationSize + 64*2) {
+			// Return surplus free objects in local pool, keeping
+			// _allocationSize+64 to reduce number of doublings of _allocationSize.
+			_NUMAObjectCache->returnObjects(nodeId, _available[nodeId], 64);
 		}
 	}
 };
