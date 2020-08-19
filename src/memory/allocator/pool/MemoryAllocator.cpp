@@ -52,7 +52,7 @@ MemoryAllocator::~MemoryAllocator()
 
 // Static functions start here
 
-MemoryPool *MemoryAllocator::getPool(size_t size)
+MemoryPool *MemoryAllocator::getPool(size_t size, bool useCPUPool)
 {
 	MemoryPool *pool = nullptr;
 
@@ -62,25 +62,27 @@ MemoryPool *MemoryAllocator::getPool(size_t size)
 	const size_t cacheLines = roundedSize / cacheLineSize;
 
 	assert (roundedSize > 0);
-	WorkerThread *thread = WorkerThread::getCurrentWorkerThread();
+	if (useCPUPool) {
+		WorkerThread *thread = WorkerThread::getCurrentWorkerThread();
 
-	if (thread != nullptr) {
-		CPU *currentCPU = thread->getComputePlace();
+		if (thread != nullptr) {
+			CPU *currentCPU = thread->getComputePlace();
 
-		if (currentCPU != nullptr) {
-			const size_t cpuId = currentCPU->getIndex();
-			assert(cpuId < _localMemoryPool.size());
+			if (currentCPU != nullptr) {
+				const size_t cpuId = currentCPU->getIndex();
+				assert(cpuId < _localMemoryPool.size());
 
-			auto it = _localMemoryPool[cpuId].find(cacheLines);
-			if (it == _localMemoryPool[cpuId].end()) {
-				const size_t numaNodeId = currentCPU->getNumaNodeId();
-				assert(numaNodeId < _globalMemoryPool.size());
+				auto it = _localMemoryPool[cpuId].find(cacheLines);
+				if (it == _localMemoryPool[cpuId].end()) {
+					const size_t numaNodeId = currentCPU->getNumaNodeId();
+					assert(numaNodeId < _globalMemoryPool.size());
 
-				// No pool of this size locally
-				pool = new MemoryPool(_globalMemoryPool[numaNodeId], roundedSize);
-				_localMemoryPool[cpuId][cacheLines] = pool;
-			} else {
-				pool = it->second;
+					// No pool of this size locally
+					pool = new MemoryPool(_globalMemoryPool[numaNodeId], roundedSize);
+					_localMemoryPool[cpuId][cacheLines] = pool;
+				} else {
+					pool = it->second;
+				}
 			}
 		}
 	}
@@ -131,19 +133,19 @@ void MemoryAllocator::shutdown()
 }
 
 
-void *MemoryAllocator::alloc(size_t size)
+void *MemoryAllocator::alloc(size_t size, bool useCPUPool)
 {
 	assert(_singleton != nullptr);
-	MemoryPool *pool = _singleton->getPool(size);
+	MemoryPool *pool = _singleton->getPool(size, useCPUPool);
 
 	assert(pool != nullptr);
 	return pool->getChunk();
 }
 
-void MemoryAllocator::free(void *chunk, size_t size)
+void MemoryAllocator::free(void *chunk, size_t size, bool useCPUPool)
 {
 	assert(_singleton != nullptr);
-	MemoryPool *pool = _singleton->getPool(size);
+	MemoryPool *pool = _singleton->getPool(size, useCPUPool);
 
 	assert(pool != nullptr);
 	pool->returnChunk(chunk);

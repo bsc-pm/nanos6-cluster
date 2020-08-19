@@ -70,7 +70,10 @@ public:
 
 				_allocationSize *= 2;
 
-				T *ptr = (T *) MemoryAllocator::alloc(_allocationSize * sizeof(T));
+				// Allocate from the per-CPU pool because:
+				// (1) performance-critical and need to avoid taking a lock, and
+				// (2) the CPUObjectCache redistributes free memory among CPUs via NUMAObjectCache
+				T *ptr = (T *) MemoryAllocator::alloc(_allocationSize * sizeof(T), /* useCPUPool */ true);
 
 				for (size_t i = 0; i < _allocationSize; ++i) {
 					local.push_back(&ptr[i]);

@@ -31,7 +31,7 @@ private:
 	SpinLock _externalMemoryPoolLock;
 	size_to_pool_t _externalMemoryPool;
 
-	MemoryPool *getPool(size_t size);
+	MemoryPool *getPool(size_t size, bool useCPUPool);
 
 	MemoryAllocator(size_t numaNodeCount, size_t cpuCount);
 	~MemoryAllocator();
@@ -40,8 +40,12 @@ public:
 	static void initialize();
 	static void shutdown();
 
-	static void *alloc(size_t size);
-	static void free(void *chunk, size_t size);
+	// Only allocate and free from the CPU pool if:
+	// (1) performance-critical and need to avoid taking a lock, and
+	// (2) either alloc and free happen on the same CPU or there is
+	//     a mechanism to redistribute free memory among cores
+	static void *alloc(size_t size, bool useCPUPool = false);
+	static void free(void *chunk, size_t size, bool useCPUPool = false);
 
 	static constexpr bool hasUsageStatistics()
 	{
