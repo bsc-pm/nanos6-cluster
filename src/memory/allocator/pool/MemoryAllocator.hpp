@@ -31,7 +31,7 @@ private:
 	SpinLock _externalMemoryPoolLock;
 	size_to_pool_t _externalMemoryPool;
 
-	MemoryPool *getPool(size_t size, bool useCPUPool);
+	bool getPool(size_t size, bool useCPUPool, MemoryPool *&pool);
 
 	MemoryAllocator(size_t numaNodeCount, size_t cpuCount);
 	~MemoryAllocator();

@@ -52,14 +52,15 @@ MemoryAllocator::~MemoryAllocator()
 
 // Static functions start here
 
-MemoryPool *MemoryAllocator::getPool(size_t size, bool useCPUPool)
+bool MemoryAllocator::getPool(size_t size, bool useCPUPool, MemoryPool *&pool)
 {
-	MemoryPool *pool = nullptr;
+	pool = nullptr;
 
 	// Round to the nearest multiple of the cache line size
 	const size_t cacheLineSize = HardwareInfo::getCacheLineSize();
 	const size_t roundedSize = (size + cacheLineSize - 1) & ~(cacheLineSize - 1);
 	const size_t cacheLines = roundedSize / cacheLineSize;
+	bool isExternal;
 
 	assert (roundedSize > 0);
 	if (useCPUPool) {
@@ -88,6 +89,7 @@ MemoryPool *MemoryAllocator::getPool(size_t size, bool useCPUPool)
 	}
 
 	if (pool == nullptr) {
+		isExternal = true;
 		std::lock_guard<SpinLock> guard(_singleton->_externalMemoryPoolLock);
 		auto it = _externalMemoryPool.find(cacheLines);
 		if (it == _externalMemoryPool.end()) {
@@ -96,9 +98,11 @@ MemoryPool *MemoryAllocator::getPool(size_t size, bool useCPUPool)
 		} else {
 			pool = it->second;
 		}
+	} else {
+		isExternal = false;
 	}
 
-	return pool;
+	return isExternal;
 }
 
 void MemoryAllocator::initialize()
@@ -136,17 +140,31 @@ void MemoryAllocator::shutdown()
 void *MemoryAllocator::alloc(size_t size, bool useCPUPool)
 {
 	assert(_singleton != nullptr);
-	MemoryPool *pool = _singleton->getPool(size, useCPUPool);
+	MemoryPool *pool;
+	bool isExternal = _singleton->getPool(size, useCPUPool, pool);
 
 	assert(pool != nullptr);
-	return pool->getChunk();
+
+	if (!isExternal) {
+		return pool->getChunk();
+	} else {
+		std::lock_guard<SpinLock> guard(_singleton->_externalMemoryPoolLock);
+		return pool->getChunk();
+	}
 }
 
 void MemoryAllocator::free(void *chunk, size_t size, bool useCPUPool)
 {
 	assert(_singleton != nullptr);
-	MemoryPool *pool = _singleton->getPool(size, useCPUPool);
+	MemoryPool *pool;
+	bool isExternal = _singleton->getPool(size, useCPUPool, pool);
 
 	assert(pool != nullptr);
-	pool->returnChunk(chunk);
+
+	if (!isExternal) {
+		pool->returnChunk(chunk);
+	} else {
+		std::lock_guard<SpinLock> guard(_singleton->_externalMemoryPoolLock);
+		pool->returnChunk(chunk);
+	}
 }
