@@ -24,66 +24,91 @@ namespace ExecutionWorkflow {
 		bool read,
 		bool write
 	) {
-		assert(_targetMemoryPlace != nullptr);
+                bool deleteStep = false;
+                // This function is occasionally called after creating the
+                // ClusterDataLinkStep (whose constructor sets the data link
+                // step) but before starting the ClusterDataLinkStep. A lock
+                // is required because both functions manipulate _bytesToLink 
+                // and delete the workflow when it reaches zero.
+                {
+                    std::lock_guard<SpinLock> guard(_lock);
 
-		if (location->getType() != nanos6_cluster_device) {
-			location = ClusterManager::getCurrentMemoryNode();
-		}
+                    assert(location != nullptr);
+                    assert(_targetMemoryPlace != nullptr);
 
-		TaskOffloading::SatisfiabilityInfo satInfo(region, location->getIndex(), read, write);
+                    if (location->getType() != nanos6_cluster_device) {
+                            location = ClusterManager::getCurrentMemoryNode();
+                    }
 
-		TaskOffloading::ClusterTaskContext *clusterTaskContext = _task->getClusterContext();
-		TaskOffloading::sendSatisfiability(_task, clusterTaskContext->getRemoteNode(), satInfo);
-		size_t linkedBytes = region.getSize();
+                    TaskOffloading::SatisfiabilityInfo satInfo(region, location->getIndex(), read, write);
 
-		//! We need to account for linking both read and write
-		//! satisfiability
-		if (read && write) {
-			linkedBytes *= 2;
-		}
-		if ((_bytesToLink -= linkedBytes) == 0) {
-			delete this;
-		}
+                    TaskOffloading::ClusterTaskContext *clusterTaskContext = _task->getClusterContext();
+                    TaskOffloading::sendSatisfiability(_task, clusterTaskContext->getRemoteNode(), satInfo);
+                    size_t linkedBytes = region.getSize();
+
+                    //! We need to account for linking both read and write
+                    //! satisfiability
+                    if (read && write) {
+                            linkedBytes *= 2;
+                    }
+                    _bytesToLink -= linkedBytes;
+                    if (_started && _bytesToLink  == 0) {
+                        deleteStep = true;
+                    } 
+                }
+                if (deleteStep) {
+                    delete this;
+                }
 	}
 
 	void ClusterDataLinkStep::start()
 	{
-		assert(_targetMemoryPlace != nullptr);
+                bool deleteStep = false;
+                {
+                    // Get a lock (see comment in ClusterDataLinkStep::linkRegion).
+                    std::lock_guard<SpinLock> guard(_lock);
+                    assert(_targetMemoryPlace != nullptr);
 
-		if (!_read && !_write) {
-			//! Nothing to do here. We can release the execution
-			//! step. Location will be linked later on.
-			releaseSuccessors();
-			return;
-		}
+                    if (!_read && !_write) {
+                            //! Nothing to do here. We can release the execution
+                            //! step. Location will be linked later on.
+                            releaseSuccessors();
+                            return;
+                    }
 
-		assert(_sourceMemoryPlace != nullptr);
-		Instrument::logMessage(
-			Instrument::ThreadInstrumentationContext::getCurrent(),
-			"ClusterDataLinkStep for MessageTaskNew. ",
-			"Current location of ", _region,
-			" Node:", _sourceMemoryPlace->getIndex()
-		);
+                    assert(_sourceMemoryPlace != nullptr);
+                    Instrument::logMessage(
+                            Instrument::ThreadInstrumentationContext::getCurrent(),
+                            "ClusterDataLinkStep for MessageTaskNew. ",
+                            "Current location of ", _region,
+                            " Node:", _sourceMemoryPlace->getIndex()
+                    );
 
-		//! The current node is the source node. We just propagate
-		//! the info we 've gathered
-		assert(_successors.size() == 1);
-		ClusterExecutionStep *execStep = (ClusterExecutionStep *)_successors[0];
+                    //! The current node is the source node. We just propagate
+                    //! the info we 've gathered
+                    assert(_successors.size() == 1);
+                    ClusterExecutionStep *execStep = (ClusterExecutionStep *)_successors[0];
 
-		assert(_read || _write);
-		execStep->addDataLink(_sourceMemoryPlace->getIndex(), _region, _read, _write);
+                    assert(_read || _write);
+                    execStep->addDataLink(_sourceMemoryPlace->getIndex(), _region, _read, _write);
 
-		releaseSuccessors();
-		const size_t linkedBytes = _region.getSize();
-		//! If at the moment of offloading the access is not both
-		//! read and write satisfied, then the info will be linked
-		//! later on. In this case, we just account for the bytes that
-		//! we link now, the Step will be deleted when all the bytes
-		//! are linked through linkRegion method invocation
-		if (_read && _write) {
-			delete this;
-		} else {
-			_bytesToLink -= linkedBytes;
+                    const size_t linkedBytes = _region.getSize();
+                    //! If at the moment of offloading the access is not both
+                    //! read and write satisfied, then the info will be linked
+                    //! later on. In this case, we just account for the bytes that
+                    //! we link now, the Step will be deleted when all the bytes
+                    //! are linked through linkRegion method invocation
+                    if (_read && _write) {
+                        deleteStep = true;
+                    } else {
+                        _bytesToLink -= linkedBytes;
+                        _started = true;
+                    }
+                }
+                releaseSuccessors();
+
+                if (deleteStep) {
+                    delete this;
 		}
 	}
 
@@ -213,7 +238,8 @@ namespace ExecutionWorkflow {
 		bool read,
 		bool write
 	) {
-		std::lock_guard<SpinLock> guard(_lock);
+                // This lock should already have been taken by the caller
+		// std::lock_guard<SpinLock> guard(_lock);
 		_satInfo.push_back( TaskOffloading::SatisfiabilityInfo(region, source, read, write) );
 	}
 

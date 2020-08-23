@@ -43,6 +43,7 @@ namespace ExecutionWorkflow {
 		//! write satisfiability at creation time
 		bool _write;
 
+                bool _started;
 	public:
 		ClusterDataLinkStep(
 			MemoryPlace const *sourceMemoryPlace,
@@ -54,7 +55,8 @@ namespace ExecutionWorkflow {
 			_region(access->getAccessRegion()),
 			_task(access->getOriginator()),
 			_read(access->readSatisfied()),
-			_write(access->writeSatisfied())
+			_write(access->writeSatisfied()),
+                        _started(0)
 		{
 			access->setDataLinkStep(this);
 		}
