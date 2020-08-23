@@ -7,6 +7,7 @@
 #ifndef __CPU_OBJECT_CACHE_HPP__
 #define __CPU_OBJECT_CACHE_HPP__
 
+#include "Poison.hpp"
 #include "lowlevel/SpinLock.hpp"
 #include <deque>
 
@@ -75,6 +76,8 @@ public:
 				// (2) the CPUObjectCache redistributes free memory among CPUs via NUMAObjectCache
 				T *ptr = (T *) MemoryAllocator::alloc(_allocationSize * sizeof(T), /* useCPUPool */ true);
 
+				poison_memory_region(ptr, _allocationSize * sizeof(T));
+
 				for (size_t i = 0; i < _allocationSize; ++i) {
 					local.push_back(&ptr[i]);
 				}
@@ -83,6 +86,8 @@ public:
 
 		T *ret = local.front();
 		local.pop_front();
+
+		unpoison_memory_region(ret, sizeof(T));
 		new (ret) T(std::forward<TS>(args)...);
 		return ret;
 	}
@@ -94,6 +99,7 @@ public:
 		assert (nodeId < _available.size());
 		ptr->~T();
 
+		poison_memory_region(ptr, sizeof(T));
 		_available[nodeId].push_front(ptr);
 
 		// Return free objects to NUMA object cache

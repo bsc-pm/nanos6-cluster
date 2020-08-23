@@ -15,6 +15,8 @@
 #include "MemoryPool.hpp"
 #include "MemoryPoolGlobal.hpp"
 
+#include "Poison.hpp"
+
 
 MemoryAllocator *MemoryAllocator::_singleton = nullptr;
 

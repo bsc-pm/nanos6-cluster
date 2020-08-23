@@ -23,6 +23,8 @@
 
 #include <VirtualMemoryManagement.hpp>
 
+#include "Poison.hpp"
+
 class MemoryPoolGlobal {
 private:
 	ConfigVariable<StringifiedMemorySize> _globalAllocSizeConfig;
@@ -66,6 +68,7 @@ private:
 			numa_setlocal_memory(_curMemoryChunk, allocSize);
 		}
 
+		poison_memory_region(_curMemoryChunk, allocSize);
 		_oldMemoryChunks.push_back(_curMemoryChunk);
 	}
 
@@ -106,6 +109,7 @@ public:
 	{
 #if HAVE_MEMKIND
 		for (auto it : _oldMemoryChunks) {
+			unpoison_memory_region(_curMemoryChunk, allocSize);
 			memkind_free(_memoryKind, it);
 		}
 #endif
@@ -141,6 +145,7 @@ public:
 		_curAvailable -= chunkSize;
 		_curMemoryChunk = (char *)_curMemoryChunk + chunkSize;
 
+		unpoison_memory_region(curAddr, chunkSize);
 		return curAddr;
 	}
 };

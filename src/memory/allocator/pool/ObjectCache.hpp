@@ -75,14 +75,16 @@ public:
 		WorkerThread *thread = WorkerThread::getCurrentWorkerThread();
 		CPU *cpu = (thread != nullptr ? thread->getComputePlace() : nullptr);
 
+		T *addr;
 		if (cpu == nullptr) {
 			std::lock_guard<SpinLock> guard(_externalLock);
-			return _externalObjectCache->newObject(std::forward<TS>(args)...);
+			addr =  _externalObjectCache->newObject(std::forward<TS>(args)...);
 		} else {
 			const size_t cpuId = cpu->getIndex();
 			assert(cpuId < _CPUCaches.size());
-			return _CPUCaches[cpuId]->newObject(std::forward<TS>(args)...);
+			addr = _CPUCaches[cpuId]->newObject(std::forward<TS>(args)...);
 		}
+		return addr;
 	}
 
 	inline void deleteObject(T *ptr)

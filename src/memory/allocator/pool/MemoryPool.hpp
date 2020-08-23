@@ -9,6 +9,8 @@
 
 #include "MemoryPoolGlobal.hpp"
 
+#include "Poison.hpp"
+
 #define NEXT_CHUNK(_r) *((void **)_r)
 
 class MemoryPool {
@@ -53,9 +55,15 @@ public:
 			}
 
 			NEXT_CHUNK(prevChunk) = nullptr;
+
+			// Poison whole region
+			poison_memory_region(_topChunk, globalChunkSize);
 		}
 
 		void *chunk = _topChunk;
+
+		// Unpoison chunk
+		unpoison_memory_region(chunk, _chunkSize);
 		_topChunk = NEXT_CHUNK(chunk);
 
 		return chunk;
@@ -65,6 +73,9 @@ public:
 	{
 		NEXT_CHUNK(chunk) = _topChunk;
 		_topChunk = chunk;
+
+		// Poison now it is in the linked list
+		poison_memory_region(chunk, _chunkSize);
 	}
 };
 
