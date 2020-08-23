@@ -90,6 +90,12 @@ namespace ExecutionWorkflow {
 			 * actually not needed and it might lead to a deadlock.
 			 * At this point, the Workflow is created and the
 			 * _successors vector will not be further modified. */
+
+			/*
+			 * Actually it must not take the lock because
+			 * ClusterDataLinkStep::start() calls it holding the
+			 * lock.
+			 */
 			//std::lock_guard<SpinLock> guard(_lock);
 			for (auto step: _successors) {
 				if (step->release()) {

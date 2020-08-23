@@ -43,7 +43,7 @@ namespace ExecutionWorkflow {
 		//! write satisfiability at creation time
 		bool _write;
 
-                bool _started;
+		bool _started;
 	public:
 		ClusterDataLinkStep(
 			MemoryPlace const *sourceMemoryPlace,
@@ -56,7 +56,7 @@ namespace ExecutionWorkflow {
 			_task(access->getOriginator()),
 			_read(access->readSatisfied()),
 			_write(access->writeSatisfied()),
-                        _started(0)
+			_started(false)
 		{
 			access->setDataLinkStep(this);
 		}
@@ -272,7 +272,7 @@ namespace ExecutionWorkflow {
 		ClusterMemoryNode *current =
 			ClusterManager::getCurrentMemoryNode();
 
-                if (source != nullptr && (source->getType() != nanos6_cluster_device)) {
+		if (source != nullptr && (source->getType() != nanos6_cluster_device)) {
 			assert(source->getType() == nanos6_host_device);
 			if (!Directory::isDirectoryMemoryPlace(source))
                         {
