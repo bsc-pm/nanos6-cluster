@@ -104,6 +104,7 @@ namespace ExecutionWorkflow {
 				_bytesToLink -= linkedBytes;
 				_started = true;
 			}
+
 			// Release successors before releasing the lock (otherwise
 			// ClusterDataLinkStep::linkRegion may delete this step first).
 			releaseSuccessors();
