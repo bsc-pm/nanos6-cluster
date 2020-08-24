@@ -34,6 +34,8 @@ void ConfigCentral::initialize()
 	registerOption<bool_t>("cluster.eager_send", false);
 	registerOption<bool_t>("cluster.merge_release_and_finish", true);
 
+	// Cluster hybrid
+	registerOption<string_t>("cluster.hybrid.split", "");
 
 	// CPU manager
 	registerOption<string_t>("cpumanager.policy", "default");

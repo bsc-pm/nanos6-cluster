@@ -59,11 +59,17 @@ public:
 	//! \param[in] block determines if the call will block until Message delivery
 	virtual void sendMessage(Message *msg, ClusterNode const *toNode, bool block = false) = 0;
 
-	//! \brief A barrier across all nodes
+	//! \brief A barrier across all nodes within an apprank
 	//!
 	//! This is a collective operation that needs to be invoked
 	//! by all nodes
 	virtual void synchronizeAll(void) = 0;
+
+	//! \brief A barrier across all nodes within the real MPI_COMM_WORLD
+	//!
+	//! This is a collective operation that needs to be invoked
+	//! by all nodes
+	virtual void synchronizeWorld(void) = 0;
 
 	//! \brief Send a data region to a remote node, related to a previous message.
 	//!
@@ -142,6 +148,32 @@ public:
 	virtual void testCompletion(std::vector<Message *> &pendings) = 0;
 	virtual void testCompletion(std::vector<DataTransfer *> &pendings) = 0;
 
+	//! Get external rank of the current node (meaning MPI rank in the original mpirun command)
+	virtual int getExternalRank() const = 0;
+
+	//! Get number of external ranks (meaning MPI ranks in the original mpirun command)
+	virtual int getNumExternalRanks() const = 0;
+
+	//! Get the node number
+	virtual int getNodeNum() const = 0;
+
+	//! Get the index number of the instances on this node
+	virtual int getIndexThisNode() const = 0;
+
+	//! Get total number of instances on this node
+	virtual int getNumInstancesThisNode() const = 0;
+
+	//! Get the apprank number (set of instances collaborating for single application MPI rank)
+	virtual int getApprankNum() const = 0;
+
+	//! Get the number of appranks (number of application MPI ranks)
+	virtual int getNumAppranks() const = 0;
+
+	//! Get the application's MPI communicator
+	virtual int appCommunicator() const = 0;
+
+	//! For verbose instrumentation, summarize the instances and appranks
+	virtual void summarizeSplit() const = 0;
 };
 
 #endif /* MESSENGER_HPP */

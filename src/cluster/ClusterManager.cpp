@@ -172,7 +172,13 @@ void ClusterManager::postinitialize()
 
 	FatalErrorHandler::failIf(!_singleton->_msn,
 							  "This version needs cluster.communication != disabled");
+
+	/* For (verbose) instrumentation, summarize the splitting of external ranks
+	 * into appranks and instances. Always do this, even if in non-cluster mode,
+	 * as useful for the "per-node" instrumentation of DLB (using num_cores).
+	 */
 	assert(_singleton->_msn != nullptr);
+	_singleton->_msn->summarizeSplit();
 
 	if (inClusterMode()) {
 

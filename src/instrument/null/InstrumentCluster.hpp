@@ -12,6 +12,10 @@
 #include <InstrumentInstrumentationContext.hpp>
 
 namespace Instrument {
+	inline void summarizeSplit(int, int, int, InstrumentationContext const &)
+	{
+	}
+
 	inline void clusterSendMessage(Message const *, int)
 	{
 	}

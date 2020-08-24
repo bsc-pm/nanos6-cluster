@@ -284,6 +284,14 @@ __require_CLUSTER
 		# communicator for data_raws messages. Default is true
 		comm_data_raw = true
 
+	[cluster.hybrid]
+		# For hybrid cluster, describe how to split application ranks across nodes
+		# Each digit is the node number. Applications are separated by semicolons and
+		# internal ranks are separated by periods. For example, split = "0.1;1.0" runs
+		# two appranks on two nodes. Apprank 0 has master on node 0 and worker on node 1 and
+		# apprank 1 has master on node 1 and worker on node 0.
+		split = ""
+
 __!require_CLUSTER
 
 [memory]

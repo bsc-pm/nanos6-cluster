@@ -51,6 +51,107 @@ void MPIMessenger::forEachDataPart(
 	}
 }
 
+/*
+ * Parse cluster.hybrid.split passed in the argument
+ * to determine the apprank number of this instance
+ */
+void MPIMessenger::setApprankNumber(const std::string &clusterSplit, int &internalRank)
+{
+	std::stringstream ss(clusterSplit);
+	int countInstancesThisNode = 0;   // Number of instances so far on the current node
+	int countInstances = 0;           // Total number of instances so far
+	bool done = false;
+
+	// This instance's apprank number
+	_apprankNum = -1;
+
+	int apprank;
+	for (apprank=0; !done; apprank++)
+	{
+		for (int intRank = 0; !done; intRank++)
+		{
+			int nodeNum;
+			ss >> nodeNum;
+
+			FatalErrorHandler::failIf( nodeNum < 0 || nodeNum >= _numNodes,
+									   "node ", nodeNum, " invalid in cluster.hybrid.split configuration");
+
+			if (nodeNum == _nodeNum) {
+				// My node
+				if (countInstancesThisNode == _indexThisNode) {
+					// Apprank number for this instance
+					assert(_apprankNum == -1);
+					internalRank = intRank;
+					_apprankNum = apprank;
+				}
+				countInstancesThisNode ++;
+			}
+			countInstances ++;
+
+			// Get separator and continue
+			char sep = '\0';
+			ss >> sep;
+			if (sep == '\0')
+				done = true;
+			if (sep == ';')
+				break;  // next apprank
+		}
+	}
+	_numAppranks = apprank;
+	_numInstancesThisNode = countInstancesThisNode;
+	FatalErrorHandler::failIf( countInstances != _numExternalRanks,
+							   "Wrong number of instances in cluster.hybrid.split configuration");
+	FatalErrorHandler::failIf( _apprankNum == -1,
+							   "Node ", _nodeNum, " index ", _indexThisNode, " not found in cluster.hybrid.split configuration");
+}
+
+/*
+ * Environment variables to check to determine the node number
+ * (should be set to an integer from 0 to <num_nodes>-1)
+ */
+static std::vector<const char *> node_num_envvars
+{
+	"_NANOS6_NODEID",    // _NANOS6_NODEID overrides all other sources
+	"SLURM_NODEID"      // SLURM
+};
+
+void MPIMessenger::splitCommunicator(const std::string &clusterSplit)
+{
+	// Find node number from the environment variable
+	_nodeNum = -1;
+	for (auto envVarName : node_num_envvars) {
+		EnvironmentVariable<std::string> envVar(envVarName, "");
+		if (envVar.isPresent()) {
+			const std::string &value = envVar.getValue();
+			_nodeNum = std::stoi(value);
+		}
+	}
+	FatalErrorHandler::failIf( _nodeNum == -1,
+							   "Could not determine the node number");
+
+	// Find and broadcast number of nodes
+	int maxNodeNum;
+	MPI_Reduce(&_nodeNum, &maxNodeNum, 1, MPI_INT, MPI_MAX, 0, MPI_COMM_WORLD);
+	_numNodes = maxNodeNum + 1;  // only valid on rank 0 of MPI_COMM_WORLD
+	MPI_Bcast(&_numNodes, 1, MPI_INT, 0, MPI_COMM_WORLD);
+
+	// Find index among instances on the same node
+	MPI_Comm comm_within_node;
+	MPI_Comm_split(MPI_COMM_WORLD, /* color */ _nodeNum, /* key */_externalRank, &comm_within_node);
+	MPI_Comm_rank(comm_within_node, &_indexThisNode);
+
+	// Used for splitting the communicator; it should match the
+	// final internal rank, but the definitive value will come
+	// from INTRA_COMM
+	int internalRank = 0;
+
+	// Find apprank number by parsing cluster.hybrid.split configuration
+	setApprankNumber(clusterSplit, internalRank);
+
+    // Create intra communicator for this apprank (_wrank and _wsize will be determined from this)
+    MPI_Comm_split(MPI_COMM_WORLD, /* color */ _apprankNum, /* key */ internalRank, &INTRA_COMM);
+}
+
 MPIMessenger::MPIMessenger(int argc, char **argv) : Messenger(argc, argv)
 {
 	int support, ret;
@@ -81,13 +182,12 @@ MPIMessenger::MPIMessenger(int argc, char **argv) : Messenger(argc, argv)
 	MPIErrorHandler::handle(ret, MPI_COMM_WORLD);
 
 	//! Create a new communicator
-	if (PARENT_COMM == MPI_COMM_NULL) {
-		// When there is not parent it is part of the initial communicator.
-		ret = MPI_Comm_dup(MPI_COMM_WORLD, &INTRA_COMM);
-	} else {
-		// This is a spawned process.
-		ret = MPI_Intercomm_merge(PARENT_COMM, true,  &INTRA_COMM);
-	}
+	FatalErrorHandler::failIf(PARENT_COMM != MPI_COMM_NULL, "Malleability doesn't work with cluster+MPI");
+
+	//! Get external rank
+	ret = MPI_Comm_size(MPI_COMM_WORLD, &_numExternalRanks);
+	ret = MPI_Comm_rank(MPI_COMM_WORLD, &_externalRank);
+
 	MPIErrorHandler::handle(ret, MPI_COMM_WORLD);
 
 	// Get the user config to use a different communicator for data_raw.
@@ -145,8 +245,26 @@ MPIMessenger::~MPIMessenger()
 
 void MPIMessenger::internal_reset()
 {
+	//! Check whether OmpSs-2@cluster + DLB mode
+	int ret;
+	ConfigVariable<std::string> clusterSplitEnv("cluster.hybrid.split");
+
+	if (clusterSplitEnv.isPresent()) {
+		std::string clusterSplit = clusterSplitEnv.getValue();
+		splitCommunicator(clusterSplit);
+	} else {
+		_apprankNum = 0;
+		_nodeNum = 0;
+		_indexThisNode = 0;
+		_numInstancesThisNode = 1;
+
+		//! Create a new communicator
+		ret = MPI_Comm_dup(MPI_COMM_WORLD, &INTRA_COMM);
+		MPIErrorHandler::handle(ret, MPI_COMM_WORLD);
+	}
+
 	//! make sure the new communicator returns errors
-	int ret = MPI_Comm_set_errhandler(INTRA_COMM, MPI_ERRORS_RETURN);
+	ret = MPI_Comm_set_errhandler(INTRA_COMM, MPI_ERRORS_RETURN);
 	MPIErrorHandler::handle(ret, INTRA_COMM);
 
 	if (_mpi_comm_data_raw) {
@@ -163,6 +281,14 @@ void MPIMessenger::internal_reset()
 	ret = MPI_Comm_size(INTRA_COMM, &_wsize);
 	MPIErrorHandler::handle(ret, INTRA_COMM);
 	assert(_wsize > 0);
+
+    // Create the application communicator
+    MPI_Comm_split(MPI_COMM_WORLD, _wrank, _apprankNum, &APP_COMM);
+    if (_wrank > 0)
+    {
+		//! Invalid to use application communicator on slave nodes
+        APP_COMM = MPI_COMM_NULL;
+    }
 }
 
 void MPIMessenger::sendMessage(Message *msg, ClusterNode const *toNode, bool block)
@@ -326,6 +452,12 @@ DataTransfer *MPIMessenger::fetchData(
 		ClusterManager::getCurrentMemoryNode(), request, mpiSrc, messageId, /* isFetch */ true);
 }
 
+void MPIMessenger::synchronizeWorld(void)
+{
+	int ret = MPI_Barrier(MPI_COMM_WORLD);
+	MPIErrorHandler::handle(ret, MPI_COMM_WORLD);
+}
+
 void MPIMessenger::synchronizeAll(void)
 {
 	ExtraeLock();
@@ -417,4 +549,9 @@ void MPIMessenger::testCompletionInternal(std::vector<T *> &pendings)
 		MPI_Request *req = (MPI_Request *) msg->getMessengerData();
 		MemoryAllocator::free(req, sizeof(MPI_Request));
 	}
+}
+
+void MPIMessenger::summarizeSplit() const
+{
+	Instrument::summarizeSplit(_externalRank, _nodeNum, _apprankNum);
 }
