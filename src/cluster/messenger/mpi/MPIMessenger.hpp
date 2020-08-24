@@ -26,7 +26,8 @@ private:
 	bool _mpi_comm_data_raw = 0;
 
 	// Default value useful for asserts
-	int _wrank = -1, _wsize = -1;
+	int _wrank = -1;   // Rank inside this apprank
+	int _wsize = -1;   // Size of this apprank
 	MPI_Comm INTRA_COMM, INTRA_COMM_DATA_RAW, PARENT_COMM;
 
 	// Upper bound MPI tag supported by current implementation,
@@ -120,6 +121,20 @@ private:
 		std::function<void(void*, size_t, int)> processor
 	);
 
+	// Support for MPI + OmpSs-2@cluster + DLB
+	MPI_Comm APP_COMM;          // Application's communicator
+	int _numExternalRanks;      // Number of ranks in MPI_COMM_WORLD
+	int _externalRank;          // Rank in MPI_COMM_WORLD
+	int _apprankNum;            // Rank in application MPI communicator
+	int _numAppranks;           // Number of appranks
+	int _numNodes;              // Number of physical nodes within the job
+	int _physicalNodeNum;       // Physical node number within the job
+	int _numInstancesThisNode;  // Number of instances on this physical node
+	int _indexThisPhysicalNode; // Index of this instance on this physical node
+
+	void splitCommunicator(const std::string &clusterSplit);
+	void setApprankNumber(const std::string &clusterSplit, int &internalRank);
+
 public:
 
 	MPIMessenger(int argc, char **argv);
@@ -136,6 +151,8 @@ public:
 		std::lock_guard<SpinLock> guard(_abortLock);
 		MPI_Abort(INTRA_COMM, errcode);
 	}
+
+	void synchronizeWorld(void) override;
 
 	DataTransfer *sendData(
 		const DataAccessRegion &region,
@@ -186,6 +203,59 @@ public:
 		assert(_wrank >= 0);
 		return _wrank == 0;
 	}
+
+	//! Get external rank of the current node (meaning MPI rank in the original mpirun command)
+	inline int getExternalRank() const
+	{
+		return _externalRank;
+	}
+
+	//! Get number of external ranks (meaning MPI ranks in the original mpirun command)
+	inline int getNumExternalRanks() const
+	{
+		return _numExternalRanks;
+	}
+
+	//! Get the physical node number
+	inline int getPhysicalNodeNum() const
+	{
+		return _physicalNodeNum;
+	}
+
+	//! Get the index number of the instances on this physical node
+	inline int getIndexThisPhysicalNode() const
+	{
+		return _indexThisPhysicalNode;
+	}
+
+	//! Get total number of instances on this node
+	inline int getNumInstancesThisNode() const
+	{
+		return _numInstancesThisNode;
+	}
+
+	//! Get the application rank
+	inline int getApprankNum() const
+	{
+		return _apprankNum;
+	}
+
+	//! Get the number of application ranks
+	inline int getNumAppranks() const
+	{
+		return _numAppranks;
+	}
+
+	//! Get the application's communicator
+	//! Only valid if master node (_wrank == 0), otherwise MPI_COMM_NULL
+	//! If _numAppranks == 1, then it is equivalent to MPI_COMM_SELF
+	inline MPI_Comm getAppCommunicator() const
+	{
+		return APP_COMM;
+	}
+
+	//! For verbose instrumentation, summarize the instances and appranks
+	void summarizeSplit() const;
 };
 
 //! Register MPIMessenger with the object factory

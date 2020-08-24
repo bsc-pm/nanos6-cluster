@@ -13,6 +13,10 @@
 #include <type_traits>
 #include <functional>
 
+#pragma GCC visibility push(default)
+#include <mpi.h>
+#pragma GCC visibility pop
+
 #include <Message.hpp>
 #include <DataAccessRegion.hpp>
 #include <support/GenericFactory.hpp>
@@ -60,13 +64,19 @@ public:
 	//! \param[in] block determines if the call will block until Message delivery
 	virtual void sendMessage(Message *msg, ClusterNode const *toNode, bool block = false) = 0;
 
-	//! \brief A barrier across all nodes
+	//! \brief A barrier across all nodes within an apprank
 	//!
 	//! This is a collective operation that needs to be invoked
-	//! by all nodes
+	//! by all nodes within an apprank
 	virtual void synchronizeAll(void) = 0;
 
 	virtual void abortAll(int errcode) = 0;
+
+	//! \brief A barrier across all nodes within the real MPI_COMM_WORLD
+	//!
+	//! This is a collective operation that needs to be invoked
+	//! by all nodes of all appranks
+	virtual void synchronizeWorld(void) = 0;
 
 	//! \brief Send a data region to a remote node, related to a previous message.
 	//!
@@ -147,6 +157,32 @@ public:
 
 	virtual void waitAllCompletion(std::vector<TransferBase *> &pendings) = 0;
 
+	//! \brief Get external rank of the current node (meaning MPI rank in the original mpirun command)
+	virtual int getExternalRank() const = 0;
+
+	//! \brief Get number of external ranks (meaning MPI ranks in the original mpirun command)
+	virtual int getNumExternalRanks() const = 0;
+
+	//! \brief Get the physical node number
+	virtual int getPhysicalNodeNum() const = 0;
+
+	//! \brief Get the index number of the instances on this physical node
+	virtual int getIndexThisPhysicalNode() const = 0;
+
+	//! \brief Get total number of instances on this node
+	virtual int getNumInstancesThisNode() const = 0;
+
+	//! \brief Get the apprank number (set of instances collaborating for single application MPI rank)
+	virtual int getApprankNum() const = 0;
+
+	//! \brief Get the number of appranks (number of application MPI ranks)
+	virtual int getNumAppranks() const = 0;
+
+	//! \brief Get the application's MPI communicator
+	virtual MPI_Comm getAppCommunicator() const = 0;
+
+	//! \brief For verbose instrumentation, summarize the instances and appranks
+	virtual void summarizeSplit() const = 0;
 };
 
 #endif /* MESSENGER_HPP */

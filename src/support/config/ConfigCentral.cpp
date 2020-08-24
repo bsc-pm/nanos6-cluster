@@ -38,6 +38,8 @@ ConfigCentral::ConfigCentral() :
 	registerOption<bool_t>("cluster.auto.optimize_nonaccessed", true);
 	registerOption<bool_t>("cluster.auto.optimize_readonly", true);
 
+	// Cluster hybrid
+	registerOption<string_t>("cluster.hybrid.split", "");
 
 	// CPU manager
 	registerOption<string_t>("cpumanager.policy", "default");

@@ -42,6 +42,16 @@ namespace Instrument {
 		MaxClusterEventType
 	};
 
+	//! For hybrid MPI + Nanos6@cluster + DLB, this function is called
+	//! when MPI_COMM_WORLD is split into appranks
+	void summarizeSplit(
+		int externalRank,
+		int physicalNodeNum,
+		int apprankNum,
+		InstrumentationContext const &context =
+				ThreadInstrumentationContext::getCurrent()
+	);
+
 	//! This function is called when initiating a Message sending
 	//!
 	//! \param[in] msg is the Message we are sending

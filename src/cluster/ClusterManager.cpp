@@ -174,6 +174,14 @@ void ClusterManager::postinitialize()
 	assert(_singleton != nullptr);
 	assert(MemoryAllocator::isInitialized());
 
+	/* For (verbose) instrumentation, summarize the splitting of external ranks
+	 * into appranks and instances. Always do this, even if in non-cluster mode,
+	 * as useful for the "per-node" instrumentation of DLB (using num_cores).
+	 */
+	if (_singleton->_msn != nullptr) {
+		_singleton->_msn->summarizeSplit();
+	}
+
 	if (ClusterManager::inClusterMode()) {
 		ClusterServicesPolling::initialize();
 		ClusterServicesTask::initializeWorkers(_singleton->_numMessageHandlerWorkers);

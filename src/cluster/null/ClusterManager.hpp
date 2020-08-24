@@ -122,6 +122,13 @@ public:
 	}
 
 	static inline void synchronizeAll()
+
+	static inline ShutdownCallback *getShutdownCallback()
+	{
+		return nullptr;
+	}
+
+	static inline void summarizeSplit()
 	{
 	}
 };

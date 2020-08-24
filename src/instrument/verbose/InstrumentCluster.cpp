@@ -6,6 +6,7 @@
 
 #include "InstrumentCluster.hpp"
 #include "InstrumentVerbose.hpp"
+#include "ClusterManager.hpp"
 
 #include <Message.hpp>
 #include <DataAccess.hpp>
@@ -13,6 +14,30 @@
 using namespace Instrument::Verbose;
 
 namespace Instrument {
+
+	void summarizeSplit(
+		int externalRank,
+		int physicalNodeNum,
+		int apprankNum,
+		InstrumentationContext const &context
+	) {
+		if (!_verboseClusterMessages) {
+			return;
+		}
+
+		LogEntry *logEntry = getLogEntry(context);
+		assert(logEntry != nullptr);
+
+		logEntry->appendLocation(context);
+		logEntry->_contents
+			<< " External rank: " << externalRank
+			<< " Node num: " << physicalNodeNum
+			<< " Apprank num: " << apprankNum
+			<< " Apprank rank: " << ClusterManager::getCurrentClusterNode()->getCommIndex()
+			<< " of " << ClusterManager::clusterSize();
+
+		addLogEntry(logEntry);
+	}
 
 	void clusterSendMessage(Message const *msg, int receiverId)
 	{
