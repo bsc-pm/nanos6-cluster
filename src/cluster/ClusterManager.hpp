@@ -479,6 +479,15 @@ public:
 		return _singleton->_numMessageHandlerWorkers;
 	}
 
+	//! \brief Get the application communicator
+	//!
+	//! \returns the application communicator
+	static inline int getAppCommunicator()
+	{
+		assert(_singleton->_msn != nullptr);
+		return _singleton->_msn->getAppCommunicator();
+	}
+
 	//! \brief Get the apprank number
 	//!
 	//! \returns the apprank number

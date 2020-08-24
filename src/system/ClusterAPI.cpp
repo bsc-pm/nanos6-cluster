@@ -11,6 +11,7 @@
 #include <ClusterNode.hpp>
 #include "tasks/Task.hpp"
 #include "executors/threads/WorkerThread.hpp"
+#include "lowlevel/FatalErrorHandler.hpp"
 
 
 extern "C" int nanos6_in_cluster_mode(void)
@@ -80,3 +81,15 @@ extern "C" void nanos6_set_early_release(nanos6_early_release_t early_release)
 	task->setEarlyRelease(early_release);
 }
 
+extern "C" int nanos6_get_app_communicator(void *appcomm)
+{
+#ifndef USE_CLUSTER
+	// If the runtime doesn't have support for cluster, then it hasn't been built with
+	// MPI. So we cannot return an MPI communicator of any sort.
+	FatalErrorHandler::fail(
+		"nanos6_get_app_communicator() should only be called if Nanos6 is built with cluster support.");
+#endif
+	MPI_Comm *appcomm_ptr = (MPI_Comm *)appcomm;
+	*appcomm_ptr = ClusterManager::getAppCommunicator();
+	return 0;
+}

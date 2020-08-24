@@ -115,6 +115,11 @@ void nanos6_lfree(void *ptr, size_t size);
 //! \param[in] early_release controls early release
 void nanos6_set_early_release(nanos6_early_release_t early_release);
 
+//! \brief Get application communicator
+//!
+//! \returns the communicator that can be used by the application
+int nanos6_get_app_communicator(void *);
+
 #ifdef __cplusplus
 }
 #endif

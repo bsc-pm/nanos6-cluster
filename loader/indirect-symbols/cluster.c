@@ -140,3 +140,16 @@ void nanos6_set_early_release(nanos6_early_release_t early_release)
 
 	(*symbol)(early_release);
 }
+
+int nanos6_get_app_communicator(void *appcomm)
+{
+	typedef int nanos6_get_app_communicator_t(void *);
+
+	static nanos6_get_app_communicator_t *symbol = NULL;
+	if (__builtin_expect(symbol == NULL, 0)) {
+		symbol = (nanos6_get_app_communicator_t *) _nanos6_resolve_symbol(
+				"nanos6_get_app_communicator", "cluster", NULL);
+	}
+
+	return (*symbol)(appcomm);
+}

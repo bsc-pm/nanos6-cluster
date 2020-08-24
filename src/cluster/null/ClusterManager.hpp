@@ -15,6 +15,10 @@
 #include <ClusterNode.hpp>
 #include "DataAccessRegion.hpp"
 
+#pragma GCC visibility push(default)
+#include <mpi.h>
+#pragma GCC visibility pop
+
 class Message;
 class DataTransfer;
 
@@ -132,6 +136,15 @@ public:
 	static inline ShutdownCallback *getShutdownCallback()
 	{
 		return nullptr;
+	}
+
+	//! \brief Get the application communicator
+	//!
+	//! \returns the application communicator
+	static inline MPI_Comm getAppCommunicator()
+	{
+		// Running in normal MPI mode: just return MPI_COMM_WORLD.
+		return MPI_COMM_WORLD;
 	}
 
 	static inline void summarizeSplit()
