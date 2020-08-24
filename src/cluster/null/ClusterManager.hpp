@@ -134,6 +134,16 @@ public:
 		return nullptr;
 	}
 
+	//! \brief Get the application communicator
+	//!
+	//! \returns the application communicator
+	static inline int appCommunicator(void)
+	{
+		// Do not call without cluster support.
+		assert(false);
+		return 0;
+	}
+
 	static inline void summarizeSplit()
 
 	{

@@ -74,3 +74,8 @@ extern "C" void nanos6_set_early_release(nanos6_early_release_t early_release)
 {
 	ClusterManager::setEarlyRelease(early_release);
 }
+
+extern "C" int nanos6_app_communicator(void)
+{
+	return ClusterManager::appCommunicator();
+}

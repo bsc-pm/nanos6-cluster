@@ -109,11 +109,15 @@ void *nanos6_lmalloc(size_t size);
 //! \param[in] size is the size of the local memory allocation
 void nanos6_lfree(void *ptr, size_t size);
 
-
 //! \brief Set early release.  Temporary until pragma clauses defined
 //!
 //! \param[in] early_release controls early release
 void nanos6_set_early_release(nanos6_early_release_t early_release);
+
+//! \brief Get application communicator
+//!
+//! \returns the communicator that can be used by the application
+int nanos6_app_communicator();
 
 #ifdef __cplusplus
 }

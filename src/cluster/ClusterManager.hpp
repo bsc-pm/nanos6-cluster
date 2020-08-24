@@ -425,6 +425,15 @@ public:
 
 	static void setEarlyRelease(nanos6_early_release_t early_release);
 
+	//! \brief Get the application communicator
+	//!
+	//! \returns the application communicator
+	static inline int appCommunicator()
+	{
+		assert(_singleton->_msn != nullptr);
+		return _singleton->_msn->appCommunicator();
+	}
+
 	//! \brief Get the apprank number
 	//!
 	//! \returns the apprank number
