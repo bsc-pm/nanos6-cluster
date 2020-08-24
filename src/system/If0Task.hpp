@@ -17,6 +17,7 @@
 #include "tasks/Task.hpp"
 
 #include <InstrumentThreadManagement.hpp>
+#include "cluster/hybrid/ClusterStats.hpp"
 
 
 class ComputePlace;
@@ -41,6 +42,7 @@ namespace If0Task {
 
 		// Runtime Tracking Point - Entering a taskwait through If0, the task will be blocked
 		TrackingPoints::enterWaitForIf0Task(currentTask, if0Task, currentThread, cpu);
+		ClusterStats::leaveTask(currentThread);
 
 		WorkerThread *replacementThread = ThreadManager::getIdleThread(cpu);
 		currentThread->switchTo(replacementThread);
@@ -53,6 +55,7 @@ namespace If0Task {
 
 		// Runtime Tracking Point - Exiting a taskwait through If0, the task will resume
 		TrackingPoints::exitWaitForIf0Task(currentTask);
+		ClusterStats::returnToTask(currentThread);
 	}
 
 

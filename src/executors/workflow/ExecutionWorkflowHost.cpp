@@ -19,6 +19,7 @@
 #include <DataAccessRegistration.hpp>
 #include <InstrumentInstrumentationContext.hpp>
 #include <InstrumentThreadInstrumentationContext.hpp>
+#include "cluster/hybrid/ClusterStats.hpp"
 
 
 namespace ExecutionWorkflow {
@@ -86,6 +87,8 @@ namespace ExecutionWorkflow {
 					SymbolTranslation::generateTranslationTable(
 						_task, cpu, stackTranslationTable, tableSize);
 
+				ClusterStats::startTask(currentThread);
+
 				// Runtime Tracking Point - A task starts its execution
 				TrackingPoints::taskIsExecuting(_task);
 
@@ -133,6 +136,7 @@ namespace ExecutionWorkflow {
 				if (tableSize > 0) {
 					MemoryAllocator::free(translationTable, tableSize);
 				}
+				ClusterStats::endTask(currentThread);
 			} else {
 
 				if (_task->isIf0()) {

@@ -461,6 +461,7 @@ cluster_sources += \
 	src/cluster/NodeNamespace.cpp \
 	src/cluster/ClusterMemoryManagement.cpp \
 	src/cluster/WriteID.cpp \
+	src/cluster/hybrid/ClusterStats.cpp \
 	src/cluster/messages/Message.cpp \
 	src/cluster/messages/MessageDataFetch.cpp \
 	src/cluster/messages/MessageDataSend.cpp \
@@ -491,6 +492,7 @@ cluster_cppflags = \
 	-I$(srcdir)/src/cluster/messages \
 	-I$(srcdir)/src/cluster/messenger \
 	-I$(srcdir)/src/cluster/offloading \
+	-I$(srcdir)/src/cluster/hybrid \
 	-I$(srcdir)/src/cluster/polling-services \
 	-I$(srcdir)/src/executors/workflow/cluster \
 	-I$(srcdir)/src/memory/directory \
@@ -501,6 +503,7 @@ else
 cluster_cppflags = \
 	-I$(srcdir)/src/executors/workflow/cluster/null \
 	-I$(srcdir)/src/cluster/null \
+	-I$(srcdir)/src/cluster/hybrid/null \
 	-I$(srcdir)/src/cluster/offloading/null \
 	-I$(srcdir)/src/hardware/cluster/null \
 	-I$(srcdir)/src/hardware/cluster/memory/null
@@ -1216,6 +1219,7 @@ noinst_HEADERS = \
 	src/memory/allocator/pool/NUMAObjectCache.hpp \
 	src/memory/allocator/pool/ObjectAllocator.hpp \
 	src/memory/allocator/pool/ObjectCache.hpp \
+	src/memory/allocator/pool/Poison.hpp \
 	src/memory/directory/Directory.hpp \
 	src/memory/directory/HomeMapEntry.hpp \
 	src/memory/directory/HomeNodeMap.hpp \
@@ -1343,6 +1347,7 @@ noinst_HEADERS += \
 	src/cluster/ClusterMemoryManagement.hpp \
 	src/cluster/NodeNamespace.hpp \
 	src/cluster/WriteID.hpp \
+	src/cluster/hybrid/ClusterStats.hpp \
 	src/cluster/messages/Message.hpp \
 	src/cluster/messages/MessageDataFetch.hpp \
 	src/cluster/messages/MessageDataSend.hpp \

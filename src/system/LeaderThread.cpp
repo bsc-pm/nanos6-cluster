@@ -25,6 +25,7 @@ void LeaderThread::body()
 	assert(_singleton != nullptr);
 	initializeHelperThread();
 	Instrument::threadHasResumed(getInstrumentationId());
+	// ClusterStats::threadHasResumed(this); // do not count time for LeaderThread
 	// Minimum polling interval in microseconds
 	ConfigVariable<int> pollingFrequency("misc.polling_frequency");
 
@@ -38,10 +39,13 @@ void LeaderThread::body()
 			// The loop repeats the call with the remaining time in the event that
 			// the thread received a signal with a handler that has SA_RESTART set
 			Instrument::threadWillSuspend(getInstrumentationId());
+			// ClusterStats::threadWillSuspend(this); // do not count time for LeaderThread
 			while (nanosleep(&delay, &delay)) {
 			}
 			Instrument::threadHasResumed(getInstrumentationId());
+			// ClusterStats::threadHasResumed(this); // do not count time for LeaderThread
 		}
+
 
 		PollingAPI::handleServices();
 

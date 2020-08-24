@@ -23,6 +23,8 @@
 #include "system/TrackingPoints.hpp"
 #include "tasks/Task.hpp"
 #include "tasks/TaskImplementation.hpp"
+#include "cluster/hybrid/ClusterStats.hpp"
+
 
 typedef std::atomic<UserMutex *> mutex_t;
 
@@ -87,6 +89,8 @@ void nanos6_user_lock(void **handlerPointer, __attribute__((unused)) char const 
 		}
 
 		Instrument::taskIsBlocked(currentTask->getInstrumentationTaskId(), Instrument::in_mutex_blocking_reason);
+
+		ClusterStats::leaveTask(currentThread);
 		Instrument::blockedOnUserMutex(userMutex);
 
 		TaskBlocking::taskBlocks(currentThread, currentTask);
@@ -100,6 +104,7 @@ void nanos6_user_lock(void **handlerPointer, __attribute__((unused)) char const 
 		std::atomic_thread_fence(std::memory_order_acquire);
 
 		Instrument::taskIsExecuting(currentTask->getInstrumentationTaskId(), true);
+		ClusterStats::returnToTask(currentThread);
 	}
 
 end:

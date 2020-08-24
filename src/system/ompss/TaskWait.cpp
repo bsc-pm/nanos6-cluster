@@ -19,6 +19,7 @@
 #include "tasks/TaskImplementation.hpp"
 
 #include <InstrumentTaskStatus.hpp>
+#include "cluster/hybrid/ClusterStats.hpp"
 
 
 void nanos6_taskwait(char const *invocationSource)
@@ -42,6 +43,7 @@ void TaskWait::taskWait(char const *invocationSource, bool fromUserCode, bool no
 
 	// Runtime Tracking Point - Entering a taskwait, the task will be blocked
 	TrackingPoints::enterTaskWait(currentTask, invocationSource, fromUserCode);
+	ClusterStats::leaveTask(currentThread);
 
 	// Fast check
 	if (currentTask->doesNotNeedToBlockForChildren()) {
@@ -50,6 +52,7 @@ void TaskWait::taskWait(char const *invocationSource, bool fromUserCode, bool no
 
 		// Runtime Tracking Point - Exiting a taskwait, the task will be resumed
 		TrackingPoints::exitTaskWait(currentTask, fromUserCode);
+		ClusterStats::returnToTask(currentThread);
 		return;
 	}
 
@@ -99,6 +102,7 @@ void TaskWait::taskWait(char const *invocationSource, bool fromUserCode, bool no
 
 	// Runtime Tracking Point - Exiting a taskwait, the task will be resumed
 	TrackingPoints::exitTaskWait(currentTask, fromUserCode);
+	ClusterStats::returnToTask(currentThread);
 }
 
 void nanos6_stream_synchronize(size_t stream_id)

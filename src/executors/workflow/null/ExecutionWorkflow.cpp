@@ -20,6 +20,10 @@
 #include <InstrumentThreadInstrumentationContext.hpp>
 #include <InstrumentDependencySubsystemEntryPoints.hpp>
 
+#include <InstrumentThreadManagement.hpp>
+#include <Monitoring.hpp>
+#include "cluster/hybrid/ClusterStats.hpp"
+
 
 namespace ExecutionWorkflow {
 
@@ -57,6 +61,7 @@ namespace ExecutionWorkflow {
 
 			// Runtime Tracking Point - A task starts its execution
 			TrackingPoints::taskIsExecuting(task);
+			ClusterStats::startTask(currentThread);
 
 			// Run the task
 			std::atomic_thread_fence(std::memory_order_acquire);
@@ -74,6 +79,7 @@ namespace ExecutionWorkflow {
 			if (tableSize > 0) {
 				MemoryAllocator::free(translationTable, tableSize);
 			}
+			ClusterStats::endTask(currentThread);
 		} else {
 			// Runtime Tracking Point - A task has completed its execution (user code)
 			TrackingPoints::taskCompletedUserCode(task);

@@ -22,6 +22,7 @@
 #include "lowlevel/FatalErrorHandler.hpp"
 #include "lowlevel/threads/KernelLevelThread.hpp"
 #include "support/InstrumentedThread.hpp"
+#include "ClusterStats.hpp"
 
 class WorkerThreadBase : protected KernelLevelThread, public InstrumentedThread {
 protected:
@@ -49,6 +50,7 @@ protected:
 		suspend();
 		Instrument::threadSynchronizationCompleted(_instrumentationId);
 		Instrument::threadHasResumed(_instrumentationId, _cpu->getInstrumentationId());
+		ClusterStats::threadHasResumed(this);
 	}
 
 	inline void start()
@@ -133,6 +135,7 @@ public:
 
 		CPU *cpu = _cpu;
 		assert(cpu != nullptr);
+		ClusterStats::threadWillSuspend(this);
 
 		if (replacement != nullptr) {
 			// Replace a thread by another
@@ -154,6 +157,7 @@ public:
 		// After resuming (if ever blocked), the thread continues here
 
 		Instrument::threadHasResumed(_instrumentationId, _cpu->getInstrumentationId());
+		ClusterStats::threadHasResumed(this);
 	}
 
 	inline int getCpuId() const

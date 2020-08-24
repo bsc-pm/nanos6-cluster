@@ -33,6 +33,7 @@
 #include <InstrumentInstrumentationContext.hpp>
 #include <InstrumentThreadInstrumentationContext.hpp>
 #include <InstrumentWorkerThread.hpp>
+#include <ClusterStats.hpp>
 
 void WorkerThread::initialize()
 {
@@ -49,6 +50,7 @@ void WorkerThread::initialize()
 
 	// Runtime Tracking Point - A thread is initializing
 	TrackingPoints::threadInitialized(this, cpu);
+	ClusterStats::createdThread(this);
 
 	// This is needed for kernel-level threads to stop them after initialization
 	synchronizeInitialization();
@@ -139,6 +141,7 @@ void WorkerThread::body()
 
 	// Runtime Tracking Point - The current thread is gonna shutdown
 	TrackingPoints::threadWillShutdown();
+	ClusterStats::threadWillShutdown(this);
 
 	ThreadManager::addShutdownThread(this);
 }

@@ -16,7 +16,7 @@
 #include "ompss/TaskBlocking.hpp"
 #include "scheduling/Scheduler.hpp"
 #include "support/chronometers/std/Chrono.hpp"
-
+#include "cluster/hybrid/ClusterStats.hpp"
 
 void BlockingAPI::blockCurrentTask(bool fromUserCode)
 {
@@ -28,6 +28,7 @@ void BlockingAPI::blockCurrentTask(bool fromUserCode)
 
 	// Runtime Tracking Point - The current task is gonna be blocked
 	TrackingPoints::enterBlockCurrentTask(currentTask, fromUserCode);
+	ClusterStats::leaveTask(currentThread);
 
 	TaskBlocking::taskBlocks(currentThread, currentTask);
 
@@ -39,6 +40,7 @@ void BlockingAPI::blockCurrentTask(bool fromUserCode)
 
 	// Runtime Tracking Point - The current task resumes its execution
 	TrackingPoints::exitBlockCurrentTask(currentTask, fromUserCode);
+	ClusterStats::returnToTask(currentThread);
 }
 
 void BlockingAPI::unblockTask(Task *task, bool fromUserCode)
@@ -117,6 +119,7 @@ extern "C" uint64_t nanos6_wait_for(uint64_t time_us)
 	// Re-add the current task to the scheduler with a deadline
 	Scheduler::addReadyTask(currentTask, cpu, DEADLINE_TASK_HINT);
 
+	ClusterStats::leaveTask(currentThread);
 	TaskBlocking::taskBlocks(currentThread, currentTask);
 
 	// Update the CPU since the thread may have migrated
@@ -126,6 +129,7 @@ extern "C" uint64_t nanos6_wait_for(uint64_t time_us)
 
 	// Runtime Tracking Point - The current task is resuming execution
 	TrackingPoints::exitWaitFor(currentTask);
+	ClusterStats::returnToTask(currentThread);
 
 	return (uint64_t) (Chrono::now<Task::deadline_t>() - start);
 }

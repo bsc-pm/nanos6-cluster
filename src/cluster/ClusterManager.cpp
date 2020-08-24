@@ -12,6 +12,7 @@
 #include "polling-services/ClusterServicesPolling.hpp"
 #include "polling-services/ClusterServicesTask.hpp"
 #include "system/RuntimeInfo.hpp"
+#include "ClusterStats.hpp"
 
 #include <NodeNamespace.hpp>
 #include <RemoteTasksInfoMap.hpp>
@@ -187,6 +188,7 @@ void ClusterManager::postinitialize()
 	assert(_singleton->_msn != nullptr);
 	_singleton->_msn->summarizeSplit();
 
+	ClusterStats::initialize();
 	if (inClusterMode()) {
 
 		if (_singleton->_taskInPoolins) {

@@ -36,6 +36,7 @@
 #include "tasks/StreamManager.hpp"
 
 #include <ClusterManager.hpp>
+#include <ClusterStats.hpp>
 #include <DependencySystem.hpp>
 #include <InstrumentInitAndShutdown.hpp>
 #include <InstrumentThreadManagement.hpp>
@@ -107,6 +108,8 @@ void nanos6_preinit(int argc, char **argv)
 	// when shutting down Nanos6
 	ExternalThreadGroup::registerExternalThread(mainThread);
 	Instrument::threadHasResumed(mainThread->getInstrumentationId());
+	ClusterStats::createdThread(mainThread);
+	ClusterStats::threadHasResumed(mainThread);
 
 	ThreadManager::initialize();
 	DependencySystem::initialize();
@@ -130,6 +133,7 @@ void nanos6_init(void)
 {
 	ClusterManager::postinitialize();
 	Instrument::threadWillSuspend(mainThread->getInstrumentationId());
+	ClusterStats::threadWillSuspend(mainThread);
 	StreamManager::initialize();
 }
 
@@ -137,6 +141,7 @@ void nanos6_init(void)
 void nanos6_shutdown(void)
 {
 	Instrument::threadHasResumed(mainThread->getInstrumentationId());
+	ClusterStats::threadHasResumed(mainThread);
 	Instrument::threadWillShutdown(mainThread->getInstrumentationId());
 
 	while (SpawnFunction::_pendingSpawnedFunctions > 0) {
