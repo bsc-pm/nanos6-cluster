@@ -37,6 +37,7 @@ void ClusterSchedulerInterface::addReadyLocalOrExecuteRemote(
 	assert(targetNode != nullptr);
 
 	if (targetNode == _thisNode) {
+		_defaultScheduler->incNumLocalReadyTasks();
 		SchedulerInterface::addReadyTask(task, computePlace, hint);
 		return;
 	}

@@ -7,6 +7,7 @@
 #ifndef CLUSTER_SCHEDULER_INTERFACE_HPP
 #define CLUSTER_SCHEDULER_INTERFACE_HPP
 
+#include "scheduling/Scheduler.hpp"
 #include "scheduling/SchedulerInterface.hpp"
 #include "system/RuntimeInfo.hpp"
 
@@ -37,6 +38,31 @@ public:
 			Task *task,
 			ComputePlace *computePlace,
 			ReadyTaskHint hint = NO_HINT) = 0;
+
+		// Try to steal a task for the local scheduler:
+		// currently only for the cluster balance scheduler
+		virtual Task *stealTask(ComputePlace *)
+		{
+			return nullptr;
+		}
+
+		virtual void offloadedTaskFinished(ClusterNode *)
+		{
+		}
+
+		virtual void decNumLocalReadyTasks()
+		{
+		}
+
+		virtual void incNumLocalReadyTasks()
+		{
+		}
+
+		virtual int getNumLocalReadyTasks()
+		{
+			assert(false);
+			return -1;
+		}
 	};
 
 	typedef std::map<nanos6_cluster_scheduler_t, ClusterSchedulerPolicy*> scheduler_map_t;
@@ -184,9 +210,39 @@ public:
 			clusterhint = _defaultScheduler->getScheduledNode(task, computePlace, hint);
 		}
 
-		addReadyLocalOrExecuteRemote(clusterhint, task, computePlace, hint);
-
+		if (clusterhint != nanos6_cluster_no_schedule) {
+			addReadyLocalOrExecuteRemote(clusterhint, task, computePlace, hint);
+		}
 	};
+
+	Task *stealTask()
+	{
+		return nullptr;
+	}
+
+	virtual void offloadedTaskFinished(ClusterNode *remoteNode)
+	{
+		_defaultScheduler->offloadedTaskFinished(remoteNode);
+	}
+
+	virtual inline Task *getReadyTask(ComputePlace *computePlace)
+	{
+		// Get ready task: first try local scheduler
+		Task *readyTask = SchedulerInterface::getReadyTask(computePlace);
+
+		// If successful, decrease number of local ready tasks
+		// Only useful with the cluster balance scheduler
+		if (readyTask) {
+			_defaultScheduler->decNumLocalReadyTasks();
+		}
+
+		// If not successful, steal a task from the cluster scheduler
+		// Only useful with the cluster balance scheduler
+		if (!readyTask) {
+			readyTask = _defaultScheduler->stealTask(computePlace);
+		}
+		return readyTask;
+	}
 
 };
 

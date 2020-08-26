@@ -483,6 +483,7 @@ cluster_sources += \
 	src/scheduling/schedulers/cluster/ClusterSchedulerInterface.cpp \
 	src/scheduling/schedulers/cluster/ClusterLocalityScheduler.cpp \
 	src/scheduling/schedulers/cluster/ClusterHomeScheduler.cpp \
+	src/scheduling/schedulers/cluster/ClusterBalanceScheduler.cpp \
 	src/scheduling/schedulers/cluster/ClusterRandomScheduler.cpp
 
 cluster_cppflags = \
@@ -1245,6 +1246,7 @@ noinst_HEADERS = \
 	src/scheduling/schedulers/UnsyncScheduler.hpp \
 	src/scheduling/schedulers/cluster/ClusterLocalityScheduler.hpp \
 	src/scheduling/schedulers/cluster/ClusterHomeScheduler.hpp \
+	src/scheduling/schedulers/cluster/ClusterBalanceScheduler.hpp \
 	src/scheduling/schedulers/cluster/ClusterRandomScheduler.hpp \
 	src/scheduling/schedulers/device/DeviceScheduler.hpp \
 	src/scheduling/schedulers/device/DeviceUnsyncScheduler.hpp \
@@ -1376,6 +1378,7 @@ noinst_HEADERS += \
 	src/scheduling/schedulers/cluster/ClusterSchedulerInterface.hpp \
 	src/scheduling/schedulers/cluster/ClusterLocalityScheduler.hpp \
 	src/scheduling/schedulers/cluster/ClusterHomeScheduler.hpp \
+	src/scheduling/schedulers/cluster/ClusterBalanceScheduler.hpp \
 	src/scheduling/schedulers/cluster/ClusterRandomScheduler.hpp
 
 memory_default_sources = $(memory_allocator_default_sources) $(vmm_cluster_sources)

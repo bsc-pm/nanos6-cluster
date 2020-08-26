@@ -78,11 +78,12 @@ namespace TaskOffloading {
 	void offloadTask(
 		Task *task,
 		SatisfiabilityInfoVector const &satInfo,
-		ClusterNode const *remoteNode
+		ClusterNode *remoteNode
 	) {
 		assert(task != nullptr);
 		assert(remoteNode != nullptr);
 
+		remoteNode->incNumOffloadedTasks(1);
 		ClusterNode const *thisNode = ClusterManager::getCurrentClusterNode();
 		nanos6_task_info_t *taskInfo = task->getTaskInfo();
 		nanos6_task_invocation_info_t *taskInvocationInfo = task->getTaskInvokationInfo();

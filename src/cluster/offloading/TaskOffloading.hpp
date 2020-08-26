@@ -34,7 +34,7 @@ namespace TaskOffloading {
 	void offloadTask(
 		Task *task,
 		SatisfiabilityInfoVector const &satInfo,
-		ClusterNode const *remoteNode
+		ClusterNode *remoteNode
 	);
 
 	//! \brief Send satisfiability information to an offloaded Task

@@ -81,6 +81,16 @@ public:
 	{
 		return SchedulerInterface::isPriorityEnabled();
 	}
+
+#ifdef USE_CLUSTER
+	static void offloadedTaskFinished(ClusterNode *remoteNode);
+
+	static void addReadyLocalOrExecuteRemote(
+			int nodeId,
+			Task *task,
+			ComputePlace *computePlace,
+			ReadyTaskHint hint);
+#endif
 };
 
 #endif // SCHEDULER_HPP

@@ -12,6 +12,7 @@
 #include <ClusterUtil.hpp>
 #include "OffloadedTaskId.hpp"
 #include "OffloadedTasksInfoMap.hpp"
+#include "scheduling/Scheduler.hpp"
 
 MessageReleaseAccess::MessageReleaseAccess(
 	const ClusterNode *from,
@@ -55,6 +56,12 @@ bool MessageReleaseAccess::handleMessage()
 		Instrument::offloadedTaskCompletes(task->getInstrumentationTaskId());
 
 		TaskOffloading::OffloadedTasksInfoMap::eraseOffloadedTaskInfo(offloadedTaskId);
+		ClusterNode *remoteNode = ClusterManager::getClusterNode(_deliverable->header.senderId);
+
+		// Bookkeeping for balance scheduler
+		remoteNode->incNumOffloadedTasks(-1);
+		Scheduler::offloadedTaskFinished(remoteNode);
+
 		task->setExecutionStep(nullptr);
 		step->releaseSuccessors();
 		delete step;

@@ -21,11 +21,13 @@ private:
 	//! communication layer
 	int _commIndex;
 
+	std::atomic<int> _numOffloadedTasks; // offloaded by us
+
 public:
 	ClusterNode(int index, int commIndex)
 		: ComputePlace(index, nanos6_device_t::nanos6_cluster_device),
 		_memoryNode(new ClusterMemoryNode(index, commIndex)),
-		_commIndex(commIndex)
+		_commIndex(commIndex), _numOffloadedTasks(0)
 	{
 		assert(_memoryNode != nullptr);
 		assert (_commIndex >= 0);
@@ -49,6 +51,19 @@ public:
 	{
 		assert (_commIndex >= 0);
 		return _commIndex;
+	}
+
+	//! \brief Update number of tasks offloaded from this node to the ClusterNode
+	inline void incNumOffloadedTasks(int by)
+	{
+		_numOffloadedTasks += by;
+		assert(_numOffloadedTasks >= 0);
+	}
+
+	//! \brief Get number of tasks offloaded from this node to the ClusterNode
+	inline int getNumOffloadedTasks() const
+	{
+		return _numOffloadedTasks;
 	}
 };
 

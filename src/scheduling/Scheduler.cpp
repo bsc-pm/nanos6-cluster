@@ -9,6 +9,7 @@
 
 #ifdef USE_CLUSTER
 #include "ClusterScheduler.hpp"
+#include "scheduling/schedulers/cluster/ClusterSchedulerInterface.hpp"
 #else
 #include "LocalScheduler.hpp"
 #endif
@@ -35,3 +36,29 @@ void Scheduler::shutdown()
 	delete _instance;
 	_instance = nullptr;
 }
+
+#ifdef USE_CLUSTER
+void Scheduler::offloadedTaskFinished(ClusterNode *remoteNode)
+{
+	assert (ClusterManager::inClusterMode());
+	assert(_instance);
+
+	ClusterSchedulerInterface *clusterInstance = dynamic_cast<ClusterSchedulerInterface *>(_instance);
+	clusterInstance->offloadedTaskFinished(remoteNode);
+}
+
+void Scheduler::addReadyLocalOrExecuteRemote(
+	int nodeId,
+	Task *task,
+	ComputePlace *computePlace,
+	ReadyTaskHint hint)
+{
+	assert (ClusterManager::inClusterMode());
+	assert(_instance);
+
+	ClusterSchedulerInterface *clusterInstance = dynamic_cast<ClusterSchedulerInterface *>(_instance);
+	clusterInstance->addReadyLocalOrExecuteRemote(nodeId, task, computePlace, hint);
+}
+
+
+#endif

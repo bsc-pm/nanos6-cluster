@@ -254,6 +254,7 @@ __require_CLUSTER
 	#  "locality": schedule according to current data location
 	#  "random":   schedule to random node
 	#  "home":     schedule according to data home
+	#  "balance":  schedule with load balancing
 	scheduling_policy = "locality"
 	# Indicate the virtual address space start. If set to 0x00000000, the runtime will find a
 	# suitable address. Default is 0x00000000
