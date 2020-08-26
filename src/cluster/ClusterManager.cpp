@@ -42,11 +42,12 @@ std::atomic<bool> ClusterServicesTask::_pausedServices(false);
 
 ClusterManager::ClusterManager()
 	: _clusterNodes(1),
-	_thisNode(new ClusterNode(0, 0)),
+	_thisNode(new ClusterNode(0, 0, 0, false)),
 	_masterNode(_thisNode),
 	_msn(nullptr),
 	_disableRemote(false), _disableRemoteConnect(false), _disableAutowait(false)
 {
+	assert(_singleton == nullptr);
 	_clusterNodes[0] = _thisNode;
 	MessageId::initialize(0, 1);
 	WriteIDManager::initialize(0,1);
@@ -132,12 +133,16 @@ void ClusterManager::internal_reset() {
 	WriteIDManager::initialize(nodeIndex, clusterSize);
 	OffloadedTaskIdManager::initialize(nodeIndex, clusterSize);
 
+	int apprankNum = _msn->getApprankNum();
+	int numAppranks = _msn->getNumAppranks();
+	bool inHybridMode = numAppranks > 1;
+
 	if (this->_clusterNodes.empty()) {
 		// Called from constructor the first time
 		this->_clusterNodes.resize(clusterSize);
 
 		for (size_t i = 0; i < clusterSize; ++i) {
-			_clusterNodes[i] = new ClusterNode(i, i);
+			_clusterNodes[i] = new ClusterNode(i, i, apprankNum, inHybridMode);
 		}
 
 		_thisNode = _clusterNodes[nodeIndex];

@@ -21,16 +21,29 @@ private:
 	//! communication layer
 	int _commIndex;
 
+	//! Name of the node for instrumentation
+	std::string _instrumentationName;
+
 	std::atomic<int> _numOffloadedTasks; // offloaded by us
 
 public:
-	ClusterNode(int index, int commIndex)
+	ClusterNode(int index, int commIndex, int apprankNum, bool inHybridMode)
 		: ComputePlace(index, nanos6_device_t::nanos6_cluster_device),
 		_memoryNode(new ClusterMemoryNode(index, commIndex)),
 		_commIndex(commIndex), _numOffloadedTasks(0)
 	{
 		assert(_memoryNode != nullptr);
 		assert (_commIndex >= 0);
+
+		//! Set the instrumentation name
+		std::stringstream ss;
+		if (inHybridMode) {
+			ss << "a" << apprankNum << "r" << index;
+		} else {
+			ss << index;
+		}
+
+		_instrumentationName = ss.str();
 	}
 
 	~ClusterNode()
@@ -51,6 +64,12 @@ public:
 	{
 		assert (_commIndex >= 0);
 		return _commIndex;
+	}
+
+	//! \brief Get the instrumentation name
+	std::string &getInstrumentationName()
+	{
+		return _instrumentationName;
 	}
 
 	//! \brief Update number of tasks offloaded from this node to the ClusterNode

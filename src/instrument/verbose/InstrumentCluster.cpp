@@ -7,6 +7,7 @@
 #include "InstrumentCluster.hpp"
 #include "InstrumentVerbose.hpp"
 #include "ClusterManager.hpp"
+#include "ClusterNode.hpp"
 
 #include <Message.hpp>
 #include <DataAccess.hpp>
@@ -58,7 +59,7 @@ namespace Instrument {
 				<< msg->getName()
 				<< " id:" << msg->getId() << " "
 				<< msg->toString()
-				<< " targetNode:" << receiverId;
+				<< " targetNode:" << ClusterManager::getClusterNode(receiverId)->getInstrumentationName();
 		} else {
 			logEntry->_contents << " <-- SendClusterMessage id:" << msg->getId();
 		}
@@ -133,7 +134,7 @@ namespace Instrument {
 		if(messageId >= 0) {
 			logEntry->_contents << " --> SendingRawData size:"
 				<< dataSize
-				<< " targetNode:" << dest;
+				<< " targetNode:" << ClusterManager::getClusterNode(dest)->getInstrumentationName();
 		} else {
 			logEntry->_contents << " <-- SendingRawData id:" <<  messageId;
 		}
