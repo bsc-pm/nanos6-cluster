@@ -37,7 +37,8 @@ enum nanos6_task_constraints_api_t { nanos6_task_constraints_api = 3 };
 // All the elements in this enum must be negative.
 typedef enum
 {
-	nanos6_cluster_min_hint = -5,   // Keep this one always the first as a protector.
+	nanos6_cluster_min_hint = -6,   // Keep this one always the first as a protector.
+	nanos6_cluster_home = -5,
 	nanos6_cluster_random = -4,
 	nanos6_cluster_locality = -3,
 	nanos6_cluster_no_offload = -2,

@@ -250,7 +250,10 @@ __require_CLUSTER
 	# machine
 	local_memory = "64G"
 	# Indicate the scheduling policy for Cluster mode. Default is "locality"
-	# Possible values: "locality", "random"
+	# Possible values:
+	#  "locality": schedule according to current data location
+	#  "random":   schedule to random node
+	#  "home":     schedule according to data home
 	scheduling_policy = "locality"
 	# Indicate the virtual address space start. If set to 0x00000000, the runtime will find a
 	# suitable address. Default is 0x00000000

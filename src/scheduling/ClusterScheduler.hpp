@@ -12,6 +12,7 @@
 #include "SchedulerInterface.hpp"
 #include "LocalScheduler.hpp"
 #include "schedulers/cluster/ClusterLocalityScheduler.hpp"
+#include "schedulers/cluster/ClusterHomeScheduler.hpp"
 #include "schedulers/cluster/ClusterRandomScheduler.hpp"
 #include "system/RuntimeInfo.hpp"
 
@@ -30,6 +31,10 @@ public:
 
 			if (name == "locality") {
 				return new ClusterSchedulerInterface(nanos6_cluster_locality);
+			}
+
+			if (name == "home") {
+				return new ClusterSchedulerInterface(nanos6_cluster_home);
 			}
 
 			SchedulerInterface *ret = new ClusterSchedulerInterface(nanos6_cluster_locality);
