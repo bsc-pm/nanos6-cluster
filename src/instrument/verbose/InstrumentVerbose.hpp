@@ -86,7 +86,7 @@ namespace Instrument {
 				if (ClusterManager::inClusterMode()) {
 					ClusterNode *clusterNode = ClusterManager::getCurrentClusterNode();
 					assert(clusterNode != nullptr);
-					_contents << "Node:" << clusterNode->getIndex() << " ";
+					_contents << "Instance:" << clusterNode->getInstrumentationName() << " ";
 				}
 
 				if (context._externalThreadName != nullptr) {
