@@ -5,6 +5,7 @@
 */
 
 #include "ClusterManager.hpp"
+#include "ClusterHybridManager.hpp"
 #include "messages/MessageSysFinish.hpp"
 #include "messages/MessageDataFetch.hpp"
 
@@ -138,6 +139,8 @@ void ClusterManager::internal_reset() {
 	int apprankNum = _msn->getApprankNum();
 	int numAppranks = _msn->getNumAppranks();
 	bool inHybridMode = numAppranks > 1;
+
+	ClusterHybridManager::preinitialize(inHybridMode);
 
 	if (this->_clusterNodes.empty()) {
 		// Called from constructor the first time

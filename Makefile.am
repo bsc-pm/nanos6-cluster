@@ -490,6 +490,7 @@ cluster_sources += \
 
 cluster_cppflags = \
 	-I$(srcdir)/src/cluster \
+	-I$(srcdir)/src/cluster/hybrid \
 	-I$(srcdir)/src/cluster/messages \
 	-I$(srcdir)/src/cluster/messenger \
 	-I$(srcdir)/src/cluster/offloading \
@@ -503,6 +504,7 @@ else
 cluster_cppflags = \
 	-I$(srcdir)/src/executors/workflow/cluster/null \
 	-I$(srcdir)/src/cluster/null \
+	-I$(srcdir)/src/cluster/hybrid/null \
 	-I$(srcdir)/src/cluster/offloading/null \
 	-I$(srcdir)/src/hardware/cluster/null \
 	-I$(srcdir)/src/hardware/cluster/memory/null
@@ -725,6 +727,16 @@ cpu_manager_sources  += \
 cpu_manager_ldflags  += $(dlb_LIBS)
 cpu_manager_cppflags += $(dlb_CPPFLAGS) -DHAVE_DLB
 cpu_manager_cppflags += -I$(srcdir)/src/executors/threads/cpu-managers/dlb
+endif
+
+# DLB + Cluster: Hybrid
+if HAVE_DLB
+cluster_sources += \
+	src/cluster/hybrid/ClusterHybridManager.cpp
+cluster_cppflags += -DHAVE_DLB
+cluster_cppflags += \
+	-I$(srcdir)/src/cluser/hybrid
+else
 endif
 
 common_sources += $(cpu_manager_sources)
@@ -1395,6 +1407,12 @@ memory_default_sources = $(memory_allocator_debug_sources) $(vmm_smp_sources)
 memory_default_cppflags = $(memory_allocator_debug_cppflags) $(vmm_smp_cppflags)
 memory_debug_sources = $(memory_allocator_debug_sources) $(vmm_smp_sources)
 memory_debug_cppflags = $(memory_allocator_debug_cppflags) $(vmm_smp_cppflags)
+endif
+
+# DLB + Cluster: Hybrid
+if HAVE_DLB
+noinst_HEADERS += \
+	src/cluster/hybrid/ClusterHybridManager.hpp
 endif
 
 dist_memory_sources = $(memory_default_sources) $(memory_debug_sources)
