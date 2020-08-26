@@ -18,6 +18,7 @@
 #include "system/RuntimeInfo.hpp"
 
 #include <ClusterManager.hpp>
+#include <ClusterHybridManager.hpp>
 
 class ClusterScheduler {
 
@@ -42,7 +43,15 @@ public:
 				return new ClusterSchedulerInterface(nanos6_cluster_balance);
 			}
 
-			SchedulerInterface *ret = new ClusterSchedulerInterface(nanos6_cluster_locality);
+			// This is the default.
+			nanos6_cluster_scheduler_t defaultScheduler;
+			if (ClusterHybridManager::inHybridClusterMode())  {
+				defaultScheduler = nanos6_cluster_balance;
+			} else {
+				defaultScheduler = nanos6_cluster_locality;
+			}
+			SchedulerInterface *ret = new ClusterSchedulerInterface(defaultScheduler);
+
 			// This is the default.
 			FatalErrorHandler::warn(
 				"Unknown cluster scheduler:", name, ". Using default: ", ret->getName()
