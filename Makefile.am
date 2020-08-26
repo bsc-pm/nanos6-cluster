@@ -462,6 +462,7 @@ cluster_sources += \
 	src/cluster/ClusterMemoryManagement.cpp \
 	src/cluster/WriteID.cpp \
 	src/cluster/hybrid/ClusterStats.cpp \
+	src/cluster/hybrid/ClusterHybridManager.cpp \
 	src/cluster/messages/Message.cpp \
 	src/cluster/messages/MessageDataFetch.cpp \
 	src/cluster/messages/MessageDataSend.cpp \
@@ -1348,6 +1349,7 @@ noinst_HEADERS += \
 	src/cluster/NodeNamespace.hpp \
 	src/cluster/WriteID.hpp \
 	src/cluster/hybrid/ClusterStats.hpp \
+	src/cluster/hybrid/ClusterHybridManager.hpp \
 	src/cluster/messages/Message.hpp \
 	src/cluster/messages/MessageDataFetch.hpp \
 	src/cluster/messages/MessageDataSend.hpp \

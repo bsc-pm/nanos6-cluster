@@ -5,6 +5,7 @@
 */
 
 #include "ClusterManager.hpp"
+#include "ClusterHybridManager.hpp"
 #include "messages/MessageSysFinish.hpp"
 #include "messages/MessageDataFetch.hpp"
 
@@ -60,6 +61,9 @@ ClusterManager::ClusterManager(std::string const &commType, int argc, char **arg
 	TaskOffloading::OffloadedTasksInfoMap::init();
 
 	this->internal_reset();
+
+	bool forceHybrid = _msn->getNumAppranks() > 1;
+	ClusterHybridManager::initialize(forceHybrid);
 
 	_msn->synchronizeAll();
 
