@@ -17,6 +17,8 @@ namespace TaskOffloading {
 		DataAccessRegion _region;
 
 		//! node index of the current location
+		//! -42 means the directory
+		//! -1 means nullptr (only if sending write satisfiability before read satisfiability: very rare)
 		int _src;
 
 		//! makes access read satisfied

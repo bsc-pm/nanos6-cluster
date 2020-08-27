@@ -32,15 +32,25 @@ namespace ExecutionWorkflow {
 		// and delete the workflow when it reaches zero.
 		{
 			std::lock_guard<SpinLock> guard(_lock);
-
-			assert(location != nullptr);
 			assert(_targetMemoryPlace != nullptr);
 
-			if (location->getType() != nanos6_cluster_device) {
-				location = ClusterManager::getCurrentMemoryNode();
+			int locationIndex;
+			if (location == nullptr) {
+				// The location is only nullptr when write satisfiability
+				// is propagated before read satisfiability, which happens
+				// very rarely. In this case, we send -1 as the location
+				// index.
+				assert(write);
+				assert(!read);
+				locationIndex = -1; // means nullptr
+			} else {
+				if (location->getType() != nanos6_cluster_device) {
+					location = ClusterManager::getCurrentMemoryNode();
+				}
+				locationIndex = location->getIndex();
 			}
 
-			TaskOffloading::SatisfiabilityInfo satInfo(region, location->getIndex(), read, write);
+			TaskOffloading::SatisfiabilityInfo satInfo(region, locationIndex, read, write);
 
 			TaskOffloading::ClusterTaskContext *clusterTaskContext = _task->getClusterContext();
 			TaskOffloading::sendSatisfiability(_task, clusterTaskContext->getRemoteNode(), satInfo);

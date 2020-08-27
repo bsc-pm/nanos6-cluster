@@ -106,7 +106,12 @@ namespace TaskOffloading {
 			(cpu != nullptr) ? cpu->getDependencyData() : localDependencyData;
 
 		if (!Directory::isDirectoryMemoryPlace(satInfo._src)) {
-			MemoryPlace const *loc = ClusterManager::getMemoryNode(satInfo._src);
+			MemoryPlace const *loc;
+			if (satInfo._src == -1) {
+				loc = nullptr; // -1 means nullptr: see comment in ClusterDataLinkStep::linkRegion().
+			} else {
+				loc = ClusterManager::getMemoryNode(satInfo._src);
+			}
 			DataAccessRegistration::propagateSatisfiability(
 				localTask, satInfo._region, cpu,
 				hpDependencyData, satInfo._readSat,

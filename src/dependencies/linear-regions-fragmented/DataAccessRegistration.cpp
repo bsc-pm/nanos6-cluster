@@ -764,6 +764,13 @@ namespace DataAccessRegistration {
 
 			ExecutionWorkflow::DataLinkStep *step = access->getDataLinkStep();
 
+			/*
+			 * Send satisfiability through the workflow. For Nanos6@cluster, this will
+			 * send a MessageSatisfiability to a remote node.
+			 * NOTE: it is possible for access->getLocation() to be nullptr only
+			 * in the rare case that write satisfiability is propagated before read
+			 * satisfiability.
+			 */
 			step->linkRegion(
 				access->getAccessRegion(),
 				access->getLocation(), linksRead, linksWrite
