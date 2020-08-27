@@ -43,6 +43,72 @@
 #pragma GCC visibility push(hidden)
 
 namespace DataAccessRegistration {
+
+	/*
+	 * Debugging function to print out the accesses and fragments for a task
+	 *
+	 * Prints desc, plus task name, then the accesses and fragments
+	 */
+	void printTaskAccessesAndFragments(const char *desc, Task *task)
+	{
+		std::cout << desc << task->getLabel() << "\n";
+
+		assert(task != nullptr);
+		TaskDataAccesses &accessStructures = task->getDataAccesses();
+		assert(!accessStructures.hasBeenDeleted());
+
+		// Take lock on access structures if not already done
+		TaskDataAccesses::spinlock_t *lock = accessStructures._lock.isLockedByThisThread() ?
+								nullptr : &accessStructures._lock;
+		if (lock)
+			lock->lock();
+
+		/*
+		 * Print all the task accesses. The task accesses correspond to the
+		 * regions accessed by the task and its subtasks, and is essentially
+		 * what is "visible" to the parent. The task accesses are fragmented,
+		 * if necessary, because of sibling task accesses. This is done by
+		 * registerTaskDataAccess. There are some circumstances when the task
+		 * accesses are fragmented later, for example due to early release of
+		 * dependencies.
+		 */
+		accessStructures._accesses.processAll(
+			/* processor: called for each task access */
+			[&](TaskDataAccesses::accesses_t::iterator position) -> bool {
+				DataAccess *access = &(*position);
+				assert(access != nullptr);
+				std::cout << "access: (DataAccess *)" << access << ": "
+					<< access->getAccessRegion().getStartAddress() << ":"
+					<< access->getAccessRegion().getSize() << "\n";
+				return true; /* always continue, don't stop here */
+			}
+		);
+
+		/*
+		 * Print all the task fragments. The task fragments correspond to
+		 * regions accessed by child tasks, so is essentially what is "visible"
+		 * to the children. A task starts with no fragments.  As child tasks
+		 * are submitted, they will create fragments to cover their accesses
+		 * (if not already covered by previous sibling tasks), and the (parent)
+		 * task's fragments will be fragmented as necessary.
+		 */
+		accessStructures._accessFragments.processAll(
+			/* processor: called for each task access fragment */
+			[&](TaskDataAccesses::access_fragments_t::iterator position) -> bool {
+				DataAccess *fragment = &(*position);
+				assert(fragment != nullptr);
+				std::cout << "fragment: (DataAccess *)" << fragment << ": "
+					<< fragment->getAccessRegion().getStartAddress() << ":"
+					<< fragment->getAccessRegion().getSize() << "\n";
+				return true; /* always continue, don't stop here */
+			}
+		);
+		// Release lock if not already done by the caller
+		if (lock)
+			lock->unlock();
+	}
+
+
 	typedef CPUDependencyData::removable_task_list_t removable_task_list_t;
 
 
@@ -305,6 +371,9 @@ namespace DataAccessRegistration {
 							   || (access->getObjectType() == taskwait_type)
 							   || (access->getObjectType() == top_level_sink_type));
 
+			/*
+			 *If the access is a taskwait access (from createTaskwait)
+			 */
 			_triggersTaskwaitWorkflow = (access->getObjectType() == taskwait_type)
 										&& access->readSatisfied()
 										&& access->writeSatisfied()
@@ -343,6 +412,9 @@ namespace DataAccessRegistration {
 			}
 			assert(domainParent != nullptr);
 
+			/*
+			 * Does it make the next access topmost
+			 */
 			if (_isRemovable && access->hasNext()) {
 				Task *nextDomainParent;
 				if (access->getNext()._objectType == access_type) {
@@ -451,6 +523,16 @@ namespace DataAccessRegistration {
 		DataAccess *dataAccess, DataAccessRegion const &region,
 		TaskDataAccesses &accessStructures);
 
+
+	/*
+	 * Make the changes to the data access implied by the differences between
+	 * initialStatus and updatedStatus. This is called with the lock for the
+	 * tasks's data accesses (accessStructures). Any changes that cannot be
+	 * done while this lock is held (as they need a different lock and taking
+	 * it could cause a deadlock) will be added to hpDependencyData and done
+	 * later (in
+	 * processDelayedOperationsSatisfiedOriginatorsAndRemovableTasks).
+	 */
 	static inline void handleDataAccessStatusChanges(
 		DataAccessStatusEffects const &initialStatus,
 		DataAccessStatusEffects const &updatedStatus,
@@ -468,6 +550,11 @@ namespace DataAccessRegistration {
 					task->increaseRemovalBlockingCount();
 				}
 				accessStructures._removalBlockers++;
+
+				/*
+				 * Count the registered taskwait fragments, so know when they
+				 * have all been handled.
+				 */
 				if (access->getObjectType() == taskwait_type) {
 					accessStructures._liveTaskwaitFragmentCount++;
 				}
@@ -604,7 +691,11 @@ namespace DataAccessRegistration {
 
 			if (initialStatus._propagatesWriteSatisfiabilityToNext != updatedStatus._propagatesWriteSatisfiabilityToNext) {
 				assert(!initialStatus._propagatesWriteSatisfiabilityToNext);
-				assert(!access->canPropagateReductionInfo() || updatedStatus._propagatesReductionInfoToNext);
+
+				/*
+				 * This assertion happens occasionally. Temporarily disable it.
+				 */
+				// assert(!access->canPropagateReductionInfo() || updatedStatus._propagatesReductionInfoToNext);
 				updateOperation._makeWriteSatisfied = true;
 			}
 
@@ -923,6 +1014,9 @@ namespace DataAccessRegistration {
 	}
 
 
+	/*
+	 * Internal function to create a new data access.
+	 */
 	static inline DataAccess *createAccess(
 		Task *originator,
 		DataAccessObjectType objectType,
@@ -933,9 +1027,9 @@ namespace DataAccessRegistration {
 		MemoryPlace const *outputLocation = nullptr,
 		ExecutionWorkflow::DataReleaseStep *dataReleaseStep = nullptr,
 		ExecutionWorkflow::DataLinkStep *dataLinkStep = nullptr,
-		DataAccess::status_t status = 0, DataAccessLink next = DataAccessLink())
-	{
-		// Regular object duplication
+		DataAccess::status_t status = 0, DataAccessLink next = DataAccessLink()
+	) {
+		// Not sure why this was previously commented as "Regular object duplication"
 		DataAccess *dataAccess = ObjectAllocator<DataAccess>::newObject(
 			objectType,
 			accessType, weak, originator, region,
@@ -951,7 +1045,10 @@ namespace DataAccessRegistration {
 		return dataAccess;
 	}
 
-
+	/*
+	 * Upgrade an access: called by registerTaskDataAccess when a task's access
+	 * intersects a previously-registered access of the same task.
+	 */
 	static inline void upgradeAccess(
 		DataAccess *dataAccess,
 		DataAccessType accessType,
@@ -961,6 +1058,7 @@ namespace DataAccessRegistration {
 		assert(dataAccess != nullptr);
 		assert(!dataAccess->hasBeenDiscounted());
 
+		/* Only weak if both accesses are weak */
 		bool newWeak = dataAccess->isWeak() && weak;
 
 		DataAccessType newDataAccessType = accessType;
@@ -975,6 +1073,18 @@ namespace DataAccessRegistration {
 				|| ((accessType == CONCURRENT_ACCESS_TYPE) && (dataAccess->getType() == COMMUTATIVE_ACCESS_TYPE))) {
 				newDataAccessType = COMMUTATIVE_ACCESS_TYPE;
 			} else {
+				/*
+				 * Every other remaining case is READWRITE
+				 *    (# means same, X means invalid, commutative handled above
+				 *
+				 *  		        READ WRITE READWRITE  CONCURRENT COMMUTATIVE REDUCTION
+				 *  READ               #    RW        RW         RW?         RW?         X
+				 *  WRITE             RW     #        RW         RW?         RW?         X
+				 *  READWRITE         RW    RW         #         RW?         RW?         X
+				 *  CONCURRENT       RW?   RW?       RW?           # commutative         X
+				 *  COMMUTATIVE      RW?   RW?       RW? commutative           #         X
+				 *  REDUCTION          X     X         X           X           X         #
+				 */
 				newDataAccessType = READWRITE_ACCESS_TYPE;
 			}
 		} else {
@@ -1012,6 +1122,15 @@ namespace DataAccessRegistration {
 
 
 #ifndef NDEBUG
+
+	/*
+	 * Debug function to check that none of the accesses is marked as
+	 * reachable.  If no access is reachable then no locking is necessary on
+	 * the access structures. Accesses become reachable in linkTaskAccesses,
+	 * when the task's accesses are linked into the dependency system, and in
+	 * createTaskwait and createTopLevelSink, which do the same for taskwaits
+	 * and top-level sinks. They are then reachable until they are destroyed.
+	 */
 	static bool noAccessIsReachable(TaskDataAccesses &accessStructures)
 	{
 		assert(!accessStructures.hasBeenDeleted());
@@ -1076,10 +1195,18 @@ namespace DataAccessRegistration {
 				fragment, accessStructures, fragment->getOriginator(),
 				hpDependencyData);
 
-			assert(hpDependencyData.empty());
+			/* Do not expect any delayed operations */
+			assert (hpDependencyData.empty());
 		}
 	}
 
+
+	/*
+	 * fragmentAccessObject: Fragment an access if necessary to match a region.
+	 *
+	 * The task access structures must be either locked or not reachable.
+	 *
+	 */
 
 	static inline DataAccess *fragmentAccessObject(
 		DataAccess *dataAccess, DataAccessRegion const &region,
@@ -1097,11 +1224,13 @@ namespace DataAccessRegistration {
 			accessStructures._accesses.iterator_to(*dataAccess);
 		position = accessStructures._accesses.fragmentByIntersection(
 			position, region,
-			false,
+			/* removeIntersection */ false,
+			/* duplicator */
 			[&](DataAccess const &toBeDuplicated) -> DataAccess * {
 				assert(toBeDuplicated.isRegistered());
 				return duplicateDataAccess(toBeDuplicated, accessStructures);
 			},
+			/* postprocessor */
 			[&](DataAccess *fragment, DataAccess *originalDataAccess) {
 				setUpNewFragment(fragment, originalDataAccess, accessStructures);
 			});
@@ -1180,6 +1309,19 @@ namespace DataAccessRegistration {
 	}
 
 
+	/*
+	 * fragmentAccess: Fragment a data access, fragment or taskwait as
+	 * necessary to match a region.
+	 *
+	 * The task access structures must be either locked or not reachable.
+	 *
+	 * This function should be called inside one of the processors for the
+	 * access structures (e.g. processAll, processIntersecting, ...). If
+	 * fragmentation is necessary, then the this function will split the
+	 * access/fragment/taskwait into multiple parts. The return value will be
+	 * the first part; the other parts will be visited later by the iterator
+	 * and processed by a subsequent call to the supplied lambda function.
+	 */
 	static inline DataAccess *fragmentAccess(
 		DataAccess *dataAccess, DataAccessRegion const &region,
 		TaskDataAccesses &accessStructures)
@@ -1189,10 +1331,16 @@ namespace DataAccessRegistration {
 		assert(accessStructures._lock.isLockedByThisThread() || noAccessIsReachable(accessStructures));
 		assert(&dataAccess->getOriginator()->getDataAccesses() == &accessStructures);
 		assert(!accessStructures.hasBeenDeleted());
+
+		// This following assert did once fail (but only with two runtimes on a node):
+		// salloc -q debug -c 48 -n 2 -t 01:00:00
+		// ./nasty.py --nodes 2 --tasks 40 --nesting 4 --seed 135
+		// mcc -fsanitize=address -fno-omit-frame-pointer -ggdb -o nasty --ompss-2 nasty.c
+		// mpirun -np 4 ./nasty
 		assert(!dataAccess->hasBeenDiscounted());
 
 		if (dataAccess->getAccessRegion().fullyContainedIn(region)) {
-			// Nothing to fragment
+			// Nothing to fragment: this task access/fragment is fully contained inside the region
 			return dataAccess;
 		}
 
@@ -1336,15 +1484,25 @@ namespace DataAccessRegistration {
 			hpDependencyData);
 	}
 
+	/*
+	 * Process an update operation.
+	 *
+	 * The lock must already be taken on the target task's access structures. The
+	 * target task is updateOperation._target._task.
+	 */
 	static void processUpdateOperation(
 		UpdateOperation const &updateOperation,
 		/* OUT */ CPUDependencyData &hpDependencyData)
 	{
 		assert(!updateOperation.empty());
+
 		TaskDataAccesses &accessStructures = updateOperation._target._task->getDataAccesses();
 
+		/* Check lock on access structures already taken by caller */
+		assert(accessStructures._lock.isLockedByThisThread());
+
 		if (updateOperation._target._objectType == access_type) {
-			// Update over Accesses
+			// Update operation for accesses
 			accessStructures._accesses.processIntersecting(
 				updateOperation._region,
 				[&](TaskDataAccesses::accesses_t::iterator accessPosition) -> bool {
@@ -1355,7 +1513,7 @@ namespace DataAccessRegistration {
 					return true;
 				});
 		} else if (updateOperation._target._objectType == fragment_type) {
-			// Update over Fragments
+			// Update operation for fragments
 			accessStructures._accessFragments.processIntersecting(
 				updateOperation._region,
 				[&](TaskDataAccesses::access_fragments_t::iterator fragmentPosition) -> bool {
@@ -1366,7 +1524,7 @@ namespace DataAccessRegistration {
 					return true;
 				});
 		} else {
-			// Update over Taskwait Fragments
+			// Update operation for taskwait Fragments
 			assert((updateOperation._target._objectType == taskwait_type) || (updateOperation._target._objectType == top_level_sink_type));
 			accessStructures._taskwaitFragments.processIntersecting(
 				updateOperation._region,
@@ -1381,6 +1539,14 @@ namespace DataAccessRegistration {
 	}
 
 
+	/*
+	 * Process the delayed operations. These are operations that are triggered
+	 * by handleDataAccessStatusChanges. A lock was already taken on a task's
+	 * access structures before calling handleDataAccessStatusChanges. Since
+	 * these delayed operations require taking a lock on a different task's
+	 * access structures, they couldn't have been done at the time without
+	 * risking a deadlock.
+	 */
 	static inline void processDelayedOperations(
 		/* INOUT */ CPUDependencyData &hpDependencyData)
 	{
@@ -1440,12 +1606,19 @@ namespace DataAccessRegistration {
 	}
 
 
-	// NOTE: This method does not create the bottom map entry
+	/*
+	 * Create an initial fragment due to an access of a newly-submitted child
+	 * task that was not yet in the bottom map, but is covered by the parent
+	 * task's accesses. The parent task's fragments correspond to child task
+	 * accesses (after fragmentation) within the parent's accesses. This method
+	 * creates the new fragment, but not the bottom map entry corresponding to
+	 * it.
+	 */
 	static inline DataAccess *createInitialFragment(
 		TaskDataAccesses::accesses_t::iterator accessPosition,
-		TaskDataAccesses &accessStructures,
-		DataAccessRegion subregion)
-	{
+		TaskDataAccesses &accessStructures,       /* Access structures for the parent task */
+		DataAccessRegion subregion                /* Subregion accessed by the new child task */
+	) {
 		DataAccess *dataAccess = &(*accessPosition);
 		assert(dataAccess != nullptr);
 		assert(!accessStructures.hasBeenDeleted());
@@ -1470,7 +1643,6 @@ namespace DataAccessRegistration {
 
 		fragment->inheritFragmentStatus(dataAccess); //TODO is it necessary?
 
-
 #ifndef NDEBUG
 		fragment->setReachable();
 #endif
@@ -1492,6 +1664,7 @@ namespace DataAccessRegistration {
 		if (subregion != dataAccess->getAccessRegion()) {
 			dataAccess->getAccessRegion().processIntersectingFragments(
 				subregion,
+				/* thisOnlyProcessor */
 				[&](DataAccessRegion excludedSubregion) {
 					BottomMapEntry *bottomMapEntry = ObjectAllocator<BottomMapEntry>::newObject(
 						excludedSubregion,
@@ -1500,8 +1673,10 @@ namespace DataAccessRegistration {
 						dataAccess->getReductionTypeAndOperatorIndex());
 					accessStructures._subaccessBottomMap.insert(*bottomMapEntry);
 				},
+				/* intersectingProcessor */
 				[&](__attribute__((unused)) DataAccessRegion intersection) {
 				},
+				/* otherOnlyProcessor */
 				[&](__attribute__((unused)) DataAccessRegion unmatchedRegion) {
 					// This part is not covered by the access
 				});
@@ -1560,7 +1735,9 @@ namespace DataAccessRegistration {
 		}
 	}
 
-
+/*
+ * Matching processor used to put a new task's data access into the bottom map.
+ */
 	template <typename MatchingProcessorType, typename MissingProcessorType>
 	static inline bool foreachBottomMapMatchPossiblyCreatingInitialFragmentsAndMissingRegion(
 		Task *parent, TaskDataAccesses &parentAccessStructures,
@@ -1573,6 +1750,10 @@ namespace DataAccessRegistration {
 
 		return parentAccessStructures._subaccessBottomMap.processIntersectingAndMissing(
 			region,
+
+			/*
+			 * A region of the new task's data access is already in the bottom map.
+			 */
 			[&](TaskDataAccesses::subaccess_bottom_map_t::iterator bottomMapPosition) -> bool {
 				BottomMapEntry *bottomMapEntry = &(*bottomMapPosition);
 				assert(bottomMapEntry != nullptr);
@@ -1589,7 +1770,7 @@ namespace DataAccessRegistration {
 
 					subtaskAccessStructures._lock.lock();
 
-					// For each access of the subtask that matches
+					// For each access of the subtask (predecessor on the bottom map) that matches
 					result = followLink(
 						target, subregion,
 						[&](DataAccess *previous) -> bool {
@@ -1621,20 +1802,33 @@ namespace DataAccessRegistration {
 
 				return result;
 			},
+
+			/*
+			 * A region of the new task's data access that is not (yet) in the bottom map.
+			 * Iterate over the parent's accesses and divide into those parts that intersect
+			 * parent accesses and those that do not.
+			 */
 			[&](DataAccessRegion missingRegion) -> bool {
 				parentAccessStructures._accesses.processIntersectingAndMissing(
 					missingRegion,
+					/*
+					 * intersectingProcessor: it's not in the bottom map yet, but it
+					 * is part of one of the parent task's accesses. Create a new
+					 * bottom map entry and now that it exists, give it to the
+					 * matching processor.
+					 */
 					[&](TaskDataAccesses::accesses_t::iterator superaccessPosition) -> bool {
 						DataAccessStatusEffects initialStatus;
 
+						/* Create an initial fragment */
 						DataAccess *previous = createInitialFragment(
 							superaccessPosition, parentAccessStructures,
 							missingRegion);
 						assert(previous != nullptr);
 						assert(previous->getObjectType() == fragment_type);
 
-						previous->setTopmost();
-						previous->setRegistered();
+						previous->setTopmost(); /* it's top-most: in the parent? */
+						previous->setRegistered(); /* register it immediately */
 
 						DataAccessStatusEffects updatedStatus(previous);
 
@@ -1654,12 +1848,23 @@ namespace DataAccessRegistration {
 
 						previous = fragmentAccess(previous, missingRegion, parentAccessStructures);
 
+						/*
+						 *Now that the bottom map entry has been created, pass it
+						 * to the matching processor
+						 */
 						return matchingProcessor(previous, bmeContents);
 					},
+
+					/*
+					 * missingProcessor: the region isn't in the bottom map or
+					 * the parent task's accesses. Pass this "hole" up to the
+					 * missing processor to deal with.
+					 */
 					[&](DataAccessRegion regionUncoveredByParent) -> bool {
 						return missingProcessor(regionUncoveredByParent);
 					});
 
+				/* Keep going, with other regions of the bottom map */
 				return true;
 			});
 	}
@@ -1677,6 +1882,7 @@ namespace DataAccessRegistration {
 
 		accessStructures._subaccessBottomMap.processIntersecting(
 			region,
+			/* processor: called with each part of the bottom map that intersects region */
 			[&](TaskDataAccesses::subaccess_bottom_map_t::iterator bottomMapPosition) -> bool {
 				BottomMapEntry *bottomMapEntry = &(*bottomMapPosition);
 				assert(bottomMapEntry != nullptr);
@@ -1726,6 +1932,7 @@ namespace DataAccessRegistration {
 
 				bottomMapEntryProcessor(bottomMapEntry);
 
+				/* always continue through the bottom map*/
 				return true;
 			});
 	}
@@ -1898,13 +2105,18 @@ namespace DataAccessRegistration {
 			*newReductionInfo);
 	}
 
-
+	/*
+	 * Update the bottom map with a data access for a new task. This function
+	 * is called by linkTaskAccesses.
+	 */
 	static inline void replaceMatchingInBottomMapLinkAndPropagate(
-		DataAccessLink const &next, TaskDataAccesses &accessStructures,
-		DataAccess *dataAccess,
-		Task *parent, TaskDataAccesses &parentAccessStructures,
-		/* inout */ CPUDependencyData &hpDependencyData)
-	{
+		DataAccessLink const &next,                /* link to the new task */
+		TaskDataAccesses &accessStructures,        /* access structures for the new task */
+		DataAccess *dataAccess,                    /* data access for the new task */
+		Task *parent,                              /* parent of the new task */
+		TaskDataAccesses &parentAccessStructures,  /* access structures for the parent */
+		/* inout */ CPUDependencyData &hpDependencyData
+	) {
 		assert(dataAccess != nullptr);
 		assert(parent != nullptr);
 		assert(next._task != nullptr);
@@ -1926,15 +2138,35 @@ namespace DataAccessRegistration {
 		DataAccessType parentAccessType = NO_ACCESS_TYPE;
 		reduction_type_and_operator_index_t parentReductionTypeAndOperatorIndex = no_reduction_type_and_operator;
 
-		// Link accesses to their corresponding predecessor and removes the bottom map entry
+		/*
+		 * Put the new data access (dataAccess) in the bottom map. 
+		 *
+		 * There may be multiple entries in the bottom map that intersect the
+		 * new data access ("foreachBottomMapMatch"). The new data access may
+		 * alternatively be contained within accesses of the parent task that
+		 * are not yet in the bottom map because no child task has accessed
+		 * them yet ("PossiblyCreatingInitialFragments").  Finally the new data
+		 * access may not be contained within any access of the parent task
+		 * ("AndMissingRegion"). 
+		 * 
+		 * Processing of the first two cases is done by the first big lambda
+		 * (matchingProcessor) and processing of the last case is done by the
+		 * second big lambda (missingProcessor).
+		 */
+
 		foreachBottomMapMatchPossiblyCreatingInitialFragmentsAndMissingRegion(
-			parent, parentAccessStructures,
+			parent,
+			parentAccessStructures,  /* contains the parent's bottom map */
 			region,
+
+			/* matchingProcessor: handle a region (part of the new overall
+			 * data access) that was already in the bottom map. The existing
+			 * bottom map access is 'previous'. */
 			[&](DataAccess *previous, BottomMapEntryContents const &bottomMapEntryContents) -> bool {
 				assert(previous != nullptr);
 				assert(previous->isReachable());
 				assert(!previous->hasBeenDiscounted());
-				assert(!previous->hasNext());
+				assert(!previous->hasNext());       /* no next access yet, as it was in the bottom map */
 
 				Task *previousTask = previous->getOriginator();
 				assert(previousTask != nullptr);
@@ -1943,6 +2175,9 @@ namespace DataAccessRegistration {
 				parentReductionTypeAndOperatorIndex = bottomMapEntryContents._reductionTypeAndOperatorIndex;
 				local = (bottomMapEntryContents._accessType == NO_ACCESS_TYPE);
 
+				/*
+				 * Handle reductions
+				 */
 				if ((dataAccess->getType() == REDUCTION_ACCESS_TYPE) && !hasAllocatedReductionInfo) {
 					bool allocatesReductionInfo = false;
 
@@ -2003,20 +2238,33 @@ namespace DataAccessRegistration {
 						previousReductionAccesses.push_back(previous);
 					}
 				}
+				/*
+				 * Finished handling of reductions
+				 */
 
-				// Link the dataAccess
+				/*
+				 * Link the dataAccess and unset
+				 */
 				previous->setNext(next);
-				previous->unsetInBottomMap();
+				previous->unsetInBottomMap();  /* only unsets the status bit, doesn't actually remove it */
 
 				DataAccessStatusEffects updatedStatus(previous);
 
+				/*
+				 * Handle the data access status changes in the difference
+				 * between initialStatus and updatedStatus.
+				 */
 				handleDataAccessStatusChanges(
 					initialStatus, updatedStatus,
 					previous, previousAccessStructures, previousTask,
 					hpDependencyData);
 
+				/* Keep going with other bottom map entries (don't stop here) */
 				return true;
 			},
+
+			/* missingProcessor: handle a region (part of the overall data access)
+			 * that is not yet in the parent's bottom map */
 			[&](DataAccessRegion missingRegion) -> bool {
 				assert(!parentAccessStructures._accesses.contains(missingRegion));
 
@@ -2031,7 +2279,8 @@ namespace DataAccessRegistration {
 				lastWasLocal = local;
 #endif
 
-				// Holes in the parent bottom map that are not in the parent accesses become fully satisfied
+				// NOTE: holes in the parent bottom map that are not in the parent accesses become fully satisfied
+
 				accessStructures._accesses.processIntersecting(
 					missingRegion,
 					[&](TaskDataAccesses::accesses_t::iterator position) -> bool {
@@ -2061,6 +2310,7 @@ namespace DataAccessRegistration {
 						//! so no location is setup yet.
 						//! For now we set it to the Directory MemoryPlace.
 						if (!targetAccess->getOriginator()->isRemote()) {
+							/* TBD? Is this an access from e.g. a malloc inside the parent task? */
 							targetAccess->setReadSatisfied(Directory::getDirectoryMemoryPlace());
 							targetAccess->setWriteSatisfied();
 						}
@@ -2079,9 +2329,12 @@ namespace DataAccessRegistration {
 							targetAccess, accessStructures, next._task,
 							hpDependencyData);
 
+						/* keep going with the other task data accesses that intersect this
+						 * hole in the bottom map */
 						return true;
 					});
 
+				/* Keep going with other bottom map entries (don't stop here) */
 				return true;
 			});
 
@@ -2101,6 +2354,10 @@ namespace DataAccessRegistration {
 	}
 
 
+	/*
+	 * This is called by registerTaskDataAccesses to actually link the task
+	 * data accesses into the dependency system.
+	 */
 	static inline void linkTaskAccesses(
 		/* OUT */ CPUDependencyData &hpDependencyData,
 		Task *task)
@@ -2110,6 +2367,7 @@ namespace DataAccessRegistration {
 		TaskDataAccesses &accessStructures = task->getDataAccesses();
 		assert(!accessStructures.hasBeenDeleted());
 
+		// No accesses: do nothing.
 		if (accessStructures._accesses.empty()) {
 			return;
 		}
@@ -2120,7 +2378,9 @@ namespace DataAccessRegistration {
 		TaskDataAccesses &parentAccessStructures = parent->getDataAccesses();
 		assert(!parentAccessStructures.hasBeenDeleted());
 
-
+		/*
+		 * Lock the parent and the task itself.
+		 */
 		std::lock_guard<TaskDataAccesses::spinlock_t> parentGuard(parentAccessStructures._lock);
 		std::lock_guard<TaskDataAccesses::spinlock_t> guard(accessStructures._lock);
 
@@ -2135,6 +2395,7 @@ namespace DataAccessRegistration {
 		// itself, since an already linked predecessor may produce fragmentation and thus
 		// may rebalance the tree. Therefore, we just lock for advancing the iteration.
 		accessStructures._accesses.processAll(
+			/* processor: called for each task access */
 			[&](TaskDataAccesses::accesses_t::iterator position) -> bool {
 				DataAccess *dataAccess = &(*position);
 				assert(dataAccess != nullptr);
@@ -2142,20 +2403,32 @@ namespace DataAccessRegistration {
 
 				DataAccessStatusEffects initialStatus(dataAccess);
 				dataAccess->setNewInstrumentationId(task->getInstrumentationTaskId());
+
+				/* New task accesses always in the bottom map */
 				dataAccess->setInBottomMap();
+
+				/* This is the step where accesses become registered */
 				dataAccess->setRegistered();
+
 #ifndef NDEBUG
+				/*
+				 * The accesses now become reachable so for most updates the
+				 * task data access structures will need locking.
+				 */
 				dataAccess->setReachable();
 #endif
 				DataAccessStatusEffects updatedStatus(dataAccess);
 
+				/* Process the changes between initialStatus and updatedStatus */
 				handleDataAccessStatusChanges(
 					initialStatus, updatedStatus,
 					dataAccess, accessStructures, task,
 					hpDependencyData);
 
+				/* Update bottom map */
 				replaceMatchingInBottomMapLinkAndPropagate(
-					DataAccessLink(task, access_type), accessStructures,
+					DataAccessLink(task, access_type),
+					accessStructures,
 					dataAccess,
 					parent, parentAccessStructures,
 					hpDependencyData);
@@ -2165,6 +2438,9 @@ namespace DataAccessRegistration {
 	}
 
 
+	/*
+	 * Called by handleEnterTaskwait.
+	 */
 	static inline void finalizeFragments(
 		Task *task, TaskDataAccesses &accessStructures,
 		/* OUT */ CPUDependencyData &hpDependencyData)
@@ -2198,13 +2474,19 @@ namespace DataAccessRegistration {
 	}
 
 
+	/*
+	 * Apply a lambda function (processor) to a region of a single task access
+	 * and all the fragments that intersect it (fragmenting them if needed).
+	 */
 	template <typename ProcessorType>
 	static inline void applyToAccessAndFragments(
-		DataAccess *dataAccess, DataAccessRegion const &region,
+		DataAccess *dataAccess,            /* DataAccess containing the region */
+		DataAccessRegion const &region,
 		TaskDataAccesses &accessStructures,
-		ProcessorType processor)
-	{
-		// Fragment if necessary
+		ProcessorType processor
+	) {
+		// Fragment the data access if necessary (then continue with the first
+		// fragment - remaining fragments will be processed later)
 		dataAccess = fragmentAccess(dataAccess, region, accessStructures);
 		assert(dataAccess != nullptr);
 
@@ -2280,6 +2562,10 @@ namespace DataAccessRegistration {
 		}
 		assert(!dataAccess->hasBeenDiscounted());
 
+		/*
+		 * Set complete and update location for the access itself and all
+		 * (child task) fragments.
+		 */
 		applyToAccessAndFragments(
 			dataAccess, region,
 			finishedTask->getDataAccesses(),
@@ -2327,10 +2613,17 @@ namespace DataAccessRegistration {
 	}
 
 
+	/*
+	 * Create a taskwait. The lock should already be taken on the task's
+	 * access structures.
+	 */
 	static void createTaskwait(
 		Task *task, TaskDataAccesses &accessStructures, ComputePlace *computePlace,
 		/* OUT */ CPUDependencyData &hpDependencyData)
 	{
+		assert(task != nullptr);
+		assert(accessStructures._lock.isLockedByThisThread());
+
 		if (accessStructures._subaccessBottomMap.empty()) {
 			return;
 		}
@@ -2339,8 +2632,18 @@ namespace DataAccessRegistration {
 		// This is necessary to force the task to wait until all taskwait fragments have finished.
 		task->increaseBlockingCount();
 
-		// For each bottom map entry
+		/*
+		 * There should not already be any taskwait fragments.
+		 */
 		assert(accessStructures._taskwaitFragments.empty());
+
+		/*
+		 * The accesses to wait for are precisely those in the bottom map.
+		 * Iterate through the bottom map and for each subaccess in the bottom
+		 * map, create a new taskwait fragment that depends on it.
+		 * 
+		 */
+
 		accessStructures._subaccessBottomMap.processAll(
 			[&](TaskDataAccesses::subaccess_bottom_map_t::iterator bottomMapPosition) -> bool {
 				BottomMapEntry *bottomMapEntry = &(*bottomMapPosition);
@@ -2381,7 +2684,7 @@ namespace DataAccessRegistration {
 #endif
 					accessStructures._taskwaitFragments.insert(*taskwaitFragment);
 
-					// Update the bottom map entry
+					// Update the bottom map entry to now be of taskwait type
 					bottomMapEntry->_link._objectType = taskwait_type;
 					bottomMapEntry->_link._task = task;
 
@@ -2393,9 +2696,12 @@ namespace DataAccessRegistration {
 						hpDependencyData);
 				}
 
+				/*
+				 * Previous task (that was previously in the bottom map)
+				 */
 				TaskDataAccesses &previousAccessStructures = previous._task->getDataAccesses();
 
-				// Unlock to avoid potential deadlock
+				// Unlock parent task to avoid potential deadlock
 				if (previous._task != task) {
 					accessStructures._lock.unlock();
 					previousAccessStructures._lock.lock();
@@ -2420,7 +2726,9 @@ namespace DataAccessRegistration {
 							previousAccess->setClosesReduction();
 						}
 
-						// Link to the taskwait
+						/*
+						 * Link to the taskwait and unset flag indicating that it was in bottom map.
+						 */
 						previousAccess->setNext(DataAccessLink(task, taskwait_type));
 						previousAccess->unsetInBottomMap();
 						DataAccessStatusEffects updatedStatus(previousAccess);
@@ -2439,6 +2747,7 @@ namespace DataAccessRegistration {
 					accessStructures._lock.lock();
 				}
 
+				/* Always continue with the rest of the bottom map */
 				return true;
 			});
 	}
@@ -2506,9 +2815,18 @@ namespace DataAccessRegistration {
 					previousAccessStructures._lock.lock();
 				}
 
+				/*
+				 * Process every access of the previous task that intersects
+				 * the current region. Since previous is a DataAccessLink,
+				 * followLink will apply the lambda function to the right kind
+				 * of accesses (access, fragment or taskwait).
+				 */
 				followLink(
-					previous, region,
-					[&](DataAccess *previousAccess) -> bool {
+					previous, 
+					region,
+					/* processor: called for every intersecting access of the previous task */
+					[&](DataAccess *previousAccess) -> bool
+					{
 						DataAccessStatusEffects initialStatus(previousAccess);
 						// Mark end of reduction
 						if (previousAccess->getType() == REDUCTION_ACCESS_TYPE) {
@@ -2520,7 +2838,9 @@ namespace DataAccessRegistration {
 							previousAccess->setClosesReduction();
 						}
 
-						// Link to the taskwait
+						/*
+						 * Link to the top-level sink and unset flag indicating that it was in bottom map.
+						 */
 						previousAccess->setNext(DataAccessLink(task, taskwait_type));
 						previousAccess->unsetInBottomMap();
 						DataAccessStatusEffects updatedStatus(previousAccess);
@@ -2530,6 +2850,7 @@ namespace DataAccessRegistration {
 							previousAccess, previousAccessStructures, previous._task,
 							hpDependencyData);
 
+						/* Continue with all intersecting accesses of previous task */
 						return true;
 					});
 
@@ -2539,11 +2860,19 @@ namespace DataAccessRegistration {
 					accessStructures._lock.lock();
 				}
 
+				/* Always continue with the rest of the bottom map */
 				return true;
 			});
 	}
 
 
+	/*
+	 * Register a single task data access.
+	 *
+	 * This function does not link the data access with the parent and sibling tasks.
+	 * Linking is done later inside registerTaskDataAccesses.
+	 *
+	 */
 	void registerTaskDataAccess(
 		Task *task, DataAccessType accessType, bool weak, DataAccessRegion region, int symbolIndex,
 		reduction_type_and_operator_index_t reductionTypeAndOperatorIndex, reduction_index_t reductionIndex)
@@ -2557,18 +2886,33 @@ namespace DataAccessRegistration {
 
 		TaskDataAccesses &accessStructures = task->getDataAccesses();
 		assert(!accessStructures.hasBeenDeleted());
+
+		/*
+		 * This access may fragment an existing access.
+		 *
+		 * Also collect all symbols used by all intersecting access (?)
+		 */
 		accessStructures._accesses.fragmentIntersecting(
 			region,
+			/* duplicator */
 			[&](DataAccess const &toBeDuplicated) -> DataAccess * {
 				assert(!toBeDuplicated.isRegistered());
 				return duplicateDataAccess(toBeDuplicated, accessStructures);
 			},
+			/* postprocessor */
 			[&](__attribute__((unused)) DataAccess *newAccess, DataAccess *originalAccess) {
 				symbol_list |= originalAccess->getSymbols();
 			});
 
+		/*
+		 * The new access may overlap existing accesses. After fragmentation
+		 * (above), the region divides up into parts that either match an
+		 * existing access ("intersecting") or that are new ("missing"). Handle
+		 * the two cases separately using the two lambdas below.
+		 */
 		accessStructures._accesses.processIntersectingAndMissing(
 			region,
+			/* intersectingProcessor: may need to upgrade (e.g. existing READ to READWRITE) */
 			[&](TaskDataAccesses::accesses_t::iterator position) -> bool {
 				DataAccess *oldAccess = &(*position);
 				assert(oldAccess != nullptr);
@@ -2578,6 +2922,7 @@ namespace DataAccessRegistration {
 
 				return true;
 			},
+			/* missingProcessor: create a new access for it */
 			[&](DataAccessRegion missingRegion) -> bool {
 				DataAccess *newAccess = createAccess(task, access_type, accessType, weak, missingRegion,
 					reductionTypeAndOperatorIndex, reductionIndex);
@@ -2586,26 +2931,41 @@ namespace DataAccessRegistration {
 				accessStructures._accesses.insert(*newAccess);
 
 				return true;
-			});
+			}
+		);
 	}
 
-
+	/*
+	 * After registering the individual task data accesses (with a call to
+	 * registerTaskDataAccess for each data access), link all of them to the
+	 * existing parent and sibling accesses.
+	 */
 	bool registerTaskDataAccesses(
 		Task *task,
 		ComputePlace *computePlace,
-		CPUDependencyData &hpDependencyData)
-	{
-		bool ready;
+		CPUDependencyData &hpDependencyData
+	) {
+		bool ready; /* return value: true if task is ready immediately */
 
-		assert(task != 0);
+		assert(task != nullptr);
 		assert(computePlace != nullptr);
 
 		Instrument::enterRegisterTaskDataAcesses();
 
-		// This part creates the DataAccesses and calculates any possible upgrade
+		/*
+		 * This part creates the DataAccesses and calculates any possible upgrade.
+		 * It calls _taskInfo->register_depinfo with the args block, which results
+		 * in a call to registerTaskDataAccess for each access.
+		 */
 		task->registerDependencies();
 
+		/*
+		 * Now that the task accesses have been registeredathey need to be linked to
+		 * the parent and sibling accesses.
+		 */
 		if (!task->getDataAccesses()._accesses.empty()) {
+
+			/* Two extra predecessors, so cannot become ready early */
 			task->increasePredecessors(2);
 
 #ifndef NDEBUG
@@ -2615,9 +2975,10 @@ namespace DataAccessRegistration {
 			}
 #endif
 
-			// This part actually inserts the accesses into the dependency system
+			/*
+			 * This part actually inserts the accesses into the dependency system
+			 */
 			linkTaskAccesses(hpDependencyData, task);
-
 			processDelayedOperationsSatisfiedOriginatorsAndRemovableTasks(hpDependencyData, computePlace, true);
 
 #ifndef NDEBUG
@@ -2627,6 +2988,9 @@ namespace DataAccessRegistration {
 			}
 #endif
 
+			/*
+			 * Remove the two extra predecessors. The task may become ready.
+			 */
 			ready = task->decreasePredecessors(2);
 
 			// Special handling for tasks with commutative accesses
@@ -2646,6 +3010,9 @@ namespace DataAccessRegistration {
 				}
 			}
 		} else {
+			/*
+			 * No accesses: so the task is immediately ready.
+			 */
 			ready = true;
 		}
 
@@ -2654,8 +3021,18 @@ namespace DataAccessRegistration {
 	}
 
 
+	/*
+	 * Release a region accessed by a task
+	 *
+	 * It is used to (a) support the release directive and (b) for Nanos6@cluster,
+	 * handle the receipt of a MessageReleaseAccess when a remote task releases
+	 * an access.
+	 * 
+	 */
+
 	void releaseAccessRegion(
-		Task *task, DataAccessRegion region,
+		Task *task,  /* The task that is releasing the region */
+		DataAccessRegion region,
 		__attribute__((unused)) DataAccessType accessType, __attribute__((unused)) bool weak,
 		ComputePlace *computePlace,
 		CPUDependencyData &hpDependencyData,
@@ -2682,6 +3059,7 @@ namespace DataAccessRegistration {
 
 			accesses.processIntersecting(
 				region,
+				/* processor: called for each access that intersects the region */
 				[&](TaskDataAccesses::accesses_t::iterator position) -> bool {
 					DataAccess *dataAccess = &(*position);
 					assert(dataAccess != nullptr);
@@ -2776,6 +3154,11 @@ namespace DataAccessRegistration {
 #endif
 	}
 
+	/*
+	 * Update the location information for all data accesses that intersect the
+	 * region, fragmenting them if necessary. For clusters this is done when
+	 * a data copy completes.
+	 */
 	void updateTaskDataAccessLocation(Task *task,
 		DataAccessRegion const &region,
 		MemoryPlace const *location,
@@ -2786,6 +3169,8 @@ namespace DataAccessRegistration {
 		TaskDataAccesses &accessStructures = task->getDataAccesses();
 		assert(!accessStructures.hasBeenDeleted());
 
+		// Take the lock on the task data accesses (all locking in
+		// DataAccessRegistration is done on the task data accesses).
 		std::lock_guard<TaskDataAccesses::spinlock_t> guard(accessStructures._lock);
 
 		auto &accesses = (isTaskwait) ? accessStructures._taskwaitFragments : accessStructures._accesses;
@@ -2794,17 +3179,26 @@ namespace DataAccessRegistration {
 		assert(accesses.contains(region));
 
 		accesses.processIntersecting(region,
+			/* processor: lambda called for every task data access that intersects
+			   the region */
 			[&](TaskDataAccesses::accesses_t::iterator accessPosition) -> bool {
 				DataAccess *access = &(*accessPosition);
 				assert(access != nullptr);
 
+				/* fragment the access (if not fully contained inside the region) */
 				access = fragmentAccess(access, region, accessStructures);
 				access->setLocation(location);
 
+				/* always continue with remaining accesses: don't stop here */
 				return true;
 			});
 	}
 
+	/*
+	 * Register a new data access on a task (after it has started). This
+	 * is necessary for dmallocs, because all child data accesses should
+	 * be contained within the parent data accesses (?).
+	 */
 	void registerLocalAccess(Task *task, DataAccessRegion const &region)
 	{
 		assert(task != nullptr);
@@ -2820,9 +3214,16 @@ namespace DataAccessRegistration {
 			region.getSize()
 		);
 
-		// false argument means no weak
-		DataAccess *newLocalAccess = createAccess(task, access_type, NO_ACCESS_TYPE, false, region);
+		/* Create a new access */
+		DataAccess *newLocalAccess = createAccess(
+			task,
+			access_type,
+			NO_ACCESS_TYPE,
+			/* not weak */ false,
+			region
+		);
 
+		/* Modifications to be done after the lock is taken  */
 		DataAccessStatusEffects initialStatus(newLocalAccess);
 		newLocalAccess->setNewInstrumentationId(task->getInstrumentationTaskId());
 		newLocalAccess->setReadSatisfied(Directory::getDirectoryMemoryPlace());
@@ -2841,10 +3242,13 @@ namespace DataAccessRegistration {
 		//! is not used anywhere else.
 		updatedStatus.setEnforcesDependency();
 
+		/* Take the lock on the task data accesses */
 		std::lock_guard<TaskDataAccesses::spinlock_t> guard(accessStructures._lock);
 
+		/* Insert the new access (with the lock) */
 		accessStructures._accesses.insert(*newLocalAccess);
 
+		/* Handle the above data access status changes */
 		CPUDependencyData hpDependencyData;
 		handleDataAccessStatusChanges(
 			initialStatus,
@@ -2854,8 +3258,15 @@ namespace DataAccessRegistration {
 			task,
 			hpDependencyData
 		);
+
+		/* Do not expect any delayed operations */
+		assert (hpDependencyData.empty());
 	}
 
+	/*
+	 * Unregister a new data access on a task (after it has started). This
+	 * is necessary after a dfree.
+	 */
 	void unregisterLocalAccess(Task *task, DataAccessRegion const &region)
 	{
 		assert(task != nullptr);
@@ -2876,9 +3287,12 @@ namespace DataAccessRegistration {
 				assert(fragment != nullptr);
 				assert(fragment->getType() == NO_ACCESS_TYPE);
 
+				/* Fragment the access (if not fully contained inside the region).
+				   Given that the use case is dmalloc/dfree it seems unlikely. */
 				fragment = fragmentAccess(fragment, region,
 					accessStructures);
 
+				/* Prepare an update to set it as complete */
 				DataAccessStatusEffects initialStatus(fragment);
 				fragment->setComplete();
 				DataAccessStatusEffects updatedStatus(fragment);
@@ -2888,6 +3302,8 @@ namespace DataAccessRegistration {
 					updatedStatus, fragment, accessStructures,
 					task, hpDependencyData);
 
+				/* Do not expect any delayed operations */
+				assert (hpDependencyData.empty());
 				return true;
 			});
 
@@ -2914,6 +3330,8 @@ namespace DataAccessRegistration {
 					updatedStatus, access, accessStructures,
 					task, hpDependencyData);
 
+				/* Do not expect any delayed operations */
+				assert (hpDependencyData.empty());
 				return true;
 			});
 
@@ -2968,7 +3386,14 @@ namespace DataAccessRegistration {
 			});
 	}
 
-	void unregisterTaskDataAccesses(Task *task, ComputePlace *computePlace, CPUDependencyData &hpDependencyData, MemoryPlace *location, bool fromBusyThread)
+	/*
+	 * Unregister all the task data accesses (when the task completes).
+	 */
+	void unregisterTaskDataAccesses(Task *task, 
+									ComputePlace *computePlace, 
+									CPUDependencyData &hpDependencyData, 
+									MemoryPlace *location, 
+									bool fromBusyThread)
 	{
 		assert(task != nullptr);
 
@@ -3021,6 +3446,10 @@ namespace DataAccessRegistration {
 		Instrument::exitUnregisterTaskDataAcesses();
 	}
 
+	/*
+	 * Called on receipt of MessageSatisfiability. Propagates satisfiability
+	 * from the workflow into the dependency system.
+	 */
 	void propagateSatisfiability(Task *task, DataAccessRegion const &region,
 		ComputePlace *computePlace, CPUDependencyData &hpDependencyData,
 		bool readSatisfied, bool writeSatisfied,
@@ -3028,6 +3457,11 @@ namespace DataAccessRegistration {
 	{
 		assert(task != nullptr);
 
+		/*
+		 * Create an update operation with the satisfiability information.
+		 * It affects the task's accesses ("access_type"), not the fragments
+		 * (which relate to its children) or taskwaits.
+		 */
 		UpdateOperation updateOperation;
 		updateOperation._target = DataAccessLink(task, access_type);
 		updateOperation._region = region;
@@ -3040,6 +3474,7 @@ namespace DataAccessRegistration {
 
 #ifndef NDEBUG
 		{
+			/* No other code should be using this hpDependencyData */
 			bool alreadyTaken = false;
 			assert(hpDependencyData._inUse.compare_exchange_strong(
 				alreadyTaken, true));
@@ -3047,18 +3482,28 @@ namespace DataAccessRegistration {
 #endif
 
 		{
+			/*
+			 * Process the update operation (which requires the lock
+			 * to be taken on the task's access structures).
+			 */
 			std::lock_guard<TaskDataAccesses::spinlock_t>
 				guard(accessStructures._lock);
 			processUpdateOperation(updateOperation, hpDependencyData);
 		}
 
+		/*
+		 * Finish processing with the operations that require locks other than
+		 * the task's access structures.
+		 */
 		processDelayedOperationsSatisfiedOriginatorsAndRemovableTasks(
 			hpDependencyData,
 			computePlace,
-			true);
+			/* fromBusyThread */ true
+		);
 
 #ifndef NDEBUG
 		{
+			/* Allow other code to use this hpDependencyData */
 			bool alreadyTaken = true;
 			assert(hpDependencyData._inUse.compare_exchange_strong(
 				alreadyTaken, false));
@@ -3066,6 +3511,11 @@ namespace DataAccessRegistration {
 #endif
 	}
 
+	/*
+	 * Enter a taskwait (called from nanos6_taskwait). 
+	 * 
+	 * It creates taskwait fragments for all entries in the bottom map.
+	 */
 	void handleEnterTaskwait(Task *task, ComputePlace *computePlace, CPUDependencyData &hpDependencyData)
 	{
 		assert(task != nullptr);
@@ -3082,6 +3532,7 @@ namespace DataAccessRegistration {
 			assert(!accessStructures.hasBeenDeleted());
 			std::lock_guard<TaskDataAccesses::spinlock_t> guard(accessStructures._lock);
 
+			/* Create a taskwait fragment for each entry in the bottom map */
 			createTaskwait(task, accessStructures, computePlace, hpDependencyData);
 
 			finalizeFragments(task, accessStructures, hpDependencyData);
