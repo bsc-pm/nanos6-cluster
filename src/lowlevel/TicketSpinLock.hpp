@@ -31,17 +31,17 @@ class TicketSpinLock {
 private:
 	std::atomic<TICKET_T> _currentTicket;
 	std::atomic<TICKET_T> _nextFreeTicket;
-	
+
 #ifndef NDEBUG
 	WorkerThread *_owner;
 #endif
-	
+
 	inline void assertCurrentOwner(__attribute__((unused)) bool ignoreOwner);
 	inline void assertUnowned();
 	inline void assertUnownedOrCurrentOwner(__attribute__((unused)) bool ignoreOwner);
 	inline void setOwner();
 	inline void unsetOwner();
-	
+
 public:
 	TicketSpinLock()
 		: _currentTicket(0), _nextFreeTicket(0)
@@ -50,17 +50,17 @@ public:
 #endif
 	{
 	}
-	
+
 	~TicketSpinLock()
 	{
 		// Not locked
 		assert(_currentTicket == _nextFreeTicket);
 	}
-	
+
 	inline void lock()
 	{
 		TICKET_T ticket = _nextFreeTicket++;
-		
+
 		while (_currentTicket.load(std::memory_order_acquire) != ticket) {
 			int spinsLeft = SPIN_LOCK_READS_BETWEEN_CMPXCHG;
 			TICKET_T current;
@@ -69,20 +69,20 @@ public:
 				spinsLeft--;
 			} while ((current != ticket) && (spinsLeft > 0));
 		}
-		
+
 		assertUnowned();
 		setOwner();
 	}
-	
+
 	inline bool tryLock()
 	{
 		TICKET_T ticket = _nextFreeTicket;
-		
+
 		if (_currentTicket.load() == ticket) {
 			if (_nextFreeTicket.compare_exchange_strong(ticket, ticket+1)) {
 				assertUnowned();
 				setOwner();
-				
+
 				return true;
 			} else {
 				return false;
@@ -91,15 +91,15 @@ public:
 			return false;
 		}
 	}
-	
+
 	inline void unlock(bool ignoreOwner = false)
 	{
 		assertCurrentOwner(ignoreOwner);
 		unsetOwner();
-		
+
 		_currentTicket.fetch_add(1, std::memory_order_release);
 	}
-	
+
 	inline bool isLockedByThisThread();
 };
 

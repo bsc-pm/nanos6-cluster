@@ -36,3 +36,5 @@ GTAGS
 TAGS
 common/
 compile_commands.json
+.clangd
+.dir-locals.el

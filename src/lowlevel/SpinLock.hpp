@@ -30,12 +30,13 @@ class CustomizableSpinLock: public DEBUG_KIND {
 private:
 	CustomizableSpinLock operator=(const CustomizableSpinLock &) = delete;
 	CustomizableSpinLock(const CustomizableSpinLock & ) = delete;
-	
+
 	SPINLOCK_INTERNAL_TYPE _lock;
-	
+
 public:
 	inline CustomizableSpinLock();
 	inline ~CustomizableSpinLock();
+
 	inline void lock();
 	inline bool tryLock();
 	inline void unlock(bool ignoreOwner = false);

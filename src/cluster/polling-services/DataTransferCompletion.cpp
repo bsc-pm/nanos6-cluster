@@ -27,8 +27,7 @@ namespace ClusterPollingServices {
 
 	static int checkDataTransfers(void *service_data)
 	{
-		PendingTransfers *pending =
-			(PendingTransfers *)service_data;
+		PendingTransfers *pending = (PendingTransfers *)service_data;
 		assert(pending != nullptr);
 
 		std::vector<DataTransfer *> &transfers = pending->_transfers;

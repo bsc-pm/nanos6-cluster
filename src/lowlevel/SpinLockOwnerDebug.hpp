@@ -19,52 +19,63 @@ namespace ompss_debug {
 class SpinLockOwnerDebug {
 private:
 	void *_owner;
-	
+
 public:
 	inline SpinLockOwnerDebug()
 		: _owner(nullptr)
 	{
 	}
-	
+
 	inline void willLock()
 	{
 	}
-	
+
 	inline void assertCurrentOwner(__attribute__((unused)) bool ignoreOwner)
 	{
-		assert(ignoreOwner || (_owner == ompss_debug::getCurrentThread()) || (ompss_debug::getCurrentThread() == nullptr));
+		assert(
+			ignoreOwner
+			|| (_owner == ompss_debug::getCurrentThread())
+			|| (ompss_debug::getCurrentThread() == nullptr)
+		);
 	}
-	
+
 	inline void assertUnowned()
 	{
 		assert(_owner == nullptr);
 	}
-	
+
 	inline void assertUnownedOrCurrentOwner(__attribute__((unused)) bool ignoreOwner)
 	{
-		assert( ignoreOwner || (_owner == nullptr) || (_owner == ompss_debug::getCurrentThread()) ) ;
+		assert(
+			ignoreOwner
+			|| (_owner == nullptr)
+			|| (_owner == ompss_debug::getCurrentThread())
+		) ;
 	}
-	
+
 	inline void assertNotCurrentOwner()
 	{
-		assert((_owner != ompss_debug::getCurrentThread()) || (ompss_debug::getCurrentThread() == nullptr));
+		assert(
+			(_owner != ompss_debug::getCurrentThread())
+			|| (ompss_debug::getCurrentThread() == nullptr)
+		);
 	}
-	
+
 	inline void setOwner()
 	{
 		_owner = ompss_debug::getCurrentThread();
 	}
-	
+
 	inline void unsetOwner()
 	{
 		_owner = nullptr;
 	}
-	
+
 	inline bool isLockedByThisThread()
 	{
 		return (_owner == ompss_debug::getCurrentThread());
 	}
-	
+
 };
 
 

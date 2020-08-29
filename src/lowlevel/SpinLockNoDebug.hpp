@@ -13,35 +13,35 @@ public:
 	inline SpinLockNoDebug()
 	{
 	}
-	
+
 	inline void willLock()
 	{
 	}
-	
+
 	inline void assertCurrentOwner(__attribute__((unused)) bool ignoreOwner)
 	{
 	}
-	
+
 	inline void assertUnowned()
 	{
 	}
-	
+
 	inline void assertUnownedOrCurrentOwner(__attribute__((unused)) bool ignoreOwner)
 	{
 	}
-	
+
 	inline void assertNotCurrentOwner()
 	{
 	}
-	
+
 	inline void setOwner()
 	{
 	}
-	
+
 	inline void unsetOwner()
 	{
 	}
-	
+
 };
 
 

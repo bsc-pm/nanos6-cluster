@@ -17,10 +17,10 @@ namespace ClusterPollingServices {
 	//! in order to be polled periodically by the polling
 	//! service for completion
 	void addPendingDataTransfer(DataTransfer *dt);
-	
+
 	//! \brief Initialize the polling service
 	void registerDataTransferCompletion();
-	
+
 	//! \brief Shutdown the polling service
 	void unregisterDataTransferCompletion();
 }
