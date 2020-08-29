@@ -47,17 +47,9 @@ public:
 		_CPUCaches.resize(cpuCount);
 		for (size_t i = 0; i < cpuCount; ++i) {
 			CPU *cpu = cpus[i];
-			_CPUCaches[i] = new CPUObjectCache<T>(
-						_NUMACache,
-						cpu->getNumaNodeId(),
-						numaNodeCount
-					);
+			_CPUCaches[i] = new CPUObjectCache<T>(_NUMACache, cpu->getNumaNodeId(), numaNodeCount);
 		}
-		_externalObjectCache = new CPUObjectCache<T>(
-						_NUMACache,
-						/* NUMA Id */ 0,
-						numaNodeCount
-					);
+		_externalObjectCache = new CPUObjectCache<T>(_NUMACache, /* NUMA Id */ 0, numaNodeCount);
 	}
 
 	~ObjectCache()

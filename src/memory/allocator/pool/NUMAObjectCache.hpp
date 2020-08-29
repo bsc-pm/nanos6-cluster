@@ -9,12 +9,12 @@
 
 #include "lowlevel/PaddedSpinLock.hpp"
 
+#include <vector>
 #include <deque>
 #include <mutex>
 
 template <typename T>
 class NUMAObjectCache {
-	size_t _NUMANodeCount;
 
 	typedef std::deque<T *> pool_t;
 	typedef struct {
@@ -22,13 +22,12 @@ class NUMAObjectCache {
 		pool_t _pool;
 	} NUMApool_t;
 
-	std::deque<NUMApool_t> _NUMAPools;
+	std::vector<NUMApool_t> _NUMAPools;
 
 public:
 	NUMAObjectCache(size_t NUMANodeCount)
-		: _NUMANodeCount(NUMANodeCount)
+		: _NUMAPools(NUMANodeCount + 1)
 	{
-		_NUMAPools.resize(NUMANodeCount + 1);
 	}
 
 	~NUMAObjectCache()
