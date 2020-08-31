@@ -208,22 +208,11 @@ public:
 	//!
 	//! \param[in] messages is a vector containing Message objects
 	//!		to check for completion
-	static inline void testMessageCompletion(std::vector<Message *> &messages)
+	template<typename T>
+	static inline void testCompletion(std::vector<T *> &messages)
 	{
 		assert(_singleton->_msn != nullptr);
-		_singleton->_msn->testMessageCompletion(messages);
-	}
-
-	//! \brief Test DataTransfers for completion
-	//!
-	//! This is just a wrapper on top of the Messenger API
-	//!
-	//! \param[in] transfers is a vector containing DataTransfer objects
-	//!		to check for completion
-	static inline void testDataTransferCompletion(std::vector<DataTransfer *> &transfers)
-	{
-		assert(_singleton->_msn != nullptr);
-		_singleton->_msn->testDataTransferCompletion(transfers);
+		_singleton->_msn->testCompletion(messages);
 	}
 
 	//! \brief Fetch a DataAccessRegion from a remote node
@@ -382,5 +371,8 @@ public:
 		return _singleton->_callback.load();
 	}
 };
+
+
+
 
 #endif /* CLUSTER_MANAGER_HPP */

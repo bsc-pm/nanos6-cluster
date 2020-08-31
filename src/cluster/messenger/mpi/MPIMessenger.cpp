@@ -1,7 +1,7 @@
 /*
 	This file is part of Nanos6 and is licensed under the terms contained in the COPYING file.
 
-	Copyright (C) 2019 Barcelona Supercomputing Center (BSC)
+	Copyright (C) 2019-2020 Barcelona Supercomputing Center (BSC)
 */
 
 #include <cstdlib>
@@ -91,7 +91,8 @@ void MPIMessenger::sendMessage(Message *msg, ClusterNode const *toNode, bool blo
 		ret = MPI_Send((void *)delv, msgSize, MPI_BYTE, mpiDst, tag, INTRA_COMM);
 		MPIErrorHandler::handle(ret, INTRA_COMM);
 
-		msg->markAsDelivered();
+		msg->markAsCompleted();
+
 		Instrument::clusterMessageCompleteSend(msg);
 
 		return;
@@ -104,7 +105,7 @@ void MPIMessenger::sendMessage(Message *msg, ClusterNode const *toNode, bool blo
 	MPIErrorHandler::handle(ret, INTRA_COMM);
 
 	msg->setMessengerData((void *)request);
-	ClusterPollingServices::addPendingMessage(msg);
+	ClusterPollingServices::PendingQueue<Message>::addPending(msg);
 
 	Instrument::clusterMessageCompleteSend(msg);
 }
@@ -220,11 +221,13 @@ Message *MPIMessenger::checkMail(void)
 	return GenericFactory<int, Message*, Message::Deliverable*>::getInstance().create(type, msg);
 }
 
-void MPIMessenger::testMessageCompletion(std::vector<Message *> &messages)
-{
-	assert(!messages.empty());
 
-	const int msgCount = messages.size();
+template <typename T>
+void MPIMessenger::testCompletionInternal(std::vector<T *> &pendings)
+{
+	assert(!pendings.empty());
+
+	const int msgCount = pendings.size();
 	int ret, completedCount;
 
 	MPI_Request requests[msgCount];
@@ -232,7 +235,7 @@ void MPIMessenger::testMessageCompletion(std::vector<Message *> &messages)
 	MPI_Status status[msgCount];
 
 	for (int i = 0; i < msgCount; ++i) {
-		Message *msg = messages[i];
+		T *msg = pendings[i];
 		assert(msg != nullptr);
 
 		MPI_Request *req = (MPI_Request *)msg->getMessengerData();
@@ -246,44 +249,10 @@ void MPIMessenger::testMessageCompletion(std::vector<Message *> &messages)
 
 	for (int i = 0; i < completedCount; ++i) {
 		const int index = finished[i];
-		Message *msg = messages[index];
+		T *msg = pendings[index];
 
-		msg->markAsDelivered();
+		msg->markAsCompleted();
 		MPI_Request *req = (MPI_Request *)msg->getMessengerData();
-		MemoryAllocator::free(req, sizeof(MPI_Request));
-	}
-}
-
-void MPIMessenger::testDataTransferCompletion(std::vector<DataTransfer *> &transfers)
-{
-	assert(!transfers.empty());
-
-	const int msgCount = transfers.size();
-	int ret, completedCount;
-
-	MPI_Request requests[msgCount];
-	int finished[msgCount];
-	MPI_Status status[msgCount];
-
-	for (int i = 0; i < msgCount; ++i) {
-		MPIDataTransfer *dt = (MPIDataTransfer *)transfers[i];
-		assert(dt != nullptr);
-
-		MPI_Request *req = dt->getMPIRequest();
-		assert(req != nullptr);
-
-		requests[i] = *req;
-	}
-
-	ret = MPI_Testsome(msgCount, requests, &completedCount, finished, status);
-	MPIErrorHandler::handleErrorInStatus(ret, status, completedCount, INTRA_COMM);
-
-	for (int i = 0; i < completedCount; ++i) {
-		int index = finished[i];
-		MPIDataTransfer *dt = (MPIDataTransfer *)transfers[index];
-
-		dt->markAsCompleted();
-		MPI_Request *req = dt->getMPIRequest();
 		MemoryAllocator::free(req, sizeof(MPI_Request));
 	}
 }

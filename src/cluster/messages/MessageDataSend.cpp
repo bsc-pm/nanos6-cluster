@@ -1,13 +1,13 @@
 /*
 	This file is part of Nanos6 and is licensed under the terms contained in the COPYING file.
 
-	Copyright (C) 2019 Barcelona Supercomputing Center (BSC)
+	Copyright (C) 2019-2020 Barcelona Supercomputing Center (BSC)
 */
 
 #include "MessageDataSend.hpp"
 
 #include <ClusterManager.hpp>
-#include <DataTransferCompletion.hpp>
+#include <MessageDelivery.hpp>
 
 MessageDataSend::MessageDataSend(const ClusterNode *from, DataAccessRegion const &remoteRegion)
 	: Message(DATA_SEND, sizeof(DataSendMessageContent), from)
@@ -22,7 +22,7 @@ bool MessageDataSend::handleMessage()
 
 	DataTransfer *dt = ClusterManager::fetchDataRaw(_content->_remoteRegion, memoryPlace, getId());
 
-	ClusterPollingServices::addPendingDataTransfer(dt);
+	ClusterPollingServices::PendingQueue<DataTransfer>::addPending(dt);
 
 	return true;
 }

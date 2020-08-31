@@ -472,8 +472,6 @@ cluster_sources += \
 	src/cluster/messages/MessageType.cpp \
 	src/cluster/messenger/mpi/MPIMessenger.cpp \
 	src/cluster/offloading/TaskOffloading.cpp \
-	src/cluster/polling-services/DataTransferCompletion.cpp \
-	src/cluster/polling-services/MessageDelivery.cpp \
 	src/cluster/polling-services/MessageHandler.cpp \
 	src/executors/workflow/cluster/ExecutionWorkflowCluster.cpp \
 	src/memory/directory/cluster/DistributionPolicy.cpp \
@@ -1356,7 +1354,6 @@ noinst_HEADERS += \
 	src/cluster/offloading/SatisfiabilityInfo.hpp \
 	src/cluster/offloading/TaskOffloading.hpp \
 	src/cluster/polling-services/ClusterPollingServices.hpp \
-	src/cluster/polling-services/DataTransferCompletion.hpp \
 	src/cluster/polling-services/MessageDelivery.hpp \
 	src/cluster/polling-services/MessageHandler.hpp \
 	src/scheduling/ClusterScheduler.hpp \

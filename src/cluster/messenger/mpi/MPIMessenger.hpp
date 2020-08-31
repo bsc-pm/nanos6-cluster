@@ -1,7 +1,7 @@
 /*
 	This file is part of Nanos6 and is licensed under the terms contained in the COPYING file.
 
-	Copyright (C) 2018 Barcelona Supercomputing Center (BSC)
+	Copyright (C) 2018-2020 Barcelona Supercomputing Center (BSC)
 */
 
 #ifndef MPI_MESSENGER_HPP
@@ -26,6 +26,8 @@ private:
 	int _wrank = -1, _wsize = -1;
 	MPI_Comm INTRA_COMM, PARENT_COMM;
 
+	template<typename T>
+	void testCompletionInternal(std::vector<T *> &pending);
 public:
 	MPIMessenger();
 	~MPIMessenger();
@@ -35,8 +37,17 @@ public:
 	DataTransfer *sendData(const DataAccessRegion &region, const ClusterNode *toNode, int messageId, bool block);
 	DataTransfer *fetchData(const DataAccessRegion &region, const ClusterNode *fromNode, int messageId, bool block);
 	Message *checkMail();
-	void testMessageCompletion(std::vector<Message *> &messages);
-	void testDataTransferCompletion(std::vector<DataTransfer *> &transfers);
+
+
+	inline void testCompletion(std::vector<Message *> &pending)
+	{
+		testCompletionInternal<Message>(pending);
+	}
+
+	inline void testCompletion(std::vector<DataTransfer *> &pending)
+	{
+		testCompletionInternal<DataTransfer>(pending);
+	}
 
 	inline int getNodeIndex() const
 	{

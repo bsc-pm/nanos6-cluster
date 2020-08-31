@@ -1,7 +1,7 @@
 /*
 	This file is part of Nanos6 and is licensed under the terms contained in the COPYING file.
 
-	Copyright (C) 2018 Barcelona Supercomputing Center (BSC)
+	Copyright (C) 2018-2020 Barcelona Supercomputing Center (BSC)
 */
 
 #ifndef MESSENGER_HPP
@@ -106,20 +106,9 @@ public:
 	//! messages are marked as completed
 	//!
 	//! \param[in] messages holds the pending outgoing messages
-	virtual void testMessageCompletion(
-		std::vector<Message *> &messages
-	) = 0;
+	virtual void testCompletion(std::vector<Message *> &pendings) = 0;
+	virtual void testCompletion(std::vector<DataTransfer *> &pendings) = 0;
 
-	//! \brief Test if pending DataTransfers have completed
-	//!
-	//! This tests whether DataTransfer objects stored in the 'transfers'
-	//! vector have completed. All succesfully completed DataTransfers
-	//! are marked as completed
-	//!
-	//! \param[in] transfers holds the pending data transfers
-	virtual void testDataTransferCompletion(
-		std::vector<DataTransfer *> &transfers
-	) = 0;
 };
 
 #define REGISTER_MSN_CLASS(NAME, CREATEFN) \

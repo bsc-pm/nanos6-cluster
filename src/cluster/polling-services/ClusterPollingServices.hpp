@@ -1,18 +1,17 @@
 /*
 	This file is part of Nanos6 and is licensed under the terms contained in the COPYING file.
 
-	Copyright (C) 2018 Barcelona Supercomputing Center (BSC)
+	Copyright (C) 2018-2020 Barcelona Supercomputing Center (BSC)
 */
 
 #ifndef CLUSTER_POLLING_SERVICES_HPP
 #define CLUSTER_POLLING_SERVICES_HPP
 
-#include "DataTransferCompletion.hpp"
 #include "MessageDelivery.hpp"
 #include "MessageHandler.hpp"
 
 namespace ClusterPollingServices {
-	
+
 	//! \brief Initialize the Cluster polling services
 	//!
 	//! This method will be called during ClusterManager
@@ -22,10 +21,10 @@ namespace ClusterPollingServices {
 	inline void initialize()
 	{
 		registerMessageHandler();
-		registerMessageDelivery();
-		registerDataTransferCompletion();
+		registerPoolingDelivery<Message>();
+		registerPoolingDelivery<DataTransfer>();
 	}
-	
+
 	//! \brief Shutdown the Cluster polling services
 	//!
 	//! This method will be called during ClusterManager
@@ -34,8 +33,8 @@ namespace ClusterPollingServices {
 	//! shutdown interface that will be called from here.
 	inline void shutdown()
 	{
-		unregisterDataTransferCompletion();
-		unregisterMessageDelivery();
+		unregisterPoolingDelivery<DataTransfer>();
+		unregisterPoolingDelivery<Message>();
 		unregisterMessageHandler();
 	}
 }
