@@ -756,34 +756,6 @@ common_sources += $(hardware_counters_sources)
 
 
 noinst_HEADERS = \
-	src/cluster/ClusterManager.hpp \
-	src/cluster/ClusterMemoryManagement.hpp \
-	src/cluster/messages/Message.hpp \
-	src/cluster/messages/MessageDataFetch.hpp \
-	src/cluster/messages/MessageDataSend.hpp \
-	src/cluster/messages/MessageDfree.hpp \
-	src/cluster/messages/MessageDmalloc.hpp \
-	src/cluster/messages/MessageId.hpp \
-	src/cluster/messages/MessageReleaseAccess.hpp \
-	src/cluster/messages/MessageSatisfiability.hpp \
-	src/cluster/messages/MessageSysFinish.hpp \
-	src/cluster/messages/MessageTaskFinished.hpp \
-	src/cluster/messages/MessageTaskNew.hpp \
-	src/cluster/messages/MessageType.hpp \
-	src/cluster/messenger/DataTransfer.hpp \
-	src/cluster/messenger/Messenger.hpp \
-	src/cluster/messenger/mpi/MPIDataTransfer.hpp \
-	src/cluster/messenger/mpi/MPIMessenger.hpp \
-	src/cluster/null/ClusterManager.hpp \
-	src/cluster/null/ClusterMemoryManagement.hpp \
-	src/cluster/offloading/ClusterTaskContext.hpp \
-	src/cluster/offloading/SatisfiabilityInfo.hpp \
-	src/cluster/offloading/TaskOffloading.hpp \
-	src/cluster/offloading/null/ClusterTaskContext.hpp \
-	src/cluster/polling-services/ClusterPollingServices.hpp \
-	src/cluster/polling-services/DataTransferCompletion.hpp \
-	src/cluster/polling-services/MessageDelivery.hpp \
-	src/cluster/polling-services/MessageHandler.hpp \
 	src/dependencies/DataAccessBase.hpp \
 	src/dependencies/DataAccessType.hpp \
 	src/dependencies/MultidimensionalAPITraversal.hpp \
@@ -1362,6 +1334,31 @@ instrument_extrae_sources += \
 	src/instrument/extrae/InstrumentCluster.cpp
 
 noinst_HEADERS += \
+	src/cluster/ClusterManager.hpp \
+	src/cluster/ClusterMemoryManagement.hpp \
+	src/cluster/messages/Message.hpp \
+	src/cluster/messages/MessageDataFetch.hpp \
+	src/cluster/messages/MessageDataSend.hpp \
+	src/cluster/messages/MessageDfree.hpp \
+	src/cluster/messages/MessageDmalloc.hpp \
+	src/cluster/messages/MessageId.hpp \
+	src/cluster/messages/MessageReleaseAccess.hpp \
+	src/cluster/messages/MessageSatisfiability.hpp \
+	src/cluster/messages/MessageSysFinish.hpp \
+	src/cluster/messages/MessageTaskFinished.hpp \
+	src/cluster/messages/MessageTaskNew.hpp \
+	src/cluster/messages/MessageType.hpp \
+	src/cluster/messenger/DataTransfer.hpp \
+	src/cluster/messenger/Messenger.hpp \
+	src/cluster/messenger/mpi/MPIDataTransfer.hpp \
+	src/cluster/messenger/mpi/MPIMessenger.hpp \
+	src/cluster/offloading/ClusterTaskContext.hpp \
+	src/cluster/offloading/SatisfiabilityInfo.hpp \
+	src/cluster/offloading/TaskOffloading.hpp \
+	src/cluster/polling-services/ClusterPollingServices.hpp \
+	src/cluster/polling-services/DataTransferCompletion.hpp \
+	src/cluster/polling-services/MessageDelivery.hpp \
+	src/cluster/polling-services/MessageHandler.hpp \
 	src/scheduling/ClusterScheduler.hpp \
 	src/scheduling/schedulers/cluster/ClusterSchedulerInterface.hpp \
 	src/scheduling/schedulers/cluster/ClusterLocalityScheduler.hpp \
@@ -1372,6 +1369,12 @@ memory_default_cppflags = $(memory_allocator_default_cppflags) $(vmm_cluster_cpp
 memory_debug_sources = $(memory_default_sources)
 memory_debug_cppflags = $(memory_default_cppflags)
 else
+noinst_HEADERS += \
+	src/cluster/null/ClusterManager.hpp \
+	src/cluster/offloading/null/ClusterTaskContext.hpp \
+	src/cluster/null/ClusterMemoryManagement.hpp
+
+
 # memory_default_sources = $(memory_allocator_default_sources) $(vmm_smp_sources)
 # memory_default_cppflags = $(memory_allocator_default_cppflags) $(vmm_smp_cppflags)
 memory_default_sources = $(memory_allocator_debug_sources) $(vmm_smp_sources)
