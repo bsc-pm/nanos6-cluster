@@ -43,10 +43,12 @@ public:
 		_lock.unlock();
 	}
 
+#ifndef NDEBUG
 	inline bool isLockedByThisThread()
 	{
 		return _lock.isLockedByThisThread();
 	}
+#endif
 
 	inline inner_type_t &getTicketLock()
 	{

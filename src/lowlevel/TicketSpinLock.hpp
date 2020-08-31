@@ -100,7 +100,9 @@ public:
 		_currentTicket.fetch_add(1, std::memory_order_release);
 	}
 
+#ifndef NDEBUG
 	inline bool isLockedByThisThread();
+#endif 
 };
 
 
