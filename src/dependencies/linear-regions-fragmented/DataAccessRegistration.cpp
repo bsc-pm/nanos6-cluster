@@ -49,6 +49,7 @@ namespace DataAccessRegistration {
 	 *
 	 * Prints desc, plus task name, then the accesses and fragments
 	 */
+#ifndef NDEBUG
 	void printTaskAccessesAndFragments(const char *desc, Task *task)
 	{
 		std::cout << desc << task->getLabel() << "\n";
@@ -107,6 +108,7 @@ namespace DataAccessRegistration {
 		if (lock)
 			lock->unlock();
 	}
+#endif /* NDEBUG */
 
 
 	typedef CPUDependencyData::removable_task_list_t removable_task_list_t;
