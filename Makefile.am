@@ -490,7 +490,6 @@ cluster_sources += \
 
 cluster_cppflags = \
 	-I$(srcdir)/src/cluster \
-	-I$(srcdir)/src/cluster/hybrid \
 	-I$(srcdir)/src/cluster/messages \
 	-I$(srcdir)/src/cluster/messenger \
 	-I$(srcdir)/src/cluster/offloading \
@@ -732,11 +731,16 @@ endif
 # DLB + Cluster: Hybrid
 if HAVE_DLB
 cluster_sources += \
-	src/cluster/hybrid/ClusterHybridManager.cpp
+	src/cluster/hybrid/ClusterHybridInterfaceFile.cpp \
+	src/cluster/hybrid/ClusterHybridManager.cpp \
+	src/cluster/polling-services/hybrid/HybridPolling.cpp
 cluster_cppflags += -DHAVE_DLB
 cluster_cppflags += \
-	-I$(srcdir)/src/cluser/hybrid
+	-I$(srcdir)/src/cluster/hybrid \
+	-I$(srcdir)/src/cluster/polling-services
 else
+cluster_cppflags += \
+	-I$(srcdir)/src/cluster/hybrid/null
 endif
 
 common_sources += $(cpu_manager_sources)
@@ -1412,6 +1416,7 @@ endif
 # DLB + Cluster: Hybrid
 if HAVE_DLB
 noinst_HEADERS += \
+	src/cluster/polling-services/hybrid/HybridPolling.hpp \
 	src/cluster/hybrid/ClusterHybridManager.hpp
 endif
 

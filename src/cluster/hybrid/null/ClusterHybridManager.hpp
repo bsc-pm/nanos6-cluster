@@ -17,7 +17,9 @@ class ClusterHybridManager {
 public:
 
 	static void preinitialize(
-		__attribute__((unused)) bool forceHybrid)
+		__attribute__((unused)) bool forceHybrid,
+		__attribute__((unused)) int externalRank,
+		__attribute__((unused)) int apprankNum)
 	{}
 
 	static bool inHybridClusterMode()

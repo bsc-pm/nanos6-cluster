@@ -128,6 +128,8 @@ void ClusterManager::internal_reset() {
 	 * indices for cluster nodes */
 
 	const size_t clusterSize = _msn->getClusterSize();
+	const int apprankNum = _msn->getApprankNum();
+	const int externalRank = _msn->getExternalRank();
 	const int nodeIndex = _msn->getNodeIndex();
 	const int masterIndex = _msn->getMasterIndex();
 
@@ -136,11 +138,9 @@ void ClusterManager::internal_reset() {
 	WriteIDManager::initialize(nodeIndex, clusterSize);
 	OffloadedTaskIdManager::initialize(nodeIndex, clusterSize);
 
-	int apprankNum = _msn->getApprankNum();
 	int numAppranks = _msn->getNumAppranks();
 	bool inHybridMode = numAppranks > 1;
-
-	ClusterHybridManager::preinitialize(inHybridMode);
+	ClusterHybridManager::preinitialize(inHybridMode, externalRank, apprankNum);
 
 	if (this->_clusterNodes.empty()) {
 		// Called from constructor the first time
@@ -195,6 +195,14 @@ void ClusterManager::postinitialize()
 	if (ClusterManager::inClusterMode()) {
 		ClusterServicesPolling::initialize();
 		ClusterServicesTask::initializeWorkers(_singleton->_numMessageHandlerWorkers);
+	} else {
+#if HAVE_DLB
+		/* Enable polling services for LeWI + DROM integration even if not in clusters mode.
+		 * Ideally DROM support could be disconnected from the cluster support as it may
+		 * be useful among processes on the same node, even without clusters.
+		 */
+		ClusterServicesPolling::initialize(/* hybridOnly */ true);
+#endif
 	}
 }
 
@@ -217,12 +225,16 @@ void ClusterManager::shutdownPhase1()
 	}
 
 	if (ClusterManager::inClusterMode()) {
-
 		ClusterServicesPolling::shutdown();
+
 		ClusterServicesTask::shutdownWorkers(_singleton->_numMessageHandlerWorkers);
 
 		TaskOffloading::RemoteTasksInfoMap::shutdown();
 		TaskOffloading::OffloadedTasksInfoMap::shutdown();
+	} else {
+#if HAVE_DLB
+		ClusterServicesPolling::shutdown(/* hybridOnly */ true);
+#endif
 	}
 
 	if (_singleton->_msn != nullptr) {

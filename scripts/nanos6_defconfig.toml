@@ -346,6 +346,9 @@ __require_CLUSTER
 		# to a single apprank across all MPI processes.
 		split = ""
 
+		# Hybrid monitoring directory. Default is ".hybrid"
+		directory = ".hybrid"
+
 __!require_CLUSTER
 
 [memory]
