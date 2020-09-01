@@ -99,6 +99,7 @@ void nanos6_preinit(int argc, char **argv)
 	ExternalThreadGroup::initialize();
 
 	Instrument::initialize();
+	ClusterManager::initialize2();  // must be after Instrument::initialize()
 	mainThread = new ExternalThread("main-thread");
 	mainThread->preinitializeExternalThread();
 

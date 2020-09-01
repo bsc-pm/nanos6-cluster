@@ -6,6 +6,7 @@
 
 #include "ClusterManager.hpp"
 #include "ClusterHybridManager.hpp"
+#include "executors/threads/CPUManager.hpp"
 #include "messages/MessageSysFinish.hpp"
 #include "messages/MessageDataFetch.hpp"
 
@@ -65,7 +66,9 @@ ClusterManager::ClusterManager(std::string const &commType, int argc, char **arg
 	/*
 	 * Initialize hybrid interface: controls data distribution within the apprank
 	 */
-	_hyb->initialize(_msn->getExternalRank());
+	int apprankNum = _msn->getApprankNum();
+	int externalRank = _msn->getExternalRank();
+	_hyb->initialize(externalRank, apprankNum);
 
 	TaskOffloading::RemoteTasksInfoMap::init();
 	TaskOffloading::OffloadedTasksInfoMap::init();
@@ -187,6 +190,36 @@ void ClusterManager::initialize(int argc, char **argv)
 	}
 
 	assert(_singleton != nullptr);
+}
+
+void ClusterManager::initialize2()
+{
+	/*
+	 * Start assuming that each cluster node has a sensible initial number of
+	 * cores.  This only affects the distribution of work until we get told the
+	 * actual number of cores.
+	 */
+	bool inHybridMode = ClusterHybridManager::inHybridClusterMode();
+	const int nodeIndex = getCurrentClusterNode()->getIndex();
+	int myNumCores = CPUManager::getTotalCPUs();
+
+	assert(myNumCores >= 1);
+	for (int i = 0; i < clusterSize(); i++) {
+		int numCores;
+		if (inHybridMode) {
+			// In hybrid mode: start by assuming 1 core for masters and 0 cores for slaves.
+			// The outcome will be that (1) all dmallocs are distributed with affinity 100% on
+			// the current node, and (2) the slaves will only request enough work to keep 1 core busy.
+			// This will until the global core allocator runs for the first time.
+			numCores = (i == nodeIndex) ? 1 : 0;
+		} else {
+			// Non-hybrid mode: assume every instance has the same number of cores as this instance, for fair
+			// distribution of load
+			numCores = myNumCores;
+		}
+		getClusterNode(i)->setCurrentAllocCores(numCores);
+	}
+
 }
 
 // This needs to be called AFTER initializing the memory allocator

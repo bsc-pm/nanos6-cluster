@@ -14,6 +14,7 @@ class ClusterHybridInterfaceFile : public ClusterHybridInterface {
 	private:
 		struct timespec _prevTime;
 		const char *_directory;
+		const char *_allocFileThisApprank;
 
 		static void readTime(struct timespec *pt)
 		{
@@ -23,7 +24,8 @@ class ClusterHybridInterfaceFile : public ClusterHybridInterface {
 									  strerror(errno));
 		}
 
-		void updateNumbersOfCores(void);
+		// Return value is whether the allocation changed
+		bool updateNumbersOfCores(void);
 
 		void sendUtilization(float ncores);
 
@@ -34,7 +36,7 @@ class ClusterHybridInterfaceFile : public ClusterHybridInterface {
 		{
 		}
 
-		void initialize(int externalRank);
+		void initialize(int externalRank, int apprankNum);
 
 		void poll(void);
 

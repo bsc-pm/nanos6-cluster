@@ -23,7 +23,7 @@ class ClusterHybridInterface {
 		{
 		}
 
-		virtual void initialize(int externalRank) = 0;
+		virtual void initialize(int externalRank, int apprankNum) = 0;
 
 		//! Called by polling service
 		virtual void poll() = 0;

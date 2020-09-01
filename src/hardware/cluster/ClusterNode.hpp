@@ -28,13 +28,16 @@ private:
 	//! For Extrae tracing of hybrid clusters+DLB
 	int _instrumentationRank;
 
+	//! The number of cores available to this Nanos6 apprank in that instance
+	int _numCores;
+
 	std::atomic<int> _numOffloadedTasks; // offloaded by us
 
 public:
 	ClusterNode(int index, int commIndex, int apprankNum, bool inHybridMode, int instrumentationRank)
 		: ComputePlace(index, nanos6_device_t::nanos6_cluster_device),
 		_memoryNode(new ClusterMemoryNode(index, commIndex)),
-		_commIndex(commIndex), _instrumentationRank(instrumentationRank),
+		_commIndex(commIndex), _instrumentationRank(instrumentationRank), _numCores(0),
 		_numOffloadedTasks(0)
 	{
 		assert(_memoryNode != nullptr);
@@ -75,6 +78,16 @@ public:
 	std::string &getInstrumentationName()
 	{
 		return _instrumentationName;
+	}
+
+	inline void setCurrentAllocCores(int numCores)
+	{
+		_numCores = numCores;
+	}
+
+	inline int getCurrentAllocCores() const
+	{
+		return _numCores;
 	}
 
 	//! \brief Update number of tasks offloaded from this node to the ClusterNode

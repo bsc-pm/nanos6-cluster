@@ -496,6 +496,7 @@ public:
 		}
 	}
 
+	static void initialize2();
 };
 
 

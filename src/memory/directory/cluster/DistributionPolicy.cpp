@@ -17,21 +17,45 @@
 namespace ClusterDirectory {
 	static void registerAllocationEqupart(DataAccessRegion const &region)
 	{
-		void *address = region.getStartAddress();
-		size_t size = region.getSize();
 		size_t clusterSize = ClusterManager::clusterSize();
 
-		size_t blockSize = size / clusterSize;
-		size_t residual = size % clusterSize;
-		size_t numBlocks = (blockSize > 0) ? clusterSize : 0;
+		std::vector<int> coresPerRank;
+		coresPerRank.resize(clusterSize);
+		//= ClusterManager::getCoresPerRank();
+		int totalCores = 0;
+
+		/* Get cores per rank and total number of cores */
+		// std::cout << "Dmalloc: clusterSize = " << clusterSize << "\n";
+		for (size_t node=0; node<clusterSize; node++)
+		{
+			int numCores = ClusterManager::getClusterNode(node)->getCurrentAllocCores();
+			coresPerRank[node] = numCores;
+			totalCores += numCores;
+			// std::cout << "Dmalloc: coresPerRank[" << node << "] = " << numCores << "\n";
+		}
+		assert(totalCores > 0);
+
+		/* Divide up the region by cores */
+		void *address = region.getStartAddress();
+		size_t size = region.getSize();
+		size_t blockSize = size / totalCores;
+		size_t residual = size % totalCores;
+		// size_t numBlocks = (blockSize > 0) ? clusterSize : 0;
 
 		char *ptr = (char *)address;
-		for (size_t i = 0; i < numBlocks; ++i) {
-			DataAccessRegion newRegion((void *)ptr, blockSize);
-			ClusterMemoryNode *homeNode = ClusterManager::getMemoryNode(i);
-			Directory::insert(newRegion, homeNode);
-			ptr += blockSize;
-		}
+                if (blockSize > 0)
+                {
+                    for (size_t i = 0; i < clusterSize; ++i) {
+                            int numBlocks = coresPerRank[i];
+                            if (numBlocks > 0)
+                            {
+                                DataAccessRegion newRegion((void *)ptr, numBlocks * blockSize);
+                                ClusterMemoryNode *homeNode = ClusterManager::getMemoryNode(i);
+                                Directory::insert(newRegion, homeNode);
+                                ptr += numBlocks * blockSize;
+                            }
+                    }
+                }
 
 		//! Add an extra entry to the first node for any residual
 		//! uncovered region.
@@ -41,7 +65,9 @@ namespace ClusterDirectory {
 			assert(homeNode != nullptr);
 
 			Directory::insert(newRegion, homeNode);
+			ptr += residual;
 		}
+		assert(ptr == (char*)address + size);
 	}
 
 	void registerAllocation(DataAccessRegion const &region,
