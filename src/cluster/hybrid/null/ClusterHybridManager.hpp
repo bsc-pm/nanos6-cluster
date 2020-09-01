@@ -22,6 +22,15 @@ public:
 		__attribute__((unused)) int apprankNum)
 	{}
 
+	static void initialize()
+	{
+		int clusterSize = ClusterManager::clusterSize();
+		int numCores = CPUManager::getTotalCPUs();
+		for (int i = 0; i < clusterSize; i++) {
+			ClusterManager::getClusterNode(i)->setCurrentAllocCores(numCores);
+		}
+	}
+
 	static bool inHybridClusterMode()
 	{
 		return false;

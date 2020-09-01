@@ -21,6 +21,8 @@ public:
 
 	static void preinitialize(bool forceHybrid, int externalRank, int apprankNum);
 
+	static void initialize();
+
 	static bool inHybridClusterMode()
 	{
 		return _inHybridClusterMode;

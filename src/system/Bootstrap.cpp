@@ -37,6 +37,7 @@
 #include "tasks/StreamManager.hpp"
 
 #include <ClusterManager.hpp>
+#include <ClusterHybridManager.hpp>
 #include <DependencySystem.hpp>
 #include <InstrumentInitAndShutdown.hpp>
 #include <InstrumentThreadManagement.hpp>
@@ -109,6 +110,7 @@ void nanos6_preinit(int argc, char **argv)
 	HardwareInfo::initializeDeviceServices();
 
 	Instrument::initialize();
+	ClusterHybridManager::initialize();  // must be after Instrument::initialize()
 	mainThread = new ExternalThread("main-thread");
 	mainThread->preinitializeExternalThread();
 

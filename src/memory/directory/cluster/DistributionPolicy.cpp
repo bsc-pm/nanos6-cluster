@@ -33,33 +33,53 @@ namespace ClusterDirectory {
 	{
 		assert(clusterSize > 0);
 
-		char *ptr = (char *)region.getStartAddress();
+		std::vector<int> coresPerRank;
+		coresPerRank.resize(clusterSize);
+		int totalCores = 0;
+
+		/* Get cores per rank and total number of cores */
+		for (size_t node=0; node<clusterSize; node++)
+		{
+			int numCores = ClusterManager::getClusterNode(node)->getCurrentAllocCores();
+			coresPerRank[node] = numCores;
+			totalCores += numCores;
+		}
+		assert(totalCores > 0);
+
+		/* Divide up the region by cores */
+		void *address = region.getStartAddress();
 		size_t size = region.getSize();
+		size_t blockSize = size / totalCores;
+		size_t residual = size % totalCores;
 
-		size_t blockSize = size / clusterSize;
-		size_t residual = size % clusterSize;
-		size_t numBlocks = (blockSize > 0) ? clusterSize : 0;
+		char *ptr = (char *)address;
+		if (blockSize > 0)
+		{
+			for (size_t i = 0; i < clusterSize; ++i) {
+				int numBlocks = coresPerRank[i];
+				if (numBlocks > 0)
+				{
+					DataAccessRegion newRegion((void *)ptr, numBlocks * blockSize);
+					ClusterMemoryNode *homeNode = ClusterManager::getMemoryNode(i);
+					Directory::insert(newRegion, homeNode);
+					ptr += numBlocks * blockSize;
 
-		for (size_t i = 0; i < numBlocks; ++i) {
-			DataAccessRegion newRegion((void *)ptr, blockSize);
-			ClusterMemoryNode *homeNode = ClusterManager::getMemoryNode(i);
-			Directory::insert(newRegion, homeNode);
-			ptr += blockSize;
+					if (useNUMA && homeNode == ClusterManager::getCurrentMemoryNode()) {
+						// Use a blocked memory allocation for NUMA (this could be improved later)
+						nanos6_bitmask_t bitmask;
+						NUMAManager::setAnyActive(&bitmask);
+						size_t numNumaAny = NUMAManager::countEnabledBits(&bitmask);
+						assert(numNumaAny > 0);
+						size_t blockSizeNUMA = newRegion.getSize() / numNumaAny;
 
-			if (useNUMA && homeNode == ClusterManager::getCurrentMemoryNode()) {
-				// Use a blocked memory allocation for NUMA (this could be improved later)
-				nanos6_bitmask_t bitmask;
-				NUMAManager::setAnyActive(&bitmask);
-				size_t numNumaAny = NUMAManager::countEnabledBits(&bitmask);
-				assert(numNumaAny > 0);
-				size_t blockSizeNUMA = newRegion.getSize() / numNumaAny;
+						void *newPtr = newRegion.getStartAddress();
+						size_t newSize = newRegion.getSize();
+						NUMAManager::fullyIntersectPages(&newPtr, &newSize, &blockSizeNUMA);
 
-				void *newPtr = newRegion.getStartAddress();
-				size_t newSize = newRegion.getSize();
-				NUMAManager::fullyIntersectPages(&newPtr, &newSize, &blockSizeNUMA);
-
-				if (newSize > 0) {
-					NUMAManager::setNUMAAffinity(newPtr, newSize, &bitmask, blockSizeNUMA);
+						if (newSize > 0) {
+							NUMAManager::setNUMAAffinity(newPtr, newSize, &bitmask, blockSizeNUMA);
+						}
+					}
 				}
 			}
 		}
@@ -72,7 +92,9 @@ namespace ClusterDirectory {
 			assert(homeNode != nullptr);
 
 			Directory::insert(newRegion, homeNode);
+			ptr += residual;
 		}
+		assert(ptr == (char*)address + size);
 	}
 
 	void registerAllocation(

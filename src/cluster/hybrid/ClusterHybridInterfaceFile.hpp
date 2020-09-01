@@ -14,6 +14,7 @@ class ClusterHybridInterfaceFile : public ClusterHybridInterface {
 	private:
 		struct timespec _prevTime;
 		const char *_directory;
+		const char *_allocFileThisApprank;
 
 		static void readTime(struct timespec *pt)
 		{
