@@ -462,6 +462,7 @@ cluster_sources += \
 	src/cluster/ClusterMemoryManagement.cpp \
 	src/cluster/WriteID.cpp \
 	src/cluster/hybrid/ClusterStats.cpp \
+	src/cluster/hybrid/ClusterHybridInterfaceFile.cpp \
 	src/cluster/hybrid/ClusterHybridManager.cpp \
 	src/cluster/messages/Message.cpp \
 	src/cluster/messages/MessageDataFetch.cpp \
@@ -1348,6 +1349,7 @@ noinst_HEADERS += \
 	src/cluster/ClusterMemoryManagement.hpp \
 	src/cluster/NodeNamespace.hpp \
 	src/cluster/WriteID.hpp \
+	src/cluster/polling-services/HybridPolling.hpp \
 	src/cluster/hybrid/ClusterStats.hpp \
 	src/cluster/hybrid/ClusterHybridManager.hpp \
 	src/cluster/messages/Message.hpp \
@@ -1380,6 +1382,7 @@ noinst_HEADERS += \
 	src/cluster/polling-services/MessageDelivery.hpp \
 	src/cluster/polling-services/MessageHandler.hpp \
 	src/cluster/polling-services/ClusterWorker.hpp \
+	src/cluster/polling-services/HybridPolling.hpp \
 	src/scheduling/ClusterScheduler.hpp \
 	src/scheduling/schedulers/cluster/ClusterSchedulerInterface.hpp \
 	src/scheduling/schedulers/cluster/ClusterLocalityScheduler.hpp \

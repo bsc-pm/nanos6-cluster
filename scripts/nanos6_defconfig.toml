@@ -292,6 +292,9 @@ __require_CLUSTER
 		# apprank 1 has master on node 1 and worker on node 0.
 		split = ""
 
+		# Hybrid monitoring directory. Default is ".hybrid"
+		directory = ".hybrid"
+
 __!require_CLUSTER
 
 [memory]

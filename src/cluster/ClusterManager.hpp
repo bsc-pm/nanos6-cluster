@@ -14,6 +14,7 @@
 
 #include "cluster/messenger/Messenger.hpp"
 #include "cluster/messenger/DataTransfer.hpp"
+#include "ClusterHybridInterface.hpp"
 
 #include <ClusterNode.hpp>
 #include <MessageDataFetch.hpp>
@@ -65,6 +66,9 @@ private:
 	bool _mergeReleaseAndFinish;
 
 	int _numMessageHandlerWorkers;
+
+	//! Cluster hybrid interface for controlling #cores, etc.
+	ClusterHybridInterface *_hyb;
 
 	//! private constructors. This is a singleton.
 	ClusterManager();
@@ -482,6 +486,14 @@ public:
 		assert(_singleton);
 		assert(_singleton->_msn != nullptr);
 		return _singleton->_msn->getInstrumentationRank();
+	}
+
+	//! \brief In hybrid cluster mode, update numbers of cores per instance
+	static void hybridInterfacePoll()
+	{
+		if(_singleton && _singleton->_hyb) {
+			_singleton->_hyb->poll();
+		}
 	}
 
 };

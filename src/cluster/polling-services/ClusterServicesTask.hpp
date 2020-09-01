@@ -10,6 +10,7 @@
 #include "MessageHandler.hpp"
 #include "MessageDelivery.hpp"
 #include "ClusterWorker.hpp"
+#include "HybridPolling.hpp"
 
 namespace ClusterServicesTask {
 
@@ -78,6 +79,7 @@ namespace ClusterServicesTask {
 		registerService<ClusterPollingServices::MessageHandler<Message>>("MessageHandler");
 		registerService<ClusterPollingServices::PendingQueue<Message>>("MessageDelivery");
 		registerService<ClusterPollingServices::PendingQueue<DataTransfer>>("DataTransfer");
+		registerService<ClusterPollingServices::HybridPolling>("HybridPolling");
 	}
 
 	inline void initializeWorkers(int numWorkers)
@@ -114,6 +116,7 @@ namespace ClusterServicesTask {
 		unregisterService<ClusterPollingServices::PendingQueue<DataTransfer>>();
 		unregisterService<ClusterPollingServices::PendingQueue<Message>>();
 		unregisterService<ClusterPollingServices::MessageHandler<Message>>();
+		unregisterService<ClusterPollingServices::HybridPolling>();
 
 		// Note: shutdownWorkers is always called afterwards
 	}

@@ -36,6 +36,7 @@ void ConfigCentral::initialize()
 
 	// Cluster hybrid
 	registerOption<string_t>("cluster.hybrid.split", "");
+	registerOption<string_t>("cluster.hybrid.directory", ".hybrid");
 
 	// CPU manager
 	registerOption<string_t>("cpumanager.policy", "default");

@@ -12,6 +12,7 @@
 #include "messenger/Messenger.hpp"
 #include "polling-services/ClusterServicesPolling.hpp"
 #include "polling-services/ClusterServicesTask.hpp"
+#include "polling-services/HybridPolling.hpp"
 #include "system/RuntimeInfo.hpp"
 #include "ClusterStats.hpp"
 
@@ -35,6 +36,7 @@ ClusterManager *ClusterManager::_singleton = nullptr;
 
 std::atomic<size_t> ClusterServicesPolling::_activeClusterPollingServices;
 std::atomic<size_t> ClusterServicesTask::_activeClusterTaskServices;
+ClusterPollingServices::HybridPolling ClusterPollingServices::HybridPolling::_singleton;
 
 ClusterManager::ClusterManager()
 	: _clusterRequested(false),
@@ -42,7 +44,8 @@ ClusterManager::ClusterManager()
 	_thisNode(new ClusterNode(0, 0, 0, false, 0)),
 	_masterNode(_thisNode),
 	_msn(nullptr),
-	_disableRemote(false), _disableRemoteConnect(false), _disableAutowait(false)
+	_disableRemote(false), _disableRemoteConnect(false), _disableAutowait(false),
+	_hyb(nullptr)
 {
 	assert(_singleton == nullptr);
 	_clusterNodes[0] = _thisNode;
@@ -56,6 +59,13 @@ ClusterManager::ClusterManager(std::string const &commType, int argc, char **arg
 	_disableRemote(false), _disableRemoteConnect(false), _disableAutowait(false)
 {
 	assert(_msn != nullptr);
+	_hyb = GenericFactory<std::string, ClusterHybridInterface*>::getInstance().create("hybrid-file-interface");
+	assert(_hyb != nullptr);
+
+	/*
+	 * Initialize hybrid interface: controls data distribution within the apprank
+	 */
+	_hyb->initialize(_msn->getExternalRank());
 
 	TaskOffloading::RemoteTasksInfoMap::init();
 	TaskOffloading::OffloadedTasksInfoMap::init();
@@ -101,6 +111,9 @@ ClusterManager::~ClusterManager()
 
 	delete _msn;
 	_msn = nullptr;
+
+	delete _hyb;
+	_hyb = nullptr;
 }
 
 // Static 
@@ -194,13 +207,22 @@ void ClusterManager::postinitialize()
 
 	ClusterStats::initialize();
 	if (inClusterMode()) {
-
 		if (_singleton->_taskInPoolins) {
 			ClusterServicesTask::initialize();
 			ClusterServicesTask::initializeWorkers(_singleton->_numMessageHandlerWorkers);
 		} else {
 			ClusterServicesPolling::initialize();
 			ClusterServicesTask::initializeWorkers(_singleton->_numMessageHandlerWorkers);
+		}
+	} else {
+		/* Enable polling services for LeWI + DROM integration even if not in clusters mode.
+		 * Ideally DROM support could be disconnected from the cluster support as it may
+		 * be useful among processes on the same node, even without clusters.
+		 */
+		if (_singleton->_taskInPoolins) {
+			assert(false);
+		} else {
+			ClusterServicesPolling::initialize(/* hybridOnly */ true);
 		}
 	}
 }
@@ -231,7 +253,7 @@ void ClusterManager::shutdownPhase1()
 		if (_singleton->_taskInPoolins) {
 			ClusterServicesTask::shutdown();
 		} else {
-			ClusterServicesPolling::shutdown();
+			ClusterServicesPolling::shutdown(!inClusterMode());
 		}
 		ClusterServicesTask::shutdownWorkers(_singleton->_numMessageHandlerWorkers);
 

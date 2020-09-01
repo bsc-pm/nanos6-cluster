@@ -9,6 +9,7 @@
 
 #include "MessageHandler.hpp"
 #include "MessageDelivery.hpp"
+#include "HybridPolling.hpp"
 
 namespace ClusterServicesPolling {
 
@@ -51,16 +52,19 @@ namespace ClusterServicesPolling {
 	//! initialization.
 	//! New type of polling services need to expose an
 	//! initialization interface that will be called from here
-	inline void initialize()
+	inline void initialize(bool hybridOnly = false)
 	{
 		assert(_activeClusterPollingServices.load() == 0);
 
-		assert(ClusterManager::inClusterMode());
 		assert(MemoryAllocator::isInitialized());
 
-		registerService<ClusterPollingServices::MessageHandler<Message>>("MessageHandler");
-		registerService<ClusterPollingServices::PendingQueue<Message>>("MessageDelivery");
-		registerService<ClusterPollingServices::PendingQueue<DataTransfer>>("DataTransfer");
+		if (!hybridOnly) {
+			assert(ClusterManager::inClusterMode());
+			registerService<ClusterPollingServices::MessageHandler<Message>>("MessageHandler");
+			registerService<ClusterPollingServices::PendingQueue<Message>>("MessageDelivery");
+			registerService<ClusterPollingServices::PendingQueue<DataTransfer>>("DataTransfer");
+		}
+		registerService<ClusterPollingServices::HybridPolling>("HybridPolling");
 	}
 
 	inline void waitUntilFinished()
@@ -75,9 +79,8 @@ namespace ClusterServicesPolling {
 	//! shutdown.
 	//! New type of polling services need to expose a
 	//! shutdown interface that will be called from here.
-	inline void shutdown()
+	inline void shutdown(bool hybridOnly = false)
 	{
-		assert(ClusterManager::inClusterMode());
 		assert(MemoryAllocator::isInitialized());
 		assert(_activeClusterPollingServices.load() > 0);
 
@@ -87,9 +90,19 @@ namespace ClusterServicesPolling {
 		// completion before shutting down the polling services.
 		waitUntilFinished();
 
-		unregisterService<ClusterPollingServices::PendingQueue<DataTransfer>>("DataTransfer");
-		unregisterService<ClusterPollingServices::PendingQueue<Message>>("MessageDelivery");
-		unregisterService<ClusterPollingServices::MessageHandler<Message>>("MessageHandler");
+		if (!hybridOnly) {
+			assert(ClusterManager::inClusterMode());
+			// Occasionally a slave node receives the MessageSysFinish and starts
+			// the shutdown procedure before the PendingQueue<Message> has checked
+			// completion of all the messages it has sent. So just wait for
+			// completion before shutting down the polling services.
+			ClusterPollingServices::PendingQueue<Message>::waitUntilFinished();
+
+			unregisterService<ClusterPollingServices::PendingQueue<DataTransfer>>("DataTransfer");
+			unregisterService<ClusterPollingServices::PendingQueue<Message>>("MessageDelivery");
+			unregisterService<ClusterPollingServices::MessageHandler<Message>>("MessageHandler");
+		}
+		unregisterService<ClusterPollingServices::HybridPolling>("HybridPolling");
 
 		assert(_activeClusterPollingServices.load() == 0);
 	}
