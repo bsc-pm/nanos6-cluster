@@ -18,6 +18,8 @@
 #include "ClusterHybridManager.hpp"
 #include "ClusterMemoryManagement.hpp"
 #include <executors/threads/CPUManager.hpp>
+#include "monitoring/Monitoring.hpp"
+#include "monitoring/RuntimeStateMonitor.hpp"
 
 #pragma GCC visibility push(default)
 #include <mpi.h>
@@ -75,6 +77,15 @@ void ClusterHybridInterfaceFile::initialize(int externalRank, int apprankNum)
 	std::stringstream ss1;
 	ss1 << _directory << "/alloc" << apprankNum;
 	_allocFileThisApprank = strdup(ss1.str().c_str());
+
+	/*
+	 * Open file to write this instance's utilization
+	 */
+	std::stringstream ss2;
+	ss2 << _directory << "/utilization" << externalRank;
+	std::string s2 = ss2.str();
+	const char *utilizationFilename = s2.c_str();
+	_utilizationFile.open(utilizationFilename);
 }
 
 void ClusterHybridInterfaceFile::writeMapFile(void)
@@ -117,6 +128,17 @@ bool ClusterHybridInterfaceFile::updateNumbersOfCores(void)
 	return changed;
 }
 
+void ClusterHybridInterfaceFile::appendUtilization(float timestamp, float busy_cores)
+{
+	int allocCores = ClusterManager::getCurrentClusterNode()->getCurrentAllocCores();
+	_utilizationFile
+		<< timestamp << " "
+		<< allocCores << " "                                        //  1: alloc: determined by local or global policy
+		<< busy_cores << "\n";                                      //  2: busy: averaged number of busy cores
+
+	_utilizationFile.flush();
+}
+
 //! Called by polling service
 void ClusterHybridInterfaceFile::poll()
 {
@@ -138,5 +160,24 @@ void ClusterHybridInterfaceFile::poll()
 		if (changed) {
 			ClusterMemoryManagement::redistributeDmallocs(ClusterManager::clusterSize());
 		}
+
+		if (ClusterManager::inClusterMode()) {
+			/*
+			 * Send the utilization of this node
+			 */
+			float timestamp;
+			float usefulBusyCores;
+			assert(Monitoring::runtimeStateIsEnabled());
+			float busy_cores = RuntimeStateMonitor::readAndClear(timestamp, usefulBusyCores);
+			ClusterHybridInterfaceFile::appendUtilization(timestamp, busy_cores);
+		}
+	}
+}
+
+ClusterHybridInterfaceFile::~ClusterHybridInterfaceFile()
+{
+	if (_utilizationFile.is_open()) {
+		_utilizationFile << "DONE\n";
+		_utilizationFile.close();
 	}
 }
