@@ -7,6 +7,7 @@
 #ifndef CLUSTER_HYBRID_INTERFACE_FILE_HPP
 #define CLUSTER_HYBRID_INTERFACE_FILE_HPP
 
+#include <fstream>
 #include "ClusterHybridInterface.hpp"
 
 class ClusterHybridInterfaceFile : public ClusterHybridInterface {
@@ -15,6 +16,7 @@ class ClusterHybridInterfaceFile : public ClusterHybridInterface {
 		struct timespec _prevTime;
 		const char *_directory;
 		const char *_allocFileThisApprank;
+		std::ofstream _utilizationFile;
 
 		static void readTime(struct timespec *pt)
 		{
@@ -27,14 +29,12 @@ class ClusterHybridInterfaceFile : public ClusterHybridInterface {
 		// Return value is whether the allocation changed
 		bool updateNumbersOfCores(void);
 
-		void sendUtilization(float ncores);
+		void appendUtilization(float timestamp, float busy_cores);
 
 	public:
 		ClusterHybridInterfaceFile();
 
-		~ClusterHybridInterfaceFile()
-		{
-		}
+		~ClusterHybridInterfaceFile();
 
 		void initialize(int externalRank,
 						int apprankNum,

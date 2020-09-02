@@ -11,6 +11,7 @@
 #include "ClusterHybridInterfaceFile.hpp"
 #include "ClusterHybridManager.hpp"
 #include "ClusterMemoryManagement.hpp"
+#include "ClusterStats.hpp"
 
 #pragma GCC visibility push(default)
 #include <mpi.h>
@@ -27,10 +28,10 @@ ClusterHybridInterfaceFile::ClusterHybridInterfaceFile() :
 }
 
 void ClusterHybridInterfaceFile::initialize(int externalRank,
-											int apprankNum,
-											int internalRank,
-											int nodeNum,
-											int indexThisNode)
+		int apprankNum,
+		int internalRank,
+		int nodeNum,
+		int indexThisNode)
 {
 	/*
 	 * External rank 0 clears or creates the .hybrid/ directory (NOTE: cannot
@@ -53,9 +54,9 @@ void ClusterHybridInterfaceFile::initialize(int externalRank,
 			// Create empty .hybrid directory
 			int ret = mkdir(_directory, 0777);
 			FatalErrorHandler::failIf(
-				ret != 0,
-				"Cannot create .hybrid/ directory for hybrid cluster + DLB file interface"
-				);
+					ret != 0,
+					"Cannot create .hybrid/ directory for hybrid cluster + DLB file interface"
+					);
 		}
 	}
 
@@ -68,10 +69,10 @@ void ClusterHybridInterfaceFile::initialize(int externalRank,
 	ss0 << _directory << "/map" << externalRank;
 	std::ofstream mapFile(ss0.str().c_str());
 	mapFile << "externalRank " << externalRank << "\n"
-	        << "apprankNum " << apprankNum << "\n"
-			<< "internalRank " << internalRank << "\n"
-			<< "nodeNum " << nodeNum << "\n"
-			<< "indexThisNode " << indexThisNode << "\n";
+		<< "apprankNum " << apprankNum << "\n"
+		<< "internalRank " << internalRank << "\n"
+		<< "nodeNum " << nodeNum << "\n"
+		<< "indexThisNode " << indexThisNode << "\n";
 	mapFile.close();
 
 	/*
@@ -82,14 +83,17 @@ void ClusterHybridInterfaceFile::initialize(int externalRank,
 	std::stringstream ss1;
 	ss1 << _directory << "/alloc" << apprankNum;
 	_allocFileThisApprank = strdup(ss1.str().c_str());
+
+	/*
+	 * Open file for this instance's utilization
+	 */
+	std::stringstream ss2;
+	ss2 << _directory << "/utilization" << externalRank;
+	std::string s2 = ss2.str();
+	const char *utilizationFilename = s2.c_str();
+	_utilizationFile.open(utilizationFilename);
 }
 
-
-void ClusterHybridInterfaceFile::sendUtilization(float ncores)
-{
-	// std::cout << "ClusterHybridInterfaceFile::sendUtilization " << ncores << "\n";
-	(void)ncores;
-}
 
 bool ClusterHybridInterfaceFile::updateNumbersOfCores(void)
 {
@@ -114,6 +118,14 @@ bool ClusterHybridInterfaceFile::updateNumbersOfCores(void)
 	return changed;
 }
 
+void ClusterHybridInterfaceFile::appendUtilization(float timestamp, float busy_cores)
+{
+	_utilizationFile << timestamp << " "
+	                 << ClusterManager::getCurrentClusterNode()->getCurrentAllocCores() << " "
+					 << busy_cores << "\n";
+	_utilizationFile.flush();
+}
+
 //! Called by polling service
 void ClusterHybridInterfaceFile::poll()
 {
@@ -124,9 +136,34 @@ void ClusterHybridInterfaceFile::poll()
 	if (elapsedTime >= 2.0) {
 		_prevTime = t;
 
+		/*
+		 * Update number of cores on each instance in the apprank
+		 */
 		bool changed = ClusterHybridInterfaceFile::updateNumbersOfCores();
+
+		/*
+		 * Redistribute the Dmallocs if necessary
+		 */
 		if (changed) {
 			ClusterMemoryManagement::redistributeDmallocs();
 		}
+
+		if (ClusterManager::inClusterMode()) {
+			/*
+			 * Send the utilization of this node
+			 */
+			float timestamp;
+			float usefulBusyCores;
+			float busy_cores = ClusterStats::readAndClearCoresBusy(timestamp, usefulBusyCores);
+			ClusterHybridInterfaceFile::appendUtilization(timestamp, busy_cores);
+		}
+	}
+}
+
+ClusterHybridInterfaceFile::~ClusterHybridInterfaceFile()
+{
+	if (_utilizationFile.is_open()) {
+		_utilizationFile << "DONE\n";
+		_utilizationFile.close();
 	}
 }
