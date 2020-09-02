@@ -10,6 +10,18 @@
 #include <nanos6/cluster.h>
 
 namespace ClusterMemoryManagement {
+
+	void registerDmalloc(
+		DataAccessRegion const &region,
+		nanos6_data_distribution_t policy,
+		size_t nrDimensions,
+		size_t *dimensions,
+		Task *task);
+
+	bool unregisterDmalloc(DataAccessRegion const &region);
+
+	void redistributeDmallocs(void);
+
 	void *dmalloc(
 		size_t size,
 		nanos6_data_distribution_t policy,

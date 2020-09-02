@@ -10,12 +10,15 @@
 #include <cstdint>
 #include <vector>
 
+#include "lowlevel/RWSpinLock.hpp"
 #include "HomeNodeMap.hpp"
 #include "hardware/places/MemoryPlace.hpp"
 
 class DataAccessRegion;
 
 class Directory {
+	static RWSpinLock _lock;
+
 	//! \brief A map of the home nodes of memory regions
 	static HomeNodeMap _homeNodes;
 
@@ -83,7 +86,10 @@ public:
 	//! 		of every subregion of region
 	static inline HomeNodesArray *find(DataAccessRegion const &region)
 	{
-		return _homeNodes.find(region);
+		_lock.readLock();
+		HomeNodesArray *homeNodes =  _homeNodes.find(region);
+		_lock.readUnlock();
+		return homeNodes;
 	}
 
 	//! \brief Remove a region from the Directory
@@ -96,7 +102,18 @@ public:
 	//! \param[in] the region to remove from the Directory
 	static inline void erase(DataAccessRegion const &region)
 	{
+		// write lock should be taken
 		_homeNodes.erase(region);
+	}
+
+	static inline void writeLock()
+	{
+		_lock.writeLock();
+	}
+
+	static inline void writeUnlock()
+	{
+		_lock.writeUnlock();
 	}
 };
 

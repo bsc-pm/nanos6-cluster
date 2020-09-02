@@ -6,5 +6,6 @@
 
 #include "Directory.hpp"
 
+RWSpinLock Directory::_lock;
 HomeNodeMap Directory::_homeNodes;
 MemoryPlace Directory::_directoryMemoryPlace(-42, nanos6_host_device);

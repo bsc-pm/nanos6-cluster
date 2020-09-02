@@ -7,8 +7,9 @@
 #include "MessageDfree.hpp"
 
 #include <ClusterManager.hpp>
+#include "ClusterMemoryManagement.hpp"
 #include <DataAccessRegion.hpp>
-#include <DistributionPolicy.hpp>
+#include <memory/directory/cluster/DistributionPolicy.hpp>
 
 MessageDfree::MessageDfree(const ClusterNode *from) :
 	Message(DFREE, sizeof(DfreeMessageContent), from)
@@ -29,6 +30,7 @@ bool MessageDfree::handleMessage()
 
 	//! Unregister the region from the home node map
 	ClusterDirectory::unregisterAllocation(region);
+	ClusterMemoryManagement::unregisterDmalloc(region);
 
 	ClusterManager::synchronizeAll();
 

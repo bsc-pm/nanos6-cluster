@@ -7,7 +7,7 @@
 #include "MessageDmalloc.hpp"
 
 #include <ClusterManager.hpp>
-#include <ClusterMemoryManagement.hpp>
+#include "ClusterMemoryManagement.hpp"
 #include <DistributionPolicy.hpp>
 #include <VirtualMemoryManagement.hpp>
 
@@ -62,7 +62,7 @@ bool MessageDmalloc::handleMessage()
 	/* Register the newly allocated region with the Directory
 	 * of home nodes */
 	DataAccessRegion allocatedRegion(dptr, size);
-	ClusterDirectory::registerAllocation(allocatedRegion, policy, nrDim, dimensions, nullptr);
+	ClusterMemoryManagement::registerDmalloc(allocatedRegion, policy, nrDim, dimensions, nullptr);
 
 	ClusterManager::synchronizeAll();
 
