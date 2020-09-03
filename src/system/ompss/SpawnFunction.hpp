@@ -72,7 +72,7 @@ public:
 	//! \param[in] taskInfo The task type
 	//!
 	//! \returns Whether it is a spawned task type
-	static bool isSpawned(const nanos6_task_info_t *taskInfo)
+	static inline bool isSpawned(const nanos6_task_info_t *taskInfo)
 	{
 		assert(taskInfo != nullptr);
 		assert(taskInfo->implementations != nullptr);

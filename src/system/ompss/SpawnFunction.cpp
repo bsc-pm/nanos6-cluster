@@ -136,7 +136,6 @@ void SpawnFunction::spawnFunction(
 
 	argsBlock->set(function, args, completionCallback, completionArgs, streamId);
 
-	task->setSpawned();
 #ifdef EXTRAE_ENABLED
 	if (label != nullptr && strcmp(label, "main") == 0) {
 		task->markAsMainTask();

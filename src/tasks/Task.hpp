@@ -19,6 +19,8 @@
 #include "hardware-counters/TaskHardwareCounters.hpp"
 #include "lowlevel/SpinLock.hpp"
 #include "scheduling/ReadyQueue.hpp"
+#include "tasks/TasktypeData.hpp"
+#include "system/ompss/SpawnFunction.hpp"
 
 #include <ClusterTaskContext.hpp>
 #include <ExecutionWorkflow.hpp>
@@ -63,7 +65,6 @@ public:
 		//! these flags must be always declared after the
 		//! Mercurium flags
 		non_runnable_flag,
-		spawned_flag,
 		remote_flag,
 		stream_executor_flag,
 		main_task_flag,
@@ -627,12 +628,7 @@ public:
 
 	bool isSpawned() const
 	{
-		return _flags[spawned_flag];
-	}
-
-	void setSpawned(bool value=true)
-	{
-		_flags[spawned_flag] = value;
+		return SpawnFunction::isSpawned(_taskInfo);
 	}
 
 	inline size_t getFlags() const
@@ -832,11 +828,6 @@ public:
 	inline TaskOffloading::ClusterTaskContext *getClusterContext() const
 	{
 		return _clusterContext;
-	}
-
-	inline void markAsStreamExecutor()
-	{
-		_flags[stream_executor_flag] = true;
 	}
 
 	inline bool isStreamExecutor() const
