@@ -51,6 +51,18 @@ public:
 		return nullptr;
 	}
 
+	//! \brief Indicates whether the task type is a StreamExecutor
+	//!
+	//! \param[in] taskInfo The task type
+	//!
+	//! \returns Whether it is a spawned task type
+	static inline bool isStreamExecutor(const nanos6_task_info_t *taskInfo)
+	{
+		assert(taskInfo != nullptr);
+		assert(taskInfo->implementations != nullptr);
+		return (taskInfo->implementations[0].run == StreamExecutor::bodyWrapper);
+	}
+
 
 private:
 
@@ -85,7 +97,7 @@ private:
 			(nanos6_task_implementation_info_t *) malloc(sizeof(nanos6_task_implementation_info_t) * 1);
 		assert(executorInfo->implementations != nullptr);
 		executorInfo->implementation_count = 1;
-		executorInfo->implementations[0].run = &(StreamExecutor::bodyWrapper);
+		executorInfo->implementations[0].run = StreamExecutor::bodyWrapper;
 		executorInfo->implementations[0].device_type_id = nanos6_device_t::nanos6_host_device;
 		executorInfo->implementations[0].task_label = "StreamExecutor";
 		executorInfo->implementations[0].declaration_source = "Stream Executor spawned within the runtime";
