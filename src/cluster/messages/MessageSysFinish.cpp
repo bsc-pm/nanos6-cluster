@@ -15,22 +15,24 @@ MessageSysFinish::MessageSysFinish(const ClusterNode *from)
 
 bool MessageSysFinish::handleMessage()
 {
-	if (!nanos6_can_run_main()) {
-		ClusterManager::ShutdownCallback *callback = ClusterManager::getShutdownCallback();
+	FatalErrorHandler::failIf(nanos6_can_run_main()
+		"Master node received a MessageSysFinish; this should never happen.");
 
-		//! We need to call the main callback.
-		while (callback == nullptr) {
-			//! We will spin to avoid the (not very likely) case that the
-			//! Callback has not been set yet. This could happen if we
-			//! received and handled a MessageSysFinish before the loader
-			//! code has finished setting up everything.
-			callback = ClusterManager::getShutdownCallback();
-		}
+	ClusterManager::ShutdownCallback *callback = ClusterManager::getShutdownCallback();
 
-		callback->invoke();
+	//! We need to call the main callback.
+	while (callback == nullptr) {
+		//! We will spin to avoid the (not very likely) case that the
+		//! Callback has not been set yet. This could happen if we
+		//! received and handled a MessageSysFinish before the loader
+		//! code has finished setting up everything.
+		callback = ClusterManager::getShutdownCallback();
 	}
 
+	callback->invoke();
+
 	//! Synchronize with all other cluster nodes at this point
+	//! Master node makes this in ClusterManager::shutdownPhase1
 	ClusterManager::synchronizeAll();
 
 	return true;
