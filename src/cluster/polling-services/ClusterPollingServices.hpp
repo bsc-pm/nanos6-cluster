@@ -20,6 +20,9 @@ namespace ClusterPollingServices {
 	//! initialization interface that will be called from here
 	inline void initialize()
 	{
+		assert(ClusterManager::inClusterMode());
+		assert(MemoryAllocator::isInitialized());
+
 		registerMessageHandler();
 		registerPoolingDelivery<Message>();
 		registerPoolingDelivery<DataTransfer>();
@@ -33,6 +36,9 @@ namespace ClusterPollingServices {
 	//! shutdown interface that will be called from here.
 	inline void shutdown()
 	{
+		assert(ClusterManager::inClusterMode());
+		assert(MemoryAllocator::isInitialized());
+
 		unregisterPoolingDelivery<DataTransfer>();
 		unregisterPoolingDelivery<Message>();
 		unregisterMessageHandler();

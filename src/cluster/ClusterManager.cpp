@@ -45,10 +45,6 @@ ClusterManager::ClusterManager(std::string const &commType)
 	_thisNode = _clusterNodes[nodeIndex];
 	_masterNode = _clusterNodes[masterIndex];
 
-	if (clusterSize > 1) {
-		ClusterPollingServices::initialize();
-	}
-
 	_msn->synchronizeAll();
 	_callback.store(nullptr);
 }
@@ -59,13 +55,10 @@ ClusterManager::~ClusterManager()
 		delete node;
 	}
 
-	if (inClusterMode()) {
-		ClusterPollingServices::shutdown();
-	}
-
 	delete _msn;
 }
 
+// Cluster is initialized before the memory allocator.
 void ClusterManager::initialize()
 {
 	assert(_singleton == nullptr);
@@ -78,32 +71,53 @@ void ClusterManager::initialize()
 	 * initialize the cluster support of Nanos6 */
 	if (commType.getValue() != "disabled") {
 		_singleton = new ClusterManager(commType.getValue());
-		return;
+	} else {
+		_singleton = new ClusterManager();
 	}
 
-	_singleton = new ClusterManager();
 	assert(_singleton != nullptr);
 }
+
+// This needs to be called AFTER initializing the memory allocator
+void ClusterManager::postinitialize()
+{
+	assert(_singleton != nullptr);
+	assert(MemoryAllocator::isInitialized());
+
+	if (inClusterMode()) {
+		ClusterPollingServices::initialize();
+	}
+
+}
+
 
 void ClusterManager::shutdownPhase1()
 {
 	assert(_singleton != nullptr);
+	assert(MemoryAllocator::isInitialized());
 
-	if (_singleton->isMasterNode() && _singleton->inClusterMode()) {
-		for (ClusterNode *slaveNode : _singleton->_clusterNodes) {
-			if (slaveNode != _singleton->_thisNode) {
-				MessageSysFinish msg(_singleton->_thisNode);
-				_singleton->_msn->sendMessage(&msg, slaveNode, true);
+	if (inClusterMode()) {
+
+		if (isMasterNode()) {
+			for (ClusterNode *slaveNode : _singleton->_clusterNodes) {
+				if (slaveNode != _singleton->_thisNode) {
+					MessageSysFinish msg(_singleton->_thisNode);
+					_singleton->_msn->sendMessage(&msg, slaveNode, true);
+				}
 			}
+
+			_singleton->_msn->synchronizeAll();
 		}
 
-		_singleton->_msn->synchronizeAll();
+		ClusterPollingServices::shutdown();
 	}
 }
 
 void ClusterManager::shutdownPhase2()
 {
+
 	assert(_singleton != nullptr);
+
 	delete _singleton;
 	_singleton = nullptr;
 }

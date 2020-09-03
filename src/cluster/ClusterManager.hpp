@@ -74,7 +74,14 @@ private:
 
 public:
 	//! \brief Initialize the ClusterManager
+	//! This is called before initializing the memory allocator because it collects some
+	//! information needed by the memory allocator latter.
 	static void initialize();
+
+	//! \brief postInitialize the ClusterManager
+	//! This is called after the memory allocator is already initialized because it starts the
+	//! pooling services which are tasks.
+	static void postinitialize();
 
 	//! \brief Notify all cluster nodes that we are shutting down
 	static void shutdownPhase1();

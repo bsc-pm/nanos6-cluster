@@ -16,14 +16,17 @@
 class MemoryAllocator {
 private:
 	static const int MALLOCX_NONE = ((int) 0);
+	static bool init = false;
 
 public:
 	static void initialize()
 	{
+		init = true;
 	}
 
 	static void shutdown()
 	{
+		init = false;
 	}
 
 	static constexpr bool hasUsageStatistics()
@@ -78,6 +81,12 @@ public:
 		ptr->~T();
 		MemoryAllocator::free(ptr, sizeof(T));
 	}
+
+	static inline bool isInitialized()
+	{
+		return init;
+	}
+
 };
 
 template <class T>

@@ -30,6 +30,10 @@ public:
 	{
 	}
 
+	static inline void postinitialize()
+	{
+	}
+
 	static inline void shutdownPhase1()
 	{
 	}

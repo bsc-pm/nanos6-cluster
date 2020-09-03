@@ -118,6 +118,7 @@ void nanos6_preinit(void)
 
 	LeaderThread::initialize(leaderThreadCPU);
 
+	ClusterManager::postinitialize();
 	CPUManager::initialize();
 	Instrument::nanos6_preinit_finished();
 

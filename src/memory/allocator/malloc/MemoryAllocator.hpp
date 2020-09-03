@@ -15,13 +15,18 @@
 #include "lowlevel/Padding.hpp"
 
 class MemoryAllocator {
+
+	static bool init = false;
+
 public:
 	static inline void initialize()
 	{
+		init = true;
 	}
 
 	static inline void shutdown()
 	{
+		init = false;
 	}
 
 	static constexpr bool hasUsageStatistics()
@@ -68,6 +73,11 @@ public:
 	{
 		ptr->~T();
 		MemoryAllocator::free(ptr, sizeof(T));
+	}
+
+	static inline bool isInitialized()
+	{
+		return init;
 	}
 };
 

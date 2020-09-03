@@ -79,6 +79,11 @@ public:
 		MemoryAllocator::free(ptr, sizeof(T));
 	}
 
+
+	static inline bool isInitialized()
+	{
+		return (_singleton != nullptr);
+	}
 };
 
 template<typename T>
