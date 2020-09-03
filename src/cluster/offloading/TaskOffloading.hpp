@@ -98,13 +98,13 @@ namespace TaskOffloading {
 
 	//! \brief Create and submit a remote task
 	//!
-	//! \param[in] msg the MessageTaskNew of the remote Task
-	void remoteTaskWrapper(MessageTaskNew *msg);
+	//! \param[in] args the MessageTaskNew of the remote Task as a void pointer
+	void remoteTaskWrapper(void *args);
 
 	//! \brief Completion callback for a remote task
 	//!
-	//! \param[in] msg the MessageTaskNew of the remote Task
-	void remoteTaskCleanup(MessageTaskNew *msg);
+	//! \param[in] args the MessageTaskNew of the remote Task as a void pointer
+	void remoteTaskCleanup(void *args);
 }
 
 #endif // TASK_OFFLOADING_HPP

@@ -276,9 +276,10 @@ namespace TaskOffloading {
 		);
 	}
 
-	void remoteTaskWrapper(MessageTaskNew *msg)
+	void remoteTaskWrapper(void *args)
 	{
-		assert(msg != nullptr);
+		assert(args != nullptr);
+		MessageTaskNew *msg = static_cast<MessageTaskNew *>(args);
 
 		ClusterNode *offloader = ClusterManager::getClusterNode(msg->getSenderId());
 
@@ -347,9 +348,10 @@ namespace TaskOffloading {
 		}
 	}
 
-	void remoteTaskCleanup(MessageTaskNew *msg)
+	void remoteTaskCleanup(void *args)
 	{
-		assert(msg != nullptr);
+		assert(args != nullptr);
+		MessageTaskNew *msg = static_cast<MessageTaskNew *>(args);
 
 		void *offloadedTaskId = msg->getOffloadedTaskId();
 		ClusterNode *offloader = ClusterManager::getClusterNode(msg->getSenderId());

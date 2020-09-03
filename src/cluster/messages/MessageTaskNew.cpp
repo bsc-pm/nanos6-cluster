@@ -59,27 +59,11 @@ MessageTaskNew::MessageTaskNew(
 	}
 }
 
-static inline void remoteTaskWrapper(void *args)
-{
-	assert(args != nullptr);
-	MessageTaskNew *msg = (MessageTaskNew *)args;
-
-	TaskOffloading::remoteTaskWrapper(msg);
-}
-
-static inline void remoteTaskCleanup(void *args)
-{
-	assert(args != nullptr);
-	MessageTaskNew *msg = (MessageTaskNew *)args;
-
-	TaskOffloading::remoteTaskCleanup(msg);
-}
-
 bool MessageTaskNew::handleMessage()
 {
 	SpawnFunction::spawnFunction(
-		remoteTaskWrapper, this,
-		remoteTaskCleanup, this,
+		TaskOffloading::remoteTaskWrapper, this,
+		TaskOffloading::remoteTaskCleanup, this,
 		"remote-task-wrapper",
 		true
 	);
