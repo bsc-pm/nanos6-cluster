@@ -41,6 +41,8 @@ ConfigCentral::ConfigCentral() :
 	// Cluster hybrid
 	registerOption<string_t>("cluster.hybrid.split", "");
 	registerOption<string_t>("cluster.hybrid.directory", ".hybrid");
+	registerOption<string_t>("cluster.hybrid.policy", "default");
+	registerOption<integer_t>("cluster.hybrid.local_time_period", 1);
 
 	// CPU manager
 	registerOption<string_t>("cpumanager.policy", "default");

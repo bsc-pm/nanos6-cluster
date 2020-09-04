@@ -331,6 +331,27 @@ void MPIMessenger::internal_reset()
 		APP_COMM = MPI_COMM_NULL;
     }
 
+	// Create map from internal rank to external rank
+	int *allExternalRanks = new int[_wsize];
+	MPI_Allgather(&_externalRank, 1, MPI_INT, allExternalRanks, 1, MPI_INT, INTRA_COMM);
+	_internalRankToExternalRank.resize(_wsize);
+	for (int i=0; i<_wsize; i++) {
+		_internalRankToExternalRank[i] = allExternalRanks[i];
+	}
+	delete[] allExternalRanks;
+
+	// Create map from number on node to external rank
+	MPI_Comm tempNodeComm;
+	allExternalRanks = new int[_numInstancesThisNode];
+	MPI_Comm_split(MPI_COMM_WORLD, /* color */ _physicalNodeNum, /* key */ _indexThisPhysicalNode, &tempNodeComm);
+	MPI_Allgather(&_externalRank, 1, MPI_INT, allExternalRanks, 1, MPI_INT, tempNodeComm);
+	_instanceThisNodeToExternalRank.resize(_numInstancesThisNode);
+	for (int i=0; i<_numInstancesThisNode; i++) {
+		_instanceThisNodeToExternalRank[i] = allExternalRanks[i];
+		// std::cout << "Extrank " << _externalRank << " instance " << i << "on node: " << _instanceThisNodeToExternalRank[i] << "\n";
+	}
+	delete[] allExternalRanks;
+
 	// Create map from internal rank to instrumentation rank
 	int *allInstrumentationRanks = new int[_wsize];
 	MPI_Allgather(&_instrumentationRank, 1, MPI_INT, allInstrumentationRanks, 1, MPI_INT, INTRA_COMM);

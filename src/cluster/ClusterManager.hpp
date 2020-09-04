@@ -34,6 +34,7 @@ class ClusterManager {
 
 private:
 	bool _clusterRequested; // Built with cluster and cluster.communication is not disabled
+	int _totalReadyTasks;
 
 	static ClusterManager *_singleton;
 
@@ -549,6 +550,26 @@ public:
 		assert(_singleton->_msn);
 		return _singleton->_msn->getIsMasterThisNode();
 	}
+
+	static int getExternalRankThisNode(int indexThisPhysicalNode)
+	{
+		assert(_singleton);
+		assert(_singleton->_msn != nullptr);
+		return _singleton->_msn->getInstanceThisNodeToExternalRank()[indexThisPhysicalNode];
+	}
+
+	static void setTotalReadyTasks(int totalReadyTasks)
+	{
+		assert(_singleton);
+		_singleton->_totalReadyTasks = totalReadyTasks;
+	}
+
+	static int getTotalReadyTasks()
+	{
+		assert(_singleton);
+		return _singleton->_totalReadyTasks;
+	}
+
 };
 
 

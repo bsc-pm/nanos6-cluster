@@ -132,7 +132,9 @@ private:
 	int _numInstancesThisNode;  // Number of instances on this physical node
 	int _indexThisPhysicalNode; // Index of this instance on this physical node
 	int _instrumentationRank;   // For Extrae
+	std::vector<int> _internalRankToExternalRank;
 	std::vector<int> _internalRankToInstrumentationRank;
+	std::vector<int> _instanceThisNodeToExternalRank;
 	std::vector<bool> _isMasterThisNode; // For each instance on this node, whether it's a master or not
 
 	void getNodeNumber();
@@ -265,6 +267,18 @@ public:
 
 	//! For verbose instrumentation, summarize the instances and appranks
 	void summarizeSplit() const;
+
+	//! Get vector relating internal rank to external rank in this apprank
+	const std::vector<int> &getInternalRankToExternalRank() const
+	{
+		return _internalRankToExternalRank;
+	}
+
+	//! Get vector relating number of node to external rank
+	const std::vector<int> &getInstanceThisNodeToExternalRank() const
+	{
+		return _instanceThisNodeToExternalRank;
+	}
 
 	//! Get rank for Extrae traces
 	int getInstrumentationRank() const

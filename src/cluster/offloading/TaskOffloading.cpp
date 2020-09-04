@@ -33,6 +33,8 @@
 #include "OffloadedTasksInfoMap.hpp"
 #include <ClusterUtil.hpp>
 #include <LiveDataTransfers.hpp>
+#include "scheduling/Scheduler.hpp"
+#include "cluster/ClusterMetrics.hpp"
 
 namespace TaskOffloading {
 

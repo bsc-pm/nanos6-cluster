@@ -22,7 +22,10 @@ public:
 		__attribute__((unused)) int apprankNum,
 		__attribute__((unused)) int internalRank,
 		__attribute__((unused)) int physicalNodeNum,
-		__attribute__((unused)) int indexThisPhysicalNode)
+		__attribute__((unused)) int indexThisPhysicalNode,
+		__attribute__((unused)) size_t clusterSize,
+		__attribute__((unused)) const std::vector<int> &internalRankToExternalRank,
+		__attribute__((unused)) const std::vector<int> &instanceThisNodeToExternalRank)
 	{}
 
 	static void initialize()
@@ -38,6 +41,32 @@ public:
 	{
 		return false;
 	}
+
+	static int getCurrentOwnedCPUs()
+	{
+		return CPUManager::getTotalCPUs();
+	}
+
+	static int getCurrentOwnedOrGivingCPUs()
+	{
+		return CPUManager::getTotalCPUs();
+	}
+
+	static int getCurrentLentOwnedCPUs()
+	{
+		return 0;
+	}
+
+	static int getCurrentBorrowedCPUs()
+	{
+		return 0;
+	}
+
+	static int getCurrentActiveOwnedCPUs()
+	{
+		return CPUManager::getTotalCPUs();
+	}
+
 };
 
 #endif /* CLUSTER_HYBRID_MANAGER_HPP */

@@ -6,6 +6,11 @@
 
 #include <functional>
 #include "ClusterManager.hpp"
+#include <atomic>
+#include "lowlevel/FatalErrorHandler.hpp"
+#include "lowlevel/EnvironmentVariable.hpp"
+#include "memory/directory/Directory.hpp"
+#include "DistributionPolicy.hpp"
 #include "ClusterHybridManager.hpp"
 #include "executors/threads/CPUManager.hpp"
 #include "monitoring/Monitoring.hpp"
@@ -13,18 +18,34 @@
 #include "hardware/hwinfo/HostInfo.hpp"
 #include "ClusterManager.hpp"
 #include "executors/threads/CPUManager.hpp"
+#include "scheduling/Scheduler.hpp"
+#include "monitoring/RuntimeStateMonitor.hpp"
+#include "executors/threads/cpu-managers/dlb/DLBCPUActivation.hpp"
 
 bool ClusterHybridManager::_inHybridClusterMode = false;
 ClusterHybridInterface *ClusterHybridManager::_hyb = nullptr;
 int ClusterHybridManager::_numCPUs;
+int ClusterHybridManager::_numOwnedCPUs;
+ClusterHybridPolicy ClusterHybridManager::_policy = ClusterHybridPolicy::Bad;
+bool ClusterHybridManager::_hybridInterfaceFileInitialized;
+float ClusterHybridManager::_busyOtherInstancesSameNode = 0.0;
+int ClusterHybridManager::_allocOtherInstancesSameNode = 0;
+float ClusterHybridManager::_averagedBusyOtherInstancesSameNode = 0.0;
+float ClusterHybridManager::_averagedBusy= 0.0;
+AveragedStats  *ClusterHybridManager::_averagedStatsBusyOtherInstancesSameNode;
+
+std::atomic<int> countHandleRequestAttempts(0);
 
 void ClusterHybridManager::preinitialize(
 	bool forceHybrid,
 	int externalRank,
 	int apprankNum,
-	__attribute__((unused)) int internalRank,
-	__attribute__((unused)) int physicalNodeNum,
-	__attribute__((unused)) int indexThisPhysicalNode)
+	int internalRank,
+	int physicalNodeNum,
+	int indexThisPhysicalNode,
+	size_t clusterSize,
+	const std::vector<int> &internalRankToExternalRank,
+	const std::vector<int> &instanceThisNodeToExternalRank)
 {
 	_inHybridClusterMode = forceHybrid; // default policy: in hybrid if >1 apprank
 
@@ -34,8 +55,32 @@ void ClusterHybridManager::preinitialize(
 	/*
 	 * Initialize hybrid interface: controls data distribution within the apprank
 	 */
-	_hyb->initialize(externalRank, apprankNum);
+	_hyb->initialize(externalRank, apprankNum, internalRank, physicalNodeNum, indexThisPhysicalNode, clusterSize, internalRankToExternalRank, instanceThisNodeToExternalRank);
 
+	// Time period for local policy in seconds
+	ConfigVariable<int> timePeriod("cluster.hybrid.local_time_period");
+	double timePeriodSecs = (double)timePeriod.getValue();
+	_averagedStatsBusyOtherInstancesSameNode = new AveragedStats(timePeriodSecs, false); // will call from ClusterHybrid
+
+	ConfigVariable<std::string> hybridPolicy("cluster.hybrid.policy");
+	if (hybridPolicy.getValue() == "default") {
+		_policy = ClusterHybridPolicy::Global;
+		_inHybridClusterMode = forceHybrid; // default policy: in hybrid if >1 apprank
+	} else if (hybridPolicy.getValue() == "global") {
+		_policy = ClusterHybridPolicy::Global;
+		_inHybridClusterMode = true; // setting policy forces hybrid mode
+	} else if (hybridPolicy.getValue() == "local") {
+		_policy = ClusterHybridPolicy::Local;
+		_inHybridClusterMode = true; // setting policy forces hybrid mode
+	} else {
+		FatalErrorHandler::warnIf(true,
+			"Unknown hybrid cluster policy:",
+			hybridPolicy.getValue(),
+			". Using default: ",
+			"global");
+		_policy = ClusterHybridPolicy::Global;
+		_inHybridClusterMode = forceHybrid;
+	}
 	if (_inHybridClusterMode) {
 		Monitoring::enableRuntimeStateMonitor();
 	}
@@ -136,10 +181,36 @@ void ClusterHybridManager::getInitialCPUMask(cpu_set_t *set)
 	// std::cout << "External rank " << ClusterManager::getExternalRank() << ":"
 	// 		  << "take CPUs " << curCoreIndex << " to " << lastCoreIndex << "\n";
 	assert(lastCoreIndex > curCoreIndex);
+	_numOwnedCPUs = lastCoreIndex - curCoreIndex;
 
 	// Write out the CPU set
 	CPU_ZERO(set);
 	for(int c=curCoreIndex; c<lastCoreIndex; c++) {
 		CPU_SET(c, set);
 	}
+}
+
+int ClusterHybridManager::getCurrentOwnedCPUs()
+{
+	return DLBCPUActivation::getCurrentOwnedCPUs();
+}
+
+int ClusterHybridManager::getCurrentOwnedOrGivingCPUs()
+{
+	return DLBCPUActivation::getCurrentOwnedOrGivingCPUs();
+}
+
+int ClusterHybridManager::getCurrentLentOwnedCPUs()
+{
+	return DLBCPUActivation::getCurrentLentOwnedCPUs();
+}
+
+int ClusterHybridManager::getCurrentBorrowedCPUs()
+{
+	return DLBCPUActivation::getCurrentBorrowedCPUs();
+}
+
+int ClusterHybridManager::getCurrentActiveOwnedCPUs()
+{
+	return DLBCPUActivation::getCurrentActiveOwnedCPUs();
 }

@@ -187,6 +187,11 @@ public:
 	//! \brief For verbose instrumentation, summarize the instances and appranks
 	virtual void summarizeSplit() const = 0;
 
+	//! Get vector relating internal rank to external rank in this apprank
+	virtual const std::vector<int> &getInternalRankToExternalRank() const = 0;
+
+	virtual const std::vector<int> &getInstanceThisNodeToExternalRank() const = 0;
+
 	//! Get rank for Extrae traces
 	virtual int getInstrumentationRank() const = 0;
 

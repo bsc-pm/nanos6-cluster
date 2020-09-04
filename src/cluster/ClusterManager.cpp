@@ -136,13 +136,20 @@ void ClusterManager::internal_reset() {
 	const int masterIndex = _msn->getMasterIndex();
 
 	// TODO: Check if this initialization may conflict somehow.
-	MessageId::initialize(internalRank, clusterSize);
+	MessageId::initialize(internalRank, clusterSize); // only need to be unique message IDs inside an apprank
 	WriteIDManager::initialize(internalRank, clusterSize);
 	OffloadedTaskIdManager::initialize(internalRank, clusterSize);
 
 	int numAppranks = _msn->getNumAppranks();
 	bool inHybridMode = numAppranks > 1;
-	ClusterHybridManager::preinitialize(inHybridMode, externalRank, apprankNum, internalRank, physicalNodeNum, indexThisPhysicalNode);
+
+	const std::vector<int> &internalRankToExternalRank = _msn->getInternalRankToExternalRank();
+	const std::vector<int> &instanceThisNodeToExternalRank = _msn->getInstanceThisNodeToExternalRank();
+
+	ClusterHybridManager::preinitialize(
+		inHybridMode, externalRank, apprankNum, internalRank, physicalNodeNum, indexThisPhysicalNode,
+		clusterSize, internalRankToExternalRank, instanceThisNodeToExternalRank
+		);
 
 	if (this->_clusterNodes.empty()) {
 		// Called from constructor the first time
@@ -192,6 +199,17 @@ void ClusterManager::postinitialize()
 	 */
 	if (_singleton->_msn != nullptr) {
 		_singleton->_msn->summarizeSplit();
+	}
+
+	/*
+	 * Synchronization before starting polling services. This is needed only for the hybrid
+	 * polling service. We do not want the hybrid polling service to take free cores that
+	 * have not yet been claimed by their owner at startup, which would cause an error from
+	 * DLB. This synchronizes MPI_COMM_WORLD, but it would be sufficient to synchronize only
+	 * among the instances on the same node.
+	 */
+	if (_singleton->_msn) {
+		_singleton->_msn->synchronizeWorld();
 	}
 
 	if (ClusterManager::inClusterMode()) {

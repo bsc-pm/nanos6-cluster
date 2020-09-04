@@ -23,7 +23,14 @@ class ClusterHybridInterface {
 		{
 		}
 
-		virtual void initialize(int externalRank, int apprankNum) = 0;
+		virtual void initialize(int externalRank,
+								int apprankNum,
+								int internalRank,
+								int physicalNodeNum,
+								int indexThisPhysicalNode,
+								int clusterSize,
+								const std::vector<int> &internalRankToExternalRank,
+								const std::vector<int> &instanceThisNodeToExternalRank) = 0;
 
 		//! Write out the information about this rank: apprankNum, internalRank, etc.
 		virtual void writeMapFile() = 0;

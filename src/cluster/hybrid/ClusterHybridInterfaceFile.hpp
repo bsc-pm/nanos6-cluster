@@ -8,6 +8,7 @@
 #define CLUSTER_HYBRID_INTERFACE_FILE_HPP
 
 #include <fstream>
+#include <vector>
 #include "ClusterHybridInterface.hpp"
 
 class ClusterHybridInterfaceFile : public ClusterHybridInterface {
@@ -17,6 +18,8 @@ class ClusterHybridInterfaceFile : public ClusterHybridInterface {
 		const char *_directory;
 		const char *_allocFileThisApprank;
 		std::ofstream _utilizationFile;
+		std::vector<std::ifstream *> _utilizationOtherRanksInApprank;
+		std::vector<std::ifstream *> _utilizationOtherRanksThisNode;
 
 		static void readTime(struct timespec *pt)
 		{
@@ -29,20 +32,33 @@ class ClusterHybridInterfaceFile : public ClusterHybridInterface {
 		//! \brief Update the numbers of cores on each node
 		//!
 		//! \brief Returns true if any number has changed, otherwise false
-		bool updateNumbersOfCores(void);
+		bool updateNumbersOfCores(bool isLocal);
 
-		void appendUtilization(float timestamp, float busy_cores);
+		bool updateAllocFileGlobal(void);
+
+		int updateTotalsThisNode(void);
+
+		void appendUtilization(float timestamp, float totalBusyCores, float usefulBusyCores);
 
 	public:
 		ClusterHybridInterfaceFile();
 
 		~ClusterHybridInterfaceFile();
 
-		void initialize(int externalRank, int apprankNum);
+		void initialize(int externalRank,
+						int apprankNum,
+						int internalRank,
+						int physicalNodeNum,
+						int indexThisPhysicalNode,
+						int clusterSize,
+						const std::vector<int> &internalRankToExternalRank,
+						const std::vector<int> &instanceThisNodeToExternalRank);
 
 		void writeMapFile();
 
 		void poll(void);
+
+		void updateDROM(bool isGlobal);
 };
 
 //! Register ClusterHybridInterfaceFile with the object factory

@@ -27,8 +27,15 @@ private:
 	//! For Extrae tracing of hybrid clusters+DLB
 	int _instrumentationRank;
 
-	//! The number of cores available to this Nanos6 apprank in that instance
-	int _numCores;
+	//! The number of cores allocated (global) or wanted right now (local)
+	int _numAllocCores;
+
+	//! Number of active cores available to this instance
+	int _numEnabledCores;
+
+	//! The number of ready tasks reported in the utilization<n> file
+	size_t _numReadyTasks;
+
 
 	std::atomic<int> _numOffloadedTasks; // offloaded by us
 
@@ -36,7 +43,7 @@ public:
 	ClusterNode(int index, int commIndex, int apprankNum, bool inHybridMode, int instrumentationRank)
 		: ComputePlace(index, nanos6_device_t::nanos6_cluster_device),
 		_memoryNode(new ClusterMemoryNode(index, commIndex)),
-		_commIndex(commIndex), _instrumentationRank(instrumentationRank), _numCores(0),
+		_commIndex(commIndex), _instrumentationRank(instrumentationRank), _numAllocCores(0), _numEnabledCores(0),
 		_numOffloadedTasks(0)
 	{
 		assert(_memoryNode != nullptr);
@@ -79,14 +86,34 @@ public:
 		return _instrumentationName;
 	}
 
-	inline void setCurrentAllocCores(int numCores)
+	inline void setCurrentAllocCores(int numAllocCores)
 	{
-		_numCores = numCores;
+		_numAllocCores = numAllocCores;
 	}
 
 	inline int getCurrentAllocCores() const
 	{
-		return _numCores;
+		return _numAllocCores;
+	}
+
+	inline void setCurrentEnabledCores(int numEnabledCores)
+	{
+		_numEnabledCores = numEnabledCores;
+	}
+
+	inline int getCurrentEnabledCores() const
+	{
+		return _numEnabledCores;
+	}
+
+	inline void setCurrentReadyTasks(int numReadyTasks)
+	{
+		_numReadyTasks = numReadyTasks;
+	}
+
+	inline int getCurrentReadyTasks() const
+	{
+		return _numReadyTasks;
 	}
 
 	//! \brief Update number of tasks offloaded from this node to the ClusterNode

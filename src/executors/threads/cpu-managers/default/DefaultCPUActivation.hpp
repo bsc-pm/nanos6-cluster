@@ -29,12 +29,14 @@ public:
 			case CPU::enabling_status:
 				return true;
 			case CPU::uninitialized_status:
+			case CPU::uninitialized_given_status:
 			case CPU::disabled_status:
 			case CPU::disabling_status:
 			case CPU::shutdown_status:
 				return false;
 			case CPU::lent_status:
 			case CPU::lending_status:
+			case CPU::giving_status:
 			case CPU::acquired_status:
 			case CPU::acquired_enabled_status:
 			case CPU::returned_status:
@@ -65,8 +67,10 @@ public:
 			CPU::activation_status_t currentStatus = cpu->getActivationStatus();
 			switch (currentStatus) {
 				case CPU::uninitialized_status:
+				case CPU::uninitialized_given_status:
 				case CPU::lent_status:
 				case CPU::lending_status:
+				case CPU::giving_status:
 				case CPU::acquired_status:
 				case CPU::acquired_enabled_status:
 				case CPU::returned_status:
@@ -113,8 +117,10 @@ public:
 			CPU::activation_status_t currentStatus = cpu->getActivationStatus();
 			switch (currentStatus) {
 				case CPU::uninitialized_status:
+				case CPU::uninitialized_given_status:
 				case CPU::lent_status:
 				case CPU::lending_status:
+				case CPU::giving_status:
 				case CPU::acquired_status:
 				case CPU::acquired_enabled_status:
 				case CPU::returned_status:
@@ -161,8 +167,10 @@ public:
 			currentStatus = cpu->getActivationStatus();
 			switch (currentStatus) {
 				case CPU::uninitialized_status:
+				case CPU::uninitialized_given_status:
 				case CPU::lent_status:
 				case CPU::lending_status:
+				case CPU::giving_status:
 				case CPU::acquired_status:
 				case CPU::acquired_enabled_status:
 				case CPU::returned_status:
@@ -222,8 +230,10 @@ public:
 			CPU::activation_status_t currentStatus = cpu->getActivationStatus();
 			switch (currentStatus) {
 				case CPU::uninitialized_status:
+				case CPU::uninitialized_given_status:
 				case CPU::lent_status:
 				case CPU::lending_status:
+				case CPU::giving_status:
 				case CPU::acquired_status:
 				case CPU::acquired_enabled_status:
 				case CPU::returned_status:

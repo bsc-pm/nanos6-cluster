@@ -467,6 +467,7 @@ cluster_sources += \
 	src/cluster/ClusterManager.cpp \
 	src/cluster/NodeNamespace.cpp \
 	src/cluster/ClusterMemoryManagement.cpp \
+	src/cluster/ClusterMetrics.cpp \
 	src/cluster/messages/Message.cpp \
 	src/cluster/messages/MessageDataFetch.cpp \
 	src/cluster/messages/MessageDataSend.cpp \
@@ -722,6 +723,8 @@ cpu_manager_sources  += \
 	src/executors/threads/cpu-managers/dlb/DLBCPUActivation.cpp \
 	src/executors/threads/cpu-managers/dlb/DLBCPUManager.cpp \
 	src/executors/threads/cpu-managers/dlb/policies/GreedyPolicy.cpp \
+	src/executors/threads/cpu-managers/dlb/policies/GlobalPolicy.cpp \
+	src/executors/threads/cpu-managers/dlb/policies/LocalPolicy.cpp \
 	src/executors/threads/cpu-managers/dlb/policies/LeWIPolicy.cpp
 cpu_manager_ldflags  += $(dlb_LIBS)
 cpu_manager_cppflags += $(dlb_CPPFLAGS) -DHAVE_DLB
@@ -831,6 +834,8 @@ noinst_HEADERS = \
 	src/executors/threads/cpu-managers/dlb/DLBCPUActivation.hpp \
 	src/executors/threads/cpu-managers/dlb/DLBCPUManager.hpp \
 	src/executors/threads/cpu-managers/dlb/policies/GreedyPolicy.hpp \
+	src/executors/threads/cpu-managers/dlb/policies/GlobalPolicy.hpp \
+	src/executors/threads/cpu-managers/dlb/policies/LocalPolicy.hpp \
 	src/executors/threads/cpu-managers/dlb/policies/LeWIPolicy.hpp \
 	src/executors/threads/kernel-level/CPUThreadingModelData.hpp \
 	src/executors/threads/kernel-level/WorkerThreadBase.hpp \
@@ -1350,6 +1355,7 @@ instrument_extrae_sources += \
 noinst_HEADERS += \
 	src/cluster/ClusterShutdownCallback.hpp \
 	src/cluster/ClusterManager.hpp \
+	src/cluster/ClusterMetrics.hpp \
 	src/cluster/ClusterUtil.hpp \
 	src/cluster/ClusterMemoryManagement.hpp \
 	src/cluster/NodeNamespace.hpp \
