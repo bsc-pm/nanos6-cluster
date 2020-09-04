@@ -562,6 +562,7 @@ public:
 	{
 		assert(_singleton);
 		_singleton->_totalReadyTasks = totalReadyTasks;
+		Instrument::emitClusterEvent(Instrument::ClusterEventType::TotalApprankReadyTasks, totalReadyTasks);
 	}
 
 	static int getTotalReadyTasks()

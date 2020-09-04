@@ -252,6 +252,8 @@ void ClusterBalanceScheduler::offloadedTaskFinished(ClusterNode *remoteNode)
 		// Assume one local core may be busy handling messages
 		double rhs = (totalTasksHere * 1.0 / (localCores-1)) - (alreadyOffloaded * 1.0 / remoteCores);
 		maxToSend = rhs / (1.0 / remoteCores + 1.0 / (localCores-1));
+		Instrument::emitClusterEvent(Instrument::ClusterEventType::OffloadLimit, maxToSend);
+		Instrument::emitClusterEvent(Instrument::ClusterEventType::OffloadHeadroom, std::max<int>(0,maxToSend-numRequestedTasks) );
 		maxToSend = std::min<int>(numRequestedTasks, maxToSend);
 	} else {
 		maxToSend = numRequestedTasks;

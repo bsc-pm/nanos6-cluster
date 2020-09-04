@@ -86,6 +86,18 @@ public:
 			_numLentOwnedCPUs   += deltaLentOwnedCPUs;
 			_numBorrowedCPUs    += deltaBorrowedCPUs;
 			_numGivingCPUs      += deltaGivingCPUs;
+			if (deltaOwnedCPUs + deltaGivingCPUs != 0) {
+				Instrument::emitClusterEvent(Instrument::ClusterEventType::OwnedCPUs, _numOwnedCPUs + _numGivingCPUs);
+			}
+			if (deltaLentOwnedCPUs != 0) {
+				Instrument::emitClusterEvent(Instrument::ClusterEventType::LentCPUs, _numLentOwnedCPUs);
+			}
+			if (deltaBorrowedCPUs != 0) {
+				Instrument::emitClusterEvent(Instrument::ClusterEventType::BorrowedCPUs, _numBorrowedCPUs);
+			}
+			if (deltaGivingCPUs != 0) {
+				Instrument::emitClusterEvent(Instrument::ClusterEventType::GivingCPUs, _numGivingCPUs);
+			}
 		}
 		return successful;
 	}

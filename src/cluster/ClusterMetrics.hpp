@@ -29,6 +29,7 @@ public:
 	static inline void incNumImmovableTasks(int by)
 	{
 		_numImmovableTasks += by;
+		Instrument::emitClusterEvent(Instrument::ClusterEventType::ImmovableTasks, _numImmovableTasks);
 	}
 
 	static inline size_t getNumImmovableTasks()

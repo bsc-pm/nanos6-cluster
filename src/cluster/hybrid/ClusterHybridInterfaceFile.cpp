@@ -174,6 +174,9 @@ bool ClusterHybridInterfaceFile::updateAllocFileGlobal(void)
 				if (ncores != node->getCurrentAllocCores()) {
 					node->setCurrentAllocCores(ncores);
 					changed = true;
+					if (node == ClusterManager::getCurrentClusterNode()) {
+						Instrument::emitClusterEvent(Instrument::ClusterEventType::AllocCores, ncores);
+					}
 				}
 			}
 		}
@@ -467,6 +470,8 @@ void ClusterHybridInterfaceFile::poll()
 		float usefulBusyCores;
 		assert(Monitoring::runtimeStateIsEnabled());
 		float totalBusyCores = RuntimeStateMonitor::readAndClear(timestamp, usefulBusyCores);
+		Instrument::emitClusterEvent(Instrument::ClusterEventType::UsefulBusyCores, usefulBusyCores);
+		Instrument::emitClusterEvent(Instrument::ClusterEventType::BusyCores, totalBusyCores);
 		ClusterHybridInterfaceFile::appendUtilization(timestamp, totalBusyCores, usefulBusyCores);
 
 		/*

@@ -201,6 +201,10 @@ void ClusterManager::postinitialize()
 		_singleton->_msn->summarizeSplit();
 	}
 
+	int allocCores = getCurrentClusterNode()->getCurrentAllocCores();
+	Instrument::emitClusterEvent(Instrument::ClusterEventType::AllocCores, allocCores);
+	Instrument::emitClusterEvent(Instrument::ClusterEventType::OwnedCPUs, ClusterHybridManager::getCurrentOwnedCPUs());
+
 	/*
 	 * Synchronization before starting polling services. This is needed only for the hybrid
 	 * polling service. We do not want the hybrid polling service to take free cores that

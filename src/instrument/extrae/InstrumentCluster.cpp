@@ -22,6 +22,19 @@ namespace Instrument {
 		(extrae_type_t) EventType::PENDING_DATA_TRANSFERS,
 		(extrae_type_t) EventType::PENDING_DATA_TRANSFER_BYTES,
 		(extrae_type_t) EventType::PENDING_DATA_TRANSFERS_INCOMING,
+		(extrae_type_t) EventType::TOTAL_APPRANK_READY_TASKS,
+		(extrae_type_t) EventType::IMMOVABLE_TASKS,
+		(extrae_type_t) EventType::PROMISED_TASKS, // deprecated
+		(extrae_type_t) EventType::OWNED_CPUS,
+		(extrae_type_t) EventType::LENT_CPUS,
+		(extrae_type_t) EventType::BORROWED_CPUS,
+		(extrae_type_t) EventType::BUSY_CORES,
+		(extrae_type_t) EventType::USEFUL_BUSY_CORES,
+		(extrae_type_t) EventType::CUMUL_REQUEST_WORK,  // deprecated
+		(extrae_type_t) EventType::ALLOC_CORES,
+		(extrae_type_t) EventType::GIVING_CORES,
+		(extrae_type_t) EventType::OFFLOAD_LIMIT,
+		(extrae_type_t) EventType::OFFLOAD_HEADROOM,
 		(extrae_type_t) EventType::EXTERNAL_RANK,
 		(extrae_type_t) EventType::PHYSICAL_NODE_NUM,
 		(extrae_type_t) EventType::APPRANK_NUM
@@ -33,6 +46,19 @@ namespace Instrument {
 		"Number of data transfers being waited for",
 		"Total bytes of data transfers being waited for",
 		"Number of data transfers queued to wait for",
+		"Estimated total ready tasks all instances same apprank",
+		"Number of immovable tasks",
+		"Number of promised tasks", // deprecated
+		"Number of owned CPUs",
+		"Number of lent CPUs",
+		"Number of borrowed CPUs",
+		"Average number of busy cores, including overhead",
+		"Average number of useful busy cores, executing tasks",
+		"Cumulative number of outgoing request work messages",    // deprecated
+		"Number of allocated cores",
+		"Number of cores whose ownership is to be given to another instance",
+		"Offload limit: number of extra tasks could be sent",
+		"Offload headroom: number of extra above those being sent now",
 		"External rank (rank in original MPI_COMM_WORLD) [counting from 1]",
 		"Physical node number [counting from 1]",
 		"Application rank [counting from 1]"
