@@ -78,6 +78,7 @@ nanos6_cpu_status_t nanos6_get_cpu_status(long systemCPUId)
 
 	switch (cpu->getActivationStatus().load()) {
 		case CPU::uninitialized_status:
+		case CPU::uninitialized_given_status:
 			return nanos6_uninitialized_cpu;
 		case CPU::enabled_status:
 			return nanos6_enabled_cpu;
@@ -101,6 +102,8 @@ nanos6_cpu_status_t nanos6_get_cpu_status(long systemCPUId)
 			return nanos6_shutting_down_cpu;
 		case CPU::shutdown_status:
 			return nanos6_shutdown_cpu;
+		case CPU::giving_status:
+			return nanos6_giving_cpu;
 	}
 
 	assert("Unknown CPU status" == 0);

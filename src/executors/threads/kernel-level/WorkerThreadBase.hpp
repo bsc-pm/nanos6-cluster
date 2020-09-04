@@ -128,7 +128,7 @@ public:
 	//! \brief suspend the currently running thread and replace it by another (if given)
 	//!
 	//! \param[in] replacement a thread that is currently suspended and that must take the place of the current thread or nullptr
-	inline void switchTo(WorkerThreadBase *replacement)
+	inline void switchTo(WorkerThreadBase *replacement, bool noInstrument=false)
 	{
 		assert(KernelLevelThread::getCurrentKernelLevelThread() == this);
 		assert(replacement != this);
@@ -156,7 +156,9 @@ public:
 		suspend();
 		// After resuming (if ever blocked), the thread continues here
 
-		Instrument::threadHasResumed(_instrumentationId, _cpu->getInstrumentationId());
+		if (!noInstrument || replacement !=nullptr) {
+				Instrument::threadHasResumed(_instrumentationId, _cpu->getInstrumentationId());
+		}
 		ClusterStats::threadHasResumed(this);
 	}
 

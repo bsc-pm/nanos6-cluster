@@ -32,6 +32,8 @@
 #include "cluster/polling-services/MessageDelivery.hpp"
 #include "OffloadedTasksInfoMap.hpp"
 #include <ClusterUtil.hpp>
+#include "scheduling/Scheduler.hpp"
+#include "cluster/hybrid/ClusterHybridMetrics.hpp"
 
 namespace TaskOffloading {
 

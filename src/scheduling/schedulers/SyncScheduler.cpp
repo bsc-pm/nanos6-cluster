@@ -7,6 +7,7 @@
 #include "SyncScheduler.hpp"
 
 #include <InstrumentScheduler.hpp>
+#include "cluster/hybrid/ClusterHybridMetrics.hpp"
 
 Task *SyncScheduler::getTask(ComputePlace *computePlace)
 {
@@ -22,6 +23,7 @@ Task *SyncScheduler::getTask(ComputePlace *computePlace)
 		// Someone else acquired the lock and assigned us work
 		if (task) {
 			Instrument::exitSchedulerLockAsClient(task->getInstrumentationTaskId());
+			ClusterHybridMetrics::incNumImmovableReadyTasks(-1);
 		} else {
 			Instrument::exitSchedulerLockAsClient();
 		}
@@ -92,6 +94,9 @@ Task *SyncScheduler::getTask(ComputePlace *computePlace)
 	// the host scheduler it should resume idle compute places to guarantee
 	// that there is always a compute place serving tasks
 	postServingTasks(computePlace, task);
+	if (task) {
+		ClusterHybridMetrics::incNumImmovableReadyTasks(-1);
+	}
 
 	return task;
 }

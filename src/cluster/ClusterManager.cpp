@@ -4,6 +4,7 @@
 	Copyright (C) 2018-2020 Barcelona Supercomputing Center (BSC)
 */
 
+#include <atomic>
 #include "ClusterManager.hpp"
 #include "ClusterHybridManager.hpp"
 #include "executors/threads/CPUManager.hpp"
@@ -16,6 +17,7 @@
 #include "polling-services/HybridPolling.hpp"
 #include "system/RuntimeInfo.hpp"
 #include "ClusterStats.hpp"
+#include "DLBCPUActivation.hpp"
 
 #include <NodeNamespace.hpp>
 #include <RemoteTasksInfoMap.hpp>
@@ -68,20 +70,15 @@ ClusterManager::ClusterManager(std::string const &commType, int argc, char **arg
 	/*
 	 * Initialize hybrid interface: controls data distribution within the apprank
 	 */
-	const int apprankNum = _msn->getApprankNum();
-	const int externalRank = _msn->getExternalRank();
-	const int internalRank = _msn->getNodeIndex();  /* internal rank */
-	const int nodeNum = _msn->getNodeNum();
-	const int indexThisNode = _msn->getIndexThisNode();
-	_hyb->initialize(externalRank, apprankNum, internalRank, nodeNum, indexThisNode);
 
 	TaskOffloading::RemoteTasksInfoMap::init();
 	TaskOffloading::OffloadedTasksInfoMap::init();
 
 	this->internal_reset();
 
+	const size_t clusterSize = _msn->getClusterSize();
 	bool forceHybrid = _msn->getNumAppranks() > 1;
-	ClusterHybridManager::initialize(forceHybrid);
+	ClusterHybridManager::initialize(forceHybrid, clusterSize); // before the polling services and (DLB) CPU manager preinitialization
 
 	_msn->synchronizeAll();
 
@@ -147,17 +144,24 @@ void ClusterManager::internal_reset() {
 	/** These are communicator-type indices. At the moment we have an
 	 * one-to-one mapping between communicator-type and runtime-type
 	 * indices for cluster nodes */
-
 	const size_t clusterSize = _msn->getClusterSize();
+	const int apprankNum = _msn->getApprankNum();
+	const int externalRank = _msn->getExternalRank();
 	const int internalRank = _msn->getNodeIndex();  /* internal rank */
+	const int nodeNum = _msn->getNodeNum();
+	const int indexThisNode = _msn->getIndexThisNode();
 	const int masterIndex = _msn->getMasterIndex();
 
 	// TODO: Check if this initialization may conflict somehow.
-	MessageId::initialize(internalRank, clusterSize);
+	MessageId::initialize(internalRank, clusterSize); // only need to be unique message IDs inside an apprank
 	WriteIDManager::initialize(internalRank, clusterSize);
 	OffloadedTaskIdManager::initialize(internalRank, clusterSize);
 
-	int apprankNum = _msn->getApprankNum();
+	const std::vector<int> &internalRankToExternalRank = _msn->getInternalRankToExternalRank();
+	const std::vector<int> &instanceThisNodeToExternalRank = _msn->getInstanceThisNodeToExternalRank();
+
+	_hyb->initialize(externalRank, apprankNum, internalRank, nodeNum, indexThisNode, clusterSize, internalRankToExternalRank, instanceThisNodeToExternalRank);
+
 	int numAppranks = _msn->getNumAppranks();
 	bool inHybridMode = numAppranks > 1;
 
@@ -195,6 +199,7 @@ void ClusterManager::initialize(int argc, char **argv)
 	}
 
 	assert(_singleton != nullptr);
+
 }
 
 void ClusterManager::initialize2()
@@ -244,6 +249,16 @@ void ClusterManager::postinitialize()
 	_singleton->_msn->summarizeSplit();
 
 	ClusterStats::initialize();
+
+	 /*
+     * Synchronization before starting polling services. This is needed only for the hybrid
+     * polling service. We do not want the hybrid polling service to take free cores that
+     * have not yet been claimed by their owner at startup, which would cause an error from
+     * DLB. This synchronizes MPI_COMM_WORLD, but it would be sufficient to synchronize only
+	 * among the instances on the same node.
+     */
+    _singleton->_msn->synchronizeWorld();
+
 	if (inClusterMode()) {
 		if (_singleton->_taskInPoolins) {
 			ClusterServicesTask::initialize();

@@ -38,3 +38,7 @@ common/
 compile_commands.json
 .clangd
 .dir-locals.el
+._.DS_Store
+.DS_Store
+src/tags
+configure.sh

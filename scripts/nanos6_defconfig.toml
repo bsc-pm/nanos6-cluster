@@ -295,6 +295,14 @@ __require_CLUSTER
 		# Hybrid monitoring directory. Default is ".hybrid"
 		directory = ".hybrid"
 
+		# Choose the hybrid core allocation policy.  Default is "default"
+		# Possible values: "default", "global", "local"
+		policy = "default"
+
+		# Time period for local policy in seconds
+		local_time_period = 1
+
+
 __!require_CLUSTER
 
 [memory]

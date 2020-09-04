@@ -37,16 +37,6 @@ void ClusterSchedulerInterface::addReadyLocalOrExecuteRemote(
 	assert(targetNode != nullptr);
 
 	if (targetNode == _thisNode) {
-		// Increase number of local ready tasks. Only useful with the
-		// cluster balance scheduler. Note: taskfors are not counted
-		// at all, as we will need to think more carefully how to do
-		// the accounting: currently the count would be increased once
-		// per source and decremented once per collaborator. This may
-		// cause the count to go negative, which is an assertion
-		// failure.
-		if (!task->isTaskforSource() && !task->isTaskforCollaborator()) {
-			_defaultScheduler->incNumLocalReadyTasks();
-		}
 		SchedulerInterface::addReadyTask(task, computePlace, hint);
 		return;
 	}

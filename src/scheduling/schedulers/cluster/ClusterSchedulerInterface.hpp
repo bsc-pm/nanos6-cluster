@@ -10,6 +10,7 @@
 #include "scheduling/Scheduler.hpp"
 #include "scheduling/SchedulerInterface.hpp"
 #include "system/RuntimeInfo.hpp"
+#include "cluster/hybrid/ClusterHybridMetrics.hpp"
 
 #include <ClusterManager.hpp>
 
@@ -48,20 +49,6 @@ public:
 
 		virtual void offloadedTaskFinished(ClusterNode *)
 		{
-		}
-
-		virtual void decNumLocalReadyTasks()
-		{
-		}
-
-		virtual void incNumLocalReadyTasks()
-		{
-		}
-
-		virtual int getNumLocalReadyTasks()
-		{
-			assert(false);
-			return -1;
 		}
 	};
 
@@ -234,19 +221,6 @@ public:
 	{
 		// Get ready task: first try local scheduler
 		Task *readyTask = SchedulerInterface::getReadyTask(computePlace);
-
-		// If successful, decrease number of local ready tasks. Only useful
-		// with the cluster balance scheduler cluster balance scheduler. Note:
-		// taskfors are not counted at all, as we will need to think more
-		// carefully how to do the accounting: currently the count would be
-		// increased once per source and decremented once per collaborator.
-		// This may cause the count to go negative, which is an assertion
-		// failure.
-		if (readyTask) {
-			if (!readyTask->isTaskforSource() && !readyTask->isTaskforCollaborator()) {
-				_defaultScheduler->decNumLocalReadyTasks();
-			}
-		}
 
 		// If not successful, steal a task from the cluster scheduler
 		// Only useful with the cluster balance scheduler

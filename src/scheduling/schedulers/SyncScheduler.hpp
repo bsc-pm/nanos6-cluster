@@ -8,6 +8,7 @@
 #define SYNC_SCHEDULER_HPP
 
 #include <atomic>
+#include <cassert>
 
 #include <boost/lockfree/spsc_queue.hpp>
 
@@ -18,6 +19,7 @@
 #include "lowlevel/DelegationLock.hpp"
 #include "lowlevel/TicketArraySpinLock.hpp"
 #include "scheduling/SchedulerSupport.hpp"
+#include "cluster/hybrid/ClusterHybridMetrics.hpp"
 
 
 class SyncScheduler {
@@ -120,6 +122,8 @@ public:
 
 	inline void addReadyTasks(Task *tasks[], const size_t numTasks, ComputePlace *computePlace, ReadyTaskHint hint)
 	{
+		ClusterHybridMetrics::incNumImmovableReadyTasks(numTasks);
+
 		// Use a special queue not belonging to any NUMA node if no compute place
 		const size_t queueIndex = (computePlace != nullptr) ? ((CPU *)computePlace)->getNumaNodeId() : _totalAddQueues-1;
 		assert(queueIndex < _totalAddQueues);

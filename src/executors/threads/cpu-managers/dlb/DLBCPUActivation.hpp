@@ -12,14 +12,18 @@
 #include <ctime>
 #include <dlb.h>
 
+#include "lowlevel/RWSpinLock.hpp"
 #include "executors/threads/CPU.hpp"
 #include "executors/threads/CPUManager.hpp"
 #include "executors/threads/ThreadManager.hpp"
 #include "executors/threads/WorkerThread.hpp"
 #include "scheduling/Scheduler.hpp"
-#include "system/TrackingPoints.hpp"
+#include "cluster/hybrid/ClusterStats.hpp"
 
 class DLBCPUActivation {
+
+public:
+	static const char *stateNames[];
 
 private:
 
@@ -28,7 +32,66 @@ private:
 	static timespec _delayCPUEnabling;
 
 	//! The current number of OWNED active CPUs
-	static std::atomic<size_t> _numActiveOwnedCPUs;
+	static std::atomic<size_t> _numActiveOwnedCPUs; // in enabled state
+	static std::atomic<size_t> _numOwnedCPUs;
+	static std::atomic<size_t> _numLentOwnedCPUs;   // in lent state
+	static std::atomic<size_t> _numBorrowedCPUs;    // in acquired_enabled state
+	static std::atomic<size_t> _numGivingCPUs;
+
+	//! As returned from DLB_PollDROM
+	// static cpu_set_t _ownedByMe;
+
+private:
+
+	static bool isActiveOwned(CPU::activation_status_t status)
+	{
+		return status == CPU::enabled_status;
+	}
+
+	static bool isOwned(CPU::activation_status_t status)
+	{
+		return status == CPU::enabled_status
+		       || status == CPU::enabling_status
+		       || status == CPU::lending_status
+		       || status == CPU::lent_status
+			   || status == CPU::uninitialized_given_status;
+	}
+
+	static bool isLentOwned(CPU::activation_status_t status)
+	{
+		return status == CPU::lent_status;
+	}
+
+	static bool isBorrowed(CPU::activation_status_t status)
+	{
+		return status == CPU::acquired_enabled_status;
+	}
+
+	static bool isGiving(CPU::activation_status_t status)
+	{
+		return status == CPU::giving_status;
+	}
+
+public:
+	static inline bool changeStatusAndUpdateMetrics(CPU *cpu,
+					CPU::activation_status_t oldStatus,
+					CPU::activation_status_t newStatus)
+	{
+		bool successful = cpu->getActivationStatus().compare_exchange_strong(oldStatus, newStatus);
+		if (successful) {
+			int deltaActiveOwnedCPUs = isActiveOwned(newStatus) - isActiveOwned(oldStatus);
+	    	int deltaOwnedCPUs       = isOwned(newStatus) - isOwned(oldStatus);
+			int deltaLentOwnedCPUs   = isLentOwned(newStatus) - isLentOwned(oldStatus);
+			int deltaBorrowedCPUs    = isBorrowed(newStatus) - isBorrowed(oldStatus);
+			int deltaGivingCPUs      = isGiving(newStatus) - isGiving(oldStatus);
+			_numActiveOwnedCPUs += deltaActiveOwnedCPUs;
+			_numOwnedCPUs       += deltaOwnedCPUs;
+			_numLentOwnedCPUs   += deltaLentOwnedCPUs;
+			_numBorrowedCPUs    += deltaBorrowedCPUs;
+			_numGivingCPUs      += deltaGivingCPUs;
+		}
+		return successful;
+	}
 
 private:
 
@@ -57,7 +120,11 @@ private:
 	{
 		int ret = DLB_ReclaimCpu(systemCPUId);
 		if (!ignoreError) {
-			if (ret != DLB_NOUPDT && ret != DLB_NOTED && ret != DLB_SUCCESS) {
+			if (ret != DLB_NOUPDT && ret != DLB_NOTED && ret != DLB_SUCCESS && ret != DLB_ERR_PERM) {
+				// DLB_NOUPDT: not successful?
+				// DLB_NOTED: should happen?
+				// DLB_SUCCESS: successful
+				// DLB_ERR_PERM: changed ownership (which is possible)
 				FatalErrorHandler::fail("DLB Error ", ret, " when trying to reclaim a CPU(", systemCPUId, ")");
 			}
 		}
@@ -72,6 +139,21 @@ private:
 	//! \return The DLB error code returned by the call
 	static inline int dlbReclaimCPUs(size_t numCPUs)
 	{
+		// Try to take CPUs from the giving state
+		for (size_t id = 0; id < (size_t)CPUManager::getTotalCPUs(); ++id) {
+			CPU *cpu = CPUManager::getCPU(id);
+			if (cpu->getActivationStatus() == CPU::giving_status) {
+				bool successfulStatus = changeStatusAndUpdateMetrics(cpu, CPU::giving_status, CPU::lent_status);
+				if (successfulStatus) {
+					dlbEnableCallback(id, nullptr);
+					numCPUs--;
+					if (numCPUs ==0) {
+						return DLB_SUCCESS;
+					}
+				}
+			}
+		}
+
 		int ret = DLB_ReclaimCpus(numCPUs);
 		if (ret != DLB_NOUPDT && ret != DLB_NOTED && ret != DLB_SUCCESS) {
 			FatalErrorHandler::fail("DLB Error ", ret, " when trying to reclaim ", numCPUs, " CPUs");
@@ -136,16 +218,19 @@ private:
 	//!
 	//! \return The DLB error code returned by the call
 	static inline int dlbReturnCPU(size_t systemCPUId)
-	{
-		// We may get "DLB_ERR_PERM" only if the runtime is shutting down
+	{  
+		// I think this will normally call the callback if it has to be returned
 		int ret = DLB_ReturnCpu(systemCPUId);
+
+		if (ret == DLB_ERR_PERM) {
+			// Get DLB_ERR_PERM if a CPU we were using has been "stolen" using the DROM API
+			// But the callback doesn't get called: call it manually
+			dlbDisableCallback(systemCPUId, nullptr);
+
+			ret = DLB_SUCCESS;
+		}
 		if (ret != DLB_SUCCESS && ret != DLB_NOUPDT) {
-			CPU *cpu = CPUManager::getCPU(systemCPUId);
-			if ((ret != DLB_ERR_PERM) ||
-				(ret == DLB_ERR_PERM && cpu->getActivationStatus() != CPU::shutdown_status)
-			) {
 				FatalErrorHandler::fail("DLB Error ", ret, " when trying to return a CPU(", systemCPUId, ")");
-			}
 		}
 
 		return ret;
@@ -167,8 +252,10 @@ public:
 			case CPU::acquired_enabled_status:
 				return true;
 			case CPU::uninitialized_status:
+			case CPU::uninitialized_given_status:
 			case CPU::lent_status:
 			case CPU::lending_status:
+			case CPU::giving_status:
 			case CPU::returned_status:
 			case CPU::shutdown_status:
 			case CPU::shutting_down_status:
@@ -213,6 +300,39 @@ public:
 		return false;
 	}
 
+	static inline void giveCPU(CPU *cpu)
+	{
+		assert(cpu != nullptr);
+		if (!Scheduler::isServingTasks()) {
+			// No CPU is serving tasks in the scheduler, so don't give away a CPU yet, not sure why (?)
+			return;
+		}
+
+		// Atomically decrease number of active owned CPUs and make sure never less than 1
+		// NOTE: will stay owned until actually given away
+		size_t currentActiveCPUs = _numActiveOwnedCPUs.load();
+		if (currentActiveCPUs <= 1) {
+			// Need to keep at least one active CPU
+			return;
+		}
+		bool successful =_numActiveOwnedCPUs.compare_exchange_strong(currentActiveCPUs, currentActiveCPUs - 1);
+		if (!successful) {
+			// Race condition on decreasing number of active CPUs, so give up
+			return;
+		}
+
+		// Atomically change from enabled_status to giving_status
+		changeStatusAndUpdateMetrics(cpu, CPU::enabled_status, CPU::giving_status);
+		_numActiveOwnedCPUs++; // in either case we already decreased the number of active owned CPUs (to reserve one)
+
+		// This thread becomes idle and the CPU is ready to be given away via DROM.
+		WorkerThread *currentThread = WorkerThread::getCurrentWorkerThread();
+		assert(currentThread != nullptr);
+		TrackingPoints::cpuBecomesIdle(cpu, currentThread);
+		ThreadManager::addIdler(currentThread);
+		currentThread->switchTo(nullptr);
+	}
+
 	//! \brief Lend a CPU to another runtime
 	//!
 	//! \param[in] cpu The CPU to lend
@@ -224,14 +344,15 @@ public:
 		bool successful = false;
 
 		// Always avoid lending the last owned CPU
-		while (!successful && currentActiveCPUs > 1) {
+		if (currentActiveCPUs > 1) { //while (!successful && currentActiveCPUs > 1) { // PMC infinite loop possible?
 			successful = _numActiveOwnedCPUs.compare_exchange_strong(currentActiveCPUs, currentActiveCPUs - 1);
 			if (successful) {
 				// NOTE: The CPU should only be lent when no work is available
 				// Thus, we take for granted that the status of the CPU is
 				// 'enabled_status' (unless it is shutting down)
-				CPU::activation_status_t expectedStatus = CPU::enabled_status;
-				bool successfulStatus = cpu->getActivationStatus().compare_exchange_strong(expectedStatus, CPU::lending_status);
+				bool successfulStatus = changeStatusAndUpdateMetrics(cpu, CPU::enabled_status, CPU::lending_status);
+				_numActiveOwnedCPUs++; // Compensate for subtracting to reserve one above
+
 				if (successfulStatus) {
 					// NOTE: Lend the CPU and check if work was added while
 					// lending it. This is to avoid a race condition between
@@ -241,19 +362,11 @@ public:
 					dlbLendCPU(cpu->getSystemCPUId());
 
 					if (!Scheduler::isServingTasks()) {
-						// No CPU is serving tasks in the scheduler, change to enabling,
-						// call dlbReclaimCPU to let DLB know that we want to use this
-						// CPU again and continue executing with the current thread.
-						// If we are the first to reclaim the CPU, the reclaim will set
-						// the CPU as ours within DLB and the thread will keep
-						// executing until checkCPUStatusTransitions.
-						// However, if another thread tries to acquire this CPU while
-						// we're reclaiming, that acquire call will trigger an enable
-						// callback, but as the status is lending, that callback will
-						// loop until the new status is enabling and then do nothing,
-						// thus it is safe to keep executing with the current thread
-						expectedStatus = CPU::lending_status;
-						successfulStatus = cpu->getActivationStatus().compare_exchange_strong(expectedStatus, CPU::enabling_status);
+						// No CPU is serving tasks in the scheduler, change to enabling.
+						// At some later time, checkCPUStatusTransitions.
+						// will set it back to enabled and increase the number of active
+						// owned CPUs back to where it was.
+						successfulStatus = changeStatusAndUpdateMetrics(cpu, CPU::lending_status, CPU::enabling_status);
 						assert(successfulStatus);
 
 						dlbReclaimCPU(cpu->getSystemCPUId());
@@ -269,8 +382,10 @@ public:
 						TrackingPoints::cpuBecomesIdle(cpu, currentThread);
 
 						// Change the status since the lending was successful
-						expectedStatus = CPU::lending_status;
-						successfulStatus = cpu->getActivationStatus().compare_exchange_strong(expectedStatus, CPU::lent_status);
+						// if (ClusterManager::getExternalRank() == 0) {
+						// 	std::cout << "lending a CPU\n";
+						// }
+						successfulStatus = changeStatusAndUpdateMetrics(cpu, CPU::lending_status, CPU::lent_status);
 						assert(successfulStatus);
 
 						// This thread becomes idle
@@ -293,40 +408,75 @@ public:
 	//! \brief Try to reclaim a CPU
 	//!
 	//! \param[in] systemCPUId The CPU's id
-	static inline void reclaimCPU(size_t systemCPUId)
+	//! Returns true if we now have it (either reclaimed or already had it)
+	static inline bool reclaimCPU(size_t systemCPUId)
 	{
 		CPU *cpu = CPUManager::getCPU(systemCPUId);
 		assert(cpu != nullptr);
-		assert(cpu->isOwned());
 
 		bool successful = false;
+		int ret;
 		while (!successful) {
 			CPU::activation_status_t currentStatus = cpu->getActivationStatus();
 			switch (currentStatus) {
 				case CPU::lent_status:
-					// Try to reclaim a CPU disregarding an error. We disregard any error
-					// since the CPU may be reclaimed by the time we issue the request
-					dlbReclaimCPU(systemCPUId, true);
-					return;
+					// Try to reclaim a CPU disregarding an error (?). We disregard any error
+					// since the CPU may already have been reclaimed.
+					ret = dlbReclaimCPU(systemCPUId, true);
+					if (ret == DLB_SUCCESS) {
+						// it is typically enabling_status or enabled_status
+						// std::cout << "dlbReclaimCPU was a success: new state " << stateNames[cpu->getActivationStatus()] << "\n";
+					}
+					return ret == DLB_SUCCESS;
+
+				case CPU::returned_status:
+					// We lost ownership concurrently so cannot reclaim it any more
+					return false;
+
 				case CPU::disabled_status:
 				case CPU::disabling_status:
 				case CPU::uninitialized_status:
+				case CPU::uninitialized_given_status:
 				case CPU::acquired_status:
 				case CPU::acquired_enabled_status:
-				case CPU::returned_status:
+				case CPU::giving_status:
 					assert(false);
-					return;
+					return false;
+
 				case CPU::lending_status:
 					// In this case we iterate until the lending is complete
 					break;
+
 				case CPU::enabled_status:
 				case CPU::enabling_status:
 				case CPU::shutdown_status:
 				case CPU::shutting_down_status:
 					// The CPU should already be ours, abort the reclaim
-					return;
+					return true;
 			}
 		}
+		return false;
+	}
+
+	static inline int reclaimCPUs(int numRequested)
+	{
+		int ncpus = CPUManager::getTotalCPUs();
+		int numReclaimed = 0;
+		for (int k=0; k<ncpus; k++) {
+			CPU *cpu = CPUManager::getCPU(k);
+			assert(cpu != nullptr);
+			if (cpu->getActivationStatus() == CPU::lent_status) {
+				// Owned and lent out
+				bool successful = reclaimCPU(k);
+				if (successful) {
+					numReclaimed++;
+					if (numReclaimed == numRequested) {
+						break;
+					}
+				}
+			}
+		}
+		return numReclaimed;
 	}
 
 	//! \brief Try to acquire a specific number of external CPUs
@@ -355,14 +505,13 @@ public:
 	static inline void returnCPU(CPU *cpu)
 	{
 		assert(cpu != nullptr);
-		assert(!cpu->isOwned());
 
 		WorkerThread *currentThread = WorkerThread::getCurrentWorkerThread();
 		assert(currentThread != nullptr);
 
 		// Change the status to returned and return it
-		CPU::activation_status_t expectedStatus = CPU::acquired_enabled_status;
-		bool successful = cpu->getActivationStatus().compare_exchange_strong(expectedStatus, CPU::returned_status);
+		bool successful = changeStatusAndUpdateMetrics(cpu, CPU::acquired_enabled_status, CPU::returned_status);
+
 		if (successful) {
 			// Runtime Tracking Point - A cpu becomes idle
 			TrackingPoints::cpuBecomesIdle(cpu, currentThread);
@@ -374,6 +523,7 @@ public:
 			ThreadManager::addIdler(currentThread);
 			currentThread->switchTo(nullptr);
 		} else {
+			std::cout << "returnCPU: unexpected status " << cpu->getActivationStatus() << "\n";
 			assert(cpu->getActivationStatus() == CPU::shutdown_status);
 		}
 	}
@@ -387,13 +537,18 @@ public:
 		CPU *cpu = CPUManager::getCPU(systemCPUId);
 		assert(cpu != nullptr);
 
+		// CPU *myCPU = CPUManager::getComputePlace();
+		// std::cout << "dlbEnableCallback of " << systemCPUId << " on " << ClusterManager::getExternalRank() << "\n";
+
 		bool successful = false;
 		while (!successful) {
 			CPU::activation_status_t currentStatus = cpu->getActivationStatus();
 			switch (currentStatus) {
-				case CPU::disabled_status:
+				case CPU::disabled_status:  // It was given away, now it has been given back
 				case CPU::disabling_status:
+				case CPU::giving_status:
 					// The CPU should never be in here in this implementation
+					std::cout << "unexpected state in dlbEnableCallback " << currentStatus << "\n";
 					assert(false);
 					return;
 				case CPU::enabled_status:
@@ -408,11 +563,15 @@ public:
 					// In this case we iterate until the lending is complete
 					break;
 				case CPU::uninitialized_status:
-					assert(!cpu->isOwned());
+				case CPU::uninitialized_given_status:
 
 					// If the status is uninit, this CPU must be external
 					// We have acquired, for the first time, a CPU we don't own
-					successful = cpu->getActivationStatus().compare_exchange_strong(currentStatus, CPU::acquired_status);
+					if (currentStatus == CPU::uninitialized_given_status) {
+						successful = changeStatusAndUpdateMetrics(cpu, currentStatus, CPU::enabling_status);
+					} else {
+						successful = changeStatusAndUpdateMetrics(cpu, currentStatus, CPU::acquired_status);
+					}
 					if (successful) {
 						// Initialize the acquired CPU
 						cpu->initialize();
@@ -421,31 +580,29 @@ public:
 						ThreadManager::resumeIdle(cpu, true);
 					}
 					break;
+
 				case CPU::lent_status:
-					assert(cpu->isOwned());
 
 					// If we are expecting a callback, try to reenable the CPU
-					successful = cpu->getActivationStatus().compare_exchange_strong(currentStatus, CPU::enabling_status);
+					successful = changeStatusAndUpdateMetrics(cpu, CPU::lent_status, CPU::enabling_status);
 					if (successful) {
 						// Resume a thread so it sees the status changes
 						ThreadManager::resumeIdle(cpu);
 					}
 					break;
 				case CPU::returned_status:
-					assert(!cpu->isOwned());
 
-					successful = cpu->getActivationStatus().compare_exchange_strong(currentStatus, CPU::acquired_status);
+					successful = changeStatusAndUpdateMetrics(cpu, CPU::returned_status, CPU::acquired_status);
 					if (successful) {
 						// Resume a thread so it sees the status change
 						ThreadManager::resumeIdle(cpu);
 					}
 					break;
 				case CPU::shutting_down_status:
-					assert(cpu->isOwned());
 
 					// If the CPU was lent and the runtime is shutting down
 					// reenable the CPU without changing the status
-					successful = cpu->getActivationStatus().compare_exchange_strong(currentStatus, CPU::shutdown_status);
+					successful = changeStatusAndUpdateMetrics(cpu, currentStatus, CPU::shutdown_status);
 					if (successful) {
 						// Runtime Tracking Point - A cpu becomes active
 						TrackingPoints::cpuBecomesActive(cpu);
@@ -463,11 +620,9 @@ public:
 	//! \param[in] args (Unused) DLB-compliant callback arguments
 	static inline void dlbDisableCallback(int systemCPUId, void *)
 	{
-		// Only unowned CPUs should execute the following callback
 		CPU *cpu = CPUManager::getCPU(systemCPUId);
 		WorkerThread *currentThread;
 		assert(cpu != nullptr);
-		assert(!cpu->isOwned());
 
 		bool successful = false;
 		while (!successful) {
@@ -475,18 +630,26 @@ public:
 			switch (currentStatus) {
 				// The CPU should never be in here in this implementation
 				case CPU::uninitialized_status:
+				case CPU::uninitialized_given_status:
 				case CPU::disabled_status:
 				case CPU::disabling_status:
+				case CPU::giving_status:
+					assert(false);
+					return;
 				// The CPU is unowned, cannot be in here
 				case CPU::enabled_status:
 				case CPU::enabling_status:
 				case CPU::lent_status:
 				case CPU::lending_status:
 				// The CPU should be acquired, cannot be in here
-				case CPU::returned_status:
 				case CPU::shutting_down_status:
 					assert(false);
 					return;
+
+				case CPU::returned_status:
+					std::cout << "got dlbDisableCallback when already returned (I think this can happen due to a race condition and is harmless)\n";
+					return;
+
 				case CPU::acquired_status:
 				case CPU::acquired_enabled_status:
 					// If the callback is called at this point, it means the
@@ -503,7 +666,7 @@ public:
 					// Runtime Tracking Point - A cpu becomes idle
 					TrackingPoints::cpuBecomesIdle(cpu, currentThread);
 
-					successful = cpu->getActivationStatus().compare_exchange_strong(currentStatus, CPU::returned_status);
+					successful = changeStatusAndUpdateMetrics(cpu, currentStatus, CPU::returned_status);
 					assert(successful);
 					assert(currentThread->getTask() == nullptr);
 					assert(currentThread->getComputePlace() == cpu);
@@ -512,6 +675,7 @@ public:
 					ThreadManager::addIdler(currentThread);
 					currentThread->switchTo(nullptr);
 					break;
+
 				case CPU::shutdown_status:
 					// If the callback is called at this point, the runtime is
 					// shutting down. Instead of returning the CPU, simply use
@@ -536,6 +700,7 @@ public:
 
 		CPU::activation_status_t currentStatus;
 		bool successful = false;
+		int ret;
 		while (!successful) {
 			CPU *cpu = currentThread->getComputePlace();
 			assert(cpu != nullptr);
@@ -543,9 +708,11 @@ public:
 			currentStatus = cpu->getActivationStatus();
 			switch (currentStatus) {
 				case CPU::uninitialized_status:
+				case CPU::uninitialized_given_status:
 				case CPU::disabled_status:
 				case CPU::disabling_status:
 				case CPU::lending_status:
+				case CPU::giving_status:
 					// The CPU should never be disabled in this implementation
 					// nor see itself as lending
 					assert(false);
@@ -559,6 +726,7 @@ public:
 				case CPU::lent_status:
 				case CPU::returned_status:
 				case CPU::shutting_down_status:
+					std::cout << "Thread awake in unexpected state " << currentStatus << "\n";
 					// If a thread is woken up in this CPU but it is not supposed to be running, re-add
 					// the thread as idle. We don't call TrackingPoints here since this is an extreme
 					// case that should barely happen and the thread directly becomes idle again
@@ -566,19 +734,22 @@ public:
 					currentThread->switchTo(nullptr);
 					break;
 				case CPU::enabling_status:
-					assert(cpu->isOwned());
+					// Might be returned to us but no longer owned because of DROM
 
 					// If the CPU is owned and enabled, DLB may have woken us
 					// even though another process may be using our CPU still
 					// Before completing the enable, check if this is the case
-					if (DLB_CheckCpuAvailability(cpu->getSystemCPUId()) != DLB_SUCCESS) {
+					ret = DLB_CheckCpuAvailability(cpu->getSystemCPUId());
+					if (ret != DLB_SUCCESS) {
 						// The CPU is not ready yet, sleep for a bit
+						ClusterStats::threadWillSuspend(currentThread);
 						nanosleep(&_delayCPUEnabling, nullptr);
+						ClusterStats::threadHasResumed(currentThread);
 					} else {
-						successful = cpu->getActivationStatus().compare_exchange_strong(currentStatus, CPU::enabled_status);
+						successful = changeStatusAndUpdateMetrics(cpu, currentStatus, CPU::enabled_status);
 						if (successful) {
 							// This owned CPU becomes active now
-							++_numActiveOwnedCPUs;
+							// ++_numActiveOwnedCPUs;
 							currentStatus = CPU::enabled_status;
 
 							// Runtime Tracking Point - A cpu becomes active
@@ -587,7 +758,7 @@ public:
 					}
 					break;
 				case CPU::acquired_status:
-					successful = cpu->getActivationStatus().compare_exchange_strong(currentStatus, CPU::acquired_enabled_status);
+					successful = changeStatusAndUpdateMetrics(cpu, currentStatus, CPU::acquired_enabled_status);
 					if (successful) {
 						currentStatus = CPU::acquired_enabled_status;
 
@@ -614,8 +785,20 @@ public:
 		assert(cpu != nullptr);
 
 		// If the CPU is not owned check if it must be returned
-		if (!cpu->isOwned() && cpu->getActivationStatus() != CPU::shutdown_status) {
-			dlbReturnCPU(cpu->getSystemCPUId());
+		CPU::activation_status_t currentStatus = cpu->getActivationStatus();
+		if (currentStatus == CPU::acquired_enabled_status) {
+			// At the start of the checkIfMustReturnCPU call, the CPU might
+			// already be returned, so we switch here to idle and switch
+			// back quickly to active if the CPU was not returned
+			TrackingPoints::cpuBecomesIdle(cpu, thread);
+
+			int ret = dlbReturnCPU(cpu->getSystemCPUId());
+			if (ret != DLB_SUCCESS) {
+				// The CPU wasn't returned, so resume instrumentation. In case
+				// it was returned, the appropriate thread will resume it
+				TrackingPoints::cpuBecomesActive(cpu);
+			}
+
 		}
 	}
 
@@ -630,36 +813,40 @@ public:
 		while (!successful) {
 			CPU::activation_status_t currentStatus = cpu->getActivationStatus();
 			switch (currentStatus) {
-				// The CPU should never be disabled in this implementation
-				case CPU::disabled_status:
-				case CPU::disabling_status:
 				// The CPU should not already be shutting down
 				case CPU::shutdown_status:
 				case CPU::shutting_down_status:
 					assert(false);
 					return;
+				
 				case CPU::uninitialized_status:
-					successful = true;
-					break;
+				case CPU::uninitialized_given_status:
+					// Be safe and set the uninitialized states to shutdown too
+					
+				case CPU::disabled_status: // Ownership has been given away
+				case CPU::disabling_status: // Ownership has been given away
 				case CPU::enabled_status:
 				case CPU::enabling_status:
 				case CPU::acquired_status:
 				case CPU::acquired_enabled_status:
 				case CPU::returned_status:
+				case CPU::giving_status:
 					// If the CPU is enabled, enabling or returned, changing to
 					// shutdown is enough
 					// If the CPU is acquired, switch to shutdown. Instead of
 					// returning it, we use it a short amount of time to speed
 					// up the shutdown process and DLB_Finalize will take care
 					// of returning it
-					successful = cpu->getActivationStatus().compare_exchange_strong(currentStatus, CPU::shutdown_status);
+					successful = changeStatusAndUpdateMetrics(cpu, currentStatus, CPU::shutdown_status);
 					break;
 				case CPU::lent_status:
-					// If the CPU is lent, transition to a shutting down status
-					successful = cpu->getActivationStatus().compare_exchange_strong(currentStatus, CPU::shutting_down_status);
-					if (successful) {
-						dlbReclaimCPU(cpu->getSystemCPUId());
-					}
+					// If the CPU is lent, transition to a shutdown status
+					// The risk of a shutting down status is that if it changes ownership in the meantime
+					// the CPU will never shut down
+					successful = changeStatusAndUpdateMetrics(cpu, currentStatus, CPU::shutdown_status);
+					//if (successful) {
+				//		dlbReclaimCPU(cpu->getSystemCPUId());
+				//	}
 					break;
 				case CPU::lending_status:
 					// Iterate until the CPU is lent
@@ -668,6 +855,54 @@ public:
 		}
 	}
 
+	static int getCurrentActiveOwnedCPUs()
+	{
+		return _numActiveOwnedCPUs.load();
+	}
+
+	static int getCurrentLentOwnedCPUs()
+	{
+		return _numLentOwnedCPUs;
+	}
+
+	static int getCurrentOwnedCPUs()
+	{
+		return _numOwnedCPUs.load();
+	}
+
+	static int getCurrentBorrowedCPUs()
+	{
+		return _numBorrowedCPUs.load();
+	}
+
+	static int getCurrentOwnedOrGivingCPUs()
+	{
+		return _numOwnedCPUs + _numGivingCPUs;
+	}
+
+	static void pollDROM(bool setMyMask);
+
+	static void updateCPUOwnership();
+
+	static void initialize()
+	{
+		// Count up the initial number of owned CPUs
+		int ncpus = CPUManager::getTotalCPUs();
+		for (int k=0; k<ncpus; k++) {
+			CPU *cpu = CPUManager::getCPU(k);
+			// Check initial status: DROM updates are not
+			// active yet so don't worry about race conditions
+			if (cpu->isOwned()) {
+				_numOwnedCPUs ++; // initialize
+			}
+		}
+	}
+
+	static int getMyProcessMask(cpu_set_t &mask);
+
+	static void checkCPUstates(const char *when, bool setMask);
+
+	static const char *getDLBErrorName(int state);
 };
 
 

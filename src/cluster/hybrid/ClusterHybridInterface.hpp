@@ -24,10 +24,13 @@ class ClusterHybridInterface {
 		}
 
 		virtual void initialize(int externalRank,
-								int apprankNum,
-								int internalRank,
-								int nodeNum,
-								int indexThisNode) = 0;
+			         			int apprankNum,
+			         			int internalRank,
+			         			int nodeNum,
+			         			int indexThisNode,
+								int clusterSize,
+								const std::vector<int> &internalRankToExternalRank,
+								const std::vector<int> &instanceThisNodeToExternalRank) = 0;
 
 		//! Called by polling service
 		virtual void poll() = 0;

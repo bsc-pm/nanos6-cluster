@@ -7,7 +7,6 @@
 #ifndef CLUSTER_BALANCE_SCHEDULER_HPP
 #define CLUSTER_BALANCE_SCHEDULER_HPP
 
-#include <atomic>
 #include <list>
 #include "scheduling/schedulers/cluster/ClusterSchedulerInterface.hpp"
 #include "system/RuntimeInfo.hpp"
@@ -38,7 +37,6 @@ class StealableTask
 class ClusterBalanceScheduler : public ClusterSchedulerInterface::ClusterSchedulerPolicy {
 private:
 	std::vector<std::list<StealableTask*> >  _readyQueues;
-	std::atomic<int> _numLocalReadyTasks;
 	SpinLock _readyQueueLock;
 	// SpinLock _requestLock;
 
@@ -53,10 +51,10 @@ private:
 
 	Task *stealTask(ClusterNode *targetNode);
 
+
 public:
 	ClusterBalanceScheduler(ClusterSchedulerInterface * const interface)
-		: ClusterSchedulerPolicy("ClusterBalanceScheduler", interface),
-		_numLocalReadyTasks(0)
+		: ClusterSchedulerPolicy("ClusterBalanceScheduler", interface)
 	{
 		for (int i=0; i < ClusterManager::clusterSize(); i++) {
 			_readyQueues.emplace_back(0);
@@ -78,22 +76,6 @@ public:
 	void offloadedTaskFinished(ClusterNode *remoteNode);
 
 	void checkSendMoreAllNodes();
-
-	void decNumLocalReadyTasks()
-	{
-		_numLocalReadyTasks--;
-		assert(_numLocalReadyTasks >= 0);
-	}
-
-	void incNumLocalReadyTasks()
-	{
-		_numLocalReadyTasks++;
-	}
-
-	int getNumLocalReadyTasks()
-	{
-		return _numLocalReadyTasks;
-	}
 };
 
 static const bool __attribute__((unused))_registered_balance_sched =
