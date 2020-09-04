@@ -142,7 +142,9 @@ private:
 	int _indexThisNode;         // Index of this instance on this node
 	int _instrumentationRank;   // For Extrae
 	std::vector<int> _internalRankToInstrumentationRank;
+	std::vector<bool> _mastersThisNode; // For each instance on this node, whether it's a master or not
 
+	void getNodeNumber();
 	void splitCommunicator(const std::string &clusterSplit);
 	void setApprankNumber(const std::string &clusterSplit, int &internalRank);
 
@@ -255,6 +257,11 @@ public:
 	inline int appCommunicator() const
 	{
 		return APP_COMM;
+	}
+
+	const std::vector<bool> &getInstancesThisNode(void) const
+	{
+		return _mastersThisNode;
 	}
 
 	//! For verbose instrumentation, summarize the instances and appranks

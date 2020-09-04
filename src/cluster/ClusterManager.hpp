@@ -33,8 +33,10 @@ class ClusterManager {
 
 private:
 	bool _clusterRequested; // Built with cluster and cluster.communication is not disabled
+	bool _shuttingDown;
 
 	static ClusterManager *_singleton;
+
 	//! A vector of all ClusterNodes in the system.
 	//!
 	//! We might need to make this a map later on, when we start
@@ -492,11 +494,24 @@ public:
 	static void hybridInterfacePoll()
 	{
 		if(_singleton && _singleton->_hyb) {
-			_singleton->_hyb->poll();
+			// && inHybridClusterMode()) {
+			if (!_singleton->_shuttingDown) {
+				_singleton->_hyb->poll();
+			}
 		}
 	}
 
 	static void initialize2();
+
+	// For now just a bool to indicate whether each instance is a master;
+	// in future it may have to return more information.
+	static const std::vector<bool> &getInstancesThisNode()
+	{
+		assert(_singleton);
+		assert(_singleton->_msn);
+		return _singleton->_msn->getInstancesThisNode();
+	}
+
 };
 
 

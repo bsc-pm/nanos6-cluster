@@ -41,6 +41,7 @@ ClusterPollingServices::HybridPolling ClusterPollingServices::HybridPolling::_si
 
 ClusterManager::ClusterManager()
 	: _clusterRequested(false),
+	_shuttingDown(false),
 	_clusterNodes(1),
 	_thisNode(new ClusterNode(0, 0, 0, false, 0)),
 	_masterNode(_thisNode),
@@ -56,6 +57,7 @@ ClusterManager::ClusterManager()
 
 ClusterManager::ClusterManager(std::string const &commType, int argc, char **argv)
 	: _clusterRequested(true),
+	_shuttingDown(false),
 	_msn(GenericFactory<std::string,Messenger*,int,char**>::getInstance().create(commType, argc, argv)),
 	_disableRemote(false), _disableRemoteConnect(false), _disableAutowait(false)
 {
@@ -268,6 +270,7 @@ void ClusterManager::shutdownPhase1()
 	assert(NodeNamespace::isEnabled());
 	assert(_singleton != nullptr);
 	assert(MemoryAllocator::isInitialized());
+	_singleton->_shuttingDown = true;
 
 	if (inClusterMode()) {
 		if (_singleton->_taskInPoolins) {

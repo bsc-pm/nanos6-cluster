@@ -86,6 +86,7 @@ void MPIMessenger::setApprankNumber(const std::string &clusterSplit, int &intern
 					_instrumentationRank = countInstances;
 				}
 				countInstancesThisNode ++;
+				_mastersThisNode.push_back(intRank == 0); // make a note of whether it's a master or not
 			}
 			countInstances ++;
 
@@ -116,7 +117,7 @@ static std::vector<const char *> node_num_envvars
 	"SLURM_NODEID"      // SLURM
 };
 
-void MPIMessenger::splitCommunicator(const std::string &clusterSplit)
+void MPIMessenger::getNodeNumber()
 {
 	// Find node number from the environment variable
 	_nodeNum = -1;
@@ -140,7 +141,10 @@ void MPIMessenger::splitCommunicator(const std::string &clusterSplit)
 	MPI_Comm comm_within_node;
 	MPI_Comm_split(MPI_COMM_WORLD, /* color */ _nodeNum, /* key */_externalRank, &comm_within_node);
 	MPI_Comm_rank(comm_within_node, &_indexThisNode);
+}
 
+void MPIMessenger::splitCommunicator(const std::string &clusterSplit)
+{
 	// Used for splitting the communicator; it should match the
 	// final internal rank, but the definitive value will come
 	// from INTRA_COMM
@@ -191,9 +195,12 @@ MPIMessenger::MPIMessenger(int argc, char **argv) : Messenger(argc, argv)
 
 	MPIErrorHandler::handle(ret, MPI_COMM_WORLD);
 
-	// Get the user config to use a different communicator for data_raw.
-	ConfigVariable<bool> mpi_comm_data_raw("cluster.mpi.comm_data_raw");
-	_mpi_comm_data_raw = mpi_comm_data_raw.getValue();
+    // Get the user config to use a different communicator for data_raw.
+    ConfigVariable<bool> mpi_comm_data_raw("cluster.mpi.comm_data_raw");
+    _mpi_comm_data_raw = mpi_comm_data_raw.getValue();
+
+	//! Calculate number of nodes and node number
+	getNodeNumber();
 
 	this->internal_reset();
 }
@@ -255,9 +262,18 @@ void MPIMessenger::internal_reset()
 		splitCommunicator(clusterSplit);
 	} else {
 		_apprankNum = 0;
-		_nodeNum = 0;
-		_indexThisNode = 0;
-		_numInstancesThisNode = 1;
+		// _nodeNum = 0;
+		// _indexThisNode = 0;
+		int n = _numExternalRanks / _numNodes;
+		if (_nodeNum < (_numExternalRanks % _numNodes)) {
+			n++;
+		}
+		_numInstancesThisNode = n;
+
+		for (int i=0; i<_numInstancesThisNode; i++) {
+			bool isMasterInstance = (i==0) && (_nodeNum==0); /* first instance on first node */
+			_mastersThisNode.push_back(isMasterInstance);
+		}
 		_instrumentationRank = _externalRank;
 
 		//! Create a new communicator

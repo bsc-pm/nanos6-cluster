@@ -120,8 +120,10 @@ bool ClusterHybridInterfaceFile::updateNumbersOfCores(void)
 
 void ClusterHybridInterfaceFile::appendUtilization(float timestamp, float busy_cores)
 {
+	int _enabledCores = ClusterHybridManager::countEnabledCPUs();
 	_utilizationFile << timestamp << " "
 	                 << ClusterManager::getCurrentClusterNode()->getCurrentAllocCores() << " "
+					 << _enabledCores << " "
 					 << busy_cores << "\n";
 	_utilizationFile.flush();
 }
