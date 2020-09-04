@@ -101,6 +101,7 @@ void MPIMessenger::setApprankNumber(const std::string &clusterSplit, int &intern
 					_instrumentationRank = countInstances;
 				}
 				countInstancesThisPhysicalNode ++;
+				_isMasterThisNode.push_back(intRank == 0); // make a note of whether it's a master or not
 			}
 			countInstances ++;
 
@@ -131,7 +132,7 @@ static std::vector<const char *> node_num_envvars
 	"SLURM_NODEID"      // SLURM
 };
 
-void MPIMessenger::splitCommunicator(const std::string &clusterSplit)
+void MPIMessenger::getNodeNumber()
 {
 	// Find physical node number from the environment variable
 	_physicalNodeNum = -1;
@@ -159,7 +160,10 @@ void MPIMessenger::splitCommunicator(const std::string &clusterSplit)
 	MPI_Comm comm_within_node;
 	MPI_Comm_split(MPI_COMM_WORLD, /* color */ _physicalNodeNum, /* key */_externalRank, &comm_within_node);
 	MPI_Comm_rank(comm_within_node, &_indexThisPhysicalNode);
+}
 
+void MPIMessenger::splitCommunicator(const std::string &clusterSplit)
+{
 	// Used for splitting the communicator. It ought to be the same as the actual internal
 	// rank, but the definitive value of the internalRank will be taken from INTRA_COMM,
 	// which will be created by MPI_Comm_split.
@@ -208,6 +212,9 @@ MPIMessenger::MPIMessenger(int argc, char **argv) : Messenger(argc, argv)
 	ConfigVariable<std::string> clusterSplitEnv("cluster.hybrid.split");
 	if (PARENT_COMM == MPI_COMM_NULL) {
 
+		//! Calculate number of nodes and node number
+		getNodeNumber();
+
 		//! Get external rank (in MPI_COMM_WORLD)
 		ret = MPI_Comm_size(MPI_COMM_WORLD, &_numExternalRanks);
 		ret = MPI_Comm_rank(MPI_COMM_WORLD, &_externalRank);
@@ -219,9 +226,16 @@ MPIMessenger::MPIMessenger(int argc, char **argv) : Messenger(argc, argv)
 		} else {
 			_apprankNum = 0;
 			_numAppranks = 1;
-			_physicalNodeNum = 0;
-			_indexThisPhysicalNode = 0;
-			_numInstancesThisNode = 1;
+			int n = _numExternalRanks / _numNodes;
+			if (_physicalNodeNum < (_numExternalRanks % _numNodes)) {
+				n++;
+			}
+			_numInstancesThisNode = n;
+
+			for (int i=0; i<_numInstancesThisNode; i++) {
+				bool isMasterInstance = (i==0) && (_physicalNodeNum==0); /* first instance on first node */
+				_isMasterThisNode.push_back(isMasterInstance);
+			}
 			_instrumentationRank = _externalRank;
 
 			//! Create a new communicator

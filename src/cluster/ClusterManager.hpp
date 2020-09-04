@@ -36,6 +36,7 @@ private:
 	bool _clusterRequested; // Built with cluster and cluster.communication is not disabled
 
 	static ClusterManager *_singleton;
+
 	//! A vector of all ClusterNodes in the system.
 	//!
 	//! We might need to make this a map later on, when we start
@@ -538,6 +539,15 @@ public:
 		assert(_singleton);
 		assert(_singleton->_msn != nullptr);
 		return _singleton->_msn->getIndexThisPhysicalNode();
+	}
+
+	// For now just a bool to indicate whether each instance is a master;
+	// in future it may have to return more information.
+	static const std::vector<bool> &getIsMasterThisNode()
+	{
+		assert(_singleton);
+		assert(_singleton->_msn);
+		return _singleton->_msn->getIsMasterThisNode();
 	}
 };
 

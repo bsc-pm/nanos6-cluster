@@ -181,6 +181,9 @@ public:
 	//! \brief Get the application's MPI communicator
 	virtual MPI_Comm getAppCommunicator() const = 0;
 
+	//! \brief Get a list of the instances on this node and whether they are masters
+	virtual const std::vector<bool> &getIsMasterThisNode(void) const = 0;
+
 	//! \brief For verbose instrumentation, summarize the instances and appranks
 	virtual void summarizeSplit() const = 0;
 

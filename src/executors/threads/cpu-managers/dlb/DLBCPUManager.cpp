@@ -16,6 +16,7 @@
 #include "hardware/HardwareInfo.hpp"
 #include "hardware/places/ComputePlace.hpp"
 #include "lowlevel/FatalErrorHandler.hpp"
+#include "ClusterHybridManager.hpp"
 
 
 boost::dynamic_bitset<> DLBCPUManager::_shutdownCPUs;
@@ -27,11 +28,17 @@ void DLBCPUManager::preinitialize()
 {
 	_finishedCPUInitialization = false;
 
-	// Retreive the CPU mask of this process
-	int rc = sched_getaffinity(0, sizeof(cpu_set_t), &_cpuMask);
-	FatalErrorHandler::handle(
-		rc, " when retrieving the affinity of the process"
-	);
+	// Retrieve the CPU mask of this process
+	if (ClusterManager::clusterRequested()) {
+		// Hybrid cluster mode: automatically set up initial CPU mask
+		ClusterHybridManager::getInitialCPUMask(&_cpuMask);
+	} else {
+		// Default: use taskset before calling runtime
+		int rc = sched_getaffinity(0, sizeof(cpu_set_t), &_cpuMask);
+		FatalErrorHandler::handle(
+			rc, " when retrieving the affinity of the process"
+		);
+	}
 
 	// Get the number of NUMA nodes and a list of all available CPUs
 	nanos6_device_t hostDevice = nanos6_device_t::nanos6_host_device;

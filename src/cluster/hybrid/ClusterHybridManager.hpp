@@ -9,10 +9,17 @@
 
 #include "ClusterHybridInterface.hpp"
 
+#include <list>
+#include <string.h>
+#include "DataAccessRegion.hpp"
+#include <nanos6/cluster.h>
+#include <sched.h>
+
 class ClusterHybridManager {
 
 private:
 	static bool _inHybridClusterMode;
+	static int _numCPUs;
 
 	//! Cluster hybrid interface for coordination among appranks
 	static ClusterHybridInterface *_hyb;
@@ -41,6 +48,8 @@ public:
 			_hyb->poll();
 		}
 	}
+
+	static void getInitialCPUMask(cpu_set_t *set);
 };
 
 #endif /* CLUSTER_HYBRID_MANAGER_HPP */

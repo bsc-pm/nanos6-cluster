@@ -133,7 +133,9 @@ private:
 	int _indexThisPhysicalNode; // Index of this instance on this physical node
 	int _instrumentationRank;   // For Extrae
 	std::vector<int> _internalRankToInstrumentationRank;
+	std::vector<bool> _isMasterThisNode; // For each instance on this node, whether it's a master or not
 
+	void getNodeNumber();
 	void splitCommunicator(const std::string &clusterSplit);
 	void setApprankNumber(const std::string &clusterSplit, int &internalRank);
 
@@ -254,6 +256,11 @@ public:
 	inline MPI_Comm getAppCommunicator() const
 	{
 		return APP_COMM;
+	}
+
+	const std::vector<bool> &getIsMasterThisNode(void) const
+	{
+		return _isMasterThisNode;
 	}
 
 	//! For verbose instrumentation, summarize the instances and appranks
