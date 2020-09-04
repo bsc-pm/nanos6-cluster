@@ -30,6 +30,7 @@ public:
 	static inline void incNumImmovableReadyTasks(int by)
 	{
 	        _numImmovableReadyTasks += by;
+			Instrument::emitClusterEvent(Instrument::ClusterEventType::ImmovableTasks, _numImmovableReadyTasks);
 	}
 	
 	static inline size_t getNumImmovableReadyTasks()

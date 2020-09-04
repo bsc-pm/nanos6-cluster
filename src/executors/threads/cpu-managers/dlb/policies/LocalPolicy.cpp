@@ -47,6 +47,7 @@ void LocalPolicy::execute(ComputePlace *cpu, CPUManagerPolicyHint hint, size_t n
 		ClusterNode *node = ClusterManager::getCurrentClusterNode();
 		if (allocCores != node->getCurrentAllocCores()) {
 			node->setCurrentAllocCores(allocCores);
+			Instrument::emitClusterEvent(Instrument::ClusterEventType::AllocCores, allocCores);
 		}
 	}
 	

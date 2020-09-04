@@ -249,6 +249,9 @@ void ClusterManager::postinitialize()
 	_singleton->_msn->summarizeSplit();
 
 	ClusterStats::initialize();
+	int allocCores = getCurrentClusterNode()->getCurrentAllocCores();
+	Instrument::emitClusterEvent(Instrument::ClusterEventType::AllocCores, allocCores);
+	Instrument::emitClusterEvent(Instrument::ClusterEventType::OwnedCPUs, DLBCPUActivation::getCurrentOwnedCPUs());
 
 	 /*
      * Synchronization before starting polling services. This is needed only for the hybrid
