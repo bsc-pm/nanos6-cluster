@@ -67,7 +67,7 @@ bool MessageTaskNew::handleMessage()
 		TaskOffloading::remoteTaskCleanup, this,
 		"remote-task-wrapper",
 		true,
-		Task::nanos6_task_runtime_flag_t::nanos6_remote_wrapper_flag
+		(size_t) Task::nanos6_task_runtime_flag_t::nanos6_remote_wrapper_flag
 	);
 
 	// The Message will be deleted by remoteTaskCleanup

@@ -138,7 +138,7 @@ void SpawnFunction::spawnFunction(
 	argsBlock->set(function, args, completionCallback, completionArgs, streamId);
 
 	// Increase the number of spawned functions if it is not a polling
-	if ((extra_flag & Task::nanos6_task_runtime_flag_t::nanos6_polling_flag) == 0) {
+	if (!task->isPolling()) {
 		_pendingSpawnedFunctions++;
 	}
 
@@ -220,7 +220,7 @@ void nanos6_stream_spawn_function(
 		completion_args,
 		label,
 		true,
-		Task::nanos6_task_runtime_flag_t::nanos6_stream_flag,
+		(size_t) Task::nanos6_task_runtime_flag_t::nanos6_stream_flag,
 		stream_id
 	);
 }

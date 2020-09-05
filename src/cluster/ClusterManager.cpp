@@ -14,6 +14,7 @@
 #include <ClusterNode.hpp>
 
 ClusterManager *ClusterManager::_singleton = nullptr;
+std::atomic<size_t> ClusterPollingServices::_activeClusterPollingServices;
 
 ClusterManager::ClusterManager()
 	: _clusterNodes(1),

@@ -29,28 +29,36 @@ class DataTransfer;
 namespace ClusterPollingServices {
 
 	template<typename T>
-	struct PendingQueue {
+	class PendingQueue {
+
+	private:
 		PaddedSpinLock<> _lock;
 		std::vector<T *> _pendings;
 		std::atomic<bool> _live;
 
 		static PendingQueue<T> _singleton;
 
+	public:
 		static void addPending(T *dt)
 		{
 			std::lock_guard<PaddedSpinLock<>> guard(_singleton._lock);
 			_singleton._pendings.push_back(dt);
 		}
 
-		static int checkDelivery()
+		// When the function returns false the service stops.
+		static bool executeService()
 		{
+			// The service is already unregistered, so finish it.
+			if (!_singleton._live.load()) {
+				return false;
+			}
+
 			std::vector<T *> &pendings = _singleton._pendings;
 			std::lock_guard<PaddedSpinLock<>> guard(_singleton._lock);
 
+			// There is nothing to process so we can exit now.
 			if (pendings.size() == 0) {
-				//! We will only unregister this service from the
-				//! ClusterManager at shutdown
-				return 0;
+				return true;
 			}
 
 			ClusterManager::testCompletion<T>(pendings);
@@ -61,7 +69,7 @@ namespace ClusterPollingServices {
 					[](T *msg) {
 						assert(msg != nullptr);
 
-						bool completed = msg->isCompleted();
+						const bool completed = msg->isCompleted();
 						if (completed) {
 							delete msg;
 						}
@@ -72,49 +80,28 @@ namespace ClusterPollingServices {
 				std::end(pendings)
 			);
 
-			//! We will only unregister this service from the
-			//! ClusterManager at shutdown
-			return 0;
+			return true;
 		}
 
-		static void bodyCheckDelivery(__attribute__((unused)) void *args)
+		static void registerService()
 		{
-			while (_singleton._live) {
-				checkDelivery();
-				nanos6_wait_for(TIMEOUT);
-			}
+			assert(_singleton._live.load() == false);
+			_singleton._live = true;
+		}
+
+		static void unregisterService()
+		{
+			assert(_singleton._live.load() == true);
+			_singleton._live = false;
+
+#ifndef NDEBUG
+			std::lock_guard<PaddedSpinLock<>> guard(_singleton._lock);
+			assert(_singleton._pendings.empty());
+#endif
 		}
 	};
 
-	template<typename T>
-	void registerPoolingDelivery()
-	{
-		PendingQueue<T>::_singleton._live = true;
-
-		SpawnFunction::spawnFunction(
-			PendingQueue<T>::bodyCheckDelivery,
-			nullptr,
-			nullptr,
-			nullptr,
-			"Message_Delivery",
-			false,
-			Task::nanos6_task_runtime_flag_t::nanos6_polling_flag
-		);
-	}
-
-	template<typename T>
-	void unregisterPoolingDelivery()
-	{
-		PendingQueue<T>::_singleton._live = false;
-
-#ifndef NDEBUG
-		std::lock_guard<PaddedSpinLock<>> guard(PendingQueue<T>::_singleton._lock);
-		assert(PendingQueue<T>::_singleton._pendings.empty());
-#endif
-	}
-
-
-template <typename T> PendingQueue<T> PendingQueue<T>::_singleton;
+	template <typename T> PendingQueue<T> PendingQueue<T>::_singleton;
 
 }
 

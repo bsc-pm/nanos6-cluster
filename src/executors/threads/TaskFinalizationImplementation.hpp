@@ -127,6 +127,7 @@ void TaskFinalization::disposeTask(Task *task)
 		const bool isTaskfor = task->isTaskfor();
 		const bool isTaskloop = task->isTaskloop();
 		const bool isSpawned = task->isSpawned();
+		const bool isPolling = task->isPolling();
 		const bool isStreamExecutor = task->isStreamExecutor();
 
 		if (task->isDisposable()) {
@@ -209,8 +210,12 @@ void TaskFinalization::disposeTask(Task *task)
 		task = parent;
 
 		if (isSpawned) {
-			SpawnFunction::_pendingSpawnedFunctions--;
+			if (!isPolling) {
+				assert(SpawnFunction::_pendingSpawnedFunctions > 0);
+				SpawnFunction::_pendingSpawnedFunctions--;
+			}
 		} else if (isStreamExecutor) {
+			assert(StreamManager::_activeStreamExecutors > 0);
 			StreamManager::_activeStreamExecutors--;
 		}
 	}

@@ -118,7 +118,6 @@ void nanos6_preinit(void)
 
 	LeaderThread::initialize(leaderThreadCPU);
 
-	ClusterManager::postinitialize();
 	CPUManager::initialize();
 	Instrument::nanos6_preinit_finished();
 
@@ -129,6 +128,7 @@ void nanos6_preinit(void)
 
 void nanos6_init(void)
 {
+	ClusterManager::postinitialize();
 	Instrument::threadWillSuspend(mainThread->getInstrumentationId());
 	StreamManager::initialize();
 }
@@ -147,9 +147,9 @@ void nanos6_shutdown(void)
 	LeaderThread::shutdown();
 
 	// Signal the shutdown to all CPUs and finalize threads
+	ClusterManager::shutdownPhase1();
 	CPUManager::shutdownPhase1();
 	ThreadManager::shutdownPhase1();
-	ClusterManager::shutdownPhase1();
 
 	Instrument::shutdown();
 

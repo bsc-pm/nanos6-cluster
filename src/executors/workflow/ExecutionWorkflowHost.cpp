@@ -24,12 +24,24 @@ namespace ExecutionWorkflow {
 
 	void HostExecutionStep::start()
 	{
-		nanos6_address_translation_entry_t stackTranslationTable[SymbolTranslation::MAX_STACK_SYMBOLS];
-
 		WorkerThread *currentThread = WorkerThread::getCurrentWorkerThread();
-		CPU *cpu = nullptr;
-		if (currentThread != nullptr) {
-			cpu = currentThread->getComputePlace();
+		CPU *cpu = (currentThread == nullptr) ? nullptr : currentThread->getComputePlace();
+		Task *currentTask = (currentThread == nullptr) ? nullptr : currentThread->getTask();
+
+		//! We are trying to start the execution of the Task from within
+		//! something that is not a WorkerThread, or it does not have
+		//! a CPU or the task assigned to it.
+		//!
+		//! This will happen once the last DataCopyStep finishes and
+		//! releases the ExecutionStep.
+		//!
+		//! In that case we need to add the Task back for scheduling.
+		if (currentThread == nullptr
+			|| cpu == nullptr
+			|| currentTask == nullptr
+			|| (currentTask->isPolling() && _task != currentTask)) {
+
+			_task->setExecutionStep(this);
 		}
 
 		// We are trying to start the execution of the Task from within
@@ -63,6 +75,9 @@ namespace ExecutionWorkflow {
 		);
 
 		if (_task->hasCode()) {
+			nanos6_address_translation_entry_t
+				stackTranslationTable[SymbolTranslation::MAX_STACK_SYMBOLS];
+
 			size_t tableSize = 0;
 			nanos6_address_translation_entry_t *translationTable =
 				SymbolTranslation::generateTranslationTable(
