@@ -8,7 +8,8 @@
 #include "tasks/Task.hpp"
 
 #include <ClusterManager.hpp>
-#include <ClusterPollingServices.hpp>
+#include <ClusterServicesPolling.hpp>
+#include <ClusterServicesTask.hpp>
 #include <DataAccess.hpp>
 #include <DataAccessRegistration.hpp>
 #include <DataTransfer.hpp>

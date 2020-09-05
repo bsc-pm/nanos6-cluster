@@ -12,7 +12,6 @@
 #include <algorithm>
 
 #include "lowlevel/PaddedSpinLock.hpp"
-#include "system/PollingAPI.hpp"
 #include "system/ompss/SpawnFunction.hpp"
 #include "tasks/Task.hpp"
 

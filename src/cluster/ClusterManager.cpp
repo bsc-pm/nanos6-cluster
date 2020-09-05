@@ -7,14 +7,16 @@
 #include "ClusterManager.hpp"
 #include "messages/MessageSysFinish.hpp"
 #include "messenger/Messenger.hpp"
-#include "polling-services/ClusterPollingServices.hpp"
-#include "support/config/ConfigVariable.hpp"
+#include "polling-services/ClusterServicesPolling.hpp"
+#include "polling-services/ClusterServicesTask.hpp"
 #include "system/RuntimeInfo.hpp"
 
 #include <ClusterNode.hpp>
 
 ClusterManager *ClusterManager::_singleton = nullptr;
-std::atomic<size_t> ClusterPollingServices::_activeClusterPollingServices;
+
+std::atomic<size_t> ClusterServicesPolling::_activeClusterPollingServices;
+std::atomic<size_t> ClusterServicesTask::_activeClusterTaskServices;
 
 ClusterManager::ClusterManager()
 	: _clusterNodes(1),
@@ -48,6 +50,9 @@ ClusterManager::ClusterManager(std::string const &commType)
 
 	_msn->synchronizeAll();
 	_callback.store(nullptr);
+
+	ConfigVariable<bool> inTask("cluster.services_in_task", false);
+	_taskInPoolins = inTask;
 }
 
 ClusterManager::~ClusterManager()
@@ -86,7 +91,12 @@ void ClusterManager::postinitialize()
 	assert(MemoryAllocator::isInitialized());
 
 	if (inClusterMode()) {
-		ClusterPollingServices::initialize();
+
+		if (_singleton->_taskInPoolins) {
+			ClusterServicesTask::initialize();
+		} else {
+			ClusterServicesPolling::initialize();
+		}
 	}
 
 }
@@ -110,7 +120,11 @@ void ClusterManager::shutdownPhase1()
 			_singleton->_msn->synchronizeAll();
 		}
 
-		ClusterPollingServices::shutdown();
+		if (_singleton->_taskInPoolins) {
+			ClusterServicesTask::shutdown();
+		} else {
+			ClusterServicesPolling::shutdown();
+		}
 	}
 }
 

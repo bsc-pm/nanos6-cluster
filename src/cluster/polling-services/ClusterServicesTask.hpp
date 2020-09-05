@@ -4,47 +4,49 @@
 	Copyright (C) 2018-2020 Barcelona Supercomputing Center (BSC)
 */
 
-#ifndef CLUSTER_POLLING_SERVICES_HPP
-#define CLUSTER_POLLING_SERVICES_HPP
+#ifndef CLUSTER_SERVICES_TASK_HPP
+#define CLUSTER_SERVICES_TASK_HPP
 
-#include "MessageDelivery.hpp"
 #include "MessageHandler.hpp"
+#include "MessageDelivery.hpp"
 
-namespace ClusterPollingServices {
 
-	// A pooling struct/object must provide 3 static functions:
+namespace ClusterServicesTask {
+
+	// A polling struct/object must provide 3 static functions:
 	// registerService : To start it
 	// unregisterService() : To stop it
 	// executeService() : The action to execute; it should return true when the service
 	// must continue. And false to stop the loop. This function must return false when the service
 	// is unregistered and do the needed checks.
 
-	// Declared in ClusterManager.hpp
-	extern std::atomic<size_t> _activeClusterPollingServices;
+	// Defined in ClusterManager.cpp
+	extern std::atomic<size_t> _activeClusterTaskServices;
 
+	//! Functions for tasks
 	template <typename T>
-	static void bodyCheckDelivery(__attribute__((unused)) void *args)
+	static void bodyClusterService(__attribute__((unused)) void *args)
 	{
-		_activeClusterPollingServices.fetch_add(1);
+		_activeClusterTaskServices.fetch_add(1);
 
-		while (PendingQueue<T>::executeService()) {
+		while (T::executeService()) {
 			nanos6_wait_for(TIMEOUT);
 		}
 
-		assert(_activeClusterPollingServices.load() > 0);
-		_activeClusterPollingServices.fetch_sub(1);
+		assert(_activeClusterTaskServices.load() > 0);
+		_activeClusterTaskServices.fetch_sub(1);
 	}
 
 
 	template<typename T>
-	void registerClusterPolling(const std::string &name)
+	void registerService(const std::string &name)
 	{
-		PendingQueue<T>::registerService();
+		T::registerService();
 
 		const std::string label = "ClusterPolling_" + name;
 
 		SpawnFunction::spawnFunction(
-			bodyCheckDelivery<T>,
+			bodyClusterService<T>,
 			nullptr,
 			nullptr,
 			nullptr,
@@ -55,9 +57,9 @@ namespace ClusterPollingServices {
 	}
 
 	template<typename T>
-	void unregisterClusterPolling()
+	void unregisterService()
 	{
-		PendingQueue<T>::unregisterService();
+		T::unregisterService();
 	}
 
 
@@ -71,12 +73,11 @@ namespace ClusterPollingServices {
 	{
 		assert(ClusterManager::inClusterMode());
 		assert(MemoryAllocator::isInitialized());
+		assert(_activeClusterTaskServices.load() == 0);
 
-		_activeClusterPollingServices = 0;
-
-		registerMessageHandler();
-		registerClusterPolling<Message>("MessageDelivery");
-		registerClusterPolling<DataTransfer>("DataTransferDelivery");
+		registerService<ClusterPollingServices::MessageHandler<Message>>("MessageHandler");
+		registerService<ClusterPollingServices::PendingQueue<Message>>("MessageDelivery");
+		registerService<ClusterPollingServices::PendingQueue<DataTransfer>>("DataTransfer");
 	}
 
 	//! \brief Shutdown the Cluster polling services-
@@ -89,17 +90,18 @@ namespace ClusterPollingServices {
 	{
 		assert(ClusterManager::inClusterMode());
 		assert(MemoryAllocator::isInitialized());
+		assert(_activeClusterTaskServices.load() > 0);
 
-		unregisterClusterPolling<DataTransfer>();
-		unregisterClusterPolling<Message>();
-		unregisterMessageHandler();
+		unregisterService<ClusterPollingServices::PendingQueue<DataTransfer>>();
+		unregisterService<ClusterPollingServices::PendingQueue<Message>>();
+		unregisterService<ClusterPollingServices::MessageHandler<Message>>();
 
-		// To assert shitdown the services before the CPUManager
-		while (_activeClusterPollingServices.load() > 0) {
-			// Wait for cluster pooling services before returning
+		// // To assert shitdown the services before the CPUManager
+		while (_activeClusterTaskServices.load() > 0) {
+			// Wait for cluster polling services before returning
 		}
 	}
 }
 
 
-#endif /* CLUSTER_POLLING_SERVICES_HPP */
+#endif /* CLUSTER_SERVICES_TASK_HPP */

@@ -10,7 +10,8 @@
 #include "MPIDataTransfer.hpp"
 #include "MPIMessenger.hpp"
 #include "cluster/messages/Message.hpp"
-#include "cluster/polling-services/ClusterPollingServices.hpp"
+#include "cluster/polling-services/ClusterServicesPolling.hpp"
+#include "cluster/polling-services/ClusterServicesTask.hpp"
 #include "lowlevel/FatalErrorHandler.hpp"
 #include "lowlevel/mpi/MPIErrorHandler.hpp"
 
