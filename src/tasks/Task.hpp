@@ -70,15 +70,15 @@ public:
 		total_flags
 	};
 
-	typedef enum {
+	enum class nanos6_task_runtime_flag_t : size_t {
 		nanos6_non_runnable_flag = (1 << non_runnable_flag),
 		nanos6_stream_executor_flag = (1 << stream_executor_flag),
 		nanos6_stream_flag = (1 << stream_flag),
 		nanos6_main_task_flag = (1 << main_task_flag),
 		nanos6_remote_wrapper_flag = (1 << remote_wrapper_flag),
 		nanos6_remote_flag = (1 << remote_flag),
-		nanos6_polling_flag = (1 << polling_flag),
-	} nanos6_task_runtime_flag_t;
+		nanos6_polling_flag = (1 << polling_flag)
+	};
 
 	typedef long priority_t;
 
@@ -630,14 +630,29 @@ public:
 		_flags[wait_flag] = false;
 	}
 
-	bool hasPreallocatedArgsBlock() const
+	inline bool hasPreallocatedArgsBlock() const
 	{
 		return _flags[preallocated_args_block_flag];
 	}
 
-	bool isSpawned() const
+	inline bool isSpawned() const
 	{
 		return SpawnFunction::isSpawned(_taskInfo);
+	}
+
+	inline bool isRemoteWrapper() const
+	{
+		return _flags[remote_wrapper_flag];
+	}
+
+	inline bool isRemoteTask() const
+	{
+		return _flags[remote_flag];
+	}
+
+	inline bool isPolling() const
+	{
+		return _flags[polling_flag];
 	}
 
 	inline size_t getFlags() const
@@ -842,6 +857,11 @@ public:
 	inline bool isStreamExecutor() const
 	{
 		return _flags[stream_executor_flag];
+	}
+
+	inline bool isStreamTask() const
+	{
+		return _flags[stream_flag];
 	}
 
 	inline void setParentSpawnCallback(StreamFunctionCallback *callback)
