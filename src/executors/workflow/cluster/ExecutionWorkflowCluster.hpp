@@ -269,16 +269,14 @@ namespace ExecutionWorkflow {
 		assert(target != nullptr);
 		assert(access != nullptr);
 
-		ClusterMemoryNode *current =
-			ClusterManager::getCurrentMemoryNode();
+		ClusterMemoryNode *current = ClusterManager::getCurrentMemoryNode();
 
 		if (source != nullptr && (source->getType() != nanos6_cluster_device)) {
 			assert(source->getType() == nanos6_host_device);
-			if (!Directory::isDirectoryMemoryPlace(source))
-                        {
-                            source = current;
-                        }
-                }
+			if (!Directory::isDirectoryMemoryPlace(source)) {
+				source = current;
+			}
+		}
 
 		if (target->getType() != nanos6_cluster_device) {
 			//! At the moment cluster copies take into account only

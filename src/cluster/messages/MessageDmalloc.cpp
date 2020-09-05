@@ -26,51 +26,46 @@ bool MessageDmalloc::handleMessage()
 	nanos6_data_distribution_t policy = getDistributionPolicy();
 	size_t nrDim = getDimensionsSize();
 	size_t *dimensions = getDimensions();
-	
 	if (ClusterManager::isMasterNode()) {
 		/* The master node performs the allocation and communicates
 		 * the allocated address to all other nodes */
 		dptr = VirtualMemoryManagement::allocDistrib(size);
-		
+
 		DataAccessRegion address(&dptr, sizeof(void *));
-		
+
 		ClusterNode *current = ClusterManager::getCurrentClusterNode();
 		assert(current != nullptr);
-		
+
 		std::vector<ClusterNode *> const &world =
 			ClusterManager::getClusterNodes();
-		
+
 		/* Send the allocated address to everyone else */
 		for (ClusterNode *node : world) {
 			if (node == current) {
 				continue;
 			}
-			
+
 			ClusterMemoryNode *memoryNode = node->getMemoryNode();
-			ClusterManager::sendDataRaw(address, memoryNode, getId(),
-						true);
+			ClusterManager::sendDataRaw(address, memoryNode, getId(), true);
 		}
 	} else {
 		/* This is a slave node. We will receive the allocated address
 		 * from the master node */
 		DataAccessRegion address(&dptr, sizeof(void *));
-		
+
 		ClusterNode *masterNode = ClusterManager::getMasterNode();
-		ClusterMemoryNode *masterMemoryNode =
-			masterNode->getMemoryNode();
-		
-		ClusterManager::fetchDataRaw(address, masterMemoryNode, getId(),
-						true);
+		ClusterMemoryNode *masterMemoryNode = masterNode->getMemoryNode();
+
+		ClusterManager::fetchDataRaw(address, masterMemoryNode, getId(), true);
 	}
-	
+
 	/* Register the newly allocated region with the Directory
 	 * of home nodes */
 	DataAccessRegion allocatedRegion(dptr, size);
-	ClusterDirectory::registerAllocation(allocatedRegion, policy, nrDim,
-				dimensions);
-	
+	ClusterDirectory::registerAllocation(allocatedRegion, policy, nrDim, dimensions);
+
 	ClusterManager::synchronizeAll();
-	
+
 	return true;
 }
 
