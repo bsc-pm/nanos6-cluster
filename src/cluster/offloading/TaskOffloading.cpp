@@ -98,6 +98,7 @@ namespace TaskOffloading {
 		OffloadedTasksInfoMap::createOffloadedTaskInfo(taskId, task, remoteNode);
 
 		Instrument::taskIsOffloaded(task->getInstrumentationTaskId());
+
 		task->markAsOffloaded();
 
 		MessageTaskNew *msg = new MessageTaskNew(

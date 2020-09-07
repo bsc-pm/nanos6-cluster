@@ -7,6 +7,7 @@
 #ifndef CLUSTER_NODE_HPP
 #define CLUSTER_NODE_HPP
 
+#include <atomic>
 #include "hardware/places/ComputePlace.hpp"
 #include "InstrumentCluster.hpp"
 
