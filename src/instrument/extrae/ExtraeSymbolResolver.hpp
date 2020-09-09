@@ -28,15 +28,26 @@ protected:
 	void *_handle;
 	static SpinLock _lock;
 	
-	static ExtraeSymbolResolverBase _singleton;
+	static ExtraeSymbolResolverBase *_singleton;
 	
 	static inline void *getHandle()
 	{
-		return _singleton._handle;
+		assert(_singleton);
+		return _singleton->_handle;
 	}
 	
 public:
 	ExtraeSymbolResolverBase();
+
+	// Create the singleton with an explicit initialize call,
+	// which must be called in the instrumentation initialization
+	// after the initialization of Nanos6@cluster. This is because
+	// the choice of Extrae library depends on whether cluster mode
+	// is enabled.
+	static void initialize()
+	{
+		_singleton = new ExtraeSymbolResolverBase;
+	}
 	
 	static std::string getSharedObjectPath();
 };

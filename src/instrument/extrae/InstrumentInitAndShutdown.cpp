@@ -57,6 +57,7 @@ namespace Instrument {
 
 	void initialize()
 	{
+		ExtraeSymbolResolverBase::initialize();
 		TokenizedEnvironmentVariable<std::string> extraeAreas("NANOS6_EXTRAE", ',', "all");
 
 		for (auto area : extraeAreas) {

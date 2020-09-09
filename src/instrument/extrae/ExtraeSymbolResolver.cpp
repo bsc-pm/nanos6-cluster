@@ -12,12 +12,13 @@
 #include <link.h>
 
 #include "ExtraeSymbolResolver.hpp"
+#include "ClusterManager.hpp"
 
 #include <cstdlib>
 #include <iostream>
 
 
-ExtraeSymbolResolverBase ExtraeSymbolResolverBase::_singleton;
+ExtraeSymbolResolverBase *ExtraeSymbolResolverBase::_singleton;
 SpinLock ExtraeSymbolResolverBase::_lock;
 
 
@@ -34,7 +35,9 @@ ExtraeSymbolResolverBase::ExtraeSymbolResolverBase()
 			abort();
 		}
 	} else {
-		_handle = dlopen("libnanostrace.so", RTLD_LAZY | RTLD_LOCAL);
+		const char *extraeLibraryName = ClusterManager::inClusterMode() ?
+		                                "libnanosmpitrace.so" : "libnanostrace.so";
+		_handle = dlopen(extraeLibraryName, RTLD_LAZY | RTLD_LOCAL);
 		if (_handle == nullptr) {
 			std::cerr << "Error: failed to load " << dlerror() << std::endl;
 			std::cerr << "\tPlease make sure that extrae is in the library search path or preloaded." << std::endl;
@@ -48,7 +51,8 @@ std::string ExtraeSymbolResolverBase::getSharedObjectPath()
 {
 	struct link_map *lm = nullptr;
 	
-	int rc = dlinfo(_singleton._handle, RTLD_DI_LINKMAP, &lm);
+	assert(_singleton);
+	int rc = dlinfo(_singleton->_handle, RTLD_DI_LINKMAP, &lm);
 	if ((rc == 0) && (lm != nullptr)) {
 		return lm->l_name;
 	} else {
