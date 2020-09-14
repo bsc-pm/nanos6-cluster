@@ -22,14 +22,17 @@ ClusterManager::ClusterManager()
 	: _clusterNodes(1),
 	_thisNode(new ClusterNode(0, 0)),
 	_masterNode(_thisNode),
-	_msn(nullptr)
+	_msn(nullptr), _callback(nullptr)
 {
+	assert(_singleton == nullptr);
 	_clusterNodes[0] = _thisNode;
 }
 
 ClusterManager::ClusterManager(std::string const &commType)
+	:_msn(nullptr), _callback(nullptr)
 {
-	_msn = GenericFactory<std::string, Messenger *>::getInstance().create(commType);
+	assert(_singleton == nullptr);
+	_msn = GenericFactory<std::string, Messenger*>::getInstance().create(commType);
 	assert(_msn);
 
 	/** These are communicator-type indices. At the moment we have an
@@ -62,6 +65,8 @@ ClusterManager::~ClusterManager()
 	}
 
 	delete _msn;
+
+	delete(_callback);
 }
 
 // Cluster is initialized before the memory allocator.

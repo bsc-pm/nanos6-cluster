@@ -33,7 +33,7 @@ public:
 		{
 		}
 
-		inline void invoke()
+		inline void execute()
 		{
 			assert(_function != nullptr);
 			_function(_args);
@@ -66,7 +66,7 @@ private:
 	//! this could happen if a remote node tries to shutdown (because
 	//! we received a MessageSysFinish before the loader setting the
 	//! callback.
-	std::atomic<ShutdownCallback *> _callback;
+	std::atomic<ShutdownCallback*> _callback;
 
 	//! private constructors. This is a singleton.
 	ClusterManager();
@@ -370,14 +370,18 @@ public:
 	//! \param[in] args is the callback function argument
 	static inline void setShutdownCallback(void (*func)(void *), void *args)
 	{
+		assert(_singleton != nullptr);
+		assert(_singleton->_callback.load() == nullptr);
+
 		_singleton->_callback.store(new ShutdownCallback(func, args));
 	}
 
 	//! \brief Get the shutdown callback
 	//!
 	//! \returns the ShutdownCallback
-	static inline ShutdownCallback *getShutdownCallback()
+	static inline ShutdownCallback* getShutdownCallback()
 	{
+		assert(_singleton != nullptr);
 		return _singleton->_callback.load();
 	}
 };

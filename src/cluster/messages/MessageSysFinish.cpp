@@ -18,18 +18,18 @@ bool MessageSysFinish::handleMessage()
 	FatalErrorHandler::failIf(nanos6_can_run_main(),
 		"Master node received a MessageSysFinish; this should never happen.");
 
-	ClusterManager::ShutdownCallback *callback = ClusterManager::getShutdownCallback();
+	ClusterManager::ShutdownCallback *callback;
 
 	//! We need to call the main callback.
-	while (callback == nullptr) {
+	do {
 		//! We will spin to avoid the (not very likely) case that the
 		//! Callback has not been set yet. This could happen if we
 		//! received and handled a MessageSysFinish before the loader
 		//! code has finished setting up everything.
 		callback = ClusterManager::getShutdownCallback();
-	}
+	} while (!callback);
 
-	callback->invoke();
+	callback->execute();
 
 	//! Synchronize with all other cluster nodes at this point
 	//! Master node makes this in ClusterManager::shutdownPhase1
