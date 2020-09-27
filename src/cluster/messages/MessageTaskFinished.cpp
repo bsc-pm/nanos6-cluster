@@ -23,6 +23,7 @@ bool MessageTaskFinished::handleMessage()
 	assert(step != nullptr);
 
 	// clusterCout << "Handle MessageTaskFinished for task " << task->getLabel() << "\n";
+	Instrument::offloadedTaskCompletes(task->getInstrumentationTaskId());
 
 	task->setExecutionStep(nullptr);
 	step->releaseSuccessors();

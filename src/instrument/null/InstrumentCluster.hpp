@@ -44,6 +44,13 @@ namespace Instrument {
 	{
 	}
 
+	inline void emitClusterEvent(ClusterEventType, int, InstrumentationContext const &)
+	{
+	}
+
+	inline void offloadedTaskCompletes(task_id_t, InstrumentationContext const &)
+	{
+	}
 }
 
 #endif //! INSTRUMENT_NULL_CLUSTER_HPP

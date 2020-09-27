@@ -11,6 +11,7 @@
 #include <vector>
 #include <algorithm>
 
+#include "InstrumentCluster.hpp"
 #include "lowlevel/PaddedSpinLock.hpp"
 #include "system/ompss/SpawnFunction.hpp"
 #include "tasks/Task.hpp"
@@ -38,12 +39,27 @@ namespace ClusterPollingServices {
 		std::atomic<bool> _live;
 
 		static PendingQueue<T> _singleton;
+		Instrument::ClusterEventType _eventTypeIncoming;
+		Instrument::ClusterEventType _eventTypePending;
+		Instrument::ClusterEventType _eventTypeBytes;
+		int _queueBytes;
 
 	public:
+		static void setEventTypes(Instrument::ClusterEventType eventTypeIncoming,
+		                          Instrument::ClusterEventType eventTypePending,
+								  Instrument::ClusterEventType eventTypeBytes) {
+			_singleton._eventTypeIncoming = eventTypeIncoming;
+			_singleton._eventTypePending = eventTypePending;
+			_singleton._eventTypeBytes = eventTypeBytes;
+		}
+
 		static void addPending(T *dt)
 		{
 			std::lock_guard<PaddedSpinLock<>> guard(_singleton._incomingLock);
 			_singleton._incomingPendings.push_back(dt);
+			if (_singleton._eventTypeIncoming) {
+				Instrument::emitClusterEvent(_singleton._eventTypeIncoming, _singleton._incomingPendings.size());
+			}
 		}
 
 		static int takePendings()
@@ -54,8 +70,14 @@ namespace ClusterPollingServices {
 			for (T *t : _singleton._incomingPendings) {
 				_singleton._pendings.push_back(t);
 				count ++;
+				_singleton._queueBytes += (int)t->getSize();
 			}
 			_singleton._incomingPendings.clear();
+			if (_singleton._eventTypeIncoming) {
+				Instrument::emitClusterEvent(_singleton._eventTypeIncoming, 0);
+				Instrument::emitClusterEvent(_singleton._eventTypePending, _singleton._pendings.size());
+				Instrument::emitClusterEvent(_singleton._eventTypeBytes, _singleton._queueBytes);
+			}
 			return count;
 		}
 
@@ -105,6 +127,7 @@ namespace ClusterPollingServices {
 
 							const bool completed = msg->isCompleted();
 							if (completed) {
+								_singleton._queueBytes -= (int)msg->getSize();
 								delete msg;
 							}
 
@@ -113,6 +136,11 @@ namespace ClusterPollingServices {
 					),
 					std::end(pendings)
 				);
+
+				if (_singleton._eventTypeIncoming) {
+					Instrument::emitClusterEvent(_singleton._eventTypePending, pendings.size());
+					Instrument::emitClusterEvent(_singleton._eventTypeBytes, _singleton._queueBytes);
+				}
 				firstIter = false;
 			}
 		}

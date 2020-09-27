@@ -38,7 +38,6 @@ public:
 	DataTransfer *fetchData(const DataAccessRegion &region, const ClusterNode *fromNode, int messageId, bool block, bool instrument);
 	Message *checkMail();
 
-
 	inline void testCompletion(std::vector<Message *> &pending)
 	{
 		testCompletionInternal<Message>(pending);

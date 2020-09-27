@@ -61,6 +61,9 @@ namespace ClusterServicesPolling {
 		registerService<ClusterPollingServices::MessageHandler<Message>>("MessageHandler");
 		registerService<ClusterPollingServices::PendingQueue<Message>>("MessageDelivery");
 		registerService<ClusterPollingServices::PendingQueue<DataTransfer>>("DataTransfer");
+		ClusterPollingServices::PendingQueue<DataTransfer>::setEventTypes(Instrument::ClusterEventType::PendingDataTransfersIncoming,
+																		  Instrument::ClusterEventType::PendingDataTransfers,
+																		  Instrument::ClusterEventType::PendingDataTransferBytes);
 	}
 
 	//! \brief Shutdown the Cluster polling services-

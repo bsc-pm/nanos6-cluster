@@ -13,6 +13,16 @@
 class Message;
 
 namespace Instrument {
+
+	/* NOTE: this must match the order of the clusterEventType array */
+	enum ClusterEventType {
+		OffloadedTasksWaiting = 0,
+		PendingDataTransfers,
+		PendingDataTransferBytes,
+		PendingDataTransfersIncoming,
+		MaxClusterEventType
+	};
+
 	//! This function is called when initiating a Message sending
 	//!
 	//! \param[in] msg is the Message we are sending
@@ -82,6 +92,10 @@ namespace Instrument {
 		int state,
 		InstrumentationContext const &context = ThreadInstrumentationContext::getCurrent()
 	);
+
+	void emitClusterEvent(ClusterEventType clusterEventType, int value, InstrumentationContext const & = ThreadInstrumentationContext::getCurrent());
+
+	void offloadedTaskCompletes(task_id_t taskId, InstrumentationContext const &context = ThreadInstrumentationContext::getCurrent());
 }
 
 #endif //! INSTRUMENT_CLUSTER_HPP

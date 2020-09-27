@@ -53,6 +53,11 @@ public:
 	{
 	}
 
+	inline size_t getSize() const
+	{
+		return _region.getSize();
+	}
+
 	inline DataAccessRegion const getDataAccessRegion() const
 	{
 		return _region;

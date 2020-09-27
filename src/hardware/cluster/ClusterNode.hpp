@@ -8,6 +8,7 @@
 #define CLUSTER_NODE_HPP
 
 #include "hardware/places/ComputePlace.hpp"
+#include "InstrumentCluster.hpp"
 
 #include <ClusterMemoryNode.hpp>
 

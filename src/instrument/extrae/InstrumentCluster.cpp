@@ -4,6 +4,7 @@
 	Copyright (C) 2018-2019 Barcelona Supercomputing Center (BSC)
 */
 
+#include <atomic>
 #include "InstrumentCluster.hpp"
 #include "InstrumentExtrae.hpp"
 
@@ -13,6 +14,24 @@
 #define EVENT_PREFIX_SIZE 8
 
 namespace Instrument {
+
+	/* NOTE: this must match the order of HybridClusterEventType */
+	static extrae_type_t clusterEventTypeToExtraeType[MaxClusterEventType] = {
+		(extrae_type_t) EventType::OFFLOADED_TASKS_WAITING,
+		(extrae_type_t) EventType::PENDING_DATA_TRANSFERS,
+		(extrae_type_t) EventType::PENDING_DATA_TRANSFER_BYTES,
+		(extrae_type_t) EventType::PENDING_DATA_TRANSFERS_INCOMING,
+	};
+
+	static const char *clusterEventTypeToName[MaxClusterEventType] = {
+		"Number of unfinished offloaded tasks",
+		"Number of data transfers being waited for",
+		"Total bytes of data transfers being waited for",
+		"Number of data transfers queued to wait for"
+	};
+
+	static std::atomic<int> _totalOffloadedTasksWaiting;
+
 	void defineClusterExtraeEvents()
 	{
 		if (!_extraeInstrumentCluster)
@@ -26,6 +45,7 @@ namespace Instrument {
 			(extrae_type_t) EventType::MESSAGE_HANDLE
 		};
 
+		/* Cluster message events */
 		const size_t totalTypes = (size_t)TOTAL_MESSAGE_TYPES;
 		extrae_value_t values[totalTypes];
 
@@ -46,6 +66,12 @@ namespace Instrument {
 			strncat(typeStr, evtStr[event], EVENT_PREFIX_SIZE);
 
 			ExtraeAPI::define_event_type(extraeType[event], typeStr, totalTypes, values, valueStr);
+		}
+
+		/* Other cluster events */
+		for (size_t event = 0; event < MaxClusterEventType; ++event) {
+			ExtraeAPI::define_event_type(
+				clusterEventTypeToExtraeType[event], clusterEventTypeToName[event], 0, nullptr, nullptr);
 		}
 	}
 
@@ -153,6 +179,28 @@ namespace Instrument {
 		__attribute__((unused)) InstrumentationContext const &context) {
 		// Do not add an event for now, but decrement _readyTasks
 		_readyTasks--;
+		Instrument::emitClusterEvent(ClusterEventType::OffloadedTasksWaiting, ++_totalOffloadedTasksWaiting);
+	}
+
+	void emitClusterEvent(ClusterEventType clusterEventType, int eventValue, InstrumentationContext const &)
+	{
+		if (!_extraeInstrumentCluster)
+			return;
+
+		extrae_type_t type = clusterEventTypeToExtraeType[clusterEventType];
+		extrae_value_t value = eventValue;
+
+		extrae_combined_events_t ce;
+		ce.HardwareCounters = 0;
+		ce.Callers = 0;
+		ce.UserFunction = EXTRAE_USER_FUNCTION_NONE;
+		ce.nEvents = 1;
+		ce.nCommunications = 0;
+		ce.Communications = NULL;
+		ce.Types = &type;
+		ce.Values = &value;
+
+		ExtraeAPI::emit_CombinedEvents(&ce);
 	}
 
 	void stateNodeNamespace(int state, InstrumentationContext const &)
@@ -180,4 +228,8 @@ namespace Instrument {
 		ExtraeAPI::emit_CombinedEvents(&ce);
 	}
 
+	void offloadedTaskCompletes(task_id_t, InstrumentationContext const &context)
+	{
+		Instrument::emitClusterEvent(ClusterEventType::OffloadedTasksWaiting, --_totalOffloadedTasksWaiting, context);
+	}
 }

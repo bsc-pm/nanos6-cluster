@@ -27,6 +27,14 @@ namespace Instrument {
 	{
 	}
 
+	inline void emitClusterEvent(ClusterEventType, int, InstrumentationContext const &)
+	{
+	}
+
+	inline void offloadedTaskCompletes(task_id_t, InstrumentationContext const &)
+	{
+	}
+
 	void showClusterCounters(std::ofstream &output);
 
 	inline void stateNodeNamespace(int, InstrumentationContext const &)

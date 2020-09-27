@@ -130,5 +130,11 @@ namespace Instrument {
 		addLogEntry(logEntry);
 	}
 
+	void emitClusterEvent(ClusterEventType, int, InstrumentationContext const &)
+	{
+	}
 
+	void offloadedTaskCompletes(task_id_t, InstrumentationContext const &)
+	{
+	}
 }
