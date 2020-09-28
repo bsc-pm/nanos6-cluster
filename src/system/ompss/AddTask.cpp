@@ -220,9 +220,20 @@ void AddTask::submitTask(Task *task, Task *parent, bool fromUserCode)
 	assert(parent != nullptr || ready);
 	assert(parent != nullptr || !isIf0);
 
-	if (ready && (!isIf0 || executesInDevice)) {
-		// Queue the task if ready and not if0. Device if0 ready tasks must be
-		// queued too; they are managed by the device scheduling infrastructure
+#ifndef USE_EXEC_WORKFLOW
+	// Without workflow: queue the task if ready and not if0. Device if0 ready
+	// tasks must be queued too; they are managed by the device scheduling
+	// infrastructure
+	const bool executesInDevice = (task->getDeviceType() != nanos6_host_device);
+	const bool queueIfReady = (!isIf0 || executesInDevice);
+#else
+	// With workflow: always queue ready tasks, even if0 tasks, so that the
+	// workflow is used.  This is necessary for data transfers in the cluster
+	// version, which are still needed for if0 tasks.
+	const bool queueIfReady = true;
+#endif
+
+	if (ready && queueIfReady) {
 		ReadyTaskHint hint = (parent != nullptr) ? CHILD_TASK_HINT : NO_HINT;
 
 		Scheduler::addReadyTask(task, computePlace, hint);

@@ -42,12 +42,6 @@ public:
 	{
 	}
 
-	static inline ClusterNode *getClusterNode(__attribute__((unused)) int id)
-	{
-		static ClusterNode ourDummyNode;
-		return &ourDummyNode;
-	}
-
 	static inline ClusterNode *getCurrentClusterNode()
 	{
 		static ClusterNode ourDummyNode;
@@ -116,10 +110,6 @@ public:
 	{
 	}
 
-	static inline ShutdownCallback *getShutdownCallback()
-	{
-		return nullptr;
-	}
 };
 
 #endif /* CLUSTER_MANAGER_HPP */

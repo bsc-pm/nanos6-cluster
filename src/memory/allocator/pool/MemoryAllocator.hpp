@@ -20,6 +20,10 @@ struct DataAccess;
 
 class MemoryAllocator {
 private:
+	// This variable is here to keep uniformity with the other Allocators because in this one we
+	// already have the _singleton for exactly the same purpose. But if we remove the _singleton in
+	// the future, we will still have this one.
+	static bool init;
 
 	static MemoryAllocator *_singleton;
 

@@ -16,7 +16,9 @@
 class MemoryAllocator {
 private:
 	static const int MALLOCX_NONE = ((int) 0);
-	static bool init = false;
+
+	// Initialized in Bootstrap.cpp
+	static bool init;
 
 public:
 	static void initialize()

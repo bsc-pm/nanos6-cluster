@@ -110,6 +110,9 @@ bool MemoryAllocator::getPool(size_t size, bool useCPUPool, MemoryPool *&pool)
 
 void MemoryAllocator::initialize()
 {
+	assert(init == false);
+	init = true;
+
 	// This is a cached vale.
 	const size_t numaNodeCount
 		= HardwareInfo::getMemoryPlaceCount(nanos6_device_t::nanos6_host_device);
@@ -128,6 +131,7 @@ void MemoryAllocator::initialize()
 
 void MemoryAllocator::shutdown()
 {
+	assert(init == true);
 	//! Initialize the Object caches
 	ObjectAllocator<BottomMapEntry>::shutdown();
 	ObjectAllocator<ReductionInfo>::shutdown();
@@ -138,11 +142,14 @@ void MemoryAllocator::shutdown()
 	_singleton = nullptr;
 
 	VirtualMemoryManagement::shutdown();
+
+	init = false;
 }
 
 
 void *MemoryAllocator::alloc(size_t size, bool useCPUPool)
 {
+	assert(init == true);
 	assert(_singleton != nullptr);
 	MemoryPool *pool;
 	bool isExternal = _singleton->getPool(size, useCPUPool, pool);
@@ -159,6 +166,7 @@ void *MemoryAllocator::alloc(size_t size, bool useCPUPool)
 
 void MemoryAllocator::free(void *chunk, size_t size, bool useCPUPool)
 {
+	assert(init == true);
 	assert(_singleton != nullptr);
 	MemoryPool *pool;
 	bool isExternal = _singleton->getPool(size, useCPUPool, pool);

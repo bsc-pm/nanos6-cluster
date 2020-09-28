@@ -14,9 +14,11 @@
 #include "lowlevel/FatalErrorHandler.hpp"
 #include "lowlevel/Padding.hpp"
 
+
 class MemoryAllocator {
 
-	static bool init = false;
+	// Initialized in Bootstrap.cpp
+	static bool init;
 
 public:
 	static inline void initialize()

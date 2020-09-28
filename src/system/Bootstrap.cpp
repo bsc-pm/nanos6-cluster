@@ -40,17 +40,16 @@
 #include <InstrumentInitAndShutdown.hpp>
 #include <InstrumentThreadManagement.hpp>
 
+// This is memory allocator specific
+bool MemoryAllocator::init = false;
+
 static ExternalThread *mainThread = nullptr;
 
 void nanos6_shutdown(void);
 
 int nanos6_can_run_main(void)
 {
-	if (ClusterManager::isMasterNode()) {
-		return true;
-	} else {
-		return false;
-	}
+	return ClusterManager::isMasterNode();
 }
 
 void nanos6_register_completion_callback(void (*shutdown_callback)(void *), void *callback_args)
