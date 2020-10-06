@@ -48,7 +48,8 @@ extern "C" void *nanos6_dmalloc(
 		return nullptr;
 	}
 
-	return ClusterMemoryManagement::dmalloc(size, policy, num_dimensions, dimensions);
+	void *ptr = ClusterMemoryManagement::dmalloc(size, policy, num_dimensions, dimensions);
+	return ptr;
 }
 
 extern "C" void nanos6_dfree(void *ptr, size_t size)
@@ -62,7 +63,19 @@ extern "C" void *nanos6_lmalloc(size_t size)
 		return nullptr;
 	}
 
-	return ClusterMemoryManagement::lmalloc(size);
+	void *ptr = ClusterMemoryManagement::lmalloc(size);
+	return ptr;
+}
+
+extern "C" void *nanos6_flmalloc(size_t *psize)
+{
+        size_t size = *psize;
+	if (size == 0) {
+		return nullptr;
+	}
+
+	void *ptr = ClusterMemoryManagement::lmalloc(size);
+	return ptr;
 }
 
 extern "C" void nanos6_lfree(void *ptr, size_t size)

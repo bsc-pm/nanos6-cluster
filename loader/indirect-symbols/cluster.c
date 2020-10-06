@@ -115,6 +115,18 @@ void *nanos6_lmalloc(size_t size)
 	return (*symbol)(size);
 }
 
+void *nanos6_flmalloc(size_t *psize)
+{
+	typedef void *nanos6_flmalloc_t(int);
+
+	static nanos6_flmalloc_t *symbol = NULL;
+	if (__builtin_expect(symbol == NULL, 0)) {
+		symbol = (nanos6_flmalloc_t *) _nanos6_resolve_symbol(
+	}
+
+	return (*symbol)(psize);
+}
+
 void nanos6_lfree(void *ptr, size_t size)
 {
 	typedef void nanos6_lfree_t(void *, size_t);

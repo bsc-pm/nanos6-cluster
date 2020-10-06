@@ -102,6 +102,7 @@ void nanos6_dfree(void *ptr, size_t size);
 //!
 //! \returns a pointer to local memory
 void *nanos6_lmalloc(size_t size);
+void *nanos6_flmalloc(size_t *size);
 
 //! \brief Deallocate a local array
 //!
