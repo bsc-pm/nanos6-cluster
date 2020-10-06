@@ -54,14 +54,7 @@ HomeNodeMap::HomeNodesArray *HomeNodeMap::find(DataAccessRegion const &region)
 			ret->push_back(entry);
 			return true;
 		},
-		[&] (DataAccessRegion missingRegion) -> bool {
-			FatalErrorHandler::failIf(
-				true,
-				"Asking the home node of an unkown region: ",
-				missingRegion
-			);
-
-			//! Just to avoid compilation warnings
+		[&] (__attribute__((unused)) DataAccessRegion missingRegion) -> bool {
 			return true;
 		}
 	);

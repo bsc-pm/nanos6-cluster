@@ -330,6 +330,19 @@ namespace ExecutionWorkflow {
 
 					Directory::HomeNodesArray const *homeNodes = Directory::find(region);
 
+					if (!dataAccess->isWeak()) {
+						// This isn't perfect, because the homeNodes list is only empty if the
+						// whole region is missing from the directory whereas we would prefer to raise
+						// an error even if just a part of it is missing. But this test does a good job of finding
+						// blatantly wrong accesses.
+						FatalErrorHandler::failIf(homeNodes->empty(),
+												"Non-weak access ",
+												region,
+												" of ",
+												task->getLabel(),
+												" is an unknown region not from lmalloc, dmalloc or the stack");
+					}
+
 					for (const auto &entry : *homeNodes) {
 						MemoryPlace const *entryLocation = entry->getHomeNode();
 						const DataAccessRegion subregion = region.intersect(entry->getAccessRegion());
