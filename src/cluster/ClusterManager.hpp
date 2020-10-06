@@ -31,6 +31,8 @@ class ClusterMemoryNode;
 class ClusterManager {
 
 private:
+	bool _clusterRequested; // Built with cluster and cluster.communication is not disabled
+
 	static ClusterManager *_singleton;
 	//! A vector of all ClusterNodes in the system.
 	//!
@@ -199,6 +201,12 @@ public:
 		assert(_singleton != nullptr);
 		assert(!_singleton->_clusterNodes.empty());
 		return _singleton->_clusterNodes.size() > 1;
+	}
+
+	static inline bool clusterRequested()
+	{
+		assert(_singleton);
+		return _singleton->_clusterRequested;
 	}
 
 	//! \brief Check for incoming messages
@@ -458,6 +466,15 @@ public:
 		assert(_singleton->_msn != nullptr);
 		return _singleton->_msn->getIndexThisNode();
 	}
+
+	//! Get the index number of the instances on this node
+	static inline int getInstrumentationRank()
+	{
+		assert(_singleton);
+		assert(_singleton->_msn != nullptr);
+		return _singleton->_msn->getInstrumentationRank();
+	}
+
 };
 
 

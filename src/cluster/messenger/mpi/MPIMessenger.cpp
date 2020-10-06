@@ -83,6 +83,7 @@ void MPIMessenger::setApprankNumber(const std::string &clusterSplit, int &intern
 					assert(_apprankNum == -1);
 					internalRank = intRank;
 					_apprankNum = apprank;
+					_instrumentationRank = countInstances;
 				}
 				countInstancesThisNode ++;
 			}
@@ -257,6 +258,7 @@ void MPIMessenger::internal_reset()
 		_nodeNum = 0;
 		_indexThisNode = 0;
 		_numInstancesThisNode = 1;
+		_instrumentationRank = _externalRank;
 
 		//! Create a new communicator
 		ret = MPI_Comm_dup(MPI_COMM_WORLD, &INTRA_COMM);
@@ -289,6 +291,17 @@ void MPIMessenger::internal_reset()
 		//! Invalid to use application communicator on slave nodes
         APP_COMM = MPI_COMM_NULL;
     }
+
+	// Create map from internal rank to instrumentation rank
+	int *allInstrumentationRanks = new int[_wsize];
+	MPI_Allgather(&_instrumentationRank, 1, MPI_INT, allInstrumentationRanks, 1, MPI_INT, INTRA_COMM);
+	_internalRankToInstrumentationRank.resize(_wsize);
+	for (int i=0; i<_wsize; i++) {
+		_internalRankToInstrumentationRank[i] = allInstrumentationRanks[i];
+		// std::cout << "Instrumentation rank: " << _instrumentationRank << ":"
+		// << "instrumentation rank of " << i << " is " << _internalRankToInstrumentationRank[i] << "\n";
+	}
+	delete[] allInstrumentationRanks;
 }
 
 void MPIMessenger::sendMessage(Message *msg, ClusterNode const *toNode, bool block)

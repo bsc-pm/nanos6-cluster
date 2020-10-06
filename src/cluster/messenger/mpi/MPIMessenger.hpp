@@ -140,6 +140,8 @@ private:
 	int _nodeNum;               // Physical node number within the job
 	int _numInstancesThisNode;  // Number of instances on this node
 	int _indexThisNode;         // Index of this instance on this node
+	int _instrumentationRank;   // For Extrae
+	std::vector<int> _internalRankToInstrumentationRank;
 
 	void splitCommunicator(const std::string &clusterSplit);
 	void setApprankNumber(const std::string &clusterSplit, int &internalRank);
@@ -257,6 +259,16 @@ public:
 
 	//! For verbose instrumentation, summarize the instances and appranks
 	void summarizeSplit() const;
+
+	int getInstrumentationRank() const
+	{
+		return _instrumentationRank;
+	}
+
+	int internalRankToInstrumentationRank(int i) const
+	{
+		return _internalRankToInstrumentationRank[i];
+	}
 };
 
 //! Register MPIMessenger with the object factory

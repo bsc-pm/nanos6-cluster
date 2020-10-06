@@ -24,13 +24,17 @@ private:
 	//! Name of the node for instrumentation
 	std::string _instrumentationName;
 
+	//! For Extrae tracing of hybrid clusters+DLB
+	int _instrumentationRank;
+
 	std::atomic<int> _numOffloadedTasks; // offloaded by us
 
 public:
-	ClusterNode(int index, int commIndex, int apprankNum, bool inHybridMode)
+	ClusterNode(int index, int commIndex, int apprankNum, bool inHybridMode, int instrumentationRank)
 		: ComputePlace(index, nanos6_device_t::nanos6_cluster_device),
 		_memoryNode(new ClusterMemoryNode(index, commIndex)),
-		_commIndex(commIndex), _numOffloadedTasks(0)
+		_commIndex(commIndex), _instrumentationRank(instrumentationRank),
+		_numOffloadedTasks(0)
 	{
 		assert(_memoryNode != nullptr);
 		assert (_commIndex >= 0);
@@ -83,6 +87,11 @@ public:
 	inline int getNumOffloadedTasks() const
 	{
 		return _numOffloadedTasks;
+	}
+
+	inline int getInstrumentationRank() const
+	{
+		return _instrumentationRank;
 	}
 };
 
