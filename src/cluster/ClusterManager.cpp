@@ -41,8 +41,9 @@ std::atomic<size_t> ClusterServicesTask::_activeClusterTaskServices(0);
 std::atomic<bool> ClusterServicesTask::_pausedServices(false);
 
 ClusterManager::ClusterManager()
-	: _clusterNodes(1),
-	_thisNode(new ClusterNode(0, 0, 0, false)),
+	: _clusterRequested(false),
+	_clusterNodes(1),
+	_thisNode(new ClusterNode(0, 0, 0, false, 0)),
 	_masterNode(_thisNode),
 	_msn(nullptr),
 	_disableRemote(false), _disableRemoteConnect(false), _disableAutowait(false)
@@ -55,7 +56,8 @@ ClusterManager::ClusterManager()
 }
 
 ClusterManager::ClusterManager(std::string const &commType, int argc, char **argv)
-	: _msn(GenericFactory<std::string,Messenger*,int,char**>::getInstance().create(commType, argc, argv)),
+	: _clusterRequested(true),
+	_msn(GenericFactory<std::string,Messenger*,int,char**>::getInstance().create(commType, argc, argv)),
 	_disableRemote(false), _disableRemoteConnect(false), _disableAutowait(false)
 {
 	assert(_msn != nullptr);
@@ -142,7 +144,7 @@ void ClusterManager::internal_reset() {
 		this->_clusterNodes.resize(clusterSize);
 
 		for (size_t i = 0; i < clusterSize; ++i) {
-			_clusterNodes[i] = new ClusterNode(i, i, apprankNum, inHybridMode);
+			_clusterNodes[i] = new ClusterNode(i, i, apprankNum, inHybridMode, _msn->internalRankToInstrumentationRank(i));
 		}
 
 		_thisNode = _clusterNodes[nodeIndex];

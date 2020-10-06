@@ -33,6 +33,8 @@ class ClusterMemoryNode;
 class ClusterManager {
 
 private:
+	bool _clusterRequested; // Built with cluster and cluster.communication is not disabled
+
 	static ClusterManager *_singleton;
 	//! A vector of all ClusterNodes in the system.
 	//!
@@ -223,6 +225,15 @@ public:
 		}
 	}
 
+	//! \brief Check if OmpSs-2@Cluster was requested
+	//!
+	//! \returns True if built with Cluster support and
+	//! cluster.communication is not "disabled".
+	static inline bool clusterRequested()
+	{
+		assert(_singleton);
+		return _singleton->_clusterRequested;
+	}
 
 	//! \brief Check for incoming messages
 	//!

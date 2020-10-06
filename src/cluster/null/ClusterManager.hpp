@@ -7,6 +7,7 @@
 #ifndef CLUSTER_MANAGER_HPP
 #define CLUSTER_MANAGER_HPP
 
+#include <cassert>
 #include <string>
 #include <vector>
 
@@ -69,6 +70,11 @@ public:
 	static inline int clusterSize()
 	{
 		return 1;
+	}
+
+	static inline bool clusterRequested()
+	{
+		return false;
 	}
 
 	static inline bool inClusterMode()
@@ -141,7 +147,6 @@ public:
 	//!
 	//! \returns the external rank (in MPI_COMM_WORLD)
 	static int getExternalRank() = 0;
-
 };
 
 #endif /* CLUSTER_MANAGER_HPP */

@@ -7,6 +7,7 @@
 #include <atomic>
 #include "InstrumentCluster.hpp"
 #include "InstrumentExtrae.hpp"
+#include "ClusterManager.hpp"
 
 #include <Message.hpp>
 
@@ -107,6 +108,7 @@ namespace Instrument {
 			com.tag = (extrae_comm_tag_t)EventType::MESSAGE_SEND;
 			com.size = messageType;
 			com.partner = receiver;
+			com.partner = ClusterManager::getClusterNode(receiver)->getInstrumentationRank();
 			com.id = msg->getId();
 
 			value = (extrae_value_t)(messageType + 1);
@@ -246,7 +248,7 @@ namespace Instrument {
 			ce.Communications[0].type = EXTRAE_USER_SEND;
 			ce.Communications[0].tag = (extrae_comm_tag_t)EventType::MESSAGE_SEND;
 			ce.Communications[0].size = messageType;
-			ce.Communications[0].partner = dest;
+			ce.Communications[0].partner = ClusterManager::getClusterNode(dest)->getInstrumentationRank();
 
 			// NOTE: this assumes that the message ID is globally unique (i.e. you
 			// cannot receive a MessageDmalloc and MessageDataFetch from the same

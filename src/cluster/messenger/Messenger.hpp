@@ -183,6 +183,12 @@ public:
 
 	//! \brief For verbose instrumentation, summarize the instances and appranks
 	virtual void summarizeSplit() const = 0;
+
+	//! Get rank for Extrae traces
+	virtual int getInstrumentationRank() const = 0;
+
+	//! Get rank for Extrae traces for other internal ranks
+	virtual int internalRankToInstrumentationRank(int i) const = 0;
 };
 
 #endif /* MESSENGER_HPP */
