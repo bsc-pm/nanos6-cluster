@@ -23,10 +23,10 @@ bool MessageSatisfiability::handleMessage()
 {
 	ClusterNode *offloader =
 		ClusterManager::getClusterNode(getSenderId());
-	
+
 	TaskOffloading::propagateSatisfiability(_content->_offloadedTaskId,
 			offloader, _content->_satInfo);
-	
+
 	return true;
 }
 

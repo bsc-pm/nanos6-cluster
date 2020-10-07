@@ -10,6 +10,7 @@
 #include "system/ompss/SpawnFunction.hpp"
 #include "tasks/Task.hpp"
 
+#include <ClusterManager.hpp>
 #include <TaskOffloading.hpp>
 
 
@@ -72,6 +73,23 @@ bool MessageTaskNew::handleMessage()
 
 	// The Message will be deleted by remoteTaskCleanup
 	return false;
+}
+
+
+TaskOffloading::RemoteTaskInfo &MessageTaskNew::getRemoteTaskInfo()
+{
+	void *offloadedTaskId = this->getOffloadedTaskId();
+	ClusterNode *offloader = ClusterManager::getClusterNode(this->getSenderId());
+
+	return TaskOffloading::RemoteTasks::getRemoteTaskInfo(offloadedTaskId, offloader->getIndex());
+}
+
+TaskOffloading::ClusterTaskContext *MessageTaskNew::allocateClusterTaskContext()
+{
+	void *offloadedTaskId = this->getOffloadedTaskId();
+	ClusterNode *offloader = ClusterManager::getClusterNode(this->getSenderId());
+
+	return new TaskOffloading::ClusterTaskContext(offloadedTaskId, offloader);
 }
 
 //! Register the Message type to the Object factory

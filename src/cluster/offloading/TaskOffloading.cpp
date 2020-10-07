@@ -217,10 +217,7 @@ namespace TaskOffloading {
 		assert(args != nullptr);
 		MessageTaskNew *msg = static_cast<MessageTaskNew *>(args);
 
-		ClusterNode *offloader = ClusterManager::getClusterNode(msg->getSenderId());
-
 		nanos6_task_info_t *taskInfo = msg->getTaskInfo();
-		void *offloadedTaskId = msg->getOffloadedTaskId();
 
 		size_t numTaskImplementations;
 		nanos6_task_implementation_info_t *taskImplementations =
@@ -241,21 +238,17 @@ namespace TaskOffloading {
 		);
 		assert(task != nullptr);
 
-		void *newArgsBlock = task->getArgsBlock();
+		void *argsBlockPtr = task->getArgsBlock();
 		if (argsBlockSize != 0) {
-			memcpy(newArgsBlock, argsBlock, argsBlockSize);
+			memcpy(argsBlockPtr, argsBlock, argsBlockSize);
 		}
 
 		task->markAsRemote();
-		TaskOffloading::ClusterTaskContext *clusterContext =
-			new TaskOffloading::ClusterTaskContext(offloadedTaskId, offloader);
-
-		task->setClusterContext(clusterContext);
+		task->setClusterContext(msg->allocateClusterTaskContext());
 
 		// Register remote Task with TaskOffloading mechanism before
 		// submitting it to the dependency system
-		RemoteTaskInfo &remoteTaskInfo =
-			RemoteTasks::getRemoteTaskInfo(offloadedTaskId, offloader->getIndex());
+		RemoteTaskInfo &remoteTaskInfo = msg->getRemoteTaskInfo();
 
 		std::lock_guard<PaddedSpinLock<>> lock(remoteTaskInfo._lock);
 		assert(remoteTaskInfo._localTask == nullptr);

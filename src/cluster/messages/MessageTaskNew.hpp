@@ -14,6 +14,8 @@
 #include <nanos6/task-instantiation.h>
 #include <SatisfiabilityInfo.hpp>
 #include <RemoteTasks.hpp>
+#include <ClusterTaskContext.hpp>
+
 
 class MessageTaskNew : public Message {
 	struct TaskNewMessageContent {
@@ -191,6 +193,9 @@ public:
 
 		return ss.str();
 	}
+
+	TaskOffloading::RemoteTaskInfo &getRemoteTaskInfo();
+	TaskOffloading::ClusterTaskContext *allocateClusterTaskContext();
 };
 
 #endif /* MESSAGE_TASKNEW_HPP */

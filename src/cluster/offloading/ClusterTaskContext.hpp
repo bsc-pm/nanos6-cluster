@@ -16,7 +16,7 @@ class ClusterNode;
 class Task;
 
 namespace TaskOffloading {
-	
+
 	//! \brief This class describes the remote context of a task.
 	//!
 	//! Remote context in this case is the minimum context necessary in
@@ -34,10 +34,10 @@ namespace TaskOffloading {
 		//! A descriptro that identifies the remote task at the remote
 		//! node
 		void *_remoteTaskIdentifier;
-		
+
 		//! The cluster node on which the remote task is located
 		ClusterNode *_remoteNode;
-		
+
 	public:
 		//! \brief Create a Cluster Task context
 		//!
@@ -45,31 +45,21 @@ namespace TaskOffloading {
 		//!		on the remote node
 		//! \param[in] remoteNode is the ClusterNode where the remote
 		//!		task is located
-		ClusterTaskContext(
-			void *remoteTaskIdentifier,
-			ClusterNode *remoteNode
-		) :
-			_remoteTaskIdentifier(remoteTaskIdentifier),
-			_remoteNode(remoteNode)
+		ClusterTaskContext(void *remoteTaskIdentifier, ClusterNode *remoteNode)
+			: _remoteTaskIdentifier(remoteTaskIdentifier), _remoteNode(remoteNode)
 		{
 		}
-		
+
 		//! \brief Get the remote task descriptor
 		inline void *getRemoteIdentifier() const
 		{
 			return _remoteTaskIdentifier;
 		}
-		
+
 		//! \brief Get the ClusterNode of the remote task
 		inline ClusterNode *getRemoteNode() const
 		{
 			return _remoteNode;
-		}
-		
-		//! \brief Set the ClusterNode of the remote task
-		inline void setRemoteNode(ClusterNode *remoteNode)
-		{
-			_remoteNode = remoteNode;
 		}
 	};
 }

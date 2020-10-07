@@ -846,6 +846,7 @@ public:
 
 	inline void setClusterContext(TaskOffloading::ClusterTaskContext *clusterContext)
 	{
+		assert(clusterContext != nullptr);
 		_clusterContext = clusterContext;
 	}
 

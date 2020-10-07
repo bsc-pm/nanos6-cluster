@@ -57,8 +57,7 @@ namespace ExecutionWorkflow {
 			TaskOffloading::sendSatisfiability(_task, clusterTaskContext->getRemoteNode(), satInfo);
 			size_t linkedBytes = region.getSize();
 
-			//! We need to account for linking both read and write
-			//! satisfiability
+			//! We need to account for linking both read and write satisfiability
 			if (read && write) {
 				linkedBytes *= 2;
 			}
