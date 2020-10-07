@@ -13,6 +13,7 @@
 
 #include <nanos6/task-instantiation.h>
 #include <SatisfiabilityInfo.hpp>
+#include <RemoteTasks.hpp>
 
 class MessageTaskNew : public Message {
 	struct TaskNewMessageContent {

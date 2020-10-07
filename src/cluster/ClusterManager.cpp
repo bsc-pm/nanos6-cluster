@@ -11,8 +11,10 @@
 #include "polling-services/ClusterServicesTask.hpp"
 #include "system/RuntimeInfo.hpp"
 
+#include <RemoteTasks.hpp>
 #include <ClusterNode.hpp>
 
+TaskOffloading::RemoteTasks *TaskOffloading::RemoteTasks::_singleton = nullptr;
 ClusterManager *ClusterManager::_singleton = nullptr;
 
 std::atomic<size_t> ClusterServicesPolling::_activeClusterPollingServices;
@@ -32,6 +34,8 @@ ClusterManager::ClusterManager(std::string const &commType)
 	:_msn(nullptr), _callback(nullptr)
 {
 	assert(_singleton == nullptr);
+	TaskOffloading::RemoteTasks::init();
+
 	_msn = GenericFactory<std::string, Messenger*>::getInstance().create(commType);
 	assert(_msn);
 
@@ -130,6 +134,11 @@ void ClusterManager::shutdownPhase1()
 		} else {
 			ClusterServicesPolling::shutdown();
 		}
+
+		assert(ClusterServicesPolling::_activeClusterPollingServices == 0);
+		assert(ClusterServicesTask::_activeClusterTaskServices.load() == 0);
+
+		TaskOffloading::RemoteTasks::shutdown();
 	}
 }
 

@@ -13,84 +13,21 @@
 #include "ClusterTaskContext.hpp"
 #include "TaskOffloading.hpp"
 #include "executors/threads/WorkerThread.hpp"
-#include "lowlevel/PaddedSpinLock.hpp"
 #include "system/ompss/AddTask.hpp"
 #include "tasks/Task.hpp"
 
 #include <ClusterManager.hpp>
+#include <RemoteTasks.hpp>
 #include <DataAccessRegistration.hpp>
 #include <Directory.hpp>
 #include <MessageReleaseAccess.hpp>
-#include <MessageSatisfiability.hpp>
 #include <MessageTaskFinished.hpp>
 #include <MessageTaskNew.hpp>
+#include "MessageSatisfiability.hpp"
 
 
 namespace TaskOffloading {
 
-	//! Information for tasks that have been offloaded to the
-	//! current node. Objects of this type are used to temporarily
-	//! keep satisfiability info the might arrive ahead of the
-	//! creation of the actual task.
-	struct RemoteTaskInfo {
-		Task *_localTask;
-		std::vector<SatisfiabilityInfo> _satInfo;
-		PaddedSpinLock<> _lock;
-
-		RemoteTaskInfo() : _localTask(nullptr), _satInfo(), _lock()
-		{
-		}
-	};
-
-	//! When a ClusterNode offloads a task, it attaches an id that is unique
-	//! on the offloading node, so we can create a mapping between an
-	//! offloaded Task and the matching remote Task.
-	//!
-	//! Here, we use this id as an index to a container to retrieve
-	//! the local information of the remote task.
-	struct RemoteTasks {
-		typedef std::pair<void *, int> remote_index_t;
-		typedef std::map<remote_index_t, RemoteTaskInfo> remote_map_t;
-
-		//! The actual map holding the remote tasks' info
-		remote_map_t _taskMap;
-
-		//! Lock to protect access to the map
-		PaddedSpinLock<> _lock;
-
-		RemoteTasks() : _taskMap(), _lock()
-		{
-		}
-
-		//! This will return a reference to the RemoteTaskInfo entry
-		//! within this map. If this is the first access to this entry
-		//! we will create it and return a reference to the new
-		//! RemoteTaskInfo object
-		RemoteTaskInfo &getTaskInfo(void *offloadedTaskId, int offloaderId)
-		{
-			auto key = std::make_pair(offloadedTaskId, offloaderId);
-
-			std::lock_guard<PaddedSpinLock<>> guard(_lock);
-			return _taskMap[key];
-		}
-
-		//! This erases a map entry. It assumes that there is already
-		//! an entry with the given key
-		void eraseTaskInfo(void *offloadTaskId, int offloaderId)
-		{
-			auto key = std::make_pair(offloadTaskId, offloaderId);
-
-			std::lock_guard<PaddedSpinLock<>> guard(_lock);
-
-			remote_map_t::iterator it = _taskMap.find(key);
-			assert(it != _taskMap.end());
-
-			_taskMap.erase(it);
-		}
-	};
-
-	//! This is our map for all the remote tasks, currently on the node
-	static RemoteTasks _remoteTasks;
 
 	void propagateSatisfiability(Task *localTask, SatisfiabilityInfo const &satInfo)
 	{
@@ -150,12 +87,6 @@ namespace TaskOffloading {
 		}
 	}
 
-	static void unregisterRemoteTask(void *offloadedTaskId, ClusterNode *offloader)
-	{
-		assert(offloader != nullptr);
-		_remoteTasks.eraseTaskInfo(offloadedTaskId, offloader->getIndex());
-	}
-
 	void offloadTask(
 		Task *task,
 		std::vector<SatisfiabilityInfo> const &satInfo,
@@ -187,7 +118,11 @@ namespace TaskOffloading {
 
 	void sendRemoteTaskFinished(void *offloadedTaskId, ClusterNode *offloader)
 	{
-		unregisterRemoteTask(offloadedTaskId, offloader);
+		// Unregister remote tasks first
+		assert(offloader != nullptr);
+		RemoteTasks::eraseRemoteTaskInfo(offloadedTaskId, offloader->getIndex());
+
+		// The notify back sending message
 		MessageTaskFinished *msg =
 			new MessageTaskFinished(ClusterManager::getCurrentClusterNode(), offloadedTaskId);
 
@@ -211,7 +146,8 @@ namespace TaskOffloading {
 		ClusterNode *offloader,
 		SatisfiabilityInfo const &satInfo
 	) {
-		RemoteTaskInfo &taskInfo = _remoteTasks.getTaskInfo(offloadedTaskId, offloader->getIndex());
+		RemoteTaskInfo &taskInfo
+			= RemoteTasks::getRemoteTaskInfo(offloadedTaskId, offloader->getIndex());
 
 		taskInfo._lock.lock();
 		if (taskInfo._localTask == nullptr) {
@@ -319,7 +255,7 @@ namespace TaskOffloading {
 		// Register remote Task with TaskOffloading mechanism before
 		// submitting it to the dependency system
 		RemoteTaskInfo &remoteTaskInfo =
-			_remoteTasks.getTaskInfo(offloadedTaskId, offloader->getIndex());
+			RemoteTasks::getRemoteTaskInfo(offloadedTaskId, offloader->getIndex());
 
 		std::lock_guard<PaddedSpinLock<>> lock(remoteTaskInfo._lock);
 		assert(remoteTaskInfo._localTask == nullptr);

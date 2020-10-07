@@ -30,13 +30,6 @@ namespace TaskOffloading {
 	void offloadTask(Task *task, std::vector<SatisfiabilityInfo> const &satInfo,
 			ClusterNode const *remoteNode);
 
-	//! \brief Send note that remote task finished
-	//!
-	//! \param[in] offloadedTaskId is the task identifier on the offloader
-	//!		node
-	//! \param[in] offloader is the ClusterNode that offloaded the task
-	void sendRemoteTaskFinished(void *offloadedTaskId, ClusterNode *offloader);
-
 	//! \brief Send satisfiability information to an offloaded Task
 	//!
 	//! \param[in] task is the offloaded task
