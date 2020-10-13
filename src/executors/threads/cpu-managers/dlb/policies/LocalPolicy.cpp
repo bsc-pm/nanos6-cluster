@@ -53,15 +53,17 @@ void LocalPolicy::execute(ComputePlace *cpu, CPUManagerPolicyHint hint, size_t n
 	}
 
 	// If too many owned cores, release idle cores via DROM
-	if (hint == IDLE_CANDIDATE && ownedCores > allocCores) {
-		if (cpu != nullptr) {
+	if (DLBCPUManager::getDromEnabled()) {
+		if (hint == IDLE_CANDIDATE && ownedCores > allocCores) {
+			if (cpu != nullptr) {
 
-			// Prepare this CPU to give to another process. This will
-			// immediately drop DLBCPUActivation::getCurrentActiveCPUs.
-			if (currentCPU->getActivationStatus() == CPU::enabled_status) {
-				DLBCPUActivation::giveCPU(currentCPU);
+				// Prepare this CPU to give to another process. This will
+				// immediately drop DLBCPUActivation::getCurrentActiveCPUs.
+				if (currentCPU->getActivationStatus() == CPU::enabled_status) {
+					DLBCPUActivation::giveCPU(currentCPU);
+				}
+				return;
 			}
-			return;
 		}
 	}
 

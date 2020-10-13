@@ -40,6 +40,12 @@ private:
 	//! A set of collaborator masks per CPU
 	static std::vector<cpu_set_t> _collaboratorMasks;
 
+	//! Enable or disable DROM individually
+	static ConfigVariable<bool> _dromEnabled;
+
+	//! Enable or disable LeWI individually
+	static ConfigVariable<bool> _lewiEnabled;
+
 public:
 
 	/*    CPUMANAGER    */
@@ -99,6 +105,16 @@ public:
 
 	bool disable(size_t systemCPUId);
 
+	/* OPTIONS */
+	static bool getDromEnabled()
+	{
+		return _dromEnabled;
+	}
+
+	static bool getLewiEnabled()
+	{
+		return _lewiEnabled;
+	}
 
 	/*    SHUTDOWN CPUS    */
 

@@ -83,6 +83,12 @@ __require_DLB
 [dlb]
 	# Enable DLB support. Default is false
 	enabled = false
+
+	# Enable DROM support (if DLB enabled). Default is true
+	enable_drom = true
+
+	# Enable LeWI support (if DLB enabled). Default is true
+	enable_lewi = true
 __!require_DLB
 
 [hardware_counters]
