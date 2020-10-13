@@ -53,6 +53,8 @@ void ConfigCentral::initialize()
 
 	// DLB
 	registerOption<bool_t>("dlb.enabled", false);
+	registerOption<bool_t>("dlb.enable_drom", true);
+	registerOption<bool_t>("dlb.enable_lewi", true);
 
 	// Hardware counters
 	registerOption<bool_t>("hardware_counters.verbose", false);

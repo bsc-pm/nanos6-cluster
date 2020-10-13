@@ -314,6 +314,11 @@ public:
 
 	static inline void giveCPU(CPU *cpu)
 	{
+		// Only give away cores if DROM is enabled
+		if (!DLBCPUManager::getDromEnabled()) {
+			return;
+		}
+
 		assert(cpu != nullptr);
 		if (!Scheduler::isServingTasks()) {
 			// No CPU is serving tasks in the scheduler, so don't give away a CPU yet, not sure why (?)
@@ -351,6 +356,11 @@ public:
 	static inline void lendCPU(CPU *cpu)
 	{
 		assert(cpu != nullptr);
+
+		// Only lend CPUs if LeWI is enabled
+		if (!DLBCPUManager::getLewiEnabled()) {
+			return;
+		}
 
 		size_t currentActiveCPUs = _numActiveOwnedCPUs.load();
 		bool successful = false;
@@ -423,6 +433,11 @@ public:
 	//! Returns true if we now have it (either reclaimed or already had it)
 	static inline bool reclaimCPU(size_t systemCPUId)
 	{
+		// Only lend CPUs if LeWI is enabled
+		if (!DLBCPUManager::getLewiEnabled()) {
+			return false;
+		}
+
 		CPU *cpu = CPUManager::getCPU(systemCPUId);
 		assert(cpu != nullptr);
 
@@ -498,6 +513,11 @@ public:
 	{
 		assert(numCPUs > 0);
 
+		// Only try to acquire CPUs if LeWI is enabled
+		if (!DLBCPUManager::getLewiEnabled()) {
+			return;
+		}
+
 		dlbAcquireCPUs(numCPUs);
 	}
 
@@ -507,6 +527,11 @@ public:
 	static inline void acquireCPUs(const cpu_set_t &maskCPUs)
 	{
 		assert(CPU_COUNT(&maskCPUs) > 0);
+
+		// Only try to acquire CPUs if LeWI is enabled
+		if (!DLBCPUManager::getLewiEnabled()) {
+			return;
+		}
 
 		dlbAcquireCPUs(maskCPUs);
 	}

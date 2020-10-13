@@ -53,6 +53,7 @@ class ClusterHybridInterfaceFile : public ClusterHybridInterface {
 		void poll(void);
 
 		void updateDROM(bool isGlobal);
+		void checkNoDROM();
 
 		// // Send the utilization
 		// void sendUtilization(float ncores);

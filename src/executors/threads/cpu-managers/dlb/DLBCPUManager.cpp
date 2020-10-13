@@ -29,6 +29,8 @@ boost::dynamic_bitset<> DLBCPUManager::_idleCPUs;
 SpinLock DLBCPUManager::_idleCPUsLock;
 size_t DLBCPUManager::_numIdleCPUs;
 
+ConfigVariable<bool> DLBCPUManager::_dromEnabled("dlb.enable_drom");
+ConfigVariable<bool> DLBCPUManager::_lewiEnabled("dlb.enable_lewi");
 
 void DLBCPUManager::preinitialize()
 {

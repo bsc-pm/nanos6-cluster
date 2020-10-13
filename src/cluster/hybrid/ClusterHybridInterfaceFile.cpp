@@ -475,6 +475,17 @@ void ClusterHybridInterfaceFile::updateDROM(bool isGlobal)
 	// DLBCPUActivation::checkCPUstates("after pollDROM", setMyMask);
 }
 
+#ifndef NDEBUG
+void ClusterHybridInterfaceFile::checkNoDROM()
+{
+	int ncpus = CPUManager::getTotalCPUs();
+	for (int k=0; k<ncpus; k++) {
+		CPU *cpu = CPUManager::getCPU(k);
+		assert (cpu->getActivationStatus() != CPU::giving_status);
+	}
+}
+#endif
+
 //! Called by polling service
 void ClusterHybridInterfaceFile::poll()
 {
@@ -519,7 +530,13 @@ void ClusterHybridInterfaceFile::poll()
 			ClusterMemoryManagement::redistributeDmallocs();
 		}
 
-		updateDROM(isGlobal);
+		if (DLBCPUManager::getDromEnabled()) {
+			updateDROM(isGlobal);
+		} else {
+#ifndef NDEBUG
+			checkNoDROM();
+#endif
+		}
 	}
 }
 
