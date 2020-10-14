@@ -17,7 +17,7 @@
 #include "tasks/Task.hpp"
 
 #include <ClusterManager.hpp>
-#include <RemoteTasks.hpp>
+#include <RemoteTasksInfoMap.hpp>
 #include <DataAccessRegistration.hpp>
 #include <Directory.hpp>
 #include <MessageReleaseAccess.hpp>

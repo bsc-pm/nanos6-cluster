@@ -22,9 +22,8 @@ namespace TaskOffloading {
 		Task *_localTask;
 		std::vector<SatisfiabilityInfo> _satInfo;
 		PaddedSpinLock<> _lock;
-		nanos6_task_info_t *taskInfoWraper;
 
-		RemoteTaskInfo() : _localTask(nullptr), _satInfo(), _lock(), taskInfoWraper(nullptr)
+		RemoteTaskInfo() : _localTask(nullptr), _satInfo(), _lock()
 		{
 		}
 
@@ -41,14 +40,15 @@ namespace TaskOffloading {
 	//!
 	//! Here, we use this id as an index to a container to retrieve
 	//! the local information of the remote task.
-	class RemoteTasks {
+	class RemoteTasksInfoMap {
 
 	public:
-
 		typedef std::pair<void *, int> remote_index_t;
+		//TODO: I keeep this like this, in the future make this an unordered map for better
+		//scalability
 		typedef std::map<remote_index_t, RemoteTaskInfo> remote_map_t;
 
-		RemoteTasks() : _taskMap(), _lock()
+		RemoteTasksMap() : _taskMap(), _lock()
 		{
 		}
 
@@ -63,6 +63,7 @@ namespace TaskOffloading {
 		{
 			// TODO: Assert that the map is empty before deleting this.
 			assert(_singleton != nullptr);
+			assert(_singleton->_taskMap.empty());
 			delete _singleton;
 			_singleton = nullptr;
 		}
@@ -86,6 +87,15 @@ namespace TaskOffloading {
 		}
 
 	private:
+		//! The actual map holding the remote tasks' info
+		remote_map_t _taskMap;
+
+		//! Lock to protect access to the map
+		PaddedSpinLock<> _lock;
+
+		//! This is our map for all the remote tasks, currently on the node
+		static RemoteTasksMap *_singleton;
+
 
 		//! This will return a reference to the RemoteTaskInfo entry
 		//! within this map. If this is the first access to this entry
@@ -112,15 +122,6 @@ namespace TaskOffloading {
 
 			_taskMap.erase(it);
 		}
-
-		//! The actual map holding the remote tasks' info
-		remote_map_t _taskMap;
-
-		//! Lock to protect access to the map
-		PaddedSpinLock<> _lock;
-
-		//! This is our map for all the remote tasks, currently on the node
-		static RemoteTasks *_singleton;
 	};
 
 }
