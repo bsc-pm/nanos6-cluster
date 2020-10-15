@@ -1328,6 +1328,9 @@ if USE_CLUSTER
 instrument_verbose_sources += \
 	src/instrument/verbose/InstrumentCluster.cpp
 
+instrument_stats_sources += \
+	src/instrument/stats/InstrumentCluster.cpp
+
 instrument_extrae_sources += \
 	src/instrument/extrae/InstrumentCluster.cpp
 

@@ -4,15 +4,21 @@
 	Copyright (C) 2015-2020 Barcelona Supercomputing Center (BSC)
 */
 
+#ifdef HAVE_CONFIG_H
+#include <config.h>
+#endif
+
 #include <fstream>
 
 #include "InstrumentInitAndShutdown.hpp"
 #include "InstrumentStats.hpp"
+#include "InstrumentCluster.hpp"
 #include "executors/threads/CPUManager.hpp"
 #include "executors/threads/ThreadManager.hpp"
 #include "support/config/ConfigVariable.hpp"
 #include "system/RuntimeInfo.hpp"
 #include "ClusterManager.hpp"
+#include "cluster/messages/MessageType.hpp"
 
 
 namespace Instrument {
@@ -59,6 +65,10 @@ namespace Instrument {
 		_phasesSpinLock.writeLock();
 		_phaseTimes.emplace_back(true);
 		_phasesSpinLock.writeUnlock();
+
+#ifdef USE_CLUSTER
+		initClusterCounters();
+#endif
 	}
 
 
@@ -179,6 +189,10 @@ namespace Instrument {
 			}
 		}
 
+#ifdef USE_CLUSTER
+		showClusterCounters(output);
+#endif
+
 		output.close();
 	}
 
@@ -194,6 +208,8 @@ namespace Instrument {
 			if (i == ClusterManager::getCurrentClusterNode()->getCommIndex()) {
 				printStats();
 			}
+			// Wait for filesystem to synchronize
+			sleep(1);
 			ClusterManager::synchronizeAll();
 		}
 	}

@@ -84,7 +84,7 @@ public:
 	//! \brief Returns the size of the Message
 	inline size_t getSize() const
 	{
-		return _deliverable->header.type;
+		return _deliverable->header.size;
 	}
 
 	//! \brief Returns the id of the Message

@@ -34,8 +34,8 @@ public:
 
 	void sendMessage(Message *msg, ClusterNode const *toNode, bool block = false);
 	void synchronizeAll(void);
-	DataTransfer *sendData(const DataAccessRegion &region, const ClusterNode *toNode, int messageId, bool block);
-	DataTransfer *fetchData(const DataAccessRegion &region, const ClusterNode *fromNode, int messageId, bool block);
+	DataTransfer *sendData(const DataAccessRegion &region, const ClusterNode *toNode, int messageId, bool block, bool instrument);
+	DataTransfer *fetchData(const DataAccessRegion &region, const ClusterNode *fromNode, int messageId, bool block, bool instrument);
 	Message *checkMail();
 
 

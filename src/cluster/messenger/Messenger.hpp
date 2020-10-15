@@ -57,7 +57,8 @@ public:
 		const DataAccessRegion &region,
 		const ClusterNode *toNode,
 		int messageId,
-		bool block
+		bool block,
+		bool instrument
 	) = 0;
 
 	//! \brief Receive a data region from a remote node, related to a previous message
@@ -77,7 +78,8 @@ public:
 		const DataAccessRegion &region,
 		const ClusterNode *fromNode,
 		int messageId,
-		bool block
+		bool block,
+		bool instrument
 	) = 0;
 
 	//! \brief Check for incoming messages

@@ -7,6 +7,7 @@
 #include <cstdlib>
 #include <vector>
 
+#include "InstrumentCluster.hpp"
 #include "MPIDataTransfer.hpp"
 #include "MPIMessenger.hpp"
 #include "cluster/messages/Message.hpp"
@@ -17,7 +18,6 @@
 
 #include <ClusterManager.hpp>
 #include <ClusterNode.hpp>
-#include <InstrumentCluster.hpp>
 #include <MemoryAllocator.hpp>
 
 #pragma GCC visibility push(default)
@@ -115,7 +115,8 @@ DataTransfer *MPIMessenger::sendData(
 	const DataAccessRegion &region,
 	const ClusterNode *to,
 	int messageId,
-	bool block
+	bool block,
+	bool instrument
 ) {
 	int ret;
 	const int mpiDst = to->getCommIndex();
@@ -124,6 +125,10 @@ DataTransfer *MPIMessenger::sendData(
 	const size_t size = region.getSize();
 
 	assert(mpiDst < _wsize && mpiDst != _wrank);
+
+	if (instrument) {
+		Instrument::clusterDataSend(address, size, mpiDst);
+	}
 
 	int tag = (messageId << 8) | DATA_RAW;
 
@@ -149,7 +154,8 @@ DataTransfer *MPIMessenger::fetchData(
 	const DataAccessRegion &region,
 	const ClusterNode *from,
 	int messageId,
-	bool block
+	bool block,
+	bool instrument
 ) {
 	int ret;
 	const int mpiSrc = from->getCommIndex();
@@ -163,6 +169,9 @@ DataTransfer *MPIMessenger::fetchData(
 	if (block) {
 		ret = MPI_Recv(address, size, MPI_BYTE, mpiSrc, tag, INTRA_COMM, MPI_STATUS_IGNORE);
 		MPIErrorHandler::handle(ret, INTRA_COMM);
+		if (instrument) {
+			Instrument::clusterDataReceived(address, size, mpiSrc);
+		}
 
 		return nullptr;
 	}

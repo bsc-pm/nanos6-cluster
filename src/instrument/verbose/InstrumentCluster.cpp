@@ -50,6 +50,10 @@ namespace Instrument {
 		addLogEntry(logEntry);
 	}
 
+	void clusterDataSend(void *, size_t, int, InstrumentationContext const &)
+	{
+	}
+
 	void enterHandleReceivedMessage(
 		Message const *msg,
 		int senderId,
@@ -85,6 +89,10 @@ namespace Instrument {
 		logEntry->_contents << " <-- HandleClusterMessage id:" <<  msg->getId();
 
 		addLogEntry(logEntry);
+	}
+
+	void clusterDataReceived(void *, size_t, int, InstrumentationContext const &)
+	{
 	}
 
 	void taskIsOffloaded(task_id_t, InstrumentationContext const &)

@@ -33,6 +33,15 @@ namespace Instrument {
 				ThreadInstrumentationContext::getCurrent()
 	);
 
+	//! This function is called when sending raw data
+	void clusterDataSend(
+		void *address,
+		size_t size,
+		int dest,
+		InstrumentationContext const &context =
+				ThreadInstrumentationContext::getCurrent()
+	);
+
 	//! This function is called when we start handling a received Message
 	//!
 	//! \param[in] msg is the Message we received and currently handling
@@ -49,6 +58,15 @@ namespace Instrument {
 	//! \param[in] msg is the Message we finished handling
 	void exitHandleReceivedMessage(
 		Message const *msg,
+		InstrumentationContext const &context =
+				ThreadInstrumentationContext::getCurrent()
+	);
+
+	//! This function is called when sending raw data
+	void clusterDataReceived(
+		void *address,
+		size_t size,
+		int dest,
 		InstrumentationContext const &context =
 				ThreadInstrumentationContext::getCurrent()
 	);

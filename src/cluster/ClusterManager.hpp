@@ -223,13 +223,14 @@ public:
 		DataAccessRegion const &region,
 		MemoryPlace const *from,
 		int messageId,
-		bool block = false
+		bool block = false,
+		bool instrument = true
 	) {
 		assert(_singleton->_msn != nullptr);
 		assert(from != nullptr);
 
 		ClusterNode const *remoteNode = getClusterNode(from->getIndex());
-		return _singleton->_msn->fetchData(region, remoteNode, messageId, block);
+		return _singleton->_msn->fetchData(region, remoteNode, messageId, block, instrument);
 	}
 
 	//! \brief Send a DataAccessRegion to a remote node
@@ -247,7 +248,8 @@ public:
 		DataAccessRegion const &region,
 		MemoryPlace const *to,
 		int messageId,
-		bool block = false
+		bool block = false,
+		bool instrument = true
 	) {
 		assert(_singleton->_msn != nullptr);
 		assert(to != nullptr);
@@ -255,7 +257,7 @@ public:
 		assert(to->getIndex() != _singleton->_thisNode->getIndex());
 
 		ClusterNode const *remoteNode = getClusterNode(to->getIndex());
-		return _singleton->_msn->sendData(region, remoteNode, messageId, block);
+		return _singleton->_msn->sendData(region, remoteNode, messageId, block, instrument);
 	}
 
 	//! \brief Initiate a data fetch operation

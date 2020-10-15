@@ -17,6 +17,7 @@
 #include <Directory.hpp>
 #include <InstrumentLogMessage.hpp>
 #include <TaskOffloading.hpp>
+#include "InstrumentCluster.hpp"
 
 namespace ExecutionWorkflow {
 
@@ -172,6 +173,9 @@ namespace ExecutionWorkflow {
 
 		dt->setCompletionCallback(
 			[&]() {
+				Instrument::clusterDataReceived(_targetTranslation._hostRegion.getStartAddress(),
+				                                _targetTranslation._hostRegion.getSize(),
+												_sourceMemoryPlace->getIndex());
 				//! If this data copy is performed for a taskwait we
 				//! don't need to update the location here.
 				DataAccessRegistration::updateTaskDataAccessLocation(
