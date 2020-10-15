@@ -12,6 +12,7 @@
 #include "executors/threads/ThreadManager.hpp"
 #include "support/config/ConfigVariable.hpp"
 #include "system/RuntimeInfo.hpp"
+#include "ClusterManager.hpp"
 
 
 namespace Instrument {
@@ -61,7 +62,7 @@ namespace Instrument {
 	}
 
 
-	void shutdown()
+	void printStats()
 	{
 		_totalTime.stop();
 		double totalTime = _totalTime;
@@ -92,6 +93,12 @@ namespace Instrument {
 
 		ConfigVariable<std::string> _outputFilename("instrument.stats.output_file");
 		std::ofstream output(_outputFilename);
+
+		if (ClusterManager::inClusterMode()) {
+			output << std::endl;
+			output << "STATS\t" << "Node\t" << ClusterManager::getCurrentClusterNode()->getIndex() << std::endl;
+			output << std::endl;
+		}
 
 		output << "STATS\t" << "Total CPUs\t" << CPUManager::getTotalCPUs() << std::endl;
 		output << "STATS\t" << "Total time\t" << totalTime << "\tns" << std::endl;
@@ -173,6 +180,22 @@ namespace Instrument {
 		}
 
 		output.close();
+	}
+
+	void shutdown()
+	{
+		if (!ClusterManager::inClusterMode()) {
+			// Just print the stats
+			printStats();
+		}
+
+		// In cluster mode, serialize the stats
+		for (int i=0; i < ClusterManager::clusterSize(); i++) {
+			if (i == ClusterManager::getCurrentClusterNode()->getCommIndex()) {
+				printStats();
+			}
+			ClusterManager::synchronizeAll();
+		}
 	}
 }
 
