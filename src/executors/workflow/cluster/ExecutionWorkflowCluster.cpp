@@ -171,7 +171,7 @@ namespace ExecutionWorkflow {
 
 		DataTransfer *dt = ClusterManager::fetchData(_region, _sourceMemoryPlace);
 
-		dt->setCompletionCallback(
+		dt->addCompletionCallback(
 			[&]() {
 				Instrument::clusterDataReceived(_targetTranslation._hostRegion.getStartAddress(),
 				                                _targetTranslation._hostRegion.getSize(),

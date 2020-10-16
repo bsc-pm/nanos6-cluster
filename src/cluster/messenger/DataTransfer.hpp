@@ -30,7 +30,7 @@ private:
 	typedef std::function<void ()> data_transfer_callback_t;
 
 	//! The callback that we will invoke when the DataTransfer completes
-	data_transfer_callback_t _callback;
+	std::vector<data_transfer_callback_t> _callbacks;
 
 	//! Flag indicating DataTransfer completion
 	bool _completed;
@@ -45,7 +45,7 @@ public:
 		MemoryPlace const *target,
 		void *messengerData
 	) : _region(region), _source(source), _target(target),
-		_callback(), _completed(false), _messengerData(messengerData)
+		_callbacks(), _completed(false), _messengerData(messengerData)
 	{
 	}
 
@@ -56,9 +56,9 @@ public:
 	//! \brief Set the callback for the DataTransfer
 	//!
 	//! \param[in] callback is the completion callback
-	inline void setCompletionCallback(data_transfer_callback_t callback)
+	inline void addCompletionCallback(data_transfer_callback_t callback)
 	{
-		_callback = callback;
+		_callbacks.push_back(callback);
 	}
 
 	//! \brief Mark the DataTransfer as completed
@@ -67,8 +67,8 @@ public:
 	//! be invoked
 	inline void markAsCompleted()
 	{
-		if (_callback) {
-			_callback();
+		for(data_transfer_callback_t callback : _callbacks) {
+			callback();
 		}
 
 		_completed = true;
