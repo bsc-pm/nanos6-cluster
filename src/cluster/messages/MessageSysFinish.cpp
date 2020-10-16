@@ -15,7 +15,7 @@ MessageSysFinish::MessageSysFinish(const ClusterNode *from)
 
 bool MessageSysFinish::handleMessage()
 {
-	FatalErrorHandler::failIf(nanos6_can_run_main()
+	FatalErrorHandler::failIf(nanos6_can_run_main(),
 		"Master node received a MessageSysFinish; this should never happen.");
 
 	ClusterManager::ShutdownCallback *callback = ClusterManager::getShutdownCallback();

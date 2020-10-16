@@ -57,6 +57,7 @@ public:
 	//! \param[in] completionArgs The parameter that is passed to the completion callback
 	//! \param[in] label An optional name for the function
 	//! \param[in] fromUserCode Whether called from user code (i.e. nanos6_spawn_function)
+	//! \param[in] extra_flag task's extra flags for internal use. By default this should be 0.
 	static void spawnFunction(
 		function_t function,
 		void *args,
@@ -64,6 +65,7 @@ public:
 		void *completionArgs,
 		char const *label,
 		bool fromUserCode = false,
+		size_t extra_flag = 0,
 		size_t streamId = 0
 	);
 

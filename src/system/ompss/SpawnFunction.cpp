@@ -61,6 +61,7 @@ void SpawnFunction::spawnFunction(
 	void *completionArgs,
 	char const *label,
 	bool fromUserCode,
+	size_t extra_flag,
 	size_t streamId
 ) {
 	WorkerThread *workerThread = WorkerThread::getCurrentWorkerThread();
@@ -72,9 +73,6 @@ void SpawnFunction::spawnFunction(
 	// Runtime Tracking Point - Entering the creation of a task
 	TrackingPoints::enterSpawnFunction(creator, fromUserCode);
 
-	// Increase the number of spawned functions
-	_pendingSpawnedFunctions++;
-
 	nanos6_task_info_t *taskInfo = nullptr;
 
 	{
@@ -85,6 +83,7 @@ void SpawnFunction::spawnFunction(
 		auto itAndBool = _spawnedFunctionInfos.emplace(
 			std::make_pair(taskInfoKey, nanos6_task_info_t())
 		);
+
 		auto it = itAndBool.first;
 		taskInfo = &(it->second);
 
@@ -123,11 +122,13 @@ void SpawnFunction::spawnFunction(
 		Instrument::registeredNewSpawnedTaskType(taskInfo);
 	}
 
+	const size_t flags = nanos6_waiting_task | extra_flag;
+
 	// Create the task representing the spawned function
 	Task *task = AddTask::createTask(
 		taskInfo, &_spawnedFunctionInvocationInfo,
 		nullptr, sizeof(SpawnedFunctionArgsBlock),
-		nanos6_waiting_task
+		flags
 	);
 	assert(task != nullptr);
 
@@ -135,6 +136,11 @@ void SpawnFunction::spawnFunction(
 	assert(argsBlock != nullptr);
 
 	argsBlock->set(function, args, completionCallback, completionArgs, streamId);
+
+	// Increase the number of spawned functions if it is not a polling
+	if ((extra_flag & Task::nanos6_task_runtime_flag_t::nanos6_polling_flag) == 0) {
+		_pendingSpawnedFunctions++;
+	}
 
 #ifdef EXTRAE_ENABLED
 	if (label != nullptr && strcmp(label, "main") == 0) {
@@ -188,7 +194,14 @@ void nanos6_spawn_function(
 	void *completion_args,
 	char const *label
 ) {
-	SpawnFunction::spawnFunction(function, args, completion_callback, completion_args, label, true);
+	SpawnFunction::spawnFunction(
+		function,
+		args,
+		completion_callback,
+		completion_args,
+		label,
+		true
+	);
 }
 
 //! Public API function to spawn functions in streams
@@ -200,5 +213,14 @@ void nanos6_stream_spawn_function(
 	char const *label,
 	size_t stream_id
 ) {
-	StreamManager::createFunction(function, args, completion_callback, completion_args, label, stream_id);
+	SpawnFunction::spawnFunction(
+		function,
+		args,
+		completion_callback,
+		completion_args,
+		label,
+		true,
+		Task::nanos6_task_runtime_flag_t::nanos6_stream_flag,
+		stream_id
+	);
 }

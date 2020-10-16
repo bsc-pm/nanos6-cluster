@@ -8,6 +8,7 @@
 
 #include "MessageTaskNew.hpp"
 #include "system/ompss/SpawnFunction.hpp"
+#include "tasks/Task.hpp"
 
 #include <TaskOffloading.hpp>
 
@@ -65,7 +66,8 @@ bool MessageTaskNew::handleMessage()
 		TaskOffloading::remoteTaskWrapper, this,
 		TaskOffloading::remoteTaskCleanup, this,
 		"remote-task-wrapper",
-		true
+		true,
+		Task::nanos6_task_runtime_flag_t::nanos6_remote_wrapper_flag
 	);
 
 	// The Message will be deleted by remoteTaskCleanup

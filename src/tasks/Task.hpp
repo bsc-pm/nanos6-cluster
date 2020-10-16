@@ -46,10 +46,6 @@ class WorkerThread;
 
 using namespace ExecutionWorkflow;
 
-// TODO: Mercurium defines this value hard coded, we must use a better approach
-// and update it here and there in case of change.
-#define DEFAULT_NODE_VALUE 0xFFFF
-
 class Task {
 public:
 	enum {
@@ -65,11 +61,24 @@ public:
 		//! these flags must be always declared after the
 		//! Mercurium flags
 		non_runnable_flag,
-		remote_flag,
 		stream_executor_flag,
+		stream_flag,
 		main_task_flag,
+		remote_wrapper_flag,
+		remote_flag,
+		polling_flag,
 		total_flags
 	};
+
+	typedef enum {
+		nanos6_non_runnable_flag = (1 << non_runnable_flag),
+		nanos6_stream_executor_flag = (1 << stream_executor_flag),
+		nanos6_stream_flag = (1 << stream_flag),
+		nanos6_main_task_flag = (1 << main_task_flag),
+		nanos6_remote_wrapper_flag = (1 << remote_wrapper_flag),
+		nanos6_remote_flag = (1 << remote_flag),
+		nanos6_polling_flag = (1 << polling_flag),
+	} nanos6_task_runtime_flag_t;
 
 	typedef long priority_t;
 
@@ -598,13 +607,13 @@ public:
 
 	inline bool isRunnable() const
 	{
-		return !_flags[Task::non_runnable_flag];
+		return !_flags[non_runnable_flag];
 	}
 
 	//! \brief Set the wait behavior
 	inline void setDelayedRelease(bool delayedReleaseValue)
 	{
-		_flags[Task::wait_flag] = delayedReleaseValue;
+		_flags[wait_flag] = delayedReleaseValue;
 	}
 	//! \brief Check if the task has the wait clause
 	bool mustDelayRelease() const

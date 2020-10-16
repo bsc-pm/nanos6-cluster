@@ -15,6 +15,7 @@
 #include "system/PollingAPI.hpp"
 #include "system/ompss/SpawnFunction.hpp"
 
+#include "tasks/Task.hpp"
 #include <Message.hpp>
 #include <DataTransfer.hpp>
 #include <ClusterManager.hpp>
@@ -95,7 +96,9 @@ namespace ClusterPollingServices {
 			nullptr,
 			nullptr,
 			"Message_Delivery",
-			false);
+			false,
+			Task::nanos6_task_runtime_flag_t::nanos6_polling_flag
+		);
 	}
 
 	template<typename T>
