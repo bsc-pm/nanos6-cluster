@@ -36,7 +36,11 @@ namespace Instrument {
 			// This may be an external thread, therefore assume that it is a spawned task
 			_extraeTaskInfo = new Extrae::TaskInfo(taskInfo, 0, context._taskId._taskInfo);
 		} else {
-			_extraeTaskInfo = new Extrae::TaskInfo(taskInfo, threadLocal._nestingLevels.back()+1, context._taskId._taskInfo);
+			_extraeTaskInfo = new Extrae::TaskInfo(
+				taskInfo,
+				threadLocal._nestingLevels.back() + 1,
+				context._taskId._taskInfo
+			);
 		}
 
 		extrae_combined_events_t ce;
@@ -180,7 +184,11 @@ namespace Instrument {
 			// This may be an external thread, therefore assume that it is a spawned task
 			_extraeTaskInfo = new Extrae::TaskInfo(taskInfo, 0, context._taskId._taskInfo);
 		} else {
-			_extraeTaskInfo = new Extrae::TaskInfo(taskInfo, threadLocal._nestingLevels.back()+1, context._taskId._taskInfo);
+			_extraeTaskInfo = new Extrae::TaskInfo(
+				taskInfo,
+				threadLocal._nestingLevels.back() + 1,
+				context._taskId._taskInfo
+			);
 		}
 
 		// When creating a regular task, we emmit two events: runtime state and code location.
@@ -215,16 +223,18 @@ namespace Instrument {
 			_extraeThreadCountLock.readLock();
 		}
 
-		ExtraeAPI::emit_SimpleEvent ((extrae_type_t) EventType::INSTANTIATING_CODE_LOCATION, (extrae_value_t) nullptr);
+		ExtraeAPI::emit_SimpleEvent (
+			(extrae_type_t) EventType::INSTANTIATING_CODE_LOCATION,
+			(extrae_value_t) nullptr
+		);
 
 		if (_traceAsThreads) {
 			_extraeThreadCountLock.readUnlock();
 		}
 	}
 
-	inline void registeredNewSpawnedTaskType(
-		__attribute__((unused)) nanos6_task_info_t *taskInfo
-	) {
+	inline void registeredNewSpawnedTaskType(__attribute__((unused)) nanos6_task_info_t *taskInfo)
+	{
 	}
 
 	inline void enterSpawnFunction(

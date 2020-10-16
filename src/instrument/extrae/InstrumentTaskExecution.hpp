@@ -15,8 +15,8 @@
 
 #include <cassert>
 
-
 namespace Instrument {
+
 	inline void startTask(
 		task_id_t taskId,
 		__attribute__((unused)) InstrumentationContext const &context
@@ -40,14 +40,18 @@ namespace Instrument {
 			ce.nCommunications += taskId._taskInfo->_predecessors.size();
 		}
 
-		ce.Types  = (extrae_type_t *)  alloca (ce.nEvents * sizeof (extrae_type_t) );
-		ce.Values = (extrae_value_t *) alloca (ce.nEvents * sizeof (extrae_value_t));
+		ce.Types  = (extrae_type_t *)  alloca(ce.nEvents * sizeof (extrae_type_t));
+		ce.Values = (extrae_value_t *) alloca(ce.nEvents * sizeof (extrae_value_t));
 
 		if (ce.nCommunications > 0) {
 			if (ce.nCommunications < 100) {
-				ce.Communications = (extrae_user_communication_t *) alloca(sizeof(extrae_user_communication_t) * ce.nCommunications);
+				ce.Communications = (extrae_user_communication_t *) alloca(
+					sizeof(extrae_user_communication_t) * ce.nCommunications
+				);
 			} else {
-				ce.Communications = (extrae_user_communication_t *) malloc(sizeof(extrae_user_communication_t) * ce.nCommunications);
+				ce.Communications = (extrae_user_communication_t *) malloc(
+					sizeof(extrae_user_communication_t) * ce.nCommunications
+				);
 			}
 		}
 
@@ -349,14 +353,19 @@ namespace Instrument {
 						parentInTaskwait = taskforId._taskInfo->_parent->_taskId;
 						ce.nCommunications++;
 
-						taskforId._taskInfo->_parent->_predecessors.emplace(taskforId._taskInfo->_taskId, control_dependency_tag);
+						taskforId._taskInfo->_parent->_predecessors.emplace(
+							taskforId._taskInfo->_taskId,
+							control_dependency_tag
+						);
 					}
 					taskforId._taskInfo->_parent->_lock.unlock();
 				}
 			}
 
 			if (ce.nCommunications > 0) {
-				ce.Communications = (extrae_user_communication_t *) alloca(sizeof(extrae_user_communication_t) * ce.nCommunications);
+				ce.Communications = (extrae_user_communication_t *) alloca(
+					sizeof(extrae_user_communication_t) * ce.nCommunications
+				);
 			}
 		}
 

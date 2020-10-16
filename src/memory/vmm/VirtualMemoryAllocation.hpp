@@ -15,10 +15,10 @@
 class VirtualMemoryAllocation {
 	//! first address of the allocation
 	void *_address;
-	
+
 	//! size of the allocation
 	size_t _size;
-	
+
 	void unmap(void *addr, size_t size)
 	{
 		int ret = munmap(addr, size);
@@ -27,7 +27,7 @@ class VirtualMemoryAllocation {
 			"Could not unmap memory allocation"
 		);
 	}
-	
+
 public:
 	VirtualMemoryAllocation(void *address, size_t size)
 		: _address(address), _size(size)
@@ -41,24 +41,24 @@ public:
 			flags |= MAP_FIXED;
 		}
 		void *ret = mmap(_address, _size, prot, flags, -1, 0);
-		FatalErrorHandler::check(
-			ret != MAP_FAILED,
+		FatalErrorHandler::failIf(
+			ret == MAP_FAILED,
 			"mapping virtual address space failed"
 		);
-		
+
 		_address = ret;
 	}
-	
+
 	~VirtualMemoryAllocation()
 	{
 		unmap(_address, _size);
 	}
-	
+
 	inline void *getAddress() const
 	{
 		return _address;
 	}
-	
+
 	inline size_t getSize() const
 	{
 		return _size;

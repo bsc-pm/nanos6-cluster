@@ -108,7 +108,8 @@ namespace Instrument {
 
 		ce.Types  = nullptr;
 		ce.Values = nullptr;
-		ce.Communications = (extrae_user_communication_t *) alloca(sizeof(extrae_user_communication_t) * ce.nCommunications);
+		ce.Communications = (extrae_user_communication_t *)
+			alloca(sizeof(extrae_user_communication_t) * ce.nCommunications);
 
 		// From blocking to unblocker
 		ce.Communications[0].type = EXTRAE_USER_RECV;

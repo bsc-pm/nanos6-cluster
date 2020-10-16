@@ -25,7 +25,7 @@ namespace Instrument {
 		{
 			logEntry->_contents << contents;
 		}
-		
+
 		template<typename T, typename... TS>
 		inline void fillLogEntry(LogEntry *logEntry, T content1, TS... contents)
 		{
@@ -33,24 +33,24 @@ namespace Instrument {
 			fillLogEntry(logEntry, contents...);
 		}
 	}
-	
-	
+
+
 	template<typename... TS>
 	void logMessage(InstrumentationContext const &context, TS... contents)
 	{
 		LogEntry *logEntry = getLogEntry(context);
 		assert(logEntry != nullptr);
-		
+
 		logEntry->appendLocation(context);
-		
+
 		if (context._taskId != task_id_t()) {
 			logEntry->_contents << " Task:" << context._taskId;
 		}
-		
+
 		logEntry->_contents << " ";
-		
+
 		fillLogEntry(logEntry, contents...);
-		
+
 		addLogEntry(logEntry);
 	}
 }

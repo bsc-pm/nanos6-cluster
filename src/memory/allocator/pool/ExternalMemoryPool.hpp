@@ -19,13 +19,13 @@ public:
 		: MemoryPool(globalAllocator, chunkSize);
 	{
 	}
-	
+
 	void *getChunk()
 	{
 		std::lock_guard<SpinLock> guard(_lock);
 		return MemoryPool::getChunk();
 	}
-	
+
 	void returnChunk(void *chunk)
 	{
 		std::lock_guard<SpinLock> guard(_lock);

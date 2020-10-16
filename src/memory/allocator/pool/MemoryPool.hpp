@@ -29,7 +29,8 @@ private:
 
 		FatalErrorHandler::failIf(
 			numChunks == 0,
-			"Memory returned from global pool is smaller than chunk size (", _chunkSize, "B)");
+			"Memory returned from global pool is smaller than chunk size (", _chunkSize, "B)"
+		);
 
 		void *prevChunk = _topChunk;
 		for (size_t i = 1; i < numChunks; ++i) {

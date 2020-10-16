@@ -28,8 +28,6 @@ MemoryAllocator::MemoryAllocator(size_t numaNodeCount, size_t cpuCount) :
 	for (size_t i = 0; i < numaNodeCount; ++i) {
 		_globalMemoryPool[i] = new MemoryPoolGlobal(i);
 	}
-
-
 }
 
 MemoryAllocator::~MemoryAllocator()

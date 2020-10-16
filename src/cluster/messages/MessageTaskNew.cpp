@@ -11,6 +11,7 @@
 
 #include <TaskOffloading.hpp>
 
+
 MessageTaskNew::MessageTaskNew(
 	const ClusterNode *from,
 	nanos6_task_info_t *taskInfo,
