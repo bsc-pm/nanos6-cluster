@@ -53,6 +53,21 @@ public:
 	{
 	}
 
+	inline DataAccessRegion const getDataAccessRegion() const
+	{
+		return _region;
+	}
+
+	inline MemoryPlace const *getSource() const
+	{
+		return _source;
+	}
+
+	inline MemoryPlace const *getTarget() const
+	{
+		return _target;
+	}
+
 	//! \brief Set the callback for the DataTransfer
 	//!
 	//! \param[in] callback is the completion callback
