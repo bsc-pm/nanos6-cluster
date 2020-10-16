@@ -154,10 +154,6 @@ namespace ExecutionWorkflow {
                                     cpu = currThread->getComputePlace();
                             }
 
-                            CPUDependencyData localDependencyData;
-                            CPUDependencyData &hpDependencyData = (cpu != nullptr) ?
-                                    cpu->getDependencyData() : localDependencyData;
-
                             assert (task->hasFinished());
                             if (task->mustDelayRelease()) {
                                 if (task->markAllChildrenAsFinished(cpu)) {
