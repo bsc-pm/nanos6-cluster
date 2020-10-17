@@ -17,7 +17,7 @@
 #include "tasks/Task.hpp"
 
 #include <ClusterManager.hpp>
-#include <RemoteTasksMap.hpp>
+#include <RemoteTasksInfoMap.hpp>
 #include <DataAccessRegistration.hpp>
 #include <Directory.hpp>
 #include <MessageReleaseAccess.hpp>
@@ -211,10 +211,10 @@ namespace TaskOffloading {
 		);
 	}
 
-	void remoteTaskWrapper(void *args)
+	void remoteTaskCreateAndSubmit(MessageTaskNew *msg, Task *parent)
 	{
-		assert(args != nullptr);
-		MessageTaskNew *msg = static_cast<MessageTaskNew *>(args);
+		assert(msg != nullptr);
+		assert(parent != nullptr);
 
 		nanos6_task_info_t *taskInfo = msg->getTaskInfo();
 
@@ -243,21 +243,18 @@ namespace TaskOffloading {
 		}
 
 		task->markAsRemote();
-		task->setClusterContext(msg->allocateClusterTaskContext());
+		task->setClusterContext(new TaskOffloading::ClusterTaskContext(msg));
 
 		// Register remote Task with TaskOffloading mechanism before
 		// submitting it to the dependency system
-		RemoteTaskInfo &remoteTaskInfo = msg->getRemoteTaskInfo();
+		RemoteTaskInfo &remoteTaskInfo = RemoteTasksInfoMap::getRemoteTaskInfo(
+			msg->getOffloadedTaskId(),
+			ClusterManager::getClusterNode(msg->getSenderId())->getIndex()
+		);
 
 		std::lock_guard<PaddedSpinLock<>> lock(remoteTaskInfo._lock);
 		assert(remoteTaskInfo._localTask == nullptr);
 		remoteTaskInfo._localTask = task;
-
-		WorkerThread *workerThread = WorkerThread::getCurrentWorkerThread();
-		assert(workerThread != nullptr);
-
-		Task *parent = workerThread->getTask();
-		assert(parent != nullptr);
 
 		// Submit the task
 		AddTask::submitTask(task, parent, true);
@@ -274,6 +271,19 @@ namespace TaskOffloading {
 			propagateSatisfiability(task, remoteTaskInfo._satInfo);
 			remoteTaskInfo._satInfo.clear();
 		}
+	}
+
+	void remoteTaskWrapper(void *args)
+	{
+		WorkerThread *workerThread = WorkerThread::getCurrentWorkerThread();
+		assert(workerThread != nullptr);
+
+		Task *parent = workerThread->getTask();
+		assert(parent != nullptr);
+
+		MessageTaskNew *msg = static_cast<MessageTaskNew *>(args);
+
+		remoteTaskCreateAndSubmit(msg, parent);
 	}
 
 	void remoteTaskCleanup(void *args)

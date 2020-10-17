@@ -11,6 +11,8 @@
 #include <vector>
 
 #include <DataAccessRegion.hpp>
+#include <MessageTaskNew.hpp>
+#include <ClusterManager.hpp>
 
 class ClusterNode;
 class Task;
@@ -38,6 +40,9 @@ namespace TaskOffloading {
 		//! The cluster node on which the remote task is located
 		ClusterNode *_remoteNode;
 
+
+		void (*task_finalization_hook)(void *task);
+
 	public:
 		//! \brief Create a Cluster Task context
 		//!
@@ -46,9 +51,20 @@ namespace TaskOffloading {
 		//! \param[in] remoteNode is the ClusterNode where the remote
 		//!		task is located
 		ClusterTaskContext(void *remoteTaskIdentifier, ClusterNode *remoteNode)
-			: _remoteTaskIdentifier(remoteTaskIdentifier), _remoteNode(remoteNode)
+			: _remoteTaskIdentifier(remoteTaskIdentifier),
+			_remoteNode(remoteNode),
+			task_finalization_hook(nullptr)
 		{
 		}
+
+		ClusterTaskContext(const MessageTaskNew *in)
+			: ClusterTaskContext(
+				in->getOffloadedTaskId(),
+				ClusterManager::getClusterNode(in->getSenderId())
+			)
+		{
+		}
+
 
 		//! \brief Get the remote task descriptor
 		inline void *getRemoteIdentifier() const

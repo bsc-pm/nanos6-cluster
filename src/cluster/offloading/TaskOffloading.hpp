@@ -87,7 +87,11 @@ namespace TaskOffloading {
 	//!		is released
 	void releaseRemoteAccess(Task *task, DataAccessRegion const &region,
 			DataAccessType type, bool weak,
-			MemoryPlace const *location);
+			MemoryPlace const *location
+	);
+
+	//! Create and submit a task
+	void remoteTaskCreateAndSubmit(MessageTaskNew *msg, Task *parent);
 
 	//! \brief Create and submit a remote task
 	//!

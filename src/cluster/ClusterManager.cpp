@@ -11,7 +11,7 @@
 #include "polling-services/ClusterServicesTask.hpp"
 #include "system/RuntimeInfo.hpp"
 
-#include <RemoteTasksMap.hpp>
+#include <RemoteTasksInfoMap.hpp>
 #include <ClusterNode.hpp>
 
 TaskOffloading::RemoteTasksInfoMap *TaskOffloading::RemoteTasksInfoMap::_singleton = nullptr;
@@ -32,7 +32,6 @@ ClusterManager::ClusterManager()
 ClusterManager::ClusterManager(std::string const &commType)
 	:_msn(nullptr), _callback(nullptr)
 {
-	assert(_singleton == nullptr);
 	TaskOffloading::RemoteTasksInfoMap::init();
 
 	_msn = GenericFactory<std::string, Messenger*>::getInstance().create(commType);

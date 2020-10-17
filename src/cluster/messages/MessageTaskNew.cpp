@@ -75,23 +75,6 @@ bool MessageTaskNew::handleMessage()
 	return false;
 }
 
-
-TaskOffloading::RemoteTaskInfo &MessageTaskNew::getRemoteTaskInfo()
-{
-	void *offloadedTaskId = this->getOffloadedTaskId();
-	ClusterNode *offloader = ClusterManager::getClusterNode(this->getSenderId());
-
-	return TaskOffloading::RemoteTasksInfoMap::getRemoteTaskInfo(offloadedTaskId, offloader->getIndex());
-}
-
-TaskOffloading::ClusterTaskContext *MessageTaskNew::allocateClusterTaskContext()
-{
-	void *offloadedTaskId = this->getOffloadedTaskId();
-	ClusterNode *offloader = ClusterManager::getClusterNode(this->getSenderId());
-
-	return new TaskOffloading::ClusterTaskContext(offloadedTaskId, offloader);
-}
-
 //! Register the Message type to the Object factory
 static Message *createTaskNewMessage(Message::Deliverable *dlv)
 {
