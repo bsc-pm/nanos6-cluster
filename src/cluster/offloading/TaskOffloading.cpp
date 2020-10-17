@@ -243,7 +243,11 @@ namespace TaskOffloading {
 		}
 
 		task->markAsRemote();
-		task->setClusterContext(new TaskOffloading::ClusterTaskContext(msg));
+
+		ClusterTaskContext *clusterContext = new TaskOffloading::ClusterTaskContext(msg);
+		assert(clusterContext);
+
+		task->setClusterContext(clusterContext);
 
 		// Register remote Task with TaskOffloading mechanism before
 		// submitting it to the dependency system
@@ -288,20 +292,20 @@ namespace TaskOffloading {
 
 	void remoteTaskCleanup(void *args)
 	{
-		assert(args != nullptr);
-		MessageTaskNew *msg = static_cast<MessageTaskNew *>(args);
+		// assert(args != nullptr);
+		// MessageTaskNew *msg = static_cast<MessageTaskNew *>(args);
 
-		void *offloadedTaskId = msg->getOffloadedTaskId();
-		ClusterNode *offloader = ClusterManager::getClusterNode(msg->getSenderId());
+		// void *offloadedTaskId = msg->getOffloadedTaskId();
+		// ClusterNode *offloader = ClusterManager::getClusterNode(msg->getSenderId());
 
-		sendRemoteTaskFinished(offloadedTaskId, offloader);
+		// sendRemoteTaskFinished(offloadedTaskId, offloader);
 
-		// For the moment, we do not delete the Message since it includes the
-		// buffers that hold the nanos6_task_info_t and the
-		// nanos6_task_implementation_info_t which we might need later on,
-		// e.g. Extrae is using these during shutdown. This will change once
-		// mercurium gives us access to the respective fields within the
-		// binary.
-		// delete msg;
+		// // For the moment, we do not delete the Message since it includes the
+		// // buffers that hold the nanos6_task_info_t and the
+		// // nanos6_task_implementation_info_t which we might need later on,
+		// // e.g. Extrae is using these during shutdown. This will change once
+		// // mercurium gives us access to the respective fields within the
+		// // binary.
+		// // delete msg;
 	}
 }

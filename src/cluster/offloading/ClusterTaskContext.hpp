@@ -13,6 +13,7 @@
 #include <DataAccessRegion.hpp>
 #include <MessageTaskNew.hpp>
 #include <ClusterManager.hpp>
+#include <TaskOffloading.hpp>
 
 class ClusterNode;
 class Task;
@@ -41,7 +42,14 @@ namespace TaskOffloading {
 		ClusterNode *_remoteNode;
 
 
-		void (*task_finalization_hook)(void *task);
+		void (*_clusterTaskContextDestructorHook)(ClusterTaskContext *in);
+
+		static void helperCallback(ClusterTaskContext *in)
+		{
+			assert(in != nullptr);
+
+			TaskOffloading::sendRemoteTaskFinished(in->_remoteTaskIdentifier, in->_remoteNode);
+		}
 
 	public:
 		//! \brief Create a Cluster Task context
@@ -53,7 +61,7 @@ namespace TaskOffloading {
 		ClusterTaskContext(void *remoteTaskIdentifier, ClusterNode *remoteNode)
 			: _remoteTaskIdentifier(remoteTaskIdentifier),
 			_remoteNode(remoteNode),
-			task_finalization_hook(nullptr)
+			_clusterTaskContextDestructorHook(helperCallback)
 		{
 		}
 
@@ -63,6 +71,13 @@ namespace TaskOffloading {
 				ClusterManager::getClusterNode(in->getSenderId())
 			)
 		{
+		}
+
+		~ClusterTaskContext()
+		{
+			if (_clusterTaskContextDestructorHook) {
+				_clusterTaskContextDestructorHook(this);
+			}
 		}
 
 

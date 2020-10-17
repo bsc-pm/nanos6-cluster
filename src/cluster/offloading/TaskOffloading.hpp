@@ -102,6 +102,8 @@ namespace TaskOffloading {
 	//!
 	//! \param[in] args the MessageTaskNew of the remote Task as a void pointer
 	void remoteTaskCleanup(void *args);
+
+	void sendRemoteTaskFinished(void *offloadedTaskId, ClusterNode *offloader);
 }
 
 #endif // TASK_OFFLOADING_HPP

@@ -65,7 +65,8 @@ bool MessageTaskNew::handleMessage()
 {
 	SpawnFunction::spawnFunction(
 		TaskOffloading::remoteTaskWrapper, this,
-		TaskOffloading::remoteTaskCleanup, this,
+		nullptr, nullptr,
+		//TaskOffloading::remoteTaskCleanup, this,
 		"remote-task-wrapper",
 		true,
 		(size_t) Task::nanos6_task_runtime_flag_t::nanos6_remote_wrapper_flag
