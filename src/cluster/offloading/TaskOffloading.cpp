@@ -17,7 +17,7 @@
 #include "tasks/Task.hpp"
 
 #include <ClusterManager.hpp>
-#include <RemoteTasksInfoMap.hpp>
+#include <RemoteTasksMap.hpp>
 #include <DataAccessRegistration.hpp>
 #include <Directory.hpp>
 #include <MessageReleaseAccess.hpp>
@@ -27,7 +27,6 @@
 
 
 namespace TaskOffloading {
-
 
 	void propagateSatisfiability(Task *localTask, SatisfiabilityInfo const &satInfo)
 	{
@@ -120,7 +119,7 @@ namespace TaskOffloading {
 	{
 		// Unregister remote tasks first
 		assert(offloader != nullptr);
-		RemoteTasks::eraseRemoteTaskInfo(offloadedTaskId, offloader->getIndex());
+		RemoteTasksInfoMap::eraseRemoteTaskInfo(offloadedTaskId, offloader->getIndex());
 
 		// The notify back sending message
 		MessageTaskFinished *msg =
@@ -147,7 +146,7 @@ namespace TaskOffloading {
 		SatisfiabilityInfo const &satInfo
 	) {
 		RemoteTaskInfo &taskInfo
-			= RemoteTasks::getRemoteTaskInfo(offloadedTaskId, offloader->getIndex());
+			= RemoteTasksInfoMap::getRemoteTaskInfo(offloadedTaskId, offloader->getIndex());
 
 		taskInfo._lock.lock();
 		if (taskInfo._localTask == nullptr) {

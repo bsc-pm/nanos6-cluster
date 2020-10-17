@@ -5,8 +5,8 @@
 */
 
 
-#ifndef REMOTETASKS_H
-#define REMOTETASKS_H
+#ifndef REMOTE_TASKS_MAP_H
+#define REMOTE_TASKS_MAP_H
 
 #include "lowlevel/PaddedSpinLock.hpp"
 
@@ -29,7 +29,6 @@ namespace TaskOffloading {
 
 		~RemoteTaskInfo()
 		{
-			delete taskInfoWraper;
 		}
 	};
 
@@ -48,14 +47,14 @@ namespace TaskOffloading {
 		//scalability
 		typedef std::map<remote_index_t, RemoteTaskInfo> remote_map_t;
 
-		RemoteTasksMap() : _taskMap(), _lock()
+		RemoteTasksInfoMap() : _taskMap(), _lock()
 		{
 		}
 
 		static void init()
 		{
 			assert(_singleton == nullptr);
-			_singleton = new RemoteTasks();
+			_singleton = new RemoteTasksInfoMap();
 			assert(_singleton != nullptr);
 		}
 
@@ -94,7 +93,7 @@ namespace TaskOffloading {
 		PaddedSpinLock<> _lock;
 
 		//! This is our map for all the remote tasks, currently on the node
-		static RemoteTasksMap *_singleton;
+		static RemoteTasksInfoMap *_singleton;
 
 
 		//! This will return a reference to the RemoteTaskInfo entry
@@ -126,4 +125,4 @@ namespace TaskOffloading {
 
 }
 
-#endif /* REMOTETASKS_H */
+#endif /* REMOTE_TASKS_MAP_H */

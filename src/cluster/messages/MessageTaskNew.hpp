@@ -13,7 +13,7 @@
 
 #include <nanos6/task-instantiation.h>
 #include <SatisfiabilityInfo.hpp>
-#include <RemoteTasks.hpp>
+#include <RemoteTasksMap.hpp>
 #include <ClusterTaskContext.hpp>
 
 

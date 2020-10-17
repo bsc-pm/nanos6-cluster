@@ -81,7 +81,7 @@ TaskOffloading::RemoteTaskInfo &MessageTaskNew::getRemoteTaskInfo()
 	void *offloadedTaskId = this->getOffloadedTaskId();
 	ClusterNode *offloader = ClusterManager::getClusterNode(this->getSenderId());
 
-	return TaskOffloading::RemoteTasks::getRemoteTaskInfo(offloadedTaskId, offloader->getIndex());
+	return TaskOffloading::RemoteTasksInfoMap::getRemoteTaskInfo(offloadedTaskId, offloader->getIndex());
 }
 
 TaskOffloading::ClusterTaskContext *MessageTaskNew::allocateClusterTaskContext()
