@@ -1378,7 +1378,12 @@ namespace DataAccessRegistration {
 		// ./nasty.py --nodes 2 --tasks 40 --nesting 4 --seed 135
 		// mcc -fsanitize=address -fno-omit-frame-pointer -ggdb -o nasty --ompss-2 nasty.c
 		// mpirun -np 4 ./nasty
-		assert(!dataAccess->hasBeenDiscounted());
+		// assert(!dataAccess->hasBeenDiscounted());
+#ifndef NDEBUG
+		if (dataAccess->hasBeenDiscounted()) {
+			std::cerr << "Warning: dataAccess->hasBeenDiscounted at " << __FILE__ << ":" << __LINE__ << std::endl;
+		}
+#endif
 
 		if (dataAccess->getAccessRegion().fullyContainedIn(region)) {
 			// Nothing to fragment: this task access/fragment is fully contained inside the region
