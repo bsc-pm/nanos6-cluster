@@ -1698,7 +1698,10 @@ namespace DataAccessRegistration {
 		fragment->setReachable();
 #endif
 
-		assert(fragment->readSatisfied() || !fragment->writeSatisfied());
+		// This assertion is wrong: it is in fact possible for write satisfiability
+		// to arrive before read satisfiable. This is due to race conditions in the
+		// runtime system.
+		// assert(fragment->readSatisfied() || !fragment->writeSatisfied());
 
 		accessStructures._accessFragments.insert(*fragment);
 		fragment->setInBottomMap();
