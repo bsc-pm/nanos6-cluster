@@ -54,6 +54,7 @@ namespace DataAccessRegistration {
 		bool weak,
 		ComputePlace *computePlace,
 		CPUDependencyData &dependencyData,
+		WriteID writeID = 0,
 		MemoryPlace const *location = nullptr
 	);
 
@@ -87,6 +88,7 @@ namespace DataAccessRegistration {
 		CPUDependencyData &dependencyData,
 		bool readSatisfied,
 		bool writeSatisfied,
+		WriteID writeID,
 		MemoryPlace const *location
 	);
 

@@ -44,6 +44,8 @@ namespace ExecutionWorkflow {
 		//! write satisfiability at creation time
 		bool _write;
 
+		WriteID _writeID;
+
 		bool _started;
 	public:
 		ClusterDataLinkStep(
@@ -57,6 +59,7 @@ namespace ExecutionWorkflow {
 			_task(access->getOriginator()),
 			_read(access->readSatisfied()),
 			_write(access->writeSatisfied()),
+			_writeID(access->getWriteID()),
 			_started(false)
 		{
 			access->setDataLinkStep(this);
@@ -65,6 +68,7 @@ namespace ExecutionWorkflow {
 		void linkRegion(
 			DataAccessRegion const &region,
 			MemoryPlace const *location,
+			WriteID writeID,
 			bool read,
 			bool write
 		) override;
@@ -86,6 +90,8 @@ namespace ExecutionWorkflow {
 		//! The task on behalf of which we perform the data copy
 		Task *_task;
 
+		WriteID _writeID;
+
 		//! The data copy is for a taskwait
 		bool _isTaskwait;
 
@@ -98,6 +104,7 @@ namespace ExecutionWorkflow {
 			MemoryPlace const *targetMemoryPlace,
 			DataAccessRegion const &region,
 			Task *task,
+			WriteID writeID,
 			bool isTaskwait,
 			bool needsTransfer
 		) : Step(),
@@ -105,6 +112,7 @@ namespace ExecutionWorkflow {
 			_targetMemoryPlace(targetMemoryPlace),
 			_region(region),
 			_task(task),
+			_writeID(writeID),
 			_isTaskwait(isTaskwait),
 			_needsTransfer(needsTransfer)
 		{
@@ -130,7 +138,10 @@ namespace ExecutionWorkflow {
 			access->setDataReleaseStep(this);
 		}
 
-		void releaseRegion(DataAccessRegion const &region, MemoryPlace const *location) override
+		void releaseRegion(
+			DataAccessRegion const &region,
+			WriteID writeID,
+			MemoryPlace const *location) override
 		{
 			Instrument::logMessage(
 				Instrument::ThreadInstrumentationContext::getCurrent(),
@@ -138,7 +149,7 @@ namespace ExecutionWorkflow {
 			);
 
 			TaskOffloading::sendRemoteAccessRelease(
-				_remoteTaskIdentifier, _offloader, region, _type, _weak, location
+				_remoteTaskIdentifier, _offloader, region, _type, _weak, writeID, location
 			);
 
 			_bytesToRelease -= region.getSize();
@@ -191,7 +202,7 @@ namespace ExecutionWorkflow {
 		//! \param[in] size is the size of the region being copied.
 		//! \param[in] read is true if access is read-satisfied
 		//! \param[in] write is true if access is write-satisfied
-		void addDataLink(int source, DataAccessRegion const &region, bool read, bool write);
+		void addDataLink(int source, DataAccessRegion const &region, WriteID writeID, bool read, bool write);
 
 		//! Start the execution of the Step
 		void start() override;
@@ -280,6 +291,7 @@ namespace ExecutionWorkflow {
 			target,
 			inregion,
 			access->getOriginator(),
+			access->getWriteID(),
 			(objectType == taskwait_type),
 			needsTransfer
 		);
