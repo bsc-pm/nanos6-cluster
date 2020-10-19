@@ -46,6 +46,7 @@ namespace ExecutionWorkflow {
 		bool _write;
 
 		Task *_namespacePredecessor;
+		WriteID _writeID;
 
 		bool _started;
 
@@ -62,6 +63,7 @@ namespace ExecutionWorkflow {
 			_read(access->readSatisfied()),
 			_write(access->writeSatisfied()),
 			_namespacePredecessor(nullptr),
+			_writeID(access->getWriteID()),
 			_started(false)
 		{
 			access->setDataLinkStep(this);
@@ -85,6 +87,7 @@ namespace ExecutionWorkflow {
 		void linkRegion(
 			DataAccessRegion const &region,
 			MemoryPlace const *location,
+			WriteID writeID,
 			bool read,
 			bool write
 		) override;
@@ -106,6 +109,8 @@ namespace ExecutionWorkflow {
 		//! The task on behalf of which we perform the data copy
 		Task *_task;
 
+		WriteID _writeID;
+
 		//! The data copy is for a taskwait
 		bool _isTaskwait;
 
@@ -118,6 +123,7 @@ namespace ExecutionWorkflow {
 			MemoryPlace const *targetMemoryPlace,
 			DataAccessRegion const &region,
 			Task *task,
+			WriteID writeID,
 			bool isTaskwait,
 			bool needsTransfer
 		) : Step(),
@@ -125,6 +131,7 @@ namespace ExecutionWorkflow {
 			_targetMemoryPlace(targetMemoryPlace),
 			_region(region),
 			_task(task),
+			_writeID(writeID),
 			_isTaskwait(isTaskwait),
 			_needsTransfer(needsTransfer)
 		{
@@ -150,7 +157,10 @@ namespace ExecutionWorkflow {
 			access->setDataReleaseStep(this);
 		}
 
-		void releaseRegion(DataAccessRegion const &region, MemoryPlace const *location) override
+		void releaseRegion(
+			DataAccessRegion const &region,
+			WriteID writeID,
+			MemoryPlace const *location) override
 		{
 			/*
 			 * location == nullptr means that the access was propagated in this node's
@@ -166,7 +176,7 @@ namespace ExecutionWorkflow {
 				);
 
 				TaskOffloading::sendRemoteAccessRelease(
-					_remoteTaskIdentifier, _offloader, region, _type, _weak, location
+					_remoteTaskIdentifier, _offloader, region, _type, _weak, writeID, location
 				);
 			}
 
@@ -231,7 +241,7 @@ namespace ExecutionWorkflow {
 		//! \param[in] read is true if access is read-satisfied
 		//! \param[in] write is true if access is write-satisfied
 		//! \param[in] namespacePredecessorId is nullptr or predecessor remote task ID
-		void addDataLink(int source, DataAccessRegion const &region, bool read, bool write, void *namespacePredecessorId);
+		void addDataLink(int source, DataAccessRegion const &region, WriteID writeID, bool read, bool write, void *namespacePredecessorId);
 
 		//! Start the execution of the Step
 		void start() override;
@@ -320,6 +330,7 @@ namespace ExecutionWorkflow {
 			target,
 			inregion,
 			access->getOriginator(),
+			access->getWriteID(),
 			(objectType == taskwait_type),
 			needsTransfer
 		);

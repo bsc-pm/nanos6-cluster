@@ -1,12 +1,14 @@
 /*
 	This file is part of Nanos6 and is licensed under the terms contained in the COPYING file.
 
-	Copyright (C) 2019 Barcelona Supercomputing Center (BSC)
+	Copyright (C) 2019--2020 Barcelona Supercomputing Center (BSC)
 */
 
 #ifndef SATISFIABILITY_INFO_HPP
 #define SATISFIABILITY_INFO_HPP
 
+
+#include "WriteID.hpp"
 
 namespace TaskOffloading {
 
@@ -30,8 +32,10 @@ namespace TaskOffloading {
 		//! predecessor remote task ID expected for remote namespace propagation
 		void *_namespacePredecessor;
 
-		SatisfiabilityInfo(DataAccessRegion region, int src, bool read, bool write, void *namespacePredecessor)
-			: _region(region), _src(src), _readSat(read), _writeSat(write), _namespacePredecessor(namespacePredecessor)
+		WriteID _writeID;
+
+		SatisfiabilityInfo(DataAccessRegion region, int src, bool read, bool write, WriteID writeID, void *namespacePredecessor)
+			: _region(region), _src(src), _readSat(read), _writeSat(write), _namespacePredecessor(namespacePredecessor), _writeID(writeID)
 		{
 			// std::cout << "construct SatisfiabilityInfo with nrp = " << namespacePredecessor << "\n";
 		}

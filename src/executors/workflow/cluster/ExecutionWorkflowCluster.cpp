@@ -24,6 +24,7 @@ namespace ExecutionWorkflow {
 	void ClusterDataLinkStep::linkRegion(
 		DataAccessRegion const &region,
 		MemoryPlace const *location,
+		WriteID writeID,
 		bool read,
 		bool write
 	) {
@@ -57,7 +58,7 @@ namespace ExecutionWorkflow {
 			// task is created, not when a satisfiability message is sent (which is what is
 			// happening now). Nevertheless, this only happens when propagation does not happen
 			// in the namespace; so send the value nullptr.
-			TaskOffloading::SatisfiabilityInfo satInfo(region, locationIndex, read, write, /* namespacePredecessor */ nullptr);
+			TaskOffloading::SatisfiabilityInfo satInfo(region, locationIndex, read, write, writeID, /* namespacePredecessor */ nullptr);
 
 			TaskOffloading::ClusterTaskContext *clusterTaskContext = _task->getClusterContext();
 			TaskOffloading::sendSatisfiability(_task, clusterTaskContext->getRemoteNode(), satInfo);
@@ -130,7 +131,7 @@ namespace ExecutionWorkflow {
 			// Will have a pointer in ClusterMemoryNode to the ClusterNode and will get the
 			// Commindex from there with getCommIndex.
 			// assert(_sourceMemoryPlace->getIndex() == _sourceMemoryPlace->getCommIndex());
-			execStep->addDataLink(location, _region, _read, _write, (void *)_namespacePredecessor);
+			execStep->addDataLink(location, _region, _writeID, _read, _write, (void *)_namespacePredecessor);
 
 			const size_t linkedBytes = _region.getSize();
 			//! If at the moment of offloading the access is not both
@@ -183,6 +184,14 @@ namespace ExecutionWorkflow {
 			return;
 		}
 
+		bool haveRegion = WriteIDManager::checkWriteIDLocal(_writeID, _region);
+		if (haveRegion) {
+			// std::cerr << "I have the region already: " << _region << "\n";
+			releaseSuccessors();
+			delete this;
+			return;
+		}
+
 		// Now check pending data transfers because the same data transfer
 		// (or one fully containing it) may already be pending. An example
 		// would be when several tasks with an "in" dependency on the same
@@ -202,13 +211,12 @@ namespace ExecutionWorkflow {
 				// data fetches and (b) completing the outgoing data transfer.
 
 				const DataAccessRegion pendingRegion = dtPending->getDataAccessRegion();
-				const DataAccessRegion wantedRegion = _region;
 				const MemoryPlace *pendingTarget = dtPending->getTarget();
 				assert(pendingTarget->getType() == nanos6_cluster_device);
 
 				if (pendingTarget->getIndex() == _targetMemoryPlace->getIndex()
-				  && wantedRegion.getStartAddress() >= pendingRegion.getStartAddress()
-					&& ((char*)wantedRegion.getStartAddress() + wantedRegion.getSize() <=
+				  && _region.getStartAddress() >= pendingRegion.getStartAddress()
+					&& ((char*)_region.getStartAddress() + _region.getSize() <=
 						(char *)pendingRegion.getStartAddress() + pendingRegion.getSize())) {
 
 					// Yes, the pending data transfer contains this region: so add a callback
@@ -266,6 +274,7 @@ namespace ExecutionWorkflow {
 							_targetMemoryPlace,
 							_isTaskwait
 						);
+						WriteIDManager::registerWriteIDasLocal(_writeID, _region);
 						this->releaseSuccessors();
 						delete this;
 					});
@@ -289,6 +298,7 @@ namespace ExecutionWorkflow {
 	void ClusterExecutionStep::addDataLink(
 		int source,
 		DataAccessRegion const &region,
+		WriteID writeID,
 		bool read,
 		bool write,
 		void *namespacePredecessor
@@ -296,7 +306,7 @@ namespace ExecutionWorkflow {
 		// This lock should already have been taken by the caller
 		// Apparently it is not.
 		//assert(_lock.isLockedByThisThread());
-		_satInfo.push_back( TaskOffloading::SatisfiabilityInfo(region, source, read, write, namespacePredecessor) );
+		_satInfo.push_back( TaskOffloading::SatisfiabilityInfo(region, source, read, write, writeID, namespacePredecessor) );
 	}
 
 	void ClusterExecutionStep::start()

@@ -13,7 +13,7 @@
 
 MessageReleaseAccess::MessageReleaseAccess(const ClusterNode *from,
 		void *offloadedTaskId, DataAccessRegion const &region,
-		DataAccessType type, bool weak, int location)
+		DataAccessType type, bool weak, WriteID writeID, int location)
 	: Message(RELEASE_ACCESS, sizeof(ReleaseAccessMessageContent), from)
 {
 	_content = reinterpret_cast<ReleaseAccessMessageContent *>(_deliverable->payload);
@@ -21,6 +21,7 @@ MessageReleaseAccess::MessageReleaseAccess(const ClusterNode *from,
 	_content->_region = region;
 	_content->_type = type;
 	_content->_weak = weak;
+	_content->_writeID = writeID;
 	_content->_location = location;
 }
 
@@ -28,12 +29,8 @@ bool MessageReleaseAccess::handleMessage()
 {
 	ClusterMemoryNode *memoryPlace = ClusterManager::getMemoryNode(_content->_location);
 
-	Task *task = (Task *)_content->_offloadedTaskId;
-	// clusterCout << "Handle MessageReleaseAccess " << task->getLabel() << " " << _content->_region << "\n";
-
-	TaskOffloading::releaseRemoteAccess(
-		task, _content->_region, _content->_type, _content->_weak, memoryPlace
-	);
+	TaskOffloading::releaseRemoteAccess((Task *)_content->_offloadedTaskId,
+			_content->_region, _content->_type, _content->_weak, _content->_writeID, memoryPlace);
 
 	return true;
 }

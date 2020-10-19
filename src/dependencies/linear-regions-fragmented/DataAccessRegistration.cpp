@@ -761,6 +761,14 @@ namespace DataAccessRegistration {
 					assert(!initialStatus._propagatesReadSatisfiabilityToNext);
 					updateOperation._makeReadSatisfied = true; /* make next task read satisfied */
 					assert(access->hasLocation());
+#ifdef USE_CLUSTER
+					updateOperation._writeID = access->getWriteID();
+					const MemoryPlace *location = access->getLocation();
+					if ( (location->getType() == nanos6_host_device && !Directory::isDirectoryMemoryPlace(location))
+							|| location == ClusterManager::getCurrentMemoryNode()) {
+						WriteIDManager::registerWriteIDasLocal(access->getWriteID(), access->getAccessRegion());
+					}
+#endif
 					updateOperation._location = access->getLocation();
 				}
 
@@ -842,6 +850,9 @@ namespace DataAccessRegistration {
 			if (initialStatus._propagatesReadSatisfiabilityToFragments != updatedStatus._propagatesReadSatisfiabilityToFragments) {
 				assert(!initialStatus._propagatesReadSatisfiabilityToFragments);
 				updateOperation._makeReadSatisfied = true;
+#ifdef USE_CLUSTER
+				updateOperation._writeID = access->getWriteID();
+#endif
 				assert(access->hasLocation());
 				updateOperation._location = access->getLocation();
 			}
@@ -929,8 +940,7 @@ namespace DataAccessRegistration {
 
 			ExecutionWorkflow::DataReleaseStep *step = access->getDataReleaseStep();
 			access->unsetDataReleaseStep();
-			step->releaseRegion(access->getAccessRegion(), access->getLocation());
-
+			step->releaseRegion(access->getAccessRegion(), access->getWriteID(), access->getLocation());
 		}
 
 		/*
@@ -959,6 +969,7 @@ namespace DataAccessRegistration {
 			step->linkRegion(
 				access->getAccessRegion(),
 				access->getLocation(),
+				access->getWriteID(),
 				linksRead,  /* propagate change, not the new value */
 				linksWrite  /* propagate change, not the new value */
 			);
@@ -1560,6 +1571,7 @@ namespace DataAccessRegistration {
 		access->setValidNamespace(updateOperation._validNamespace, updateOperation._namespacePredecessor);
 
 		if (updateOperation._makeReadSatisfied) {
+
 			if (access->readSatisfied()) {
 				/*
 				 * If two tasks A and B are offloaded to the same namespace,
@@ -1579,6 +1591,19 @@ namespace DataAccessRegistration {
 			} else {
 				access->setReadSatisfied(updateOperation._location);
 			}
+
+			WriteID id = 0;
+			// Take previous write ID if reading exactly the same region
+			// (note it will be zero if it's reading a subregion)
+			if (access->getType() == READ_ACCESS_TYPE &&
+				access->getAccessRegion() == updateOperation._region) {
+				id = updateOperation._writeID;
+			}
+			// Create a new write ID if currently zero
+			if (id == 0) {
+				id = WriteIDManager::createRandomWriteID();
+			}
+			access->setWriteID(id);
 		}
 		if (updateOperation._makeWriteSatisfied) {
 			/*
@@ -2840,6 +2865,7 @@ namespace DataAccessRegistration {
 
 	static inline void finalizeAccess(
 		Task *finishedTask, DataAccess *dataAccess, DataAccessRegion region,
+		WriteID writeID,
 		MemoryPlace const *location, /* OUT */ CPUDependencyData &hpDependencyData, 
 		bool isRemote, bool isReleaseAccess
 	) {
@@ -2903,6 +2929,9 @@ namespace DataAccessRegistration {
 				} else if (location != nullptr) {
 					/* Normal non-cluster case e.g. for NUMA */
 					accessOrFragment->setLocation(location);
+				}
+				if (writeID != 0 && accessOrFragment->getAccessRegion() == region) {
+					accessOrFragment->setWriteID(writeID);
 				}
 				DataAccessStatusEffects updatedStatus(accessOrFragment);
 
@@ -3385,8 +3414,9 @@ namespace DataAccessRegistration {
 		__attribute__((unused)) DataAccessType accessType, __attribute__((unused)) bool weak,
 		ComputePlace *computePlace,
 		CPUDependencyData &hpDependencyData,
-		MemoryPlace const *location)
-	{
+		WriteID writeID,
+		MemoryPlace const *location
+	) {
 		assert(task != nullptr);
 
 		//! The compute place may be none if it is released from inside a
@@ -3440,7 +3470,7 @@ namespace DataAccessRegistration {
 					}
 
 					dataAccess = fragmentAccess(dataAccess, region, accessStructures);
-					finalizeAccess(task, dataAccess, region, releaseLocation, /* OUT */ hpDependencyData, true, true);
+					finalizeAccess(task, dataAccess, region, writeID, releaseLocation, /* OUT */ hpDependencyData, true, true);
 
 					return true;
 				});
@@ -3844,8 +3874,7 @@ namespace DataAccessRegistration {
 
 					MemoryPlace *accessLocation = (dataAccess->isWeak()) ? nullptr : location;
 
-					finalizeAccess(task, dataAccess, dataAccess->getAccessRegion(), accessLocation, /* OUT */ hpDependencyData, isRemote, false);
-
+					finalizeAccess(task, dataAccess, dataAccess->getAccessRegion(), 0, accessLocation, /* OUT */ hpDependencyData, isRemote, false);
 					return true;
 				});
 		}
@@ -3884,6 +3913,9 @@ namespace DataAccessRegistration {
 		ComputePlace *computePlace, CPUDependencyData &hpDependencyData,
 		bool readSatisfied,    /* Change in read satisfiability (not new value) */
 		bool writeSatisfied,   /* Change in write satisfiability (not new value) */
+#ifdef USE_CLUSTER
+		WriteID writeID,
+#endif
 		MemoryPlace const *location)
 	{
 		assert(task != nullptr);
@@ -3903,6 +3935,7 @@ namespace DataAccessRegistration {
 		updateOperation._makeReadSatisfied = readSatisfied;
 		updateOperation._makeWriteSatisfied = writeSatisfied;
 
+		updateOperation._writeID = writeID;
 		updateOperation._location = location;
 
 		TaskDataAccesses &accessStructures = task->getDataAccesses();
