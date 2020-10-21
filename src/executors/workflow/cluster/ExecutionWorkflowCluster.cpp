@@ -192,7 +192,7 @@ namespace ExecutionWorkflow {
 			//! fetch.
 			DataAccessRegistration::updateTaskDataAccessLocation(
 				_task,
-				_targetTranslation._hostRegion,
+				_region,
 				_targetMemoryPlace,
 				_isTaskwait
 			);
@@ -204,15 +204,12 @@ namespace ExecutionWorkflow {
 
 		Instrument::logMessage(
 			Instrument::ThreadInstrumentationContext::getCurrent(),
-			"ClusterDataCopyStep for:", _targetTranslation._hostRegion,
+			"ClusterDataCopyStep for:", _region,
 			" from Node:", _sourceMemoryPlace->getIndex(),
 			" to Node:", _targetMemoryPlace->getIndex()
 		);
 
-		DataTransfer *dt = ClusterManager::fetchData(
-			_targetTranslation._hostRegion,
-			_sourceMemoryPlace
-		);
+		DataTransfer *dt = ClusterManager::fetchData(_region, _sourceMemoryPlace);
 
 		dt->setCompletionCallback(
 			[&]() {
@@ -220,7 +217,7 @@ namespace ExecutionWorkflow {
 				//! don't need to update the location here.
 				DataAccessRegistration::updateTaskDataAccessLocation(
 					_task,
-					_targetTranslation._hostRegion,
+					_region,
 					_targetMemoryPlace,
 					_isTaskwait
 				);

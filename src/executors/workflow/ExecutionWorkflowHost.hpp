@@ -17,24 +17,14 @@ struct DataAccess;
 
 namespace ExecutionWorkflow {
 
-	class HostDataLinkStep : public Step {
-	public:
-		HostDataLinkStep(__attribute__((unused)) MemoryPlace const *sourceMemoryPlace,
-			__attribute__((unused)) MemoryPlace const *targetMemoryPlace,
-			__attribute__((unused)) DataAccess const *access,
-			__attribute__((unused)) RegionTranslation const &targetTranslation,
-			__attribute__((unused)) Task *task) :
-		Step()
-		{
-		}
-	};
-
 	class HostExecutionStep : public Step {
 		Task *_task;
 		ComputePlace *_computePlace;
 	public:
-		HostExecutionStep(__attribute__((unused)) Task *task,
-			__attribute__((unused)) ComputePlace *computePlace)
+		HostExecutionStep(
+			__attribute__((unused)) Task *task,
+			__attribute__((unused)) ComputePlace *computePlace
+		)
 			: Step(), _task(task), _computePlace(computePlace)
 		{
 		}

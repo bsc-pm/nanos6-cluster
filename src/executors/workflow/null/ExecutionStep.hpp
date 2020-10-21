@@ -15,18 +15,6 @@ class MemoryPlace;
 
 namespace ExecutionWorkflow {
 
-	struct RegionTranslation {
-		RegionTranslation(
-			__attribute__((unused))DataAccessRegion hostRegion,
-			__attribute__((unused))void *_deviceStartAddress
-		) {
-		}
-
-		RegionTranslation()
-		{
-		}
-	};
-
 	class Step {
 	public:
 		Step()

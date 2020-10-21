@@ -27,17 +27,17 @@
 namespace ExecutionWorkflow {
 
 	transfers_map_t _transfersMap {
-		/*  host      cuda     opencl    cluster   */
-		/* host */ { nullCopy, nullCopy, nullCopy, clusterCopy },
-		/* cuda */ { nullCopy, nullCopy, nullCopy, nullCopy },
-		/* opencl */ { nullCopy, nullCopy, nullCopy, nullCopy },
+		              /*  host       cuda     opencl    cluster   */
+		/* host */    { nullCopy,    nullCopy, nullCopy, clusterCopy },
+		/* cuda */    { nullCopy,    nullCopy, nullCopy, nullCopy },
+		/* opencl */  { nullCopy,    nullCopy, nullCopy, nullCopy },
 		/* cluster */ { clusterCopy, nullCopy, nullCopy, clusterCopy }
 	};
 
 	Step *WorkflowBase::createDataCopyStep(
 		MemoryPlace const *sourceMemoryPlace,
 		MemoryPlace const *targetMemoryPlace,
-		RegionTranslation const &targetTranslation,
+		DataAccessRegion const &region,
 		DataAccess *access
 	) {
 		/* At the moment we do not support data copies for accesses
@@ -61,7 +61,7 @@ namespace ExecutionWorkflow {
 		return _transfersMap[sourceType][targetType](
 			sourceMemoryPlace,
 			targetMemoryPlace,
-			targetTranslation,
+			region,
 			access
 		);
 	}
@@ -230,12 +230,11 @@ namespace ExecutionWorkflow {
 					for (const auto &entry : *homeNodes) {
 						currLocation = entry->getHomeNode();
 						const DataAccessRegion subregion = region.intersect(entry->getAccessRegion());
-						RegionTranslation translation(subregion, subregion.getStartAddress());
 
 						Step *step = workflow->createDataCopyStep(
 							currLocation,
 							targetMemoryPlace,
-							translation,
+							subregion,
 							dataAccess
 						);
 
@@ -246,15 +245,11 @@ namespace ExecutionWorkflow {
 					delete homeNodes;
 
 				} else {
-					/* TODO: This will be provided by the corresponding
-						* AllocationAndPinning step, once we fix this functionality.
-						* At the moment (and since we support only cluster and SMP
-						* we can use a dummy RegionTranslation */
-					RegionTranslation translation(region, region.getStartAddress());
+
 					Step *step = workflow->createDataCopyStep(
 						currLocation,
 						targetMemoryPlace,
-						translation,
+						region,
 						dataAccess
 					);
 
@@ -294,14 +289,9 @@ namespace ExecutionWorkflow {
 			computePlace = currentThread->getComputePlace();
 		}
 
-		ExecutionWorkflow::Workflow<RegionTranslation> *workflow =
-			createWorkflow<RegionTranslation>();
+		Workflow<DataAccessRegion> *workflow = createWorkflow<DataAccessRegion>();
 
 		DataAccessRegion region = taskwaitFragment->getAccessRegion();
-
-		//! This for the time works, but probably for devices with address
-		//! translation we might need to revise it.
-		RegionTranslation translation(region, region.getStartAddress());
 
 		Step *notificationStep =
 			workflow->createNotificationStep(
@@ -350,7 +340,7 @@ namespace ExecutionWorkflow {
 		Step *copyStep = workflow->createDataCopyStep(
 			currLocation,
 			targetLocation,
-			translation,
+			region,
 			taskwaitFragment
 		);
 

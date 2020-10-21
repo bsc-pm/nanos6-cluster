@@ -80,7 +80,7 @@ namespace ExecutionWorkflow {
 		MemoryPlace const *_targetMemoryPlace;
 
 		//! A mapping of the address range in the source node to the target node.
-		RegionTranslation _targetTranslation;
+		DataAccessRegion const _region;
 
 		//! The task on behalf of which we perform the data copy
 		Task *_task;
@@ -95,14 +95,14 @@ namespace ExecutionWorkflow {
 		ClusterDataCopyStep(
 			MemoryPlace const *sourceMemoryPlace,
 			MemoryPlace const *targetMemoryPlace,
-			RegionTranslation const &targetTranslation,
+			DataAccessRegion const &region,
 			Task *task,
 			bool isTaskwait,
 			bool needsTransfer
 		) : Step(),
 			_sourceMemoryPlace(sourceMemoryPlace),
 			_targetMemoryPlace(targetMemoryPlace),
-			_targetTranslation(targetTranslation),
+			_region(region),
 			_task(task),
 			_isTaskwait(isTaskwait),
 			_needsTransfer(needsTransfer)
@@ -177,7 +177,7 @@ namespace ExecutionWorkflow {
 	inline Step *clusterFetchData(
 		MemoryPlace const *source,
 		MemoryPlace const *target,
-		RegionTranslation const &translation,
+		DataAccessRegion const &inregion,
 		DataAccess *access
 	) {
 		assert(source != nullptr);
@@ -191,7 +191,8 @@ namespace ExecutionWorkflow {
 		//! not initialized yet
 		assert(!Directory::isDirectoryMemoryPlace(source) &&
 			"You're probably trying to read something "
-			"that has not been initialized yet!");
+			"that has not been initialized yet!"
+		);
 
 		//! The source device is a host MemoryPlace of the current
 		//! ClusterNode. We do not really need to perform a
@@ -237,23 +238,20 @@ namespace ExecutionWorkflow {
 				&& (type != WRITE_ACCESS_TYPE)
 			);
 
-                return new ClusterDataCopyStep(
-                        source,
-                        target,
-                        translation,
-                        access->getOriginator(),
-                        (objectType == taskwait_type),
-                        needsTransfer
-                );
+		return new ClusterDataCopyStep(
+			source,
+			target,
+			inregion,
+			access->getOriginator(),
+			(objectType == taskwait_type),
+			needsTransfer
+		);
 
-
-		return new Step();
 	}
 
 	inline Step *clusterLinkData(
 		MemoryPlace const *source,
 		MemoryPlace const *target,
-		__attribute__((unused)) RegionTranslation const &translation,
 		DataAccess *access
 	) {
 		assert(access->getObjectType() == access_type);
@@ -263,7 +261,7 @@ namespace ExecutionWorkflow {
 	inline Step *clusterCopy(
 		MemoryPlace const *source,
 		MemoryPlace const *target,
-		RegionTranslation const &translation,
+		DataAccessRegion const &region,
 		DataAccess *access
 	) {
 		assert(target != nullptr);
@@ -287,10 +285,10 @@ namespace ExecutionWorkflow {
 		}
 
 		if (target == current) {
-			return clusterFetchData(source, target, translation, access);
+			return clusterFetchData(source, target, region, access);
 		}
 
-		return clusterLinkData(source, target, translation, access);
+		return clusterLinkData(source, target, access);
 	}
 }
 

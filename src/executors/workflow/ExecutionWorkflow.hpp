@@ -22,7 +22,7 @@ namespace ExecutionWorkflow {
 
 	//! A function that sets up a data transfer between two MemoryPlace
 	typedef std::function<Step *(MemoryPlace const *, MemoryPlace const *,
-		RegionTranslation const &, DataAccess *)> data_transfer_function_t;
+		DataAccessRegion const &, DataAccess *)> data_transfer_function_t;
 
 	//! A map that stores the functions that perform data transfers between
 	//! two MemoryPlaces, depending on their type (nanos6_device_t).
@@ -31,7 +31,7 @@ namespace ExecutionWorkflow {
 	inline Step *nullCopy(
 		__attribute__((unused))MemoryPlace const *source,
 		__attribute__((unused))MemoryPlace const *target,
-		__attribute__((unused))RegionTranslation const &translation,
+		__attribute__((unused))DataAccessRegion const &translation,
 		__attribute__((unused))DataAccess *access
 	) {
 		return new Step();
@@ -57,13 +57,12 @@ namespace ExecutionWorkflow {
 		//!	       corresponds to a weak access.
 		//! \param[in] targetMemoryPlace points to the MemoryPlace to which
 		//!	       need to copy data to. This cannot be NULL.
-		//! \param[in] targetTranslation is a RegionTranslation which includes
-		//!	       the address within the target device to which we copy data.
+		//! \param[in] region is the memory region to copy.
 		//! \param[in] access is the DataAccess to which this copy step relates.
 		Step *createDataCopyStep(
 			MemoryPlace const *sourceMemoryPlace,
 			MemoryPlace const *targetMemoryPlace,
-			RegionTranslation const &targetTranslation,
+			DataAccessRegion const &region,
 			DataAccess *access
 		);
 
@@ -155,10 +154,10 @@ namespace ExecutionWorkflow {
 	}
 
 	struct TaskExecutionWorkflowData {
-		std::vector<RegionTranslation> _symbolTranslations;
+		std::vector<DataAccessRegion> _symbolRegions;
 
-		TaskExecutionWorkflowData(int symbolCount)
-			: _symbolTranslations(symbolCount)
+		TaskExecutionWorkflowData(size_t symbolCount)
+			: _symbolRegions(symbolCount)
 		{
 		}
 	};

@@ -19,21 +19,6 @@ class MemoryPlace;
 
 namespace ExecutionWorkflow {
 
-	struct RegionTranslation {
-		DataAccessRegion _hostRegion;
-		void *_deviceStartAddress;
-
-		RegionTranslation(DataAccessRegion hostRegion, void *deviceStartAddress)
-			: _hostRegion(hostRegion), _deviceStartAddress(deviceStartAddress)
-		{
-		}
-
-		RegionTranslation()
-			: _hostRegion(), _deviceStartAddress(nullptr)
-		{
-		}
-	};
-
 	// NOTE: objects of this class self-destruct when they finish
 	class Step {
 	protected:
