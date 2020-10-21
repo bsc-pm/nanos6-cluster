@@ -186,6 +186,14 @@ void TaskFinalization::disposeTask(Task *task)
 			// which is a taskloop that generates taskfors. Thus, we must treat
 			// the task as a taskloop. It is important to check taskloop condition
 			// before taskfor one, to dispose a taskloop in the case of taskloop for.
+
+			TaskOffloading::ClusterTaskContext *contextptr = task->getClusterContext();
+			TaskOffloading::ClusterTaskContext contextCopy;
+
+			if (contextptr && contextptr->isRemote()) {
+				contextCopy = *contextptr;
+			}
+
 			if (isTaskloop) {
 				((Taskloop *)task)->~Taskloop();
 			} else if (isTaskfor) {
@@ -195,6 +203,14 @@ void TaskFinalization::disposeTask(Task *task)
 			} else {
 				task->~Task();
 			}
+
+			if (contextCopy.isRemote()) {
+				TaskOffloading::sendRemoteTaskFinished(
+					contextCopy.getRemoteIdentifier(),
+					contextCopy.getRemoteNode()
+				);
+			}
+
 			MemoryAllocator::free(disposableBlock, disposableBlockSize);
 		} else {
 			// Although collaborators cannot be disposed, they must destroy their

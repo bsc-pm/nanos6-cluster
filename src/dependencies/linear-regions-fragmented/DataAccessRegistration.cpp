@@ -958,8 +958,7 @@ namespace DataAccessRegistration {
 					assert(access->getObjectType() == access_type
 						   && access->getType() == NO_ACCESS_TYPE);
 
-					Instrument::removedDataAccess(
-						access->getInstrumentationId());
+					Instrument::removedDataAccess(access->getInstrumentationId());
 					accessStructures._accesses.erase(access);
 					ObjectAllocator<DataAccess>::deleteObject(access);
 				}
@@ -3151,6 +3150,10 @@ namespace DataAccessRegistration {
 		//! assert(computePlace != nullptr);
 
 		TaskDataAccesses &accessStructures = task->getDataAccesses();
+
+		printf("Node %d: Release acceses for Task: %p -> %p\n",
+			nanos6_get_cluster_node_id(), task, &accessStructures);
+
 		assert(!accessStructures.hasBeenDeleted());
 		TaskDataAccesses::accesses_t &accesses = accessStructures._accesses;
 

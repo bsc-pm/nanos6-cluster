@@ -121,6 +121,9 @@ namespace TaskOffloading {
 		assert(offloader != nullptr);
 		RemoteTasksInfoMap::eraseRemoteTaskInfo(offloadedTaskId, offloader->getIndex());
 
+		printf("Node %d: Sending sendRemoteTaskFinished remote task %p %d\n",
+			nanos6_get_cluster_node_id(), offloadedTaskId, offloader->getIndex());
+
 		// The notify back sending message
 		MessageTaskFinished *msg =
 			new MessageTaskFinished(ClusterManager::getCurrentClusterNode(), offloadedTaskId);
@@ -180,6 +183,12 @@ namespace TaskOffloading {
 		}
 
 		ClusterNode *current = ClusterManager::getCurrentClusterNode();
+
+		std::stringstream ss;
+		ss << region;
+
+		printf("Node %d: Sending MessageReleaseAccess remote task %p [%s] %d\n",
+			nanos6_get_cluster_node_id(), offloadedTaskId, ss.str().c_str(), offloader->getIndex());
 
 		MessageReleaseAccess *msg =
 			new MessageReleaseAccess(current, offloadedTaskId, region, type, weak, location->getIndex());

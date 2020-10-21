@@ -12,6 +12,7 @@
 
 #include <SatisfiabilityInfo.hpp>
 
+
 namespace TaskOffloading {
 
 	//! Information for tasks that have been offloaded to the
@@ -42,7 +43,7 @@ namespace TaskOffloading {
 	class RemoteTasksInfoMap {
 	public:
 		typedef std::pair<void *, int> remote_index_t;
-		//TODO: I keeep this like this, in the future make this an unordered map for better
+		//TODO: I keep this like this, in the future make this an unordered map for better
 		//scalability
 		typedef std::map<remote_index_t, RemoteTaskInfo> remote_map_t;
 
@@ -61,10 +62,12 @@ namespace TaskOffloading {
 		//! within this map. If this is the first access to this entry
 		//! we will create it and return a reference to the new
 		//! RemoteTaskInfo object
-		RemoteTaskInfo &_getRemoteTaskInfo(void *offloadedTaskId, int offloaderId)
+		RemoteTaskInfo &_getRemoteTaskInfo(void *offloadTaskId, int offloaderId)
 		{
-			auto key = std::make_pair(offloadedTaskId, offloaderId);
+			auto key = std::make_pair(offloadTaskId, offloaderId);
 
+			printf("Node %d: Adding remote task %p %d\n", nanos6_get_cluster_node_id(), offloadTaskId, offloaderId);
+			//std::cout << Backtrace() << std::endl;
 			std::lock_guard<PaddedSpinLock<>> guard(_lock);
 			return _taskMap[key];
 		}
@@ -76,6 +79,9 @@ namespace TaskOffloading {
 			auto key = std::make_pair(offloadTaskId, offloaderId);
 
 			std::lock_guard<PaddedSpinLock<>> guard(_lock);
+
+			printf("Node %d: Removing remote task %p %d\n", nanos6_get_cluster_node_id(), offloadTaskId, offloaderId);
+			//std::cout << Backtrace() << std::endl;
 
 			remote_map_t::iterator it = _taskMap.find(key);
 			assert(it != _taskMap.end());

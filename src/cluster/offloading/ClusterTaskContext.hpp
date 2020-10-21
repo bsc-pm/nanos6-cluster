@@ -40,16 +40,7 @@ namespace TaskOffloading {
 
 		//! The cluster node on which the remote task is located
 		ClusterNode *_remoteNode;
-
-
-		void (*_clusterTaskContextDestructorHook)(ClusterTaskContext *in);
-
-		static void helperCallback(ClusterTaskContext *in)
-		{
-			assert(in != nullptr);
-
-			TaskOffloading::sendRemoteTaskFinished(in->_remoteTaskIdentifier, in->_remoteNode);
-		}
+		bool _isRemote;
 
 	public:
 		//! \brief Create a Cluster Task context
@@ -58,10 +49,12 @@ namespace TaskOffloading {
 		//!		on the remote node
 		//! \param[in] remoteNode is the ClusterNode where the remote
 		//!		task is located
-		ClusterTaskContext(void *remoteTaskIdentifier, ClusterNode *remoteNode)
-			: _remoteTaskIdentifier(remoteTaskIdentifier),
+		ClusterTaskContext(
+			void *remoteTaskIdentifier = nullptr,
+			ClusterNode *remoteNode = nullptr
+		) : _remoteTaskIdentifier(remoteTaskIdentifier),
 			_remoteNode(remoteNode),
-			_clusterTaskContextDestructorHook(helperCallback)
+			_isRemote(false)
 		{
 		}
 
@@ -71,15 +64,12 @@ namespace TaskOffloading {
 				ClusterManager::getClusterNode(in->getSenderId())
 			)
 		{
+			_isRemote = true;
 		}
 
 		~ClusterTaskContext()
 		{
-			if (_clusterTaskContextDestructorHook) {
-				_clusterTaskContextDestructorHook(this);
-			}
 		}
-
 
 		//! \brief Get the remote task descriptor
 		inline void *getRemoteIdentifier() const
@@ -91,6 +81,11 @@ namespace TaskOffloading {
 		inline ClusterNode *getRemoteNode() const
 		{
 			return _remoteNode;
+		}
+
+		bool isRemote()
+		{
+			return _isRemote;
 		}
 	};
 }

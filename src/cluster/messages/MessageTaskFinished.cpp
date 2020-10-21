@@ -25,6 +25,12 @@ bool MessageTaskFinished::handleMessage()
 	step->releaseSuccessors();
 	delete step;
 
+	printf("Node %d: Handle MessageTaskFinished %p for task %p\n",
+		ClusterManager::getCurrentClusterNode()->getIndex(),
+		this,
+		_content->_offloadedTaskId
+	);
+
 	return true;
 }
 
