@@ -9,6 +9,7 @@
 
 #include "HostUnsyncScheduler.hpp"
 #include "SyncScheduler.hpp"
+#include "cluster/hybrid/ClusterHybridManager.hpp"
 
 class HostScheduler : public SyncScheduler {
 public:
@@ -50,7 +51,16 @@ private:
 		assert(cpu != nullptr);
 
 		// Unowned compute places cannot keep scheduling
-		if (!cpu->isOwned())
+		// except when the number of owned CPUs is small. This is to avoid
+		// a large number of transitions when:
+		//  1. the instance has just 1 owned CPU
+		//  2. that CPU is blocking on an MPI call (or similar)
+		//  3. a thread is needed to serve tasks, but this function says it
+		//     must stop; so it idles
+		//  4. but it also calls the CPU policy asking for another thread
+		//     which is borrowed via DLB.
+		// This causes lots of calls to DLB and a huge Extrae trace
+		if (ClusterHybridManager::getCurrentOwnedCPUs() > 3 && !cpu->isOwned())
 			return true;
 
 		// Check disabling or shutting down status

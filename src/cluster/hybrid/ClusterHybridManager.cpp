@@ -16,6 +16,7 @@
 #include "executors/threads/CPUManager.hpp"
 #include "scheduling/Scheduler.hpp"
 #include "ClusterStats.hpp"
+#include "executors/threads/cpu-managers/dlb/DLBCPUActivation.hpp"
 
 bool ClusterHybridManager::_inHybridClusterMode = false;
 int ClusterHybridManager::_numCPUs;
@@ -148,3 +149,7 @@ int ClusterHybridManager::countEnabledCPUs(void)
 }
 #endif
 
+int ClusterHybridManager::getCurrentOwnedCPUs()
+{
+	return DLBCPUActivation::getCurrentOwnedCPUs();
+}

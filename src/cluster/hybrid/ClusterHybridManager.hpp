@@ -100,6 +100,8 @@ public:
 	{
 		return _busyOtherInstances;
 	}
+
+	static int getCurrentOwnedCPUs();
 };
 
 #endif /* CLUSTER_HYBRID_MANAGER_HPP */
