@@ -87,7 +87,7 @@ namespace ExecutionWorkflow {
 		//!	       be executed.
 		Step *createNotificationStep(
 			std::function<void ()> const &callback,
-			ComputePlace *computePlace
+			ComputePlace const *computePlace
 		);
 
 		//! \brief Creates a DataReleaseStep.
@@ -130,7 +130,13 @@ namespace ExecutionWorkflow {
 		//! Whether the execution of the workflow has been completed when this
 		//! method returns, depends on the nature of the steps from which the
 		//! workflow consists of.
-		void start();
+		void start()
+		{
+			for (Step *step : _rootSteps) {
+				step->start();
+			}
+		}
+
 	};
 
 	// NOTE: objects of this class self-destruct when they finish

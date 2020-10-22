@@ -53,10 +53,10 @@ namespace ExecutionWorkflow {
 		assert(targetMemoryPlace != nullptr);
 		//assert(sourceMemoryPlace != nullptr);
 
-		nanos6_device_t sourceType =
+		const nanos6_device_t sourceType =
 			(sourceMemoryPlace == nullptr) ? nanos6_host_device : sourceMemoryPlace->getType();
 
-		nanos6_device_t targetType = targetMemoryPlace->getType();
+		const nanos6_device_t targetType = targetMemoryPlace->getType();
 
 		return _transfersMap[sourceType][targetType](
 			sourceMemoryPlace,
@@ -73,26 +73,20 @@ namespace ExecutionWorkflow {
 				return new HostExecutionStep(task, computePlace);
 			case nanos6_cluster_device:
 				return new ClusterExecutionStep(task, computePlace);
-			case nanos6_cuda_device:
-			case nanos6_openacc_device:
-			case nanos6_opencl_device:
 			default:
 				FatalErrorHandler::failIf(
 					true,
 					"Execution workflow does not support this device yet"
 				);
-				break;
+				return nullptr;
 		}
-
-		//! Silencing annoying compiler warning
-		return nullptr;
 	}
 
 	Step *WorkflowBase::createNotificationStep(
 		std::function<void ()> const &callback,
-		ComputePlace *computePlace
+		ComputePlace const *computePlace
 	) {
-		nanos6_device_t type =
+		const nanos6_device_t type =
 			(computePlace == nullptr) ? nanos6_host_device : computePlace->getType();
 
 		switch (type) {
@@ -100,19 +94,14 @@ namespace ExecutionWorkflow {
 				return new HostNotificationStep(callback);
 			case nanos6_cluster_device:
 				return new ClusterNotificationStep(callback);
-			case nanos6_cuda_device:
-			case nanos6_openacc_device:
-			case nanos6_opencl_device:
 			default:
 				FatalErrorHandler::failIf(
 					true,
 					"Execution workflow does not support this device yet"
 				);
-				break;
+				//! Silencing annoying compiler warning
+				return nullptr;
 		}
-
-		//! Silencing annoying compiler warning
-		return nullptr;
 	}
 
 	Step *WorkflowBase::createDataReleaseStep(Task const *task, DataAccess *access)
@@ -124,12 +113,6 @@ namespace ExecutionWorkflow {
 		return new DataReleaseStep(access);
 	}
 
-	void WorkflowBase::start()
-	{
-		for (Step *step : _rootSteps) {
-			step->start();
-		}
-	}
 
 	void executeTask(Task *task, ComputePlace *targetComputePlace, MemoryPlace *targetMemoryPlace)
 	{
@@ -141,20 +124,21 @@ namespace ExecutionWorkflow {
 			ExecutionWorkflow::Step *executionStep = task->getExecutionStep();
 
 			if (executionStep == nullptr) {
-				/* This task has already executed and has been
-					* waiting for its children to complete. 
-					*
-					* NOTE: task->getWorkflow() is actually a dangling
-					*       pointer as the workflow has already been deleted.
-					*/
-				WorkerThread *currThread = WorkerThread::getCurrentWorkerThread();
-				CPU *cpu = nullptr;
-				if (currThread != nullptr) {
-					cpu = currThread->getComputePlace();
-				}
+				/* Either this task has already executed and has been
+				 * waiting for its children to complete or the task has
+				 * no body (task->hasCode() is false).
+				 *
+				 * NOTE: in the former case, task->getWorkflow() is actually
+				 *       a dangling pointer as the workflow has already been deleted.
+				 *       In the latter it never gets deleted.
+				 */
 
 				assert (task->hasFinished());
 				if (task->mustDelayRelease()) {
+
+					WorkerThread *currThread = WorkerThread::getCurrentWorkerThread();
+					CPU *cpu = currThread == nullptr ? nullptr : currThread->getComputePlace();
+
 					if (task->markAllChildrenAsFinished(cpu)) {
 					}
 				}
@@ -190,14 +174,15 @@ namespace ExecutionWorkflow {
 
 				CPUDependencyData localDependencyData;
 				CPUDependencyData &hpDependencyData =
-					(cpu != nullptr) ? cpu->getDependencyData() : localDependencyData;
+					(cpu == nullptr) ? localDependencyData : cpu->getDependencyData();
 
 				if (task->markAsFinished(cpu/* cpu */)) {
 					DataAccessRegistration::unregisterTaskDataAccesses(
 						task,
 						cpu, /*cpu, */
 						hpDependencyData,
-						targetMemoryPlace);
+						targetMemoryPlace
+					);
 
 					TaskFinalization::taskFinished(task, cpu);
 					if (task->markAsReleased()) {
@@ -228,33 +213,33 @@ namespace ExecutionWorkflow {
 					Directory::HomeNodesArray const *homeNodes = Directory::find(region);
 
 					for (const auto &entry : *homeNodes) {
-						currLocation = entry->getHomeNode();
+						MemoryPlace const *entryLocation = entry->getHomeNode();
 						const DataAccessRegion subregion = region.intersect(entry->getAccessRegion());
 
-						Step *step = workflow->createDataCopyStep(
-							currLocation,
+						Step *dataCopySubregionStep = workflow->createDataCopyStep(
+							entryLocation,
 							targetMemoryPlace,
 							subregion,
 							dataAccess
 						);
 
-						workflow->enforceOrder(step, executionStep);
-						workflow->addRootStep(step);
+						workflow->enforceOrder(dataCopySubregionStep, executionStep);
+						workflow->addRootStep(dataCopySubregionStep);
 					}
 
 					delete homeNodes;
 
 				} else {
 
-					Step *step = workflow->createDataCopyStep(
+					Step *dataCopyRegionStep = workflow->createDataCopyStep(
 						currLocation,
 						targetMemoryPlace,
 						region,
 						dataAccess
 					);
 
-					workflow->enforceOrder(step, executionStep);
-					workflow->addRootStep(step);
+					workflow->enforceOrder(dataCopyRegionStep, executionStep);
+					workflow->addRootStep(dataCopyRegionStep);
 				}
 
 				Step *releaseStep = workflow->createDataReleaseStep(task, dataAccess);
@@ -282,12 +267,10 @@ namespace ExecutionWorkflow {
 
 	void setupTaskwaitWorkflow(Task *task, DataAccess *taskwaitFragment)
 	{
-		ComputePlace *computePlace = nullptr;
 		WorkerThread *currentThread = WorkerThread::getCurrentWorkerThread();
 
-		if (currentThread != nullptr) {
-			computePlace = currentThread->getComputePlace();
-		}
+		ComputePlace const *computePlace =
+			(currentThread == nullptr) ? nullptr : currentThread->getComputePlace();;
 
 		Workflow<DataAccessRegion> *workflow = createWorkflow<DataAccessRegion>();
 
