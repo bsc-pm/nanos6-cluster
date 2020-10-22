@@ -21,29 +21,25 @@ namespace ExecutionWorkflow {
 		Task *_task;
 		ComputePlace *_computePlace;
 	public:
-		HostExecutionStep(
-			__attribute__((unused)) Task *task,
-			__attribute__((unused)) ComputePlace *computePlace
-		)
+		HostExecutionStep(Task *task, ComputePlace *computePlace)
 			: Step(), _task(task), _computePlace(computePlace)
 		{
 		}
 
 		//! Start the execution of the Step
-		void start();
+		void start() override;
 	};
 
 	class HostNotificationStep : public Step {
 		std::function<void ()> const _callback;
 	public:
-		HostNotificationStep(
-			__attribute__((unused)) std::function<void ()> const &callback
-		) : _callback(callback)
+		HostNotificationStep(std::function<void ()> const &callback)
+			: _callback(callback)
 		{
 		}
 
 		//! start the execution of the Step
-		inline void start()
+		inline void start() override
 		{
 			_callback();
 			releaseSuccessors();

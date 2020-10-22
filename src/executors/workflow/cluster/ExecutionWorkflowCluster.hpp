@@ -66,10 +66,10 @@ namespace ExecutionWorkflow {
 			MemoryPlace const *location,
 			bool read,
 			bool write
-		);
+		) override;
 
 		//! Start the execution of the Step
-		void start();
+		void start() override;
 	};
 
 	class ClusterDataCopyStep : public Step {
@@ -110,7 +110,7 @@ namespace ExecutionWorkflow {
 		}
 
 		//! Start the execution of the Step
-		void start();
+		void start() override;
 	};
 
 	class ClusterDataReleaseStep : public DataReleaseStep {
@@ -129,11 +129,11 @@ namespace ExecutionWorkflow {
 			access->setDataReleaseStep(this);
 		}
 
-		void releaseRegion(DataAccessRegion const &region, MemoryPlace const *location);
+		void releaseRegion(DataAccessRegion const &region, MemoryPlace const *location) override;
 
-		bool checkDataRelease(DataAccess const *access);
+		bool checkDataRelease(DataAccess const *access) override;
 
-		void start();
+		void start() override;
 	};
 
 	class ClusterExecutionStep : public Step {
@@ -157,7 +157,7 @@ namespace ExecutionWorkflow {
 		void addDataLink(int source, DataAccessRegion const &region, bool read, bool write);
 
 		//! Start the execution of the Step
-		void start();
+		void start() override;
 	};
 
 	class ClusterNotificationStep : public Step {
@@ -171,7 +171,7 @@ namespace ExecutionWorkflow {
 		}
 
 		//! Start the execution of the Step
-		void start();
+		void start() override;
 	};
 
 	inline Step *clusterFetchData(

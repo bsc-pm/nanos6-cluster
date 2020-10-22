@@ -29,9 +29,8 @@ namespace ExecutionWorkflow {
 		{
 		}
 
-		inline void addSuccessor(
-			__attribute__((unused))Step *step
-		) {
+		inline void addSuccessor(__attribute__((unused))Step *step)
+		{
 		}
 
 		inline bool release()
@@ -55,9 +54,8 @@ namespace ExecutionWorkflow {
 
 	class DataLinkStep : public Step {
 	public:
-		DataLinkStep(
-			__attribute__((unused))DataAccess const *access
-		) : Step()
+		DataLinkStep(__attribute__((unused))DataAccess const *access)
+			: Step()
 		{
 		}
 
@@ -72,9 +70,8 @@ namespace ExecutionWorkflow {
 
 	class DataReleaseStep : public Step {
 	public:
-		DataReleaseStep(
-			__attribute__((unused))DataAccess const *access
-		) : Step()
+		DataReleaseStep(__attribute__((unused))DataAccess const *access)
+			: Step()
 		{
 		}
 
@@ -84,8 +81,7 @@ namespace ExecutionWorkflow {
 		) {
 		}
 
-		inline bool checkDataRelease(
-			__attribute__((unused))DataAccess const *access)
+		inline bool checkDataRelease(__attribute__((unused))DataAccess const *access)
 		{
 			return false;
 		}

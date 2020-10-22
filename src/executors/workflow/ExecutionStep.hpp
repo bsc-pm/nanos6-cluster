@@ -122,8 +122,12 @@ namespace ExecutionWorkflow {
 		//!		object.
 		DataLinkStep(DataAccess *access);
 
-		virtual inline void linkRegion(DataAccessRegion const &, MemoryPlace const *, bool, bool)
-		{
+		virtual inline void linkRegion(
+			DataAccessRegion const &,
+			MemoryPlace const *,
+			bool /*read*/,
+			bool /*write*/
+		) {
 		}
 	};
 
