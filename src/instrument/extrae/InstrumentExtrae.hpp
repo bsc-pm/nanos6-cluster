@@ -193,6 +193,11 @@ namespace Instrument {
 				PENDING_DATA_TRANSFER_BYTES = 9800101,
 				PENDING_DATA_TRANSFERS_INCOMING = 9800102,
 
+				// Hybrid cluster
+				EXTERNAL_RANK = 9800014,
+				NODE_NUM = 9800015,
+				APPRANK_NUM = 9800016,
+
 				// Dependencies system
 				DEPENDENCIES_SUBSYSTEM = 9900000,
 
