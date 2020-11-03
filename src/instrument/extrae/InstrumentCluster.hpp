@@ -19,9 +19,6 @@ namespace Instrument {
 #ifdef USE_CLUSTER
 	void defineClusterExtraeEvents();
 
-	inline void summarizeSplit(int, int, int, InstrumentationContext const &)
-	{
-	}
 #else
 	inline void defineClusterExtraeEvents()
 	{

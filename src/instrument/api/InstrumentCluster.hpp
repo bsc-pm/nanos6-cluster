@@ -39,6 +39,9 @@ namespace Instrument {
 		PendingDataTransfers,
 		PendingDataTransferBytes,
 		PendingDataTransfersIncoming,
+		ExternalRank,
+		PhysicalNodeNum,
+		ApprankNum,
 		MaxClusterEventType
 	};
 

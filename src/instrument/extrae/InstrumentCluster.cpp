@@ -22,6 +22,9 @@ namespace Instrument {
 		(extrae_type_t) EventType::PENDING_DATA_TRANSFERS,
 		(extrae_type_t) EventType::PENDING_DATA_TRANSFER_BYTES,
 		(extrae_type_t) EventType::PENDING_DATA_TRANSFERS_INCOMING,
+		(extrae_type_t) EventType::EXTERNAL_RANK,
+		(extrae_type_t) EventType::PHYSICAL_NODE_NUM,
+		(extrae_type_t) EventType::APPRANK_NUM
 	};
 
 	static const char *clusterEventTypeToName[MaxClusterEventType] = {
@@ -29,7 +32,10 @@ namespace Instrument {
 		"Number of unfinished offloaded tasks",
 		"Number of data transfers being waited for",
 		"Total bytes of data transfers being waited for",
-		"Number of data transfers queued to wait for"
+		"Number of data transfers queued to wait for",
+		"External rank (rank in original MPI_COMM_WORLD) [counting from 1]",
+		"Physical node number [counting from 1]",
+		"Application rank [counting from 1]"
 	};
 
 	static std::atomic<int> _totalOffloadedTasksWaiting;
@@ -363,5 +369,12 @@ namespace Instrument {
 	void MPIUnLock()
 	{
 		Instrument::Extrae::_lockMPI.unlock();
+	}
+
+	void summarizeSplit(int externalRank, int physicalNodeNum, int apprankNum, InstrumentationContext const &)
+	{
+		Instrument::emitClusterEvent(ClusterEventType::ExternalRank, externalRank+1);
+		Instrument::emitClusterEvent(ClusterEventType::PhysicalNodeNum, physicalNodeNum+1);
+		Instrument::emitClusterEvent(ClusterEventType::ApprankNum, apprankNum+1);
 	}
 }
