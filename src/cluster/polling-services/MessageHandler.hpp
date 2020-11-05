@@ -36,19 +36,20 @@ namespace ClusterPollingServices {
 				return false;
 			}
 
-			// TODO: Maybe we should put a loop here to process many messages/call instead of one by
-			// one
-			T *msg = ClusterManager::checkMail();
+			T *msg = nullptr;
+			do {
+				msg = ClusterManager::checkMail();
 
-			if (msg != nullptr) {
-				Instrument::enterHandleReceivedMessage(msg, msg->getSenderId());
-				const bool shouldDelete = msg->handleMessage();
-				Instrument::exitHandleReceivedMessage(msg);
+				if (msg != nullptr) {
+					Instrument::enterHandleReceivedMessage(msg, msg->getSenderId());
+					const bool shouldDelete = msg->handleMessage();
+					Instrument::exitHandleReceivedMessage(msg);
 
-				if (shouldDelete) {
-					delete msg;
+					if (shouldDelete) {
+						delete msg;
+					}
 				}
-			}
+			} while (msg != nullptr);
 
 			return true;
 		}
