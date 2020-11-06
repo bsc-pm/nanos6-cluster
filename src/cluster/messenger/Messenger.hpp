@@ -186,6 +186,8 @@ public:
 	virtual int getInstrumentationRank() const = 0;
 
 	virtual int internalRankToInstrumentationRank(int i) const = 0;
+
+	virtual void abort() = 0;
 };
 
 #endif /* MESSENGER_HPP */

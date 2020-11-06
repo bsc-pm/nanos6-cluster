@@ -4,6 +4,10 @@
 	Copyright (C) 2015-2020 Barcelona Supercomputing Center (BSC)
 */
 
+#ifdef HAVE_CONFIG_H
+#include <config.h>
+#endif
+
 #ifndef FATAL_ERROR_HANDLER_HPP
 #define FATAL_ERROR_HANDLER_HPP
 
@@ -15,6 +19,10 @@
 #include <unistd.h>
 
 #include "lowlevel/SpinLock.hpp"
+
+namespace Cluster {
+	void abort();
+}
 
 
 class FatalErrorHandler {
@@ -110,7 +118,11 @@ public:
 #ifndef NDEBUG
 		abort();
 #else
-		exit(EXIT_FAILURE);
+		#ifdef USE_CLUSTER
+			Cluster::abort();
+		#else
+			exit(EXIT_FAILURE);
+		#endif
 #endif
 	}
 
@@ -133,7 +145,11 @@ public:
 #ifndef NDEBUG
 		abort();
 #else
-		exit(EXIT_FAILURE);
+		#ifdef USE_CLUSTER
+			Cluster::abort();
+		#else
+			exit(EXIT_FAILURE);
+		#endif
 #endif
 	}
 
@@ -157,7 +173,11 @@ public:
 #ifndef NDEBUG
 		abort();
 #else
-		exit(EXIT_FAILURE);
+		#ifdef USE_CLUSTER
+			Cluster::abort();
+		#else
+			exit(EXIT_FAILURE);
+		#endif
 #endif
 	}
 

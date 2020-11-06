@@ -539,6 +539,7 @@ public:
 		return _singleton->_totalReadyTasks;
 	}
 
+	static void abort();
 };
 
 

@@ -286,6 +286,11 @@ public:
 		return _instrumentationRank;
 	}
 
+	void abort()
+	{
+		MPI_Abort(MPI_COMM_WORLD, 1);
+	}
+
 	int internalRankToInstrumentationRank(int i) const
 	{
 		return _internalRankToInstrumentationRank[i];

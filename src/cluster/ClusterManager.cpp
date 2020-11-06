@@ -405,3 +405,20 @@ void ClusterManager::setEarlyRelease(nanos6_early_release_t early_release)
 			break;
 	}
 }
+
+void ClusterManager::abort()
+{
+	if (_singleton && _singleton->_msn) {
+		_singleton->_msn->abort();
+	}
+}
+
+// Useful from FatalErrorHandler, where it would be inconvenient to
+// #include "ClusterManager.hpp"
+namespace Cluster
+{
+	void abort()
+	{
+		ClusterManager::abort();
+	}
+}
