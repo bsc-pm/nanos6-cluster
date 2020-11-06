@@ -54,7 +54,10 @@ static void main_task_wrapper(void *argsBlock)
 
 	char *reportPrefix = _config.report_prefix;
 	if (reportPrefix != NULL) {
-		for (void *it = nanos6_runtime_info_begin(); it != nanos6_runtime_info_end(); it = nanos6_runtime_info_advance(it)) {
+		for (void *it = nanos6_runtime_info_begin();
+			 it != nanos6_runtime_info_end();
+			 it = nanos6_runtime_info_advance(it)) {
+
 			if (reportPrefix[0] != '\0') {
 				printf("%s\t", reportPrefix);
 			}
@@ -135,7 +138,7 @@ int _nanos6_loader_main(int argc, char **argv, char **envp) {
 	if (nanos6_can_run_main()) {
 		nanos6_spawn_function(main_task_wrapper, &argsBlock, main_completion_callback, &condVar, "main");
 	} else {
-		nanos6_register_completion_callback(main_completion_callback, &condVar);
+		nanos6_register_remote_node(main_completion_callback, &condVar);
 	}
 
 	if (_nanos6_exit_with_error) {

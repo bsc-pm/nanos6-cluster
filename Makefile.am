@@ -1331,8 +1331,10 @@ instrument_extrae_sources += \
 	src/instrument/extrae/InstrumentCluster.cpp
 
 noinst_HEADERS += \
+	src/cluster/ClusterShutdownCallback.hpp \
 	src/cluster/ClusterManager.hpp \
 	src/cluster/ClusterMemoryManagement.hpp \
+	src/cluster/NodeNamespace.hpp \
 	src/cluster/messages/Message.hpp \
 	src/cluster/messages/MessageDataFetch.hpp \
 	src/cluster/messages/MessageDataSend.hpp \

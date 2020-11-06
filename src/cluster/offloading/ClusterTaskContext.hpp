@@ -61,8 +61,7 @@ namespace TaskOffloading {
 		ClusterTaskContext(const MessageTaskNew *in)
 			: ClusterTaskContext(
 				in->getOffloadedTaskId(),
-				ClusterManager::getClusterNode(in->getSenderId())
-			)
+				ClusterManager::getClusterNode(in->getSenderId()))
 		{
 			_isRemote = true;
 		}

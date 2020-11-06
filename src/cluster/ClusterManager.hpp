@@ -17,28 +17,12 @@
 #include <ClusterNode.hpp>
 #include <MessageDataFetch.hpp>
 #include <MessageDataSend.hpp>
+#include <ClusterShutdownCallback.hpp>
 
+class NodeNamespace;
 class ClusterMemoryNode;
 
 class ClusterManager {
-public:
-	//! ShutdownCallback function to call during shutdown in the cases where
-	//! the runtime does not run the main function
-	class ShutdownCallback {
-		void (*_function)(void *);
-		void *_args;
-	public:
-		ShutdownCallback(void (*func)(void *), void *args)
-			: _function(func), _args(args)
-		{
-		}
-
-		inline void execute()
-		{
-			assert(_function != nullptr);
-			_function(_args);
-		}
-	};
 
 private:
 	static ClusterManager *_singleton;
@@ -66,7 +50,7 @@ private:
 	//! this could happen if a remote node tries to shutdown (because
 	//! we received a MessageSysFinish before the loader setting the
 	//! callback.
-	std::atomic<ShutdownCallback*> _callback;
+	std::atomic<ClusterShutdownCallback*> _callback;
 
 	//! private constructors. This is a singleton.
 	ClusterManager();
@@ -361,29 +345,23 @@ public:
 		}
 	}
 
-	//! \brief Set a callback function to invoke when we have to shutdown
+	//! \brief Get the shutdown callback
+	//!
+	//! \returns the ShutdownCallback
+	static inline ClusterShutdownCallback* getShutdownCallback()
+	{
+		assert(_singleton != nullptr);
+		return _singleton->_callback.load();
+	}
+
+	//! \brief Set a cluster callback or namespace initialization.
 	//!
 	//! The callback is of the form 'void callback(void*)' and it will be
 	//! invoked when we have to shutdown the runtime instance
 	//!
 	//! \param[in] func is the callback function
 	//! \param[in] args is the callback function argument
-	static inline void setShutdownCallback(void (*func)(void *), void *args)
-	{
-		assert(_singleton != nullptr);
-		assert(_singleton->_callback.load() == nullptr);
-
-		_singleton->_callback.store(new ShutdownCallback(func, args));
-	}
-
-	//! \brief Get the shutdown callback
-	//!
-	//! \returns the ShutdownCallback
-	static inline ShutdownCallback* getShutdownCallback()
-	{
-		assert(_singleton != nullptr);
-		return _singleton->_callback.load();
-	}
+	static void initClusterNamespaceOrSetCallback(void (*func)(void *), void *args);
 };
 
 

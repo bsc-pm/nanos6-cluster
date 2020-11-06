@@ -36,6 +36,8 @@ namespace ClusterPollingServices {
 				return false;
 			}
 
+			// TODO: Maybe we should put a loop here to process many messages/call instead of one by
+			// one
 			T *msg = ClusterManager::checkMail();
 
 			if (msg != nullptr) {

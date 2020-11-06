@@ -18,16 +18,12 @@ public:
 		: Message(dlv)
 	{
 	}
-	
+
 	bool handleMessage();
-	
+
 	inline std::string toString() const
 	{
-		std::stringstream ss;
-		
-		ss << "node shutdown";
-		
-		return ss.str();
+		return "Node Shutdown";
 	}
 };
 
@@ -37,7 +33,7 @@ namespace {
 	{
 		return new MessageSysFinish(dlv);
 	}
-	
+
 	const bool __attribute__((unused))_registered_sys_finish =
 		REGISTER_MSG_CLASS(SYS_FINISH, createSysFinishMessage);
 }

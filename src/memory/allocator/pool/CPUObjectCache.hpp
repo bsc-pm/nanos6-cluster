@@ -58,7 +58,8 @@ public:
 	template <typename... TS>
 	T *newObject(TS &&... args)
 	{
-		pool_t &local = _available[_NUMANodeId];
+		pool_t &local = _available.at(_NUMANodeId);
+
 		if (local.empty()) {
 			//! Try to recycle from NUMA pool
 			const size_t allocated =
@@ -67,7 +68,7 @@ public:
 			//! If NUMA pool did not have objects allocate new memory
 			if (allocated == 0) {
 				// Prevent overflow
-				assert(_allocationSize < 2 * _allocationSize); 
+				assert(_allocationSize < 2 * _allocationSize);
 
 				_allocationSize *= 2;
 
@@ -85,6 +86,7 @@ public:
 		}
 
 		T *ret = local.front();
+		assert(ret != nullptr);
 		local.pop_front();
 
 		unpoison_memory_region(ret, sizeof(T));

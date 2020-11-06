@@ -12,7 +12,7 @@
 
 #include <ClusterManager.hpp>
 #include <TaskOffloading.hpp>
-
+#include "NodeNamespace.hpp"
 
 MessageTaskNew::MessageTaskNew(
 	const ClusterNode *from,
@@ -63,14 +63,17 @@ MessageTaskNew::MessageTaskNew(
 
 bool MessageTaskNew::handleMessage()
 {
-	SpawnFunction::spawnFunction(
-		TaskOffloading::remoteTaskWrapper, this,
-		nullptr, nullptr,
-		//TaskOffloading::remoteTaskCleanup, this,
-		"remote-task-wrapper",
-		true,
-		(size_t) Task::nanos6_task_runtime_flag_t::nanos6_remote_wrapper_flag
-	);
+	if (NodeNamespace::isEnabled()) {
+		NodeNamespace::enqueueTaskMessage(this);
+	} else {
+		SpawnFunction::spawnFunction(
+			TaskOffloading::remoteTaskWrapper, this,
+			TaskOffloading::remoteTaskCleanup, this,
+			"remote-task-wrapper",
+			true,
+			(size_t) Task::nanos6_task_runtime_flag_t::nanos6_remote_wrapper_flag
+		);
+	}
 
 	// The Message will be deleted by remoteTaskCleanup
 	return false;

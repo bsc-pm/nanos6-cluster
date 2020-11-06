@@ -13,9 +13,11 @@
 
 #include <RemoteTasksInfoMap.hpp>
 #include <ClusterNode.hpp>
+#include <NodeNamespace.hpp>
 
 TaskOffloading::RemoteTasksInfoMap *TaskOffloading::RemoteTasksInfoMap::_singleton = nullptr;
 ClusterManager *ClusterManager::_singleton = nullptr;
+NodeNamespace *NodeNamespace::_singleton = nullptr;
 
 std::atomic<size_t> ClusterServicesPolling::_activeClusterPollingServices;
 std::atomic<size_t> ClusterServicesTask::_activeClusterTaskServices;
@@ -68,7 +70,7 @@ ClusterManager::~ClusterManager()
 
 	delete _msn;
 
-	delete(_callback);
+	delete _callback;
 }
 
 // Cluster is initialized before the memory allocator.
@@ -109,6 +111,24 @@ void ClusterManager::postinitialize()
 }
 
 
+void ClusterManager::initClusterNamespaceOrSetCallback(
+	void (*func)(void *),
+	void *args
+) {
+	assert(_singleton != nullptr);
+	assert(!ClusterManager::isMasterNode());
+
+	EnvironmentVariable<bool> useNamespace("NANOS6_CLUSTER_NAMESPACE", false);
+
+	if (useNamespace) {
+		NodeNamespace::init(func, args);
+	} else {
+		assert(_singleton->_callback.load() == nullptr);
+		_singleton->_callback.store(new ClusterShutdownCallback(func, args));
+	}
+}
+
+
 void ClusterManager::shutdownPhase1()
 {
 	assert(_singleton != nullptr);
@@ -132,9 +152,12 @@ void ClusterManager::shutdownPhase1()
 		} else {
 			ClusterServicesPolling::shutdown();
 		}
-
 		assert(ClusterServicesPolling::_activeClusterPollingServices == 0);
-		assert(ClusterServicesTask::_activeClusterTaskServices.load() == 0);
+
+		if (NodeNamespace::isEnabled()) {
+			NodeNamespace::deallocate();
+		}
+		assert(!NodeNamespace::isEnabled());
 
 		TaskOffloading::RemoteTasksInfoMap::shutdown();
 	}
