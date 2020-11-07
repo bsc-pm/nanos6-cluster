@@ -7,12 +7,14 @@
 #ifndef CLUSTERSHUTDOWNCALLBACK_HPP
 #define CLUSTERSHUTDOWNCALLBACK_HPP
 
+#include "system/ompss/SpawnFunction.hpp"
+
 #include <cassert>
 
 //! ShutdownCallback function to call during shutdown in the cases where
 //! the runtime does not run the main function
 class ClusterShutdownCallback {
-	void (*_function)(void *);
+	SpawnFunction::function_t _function;
 	void *_args;
 public:
 	ClusterShutdownCallback(void (*func)(void *), void *args)

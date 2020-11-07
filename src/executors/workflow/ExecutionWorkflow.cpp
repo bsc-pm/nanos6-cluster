@@ -282,12 +282,10 @@ namespace ExecutionWorkflow {
 					/* We cannot re-use the 'computePlace', we need to
 						* retrieve the current Thread and associated
 						* ComputePlace */
-					ComputePlace *releasingComputePlace = nullptr;
 					WorkerThread *releasingThread = WorkerThread::getCurrentWorkerThread();
 
-					if (releasingThread != nullptr) {
-						releasingComputePlace = releasingThread->getComputePlace();
-					}
+					ComputePlace *releasingComputePlace =
+						(releasingThread == nullptr) ? nullptr : releasingThread->getComputePlace();
 
 					/* Here, we are always using a local CPUDependencyData
 						* object, to avoid the issue where we end-up calling

@@ -81,7 +81,7 @@ namespace TaskOffloading {
 			return _remoteNode;
 		}
 
-		inline void setCallback(SpawnFunction::function_t callback, void *callbackArgs)
+		inline void setCallback(SpawnFunction::function_t callback, MessageTaskNew *callbackArgs)
 		{
 			assert(callback != nullptr);
 			assert(callbackArgs != nullptr);

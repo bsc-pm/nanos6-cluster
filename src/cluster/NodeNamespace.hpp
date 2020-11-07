@@ -163,6 +163,7 @@ public:
 		assert(_singleton != nullptr);
 		assert(_singleton == args);
 
+		(void) args;
 		_singleton->bodyPrivate();
 	}
 
@@ -170,6 +171,8 @@ public:
 	{
 		assert(_singleton != nullptr);
 		assert(_singleton == args);
+
+		(void) args;
 
 		_singleton->callbackPrivate();
 	}
