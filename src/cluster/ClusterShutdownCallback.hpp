@@ -27,5 +27,8 @@ public:
 	}
 };
 
+// They are the same and expected to remain the same because both are constructed with the arguments
+// passed to spawn functions
+typedef ClusterShutdownCallback ClusterTaskCallback;
 
 #endif /* CLUSTERSHUTDOWNCALLBACK_HPP */

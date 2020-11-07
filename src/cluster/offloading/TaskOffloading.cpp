@@ -24,7 +24,7 @@
 #include <MessageTaskFinished.hpp>
 #include <MessageTaskNew.hpp>
 #include "MessageSatisfiability.hpp"
-
+#include <NodeNamespace.hpp>
 
 namespace TaskOffloading {
 
@@ -222,7 +222,11 @@ namespace TaskOffloading {
 		);
 	}
 
-	void remoteTaskCreateAndSubmit(MessageTaskNew *msg, Task *parent)
+	void remoteTaskCreateAndSubmit(
+		MessageTaskNew *msg,
+		Task *parent,
+		bool useCallbackInContext
+		)
 	{
 		assert(msg != nullptr);
 		assert(parent != nullptr);
@@ -238,6 +242,9 @@ namespace TaskOffloading {
 
 		size_t argsBlockSize;
 		void *argsBlock = msg->getArgsBlock(argsBlockSize);
+
+		void *remoteTaskIdentifier = msg->getOffloadedTaskId();
+		ClusterNode *remoteNode = ClusterManager::getClusterNode(msg->getSenderId());
 
 		// Create the task with no dependencies. Treat this call
 		// as user code since we are inside a spawned task context
@@ -255,16 +262,26 @@ namespace TaskOffloading {
 
 		task->markAsRemote();
 
-		ClusterTaskContext *clusterContext = new TaskOffloading::ClusterTaskContext(msg);
+		ClusterTaskContext *clusterContext = new TaskOffloading::ClusterTaskContext(
+			remoteTaskIdentifier,
+			remoteNode
+		);
 		assert(clusterContext);
+
+		// This is used only in the Namespace
+		if (useCallbackInContext) {
+			assert(NodeNamespace::isEnabled());
+
+			clusterContext->setCallback(remoteTaskCleanup, msg);
+		}
 
 		task->setClusterContext(clusterContext);
 
 		// Register remote Task with TaskOffloading mechanism before
 		// submitting it to the dependency system
 		RemoteTaskInfo &remoteTaskInfo = RemoteTasksInfoMap::getRemoteTaskInfo(
-			msg->getOffloadedTaskId(),
-			ClusterManager::getClusterNode(msg->getSenderId())->getIndex()
+			remoteTaskIdentifier,
+			remoteNode->getIndex()
 		);
 
 		std::lock_guard<PaddedSpinLock<>> lock(remoteTaskInfo._lock);
@@ -298,7 +315,7 @@ namespace TaskOffloading {
 
 		MessageTaskNew *msg = static_cast<MessageTaskNew *>(args);
 
-		remoteTaskCreateAndSubmit(msg, parent);
+		remoteTaskCreateAndSubmit(msg, parent, false);
 	}
 
 	void remoteTaskCleanup(void *args)

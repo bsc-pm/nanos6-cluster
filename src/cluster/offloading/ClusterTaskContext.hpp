@@ -14,6 +14,7 @@
 #include <MessageTaskNew.hpp>
 #include <ClusterManager.hpp>
 #include <TaskOffloading.hpp>
+#include <ClusterShutdownCallback.hpp>
 
 class ClusterNode;
 class Task;
@@ -40,7 +41,8 @@ namespace TaskOffloading {
 
 		//! The cluster node on which the remote task is located
 		ClusterNode *_remoteNode;
-		bool _isRemote;
+
+		ClusterTaskCallback *_hook;
 
 	public:
 		//! \brief Create a Cluster Task context
@@ -54,20 +56,17 @@ namespace TaskOffloading {
 			ClusterNode *remoteNode = nullptr
 		) : _remoteTaskIdentifier(remoteTaskIdentifier),
 			_remoteNode(remoteNode),
-			_isRemote(false)
+			_hook(nullptr)
 		{
-		}
-
-		ClusterTaskContext(const MessageTaskNew *in)
-			: ClusterTaskContext(
-				in->getOffloadedTaskId(),
-				ClusterManager::getClusterNode(in->getSenderId()))
-		{
-			_isRemote = true;
 		}
 
 		~ClusterTaskContext()
 		{
+			if (_hook != nullptr) {
+				_hook->execute();
+
+				delete _hook;
+			}
 		}
 
 		//! \brief Get the remote task descriptor
@@ -82,10 +81,15 @@ namespace TaskOffloading {
 			return _remoteNode;
 		}
 
-		bool isRemote()
+		inline void setCallback(SpawnFunction::function_t callback, void *callbackArgs)
 		{
-			return _isRemote;
+			assert(callback != nullptr);
+			assert(callbackArgs != nullptr);
+
+			_hook = new ClusterTaskCallback(callback, callbackArgs);
+			assert(_hook != nullptr);
 		}
+
 	};
 }
 

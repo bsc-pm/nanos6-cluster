@@ -68,7 +68,7 @@ private:
 				_queue.pop_front();
 				_spinlock.unlock();
 
-				TaskOffloading::remoteTaskCreateAndSubmit(msg, _namespaceTask);
+				TaskOffloading::remoteTaskCreateAndSubmit(msg, _namespaceTask, true);
 
 			} else {
 				// Release the lock and block the task
@@ -88,6 +88,19 @@ private:
 		_condVar.signal();
 	}
 
+	bool tryWakeUp()
+	{
+		// Unblock the executor if it was blocked
+		if (_blockedTask.load() != nullptr) {
+			assert(_blockedTask == _namespaceTask);
+
+			_blockedTask.store(nullptr);
+			BlockingAPI::unblockTask(_namespaceTask, false);
+			return true;
+		}
+		return false;
+	}
+
 	//! \brief Add a function to this executor's stream queue
 	//! \param[in] function The kernel to execute
 	void enqueueTaskMessagePrivate(MessageTaskNew *message)
@@ -102,14 +115,18 @@ private:
 		_spinlock.unlock();
 
 		// Unblock the executor if it was blocked
-		if (_blockedTask.load() != nullptr) {
-			assert(_blockedTask == _namespaceTask);
-
-			BlockingAPI::unblockTask(_namespaceTask, false);
-			_blockedTask.store(nullptr);
-		}
+		tryWakeUp();
 	}
 
+	void shutdownPrivate()
+	{
+		printf("Called %s\n", __func__);
+		assert(_singleton != nullptr);
+
+		_singleton->_mustShutdown.store(true);
+
+		tryWakeUp();
+	}
 
 protected:
 
@@ -123,8 +140,8 @@ protected:
 		assert(_callback != nullptr);
 
 		SpawnFunction::spawnFunction(
-			NodeNamespace::body, _singleton,
-			NodeNamespace::callback, _singleton,
+			NodeNamespace::body, this,
+			NodeNamespace::callback, this,
 			"Cluster_Namespace",
 			false,
 			(size_t) Task::nanos6_task_runtime_flag_t::nanos6_polling_flag
@@ -171,12 +188,13 @@ public:
 	{
 		assert(_singleton != nullptr);
 
-		_singleton->_mustShutdown.store(true);
+		_singleton->shutdownPrivate();
 	}
 
 	static void deallocate()
 	{
 		delete _singleton;
+		_singleton = nullptr;
 	}
 
 	//! \brief Add a function to this executor's stream queue

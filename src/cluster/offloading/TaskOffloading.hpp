@@ -91,7 +91,7 @@ namespace TaskOffloading {
 	);
 
 	//! Create and submit a task
-	void remoteTaskCreateAndSubmit(MessageTaskNew *msg, Task *parent);
+	void remoteTaskCreateAndSubmit(MessageTaskNew *msg, Task *parent, bool useCallbackInContext);
 
 	//! \brief Create and submit a remote task
 	//!
