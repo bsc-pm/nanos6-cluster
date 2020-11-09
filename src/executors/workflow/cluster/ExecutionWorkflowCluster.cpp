@@ -7,6 +7,7 @@
 #include "ExecutionWorkflowCluster.hpp"
 #include "tasks/Task.hpp"
 
+#include "lowlevel/SpinLock.hpp"
 #include <ClusterManager.hpp>
 #include <ClusterServicesPolling.hpp>
 #include <ClusterServicesTask.hpp>
@@ -97,9 +98,16 @@ namespace ExecutionWorkflow {
 			//! The current node is the source node. We just propagate
 			//! the info we 've gathered
 			assert(_successors.size() == 1);
-			ClusterExecutionStep *execStep = (ClusterExecutionStep *)_successors[0];
+			ClusterExecutionStep *execStep = dynamic_cast<ClusterExecutionStep *>(_successors[0]);
+			assert(execStep != nullptr); // This asserts that the next step is the execution step
 
 			assert(_read || _write);
+
+			// This assert is to prevent future errors when working with maleability.
+			// For now the index and the comIndex are the same. A more complete implementation
+			// Will have a pointer in ClusterMemoryNode to the ClusterNode and will get the
+			// Commindex from there with getCommIndex.
+			// assert(_sourceMemoryPlace->getIndex() == _sourceMemoryPlace->getCommIndex());
 			execStep->addDataLink(_sourceMemoryPlace->getIndex(), _region, _read, _write);
 
 			const size_t linkedBytes = _region.getSize();
@@ -123,55 +131,6 @@ namespace ExecutionWorkflow {
 		if (deleteStep) {
 			delete this;
 		}
-	}
-
-	void ClusterDataReleaseStep::releaseRegion(
-		DataAccessRegion const &region,
-		MemoryPlace const *location
-	) {
-		Instrument::logMessage(
-			Instrument::ThreadInstrumentationContext::getCurrent(),
-			"releasing remote region:",
-			region
-		);
-
-		TaskOffloading::sendRemoteAccessRelease(
-			_remoteTaskIdentifier,
-			_offloader,
-			region,
-			_type,
-			_weak,
-			location
-		);
-
-		if ((_bytesToRelease -= region.getSize()) == 0) {
-			delete this;
-		}
-	}
-
-	bool ClusterDataReleaseStep::checkDataRelease(DataAccess const *access)
-	{
-		const bool releases = (access->getObjectType() == taskwait_type)
-			&& access->getOriginator()->isSpawned()
-			&& access->readSatisfied()
-			&& access->writeSatisfied();
-
-		Instrument::logMessage(
-			Instrument::ThreadInstrumentationContext::getCurrent(),
-			"Checking DataRelease access:", access->getInstrumentationId(),
-			" object_type:", access->getObjectType(),
-			" spawned originator:", access->getOriginator()->isSpawned(),
-			" read:", access->readSatisfied(),
-			" write:", access->writeSatisfied(),
-			" releases:", releases
-		);
-
-		return releases;
-	}
-
-	void ClusterDataReleaseStep::start()
-	{
-		releaseSuccessors();
 	}
 
 	void ClusterDataCopyStep::start()
@@ -248,8 +207,9 @@ namespace ExecutionWorkflow {
 		bool read,
 		bool write
 	) {
-                // This lock should already have been taken by the caller
-		// std::lock_guard<SpinLock> guard(_lock);
+		// This lock should already have been taken by the caller
+		// Apparently it is not.
+		//assert(_lock.isLockedByThisThread());
 		_satInfo.push_back( TaskOffloading::SatisfiabilityInfo(region, source, read, write) );
 	}
 

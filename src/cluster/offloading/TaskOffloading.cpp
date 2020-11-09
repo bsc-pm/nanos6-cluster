@@ -76,16 +76,6 @@ namespace TaskOffloading {
 		delete array;
 	}
 
-	void propagateSatisfiability(Task *localTask, std::vector<SatisfiabilityInfo> const &satInfo)
-	{
-		assert(localTask != nullptr);
-		assert(!satInfo.empty());
-
-		for (SatisfiabilityInfo const &sat : satInfo) {
-			propagateSatisfiability(localTask, sat);
-		}
-	}
-
 	void offloadTask(
 		Task *task,
 		std::vector<SatisfiabilityInfo> const &satInfo,
@@ -145,7 +135,7 @@ namespace TaskOffloading {
 		ClusterManager::sendMessage(msg, remoteNode);
 	}
 
-	void propagateSatisfiability(
+	void propagateSatisfiabilityForHandler(
 		void *offloadedTaskId,
 		ClusterNode *offloader,
 		SatisfiabilityInfo const &satInfo
@@ -189,8 +179,11 @@ namespace TaskOffloading {
 		std::stringstream ss;
 		ss << region;
 
-		printf("Node %d: Sending MessageReleaseAccess remote task %p [%s] %d\n",
-			nanos6_get_cluster_node_id(), offloadedTaskId, ss.str().c_str(), offloader->getIndex());
+		printf("Node %d: Sending MessageReleaseAccess remote task %p [%s] to %d\n",
+			nanos6_get_cluster_node_id(),
+			offloadedTaskId,
+			ss.str().c_str(),
+			offloader->getIndex());
 
 		MessageReleaseAccess *msg =
 			new MessageReleaseAccess(current, offloadedTaskId, region, type, weak, location->getIndex());
@@ -226,8 +219,7 @@ namespace TaskOffloading {
 		MessageTaskNew *msg,
 		Task *parent,
 		bool useCallbackInContext
-		)
-	{
+	) {
 		assert(msg != nullptr);
 		assert(parent != nullptr);
 
@@ -299,10 +291,11 @@ namespace TaskOffloading {
 		}
 
 		// Propagate also any satisfiability that has already arrived
-		if (!remoteTaskInfo._satInfo.empty()) {
-			propagateSatisfiability(task, remoteTaskInfo._satInfo);
-			remoteTaskInfo._satInfo.clear();
+		for (SatisfiabilityInfo const &sat : remoteTaskInfo._satInfo) {
+			propagateSatisfiability(task, sat);
 		}
+
+		remoteTaskInfo._satInfo.clear();
 	}
 
 	void remoteTaskWrapper(void *args)

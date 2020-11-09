@@ -40,9 +40,6 @@ public:
 	inline void lock();
 	inline bool tryLock();
 	inline void unlock(bool ignoreOwner = false);
-#ifndef NDEBUG
-	inline bool isLockedByThisThread();
-#endif
 };
 
 

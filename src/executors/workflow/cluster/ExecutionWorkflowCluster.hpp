@@ -19,6 +19,7 @@
 #include <SatisfiabilityInfo.hpp>
 #include <TaskOffloading.hpp>
 #include <VirtualMemoryManagement.hpp>
+#include <tasks/Task.hpp>
 
 class ComputePlace;
 class MemoryPlace;
@@ -129,11 +130,47 @@ namespace ExecutionWorkflow {
 			access->setDataReleaseStep(this);
 		}
 
-		void releaseRegion(DataAccessRegion const &region, MemoryPlace const *location) override;
+		void releaseRegion(DataAccessRegion const &region, MemoryPlace const *location) override
+		{
+			Instrument::logMessage(
+				Instrument::ThreadInstrumentationContext::getCurrent(),
+				"releasing remote region:", region
+			);
 
-		bool checkDataRelease(DataAccess const *access) override;
+			TaskOffloading::sendRemoteAccessRelease(
+				_remoteTaskIdentifier, _offloader, region, _type, _weak, location
+			);
 
-		void start() override;
+			_bytesToRelease -= region.getSize();
+			if (_bytesToRelease == 0) {
+				delete this;
+			}
+		}
+
+		bool checkDataRelease(DataAccess const *access) override
+		{
+			const bool releases = (access->getObjectType() == taskwait_type)
+				&& access->getOriginator()->isSpawned()
+				&& access->readSatisfied()
+				&& access->writeSatisfied();
+
+			Instrument::logMessage(
+				Instrument::ThreadInstrumentationContext::getCurrent(),
+				"Checking DataRelease access:", access->getInstrumentationId(),
+				" object_type:", access->getObjectType(),
+				" spawned originator:", access->getOriginator()->isSpawned(),
+				" read:", access->readSatisfied(),
+				" write:", access->writeSatisfied(),
+				" releases:", releases
+			);
+
+			return releases;
+		}
+
+		void start() override
+		{
+			releaseSuccessors();
+		}
 	};
 
 	class ClusterExecutionStep : public Step {
@@ -249,15 +286,6 @@ namespace ExecutionWorkflow {
 
 	}
 
-	inline Step *clusterLinkData(
-		MemoryPlace const *source,
-		MemoryPlace const *target,
-		DataAccess *access
-	) {
-		assert(access->getObjectType() == access_type);
-		return new ClusterDataLinkStep(source, target, access);
-	}
-
 	inline Step *clusterCopy(
 		MemoryPlace const *source,
 		MemoryPlace const *target,
@@ -288,7 +316,8 @@ namespace ExecutionWorkflow {
 			return clusterFetchData(source, target, region, access);
 		}
 
-		return clusterLinkData(source, target, access);
+		assert(access->getObjectType() == access_type);
+		return new ClusterDataLinkStep(source, target, access);
 	}
 }
 

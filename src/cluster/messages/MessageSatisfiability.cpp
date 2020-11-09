@@ -21,11 +21,13 @@ MessageSatisfiability::MessageSatisfiability(const ClusterNode *from,
 
 bool MessageSatisfiability::handleMessage()
 {
-	ClusterNode *offloader =
-		ClusterManager::getClusterNode(getSenderId());
+	ClusterNode *offloader = ClusterManager::getClusterNode(getSenderId());
 
-	TaskOffloading::propagateSatisfiability(_content->_offloadedTaskId,
-			offloader, _content->_satInfo);
+	TaskOffloading::propagateSatisfiabilityForHandler(
+		_content->_offloadedTaskId,
+		offloader,
+		_content->_satInfo
+	);
 
 	return true;
 }
