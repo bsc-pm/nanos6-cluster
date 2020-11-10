@@ -27,6 +27,15 @@ namespace Instrument {
 	inline void exitHandleReceivedMessage(Message const *, InstrumentationContext const &)
 	{
 	}
+
+	inline void taskIsOffloaded(task_id_t, InstrumentationContext const &)
+	{
+	}
+
+	inline void stateNodeNamespace(int, InstrumentationContext const &)
+	{
+	}
+
 }
 
 #endif //! INSTRUMENT_NULL_CLUSTER_HPP

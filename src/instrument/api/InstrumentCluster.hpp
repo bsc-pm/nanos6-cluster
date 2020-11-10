@@ -52,6 +52,18 @@ namespace Instrument {
 		InstrumentationContext const &context =
 				ThreadInstrumentationContext::getCurrent()
 	);
+
+	//! \brief Indicates that the task has been offloaded to another node
+	//! \param[in] taskId the task identifier for the offloaded task
+	void taskIsOffloaded(
+		task_id_t taskId,
+	    InstrumentationContext const &context = ThreadInstrumentationContext::getCurrent()
+	);
+
+	void stateNodeNamespace(
+		int state,
+		InstrumentationContext const &context = ThreadInstrumentationContext::getCurrent()
+	);
 }
 
 #endif //! INSTRUMENT_CLUSTER_HPP

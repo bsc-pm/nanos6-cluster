@@ -86,4 +86,41 @@ namespace Instrument {
 
 		addLogEntry(logEntry);
 	}
+
+	void taskIsOffloaded(task_id_t, InstrumentationContext const &)
+	{
+	}
+
+	void stateNodeNamespace(int state, InstrumentationContext const &context)
+	{
+		std::string status;
+
+		// TODO: This needs an enum probably. Now changes here imply changes in extrae version
+		switch (state) {
+			case 2:
+				status = "Block";
+				break;
+			case 3:
+				status = "Unblock";
+				break;
+			case 0:
+				status = "Finish";
+				break;
+			case 1:
+				status = "Init";
+				break;
+			default:
+				status = "UNKNOWN!!";
+		}
+
+		LogEntry *logEntry = getLogEntry(context);
+		assert(logEntry != nullptr);
+
+		logEntry->appendLocation(context);
+		logEntry->_contents << status << " NodeNamespace task";
+
+		addLogEntry(logEntry);
+	}
+
+
 }

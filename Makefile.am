@@ -457,6 +457,7 @@ cluster_sources =
 if USE_CLUSTER
 cluster_sources += \
 	src/cluster/ClusterManager.cpp \
+	src/cluster/NodeNamespace.cpp \
 	src/cluster/ClusterMemoryManagement.cpp \
 	src/cluster/messages/Message.cpp \
 	src/cluster/messages/MessageDataFetch.cpp \

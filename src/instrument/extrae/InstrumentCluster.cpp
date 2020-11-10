@@ -148,4 +148,36 @@ namespace Instrument {
 
 		ExtraeAPI::emit_CombinedEvents(&ce);
 	}
+
+	void taskIsOffloaded(__attribute__((unused)) task_id_t taskId,
+		__attribute__((unused)) InstrumentationContext const &context) {
+		// Do not add an event for now, but decrement _readyTasks
+		_readyTasks--;
+	}
+
+	void stateNodeNamespace(int state, InstrumentationContext const &)
+	{
+		if (!_extraeInstrumentCluster)
+			return;
+
+		extrae_type_t type = (extrae_type_t)EventType::NODE_NAMESPACE;
+
+		// TODO: This needs an enum probably. Now changes here imply changes in verbose version
+		// 1:Init && 3:Unblock
+		// 0:Fini && 2:Block
+		extrae_value_t value = state % 2;
+
+		extrae_combined_events_t ce;
+		ce.HardwareCounters = 0;
+		ce.Callers = 0;
+		ce.UserFunction = EXTRAE_USER_FUNCTION_NONE;
+		ce.nEvents = 1;
+		ce.nCommunications = 0;
+		ce.Communications = NULL;
+		ce.Types = &type;
+		ce.Values = &value;
+
+		ExtraeAPI::emit_CombinedEvents(&ce);
+	}
+
 }

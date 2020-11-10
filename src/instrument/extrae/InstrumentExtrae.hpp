@@ -115,6 +115,7 @@ namespace Instrument {
 			// 97XXXXX -- Cluster specific events
 				MESSAGE_SEND = 9700000,
 				MESSAGE_HANDLE = 9700100,
+				NODE_NAMESPACE = 9710000,
 	};
 
 

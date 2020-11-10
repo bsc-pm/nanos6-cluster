@@ -17,7 +17,6 @@
 
 TaskOffloading::RemoteTasksInfoMap *TaskOffloading::RemoteTasksInfoMap::_singleton = nullptr;
 ClusterManager *ClusterManager::_singleton = nullptr;
-NodeNamespace *NodeNamespace::_singleton = nullptr;
 
 std::atomic<size_t> ClusterServicesPolling::_activeClusterPollingServices;
 std::atomic<size_t> ClusterServicesTask::_activeClusterTaskServices;

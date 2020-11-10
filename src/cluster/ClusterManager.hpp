@@ -19,7 +19,6 @@
 #include <MessageDataSend.hpp>
 #include <ClusterShutdownCallback.hpp>
 
-class NodeNamespace;
 class ClusterMemoryNode;
 
 class ClusterManager {
