@@ -128,7 +128,7 @@ namespace DataAccessRegistration {
 
 	void setNamespacePredecessor(Task *task, Task *parentTask, DataAccessRegion region, ClusterNode *remoteNode, void *namespacePredecessor);
 
-	void handleEnterTaskwait(Task *task, ComputePlace *computePlace, CPUDependencyData &dependencyData);
+	void handleEnterTaskwait(Task *task, ComputePlace *computePlace, CPUDependencyData &dependencyData, bool noflush=false);
 
 	void handleExitTaskwait(Task *task, ComputePlace *computePlace, CPUDependencyData &dependencyData);
 
