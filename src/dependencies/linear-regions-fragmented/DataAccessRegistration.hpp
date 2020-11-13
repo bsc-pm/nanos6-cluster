@@ -92,7 +92,7 @@ namespace DataAccessRegistration {
 		MemoryPlace const *location
 	);
 
-	void handleEnterTaskwait(Task *task, ComputePlace *computePlace, CPUDependencyData &dependencyData);
+	void handleEnterTaskwait(Task *task, ComputePlace *computePlace, CPUDependencyData &dependencyData, bool noflush=false);
 
 	void handleExitTaskwait(Task *task, ComputePlace *computePlace, CPUDependencyData &dependencyData);
 

@@ -2741,7 +2741,7 @@ namespace DataAccessRegistration {
 	 */
 	static void createTaskwait(
 		Task *task, TaskDataAccesses &accessStructures, ComputePlace *computePlace,
-		/* OUT */ CPUDependencyData &hpDependencyData)
+		/* OUT */ CPUDependencyData &hpDependencyData, bool noflush)
 	{
 		assert(task != nullptr);
 		assert(accessStructures._lock.isLockedByThisThread());
@@ -2791,7 +2791,7 @@ namespace DataAccessRegistration {
 					taskwaitFragment->setNewInstrumentationId(task->getInstrumentationTaskId());
 					taskwaitFragment->setInBottomMap();
 					taskwaitFragment->setRegistered();
-					if (computePlace != nullptr) {
+					if (computePlace != nullptr && !noflush) {
 						taskwaitFragment->setOutputLocation(computePlace->getMemoryPlace(0));
 					} else {
 						taskwaitFragment->setComplete();
@@ -3686,7 +3686,7 @@ namespace DataAccessRegistration {
 	 *
 	 * It creates taskwait fragments for all entries in the bottom map.
 	 */
-	void handleEnterTaskwait(Task *task, ComputePlace *computePlace, CPUDependencyData &hpDependencyData)
+	void handleEnterTaskwait(Task *task, ComputePlace *computePlace, CPUDependencyData &hpDependencyData, bool noflush)
 	{
 		assert(task != nullptr);
 
@@ -3703,7 +3703,7 @@ namespace DataAccessRegistration {
 			std::lock_guard<TaskDataAccesses::spinlock_t> guard(accessStructures._lock);
 
 			/* Create a taskwait fragment for each entry in the bottom map */
-			createTaskwait(task, accessStructures, computePlace, hpDependencyData);
+			createTaskwait(task, accessStructures, computePlace, hpDependencyData, noflush);
 
 			finalizeFragments(task, accessStructures, hpDependencyData);
 		}

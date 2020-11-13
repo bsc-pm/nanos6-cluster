@@ -21,6 +21,18 @@ void nanos6_taskwait(char const *invocation_source)
 	(*symbol)(invocation_source);
 }
 
+void nanos6_taskwait_noflush(char const *invocation_source)
+{
+	typedef void nanos6_taskwait_t(char const *invocation_source);
+
+	static nanos6_taskwait_t *symbol = NULL;
+	if (__builtin_expect(symbol == NULL, 0)) {
+		symbol = (nanos6_taskwait_t *) _nanos6_resolve_symbol("nanos6_taskwait_noflush", "essential", NULL);
+	}
+
+	(*symbol)(invocation_source);
+}
+
 void nanos6_stream_synchronize(size_t stream_id)
 {
 	typedef void nanos6_stream_synchronize_t(size_t stream_id);
