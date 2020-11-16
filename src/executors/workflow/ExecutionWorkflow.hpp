@@ -26,7 +26,7 @@ namespace ExecutionWorkflow {
 
 	//! A map that stores the functions that perform data transfers between
 	//! two MemoryPlaces, depending on their type (nanos6_device_t).
-	typedef std::vector<std::vector<data_transfer_function_t> > transfers_map_t;
+	typedef std::array<std::array<data_transfer_function_t, 4>, 4> transfers_map_t;
 
 	inline Step *nullCopy(
 		__attribute__((unused))MemoryPlace const *source,

@@ -26,13 +26,13 @@
 
 namespace ExecutionWorkflow {
 
-	transfers_map_t _transfersMap {
-		              /*  host       cuda     opencl    cluster   */
+	transfers_map_t _transfersMap = {{
+		/*              host         cuda      opencl    cluster   */
 		/* host */    { nullCopy,    nullCopy, nullCopy, clusterCopy },
 		/* cuda */    { nullCopy,    nullCopy, nullCopy, nullCopy },
 		/* opencl */  { nullCopy,    nullCopy, nullCopy, nullCopy },
 		/* cluster */ { clusterCopy, nullCopy, nullCopy, clusterCopy }
-	};
+		}};
 
 	Step *WorkflowBase::createDataCopyStep(
 		MemoryPlace const *sourceMemoryPlace,
@@ -106,7 +106,7 @@ namespace ExecutionWorkflow {
 
 	Step *WorkflowBase::createDataReleaseStep(Task const *task, DataAccess *access)
 	{
-		if (task->isRemote()) {
+		if (task->isRemoteTask()) {
 			return new ClusterDataReleaseStep(task->getClusterContext(), access);
 		}
 

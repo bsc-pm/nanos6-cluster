@@ -12,37 +12,52 @@
 #include "InstrumentCluster.hpp"
 
 #include "system/BlockingAPI.hpp"
+#include "system/ompss/AddTask.hpp"
+
 
 
 NodeNamespace *NodeNamespace::_singleton = nullptr;
 
-
-NodeNamespace::NodeNamespace(void (*func)(void *), void *args) :
-	_mustShutdown(false),
-	_namespaceTask(nullptr),
+NodeNamespace::NodeNamespace(SpawnFunction::function_t mainCallback, void *args)
+	: _mustShutdown(false),
 	_blockedTask(nullptr),
-	_callback(new ClusterShutdownCallback(func, args)),
-	_condVar()
+	_callback(mainCallback, args),
+	_invocationInfo({"Spawned as a NodeNamespace"})
 {
-	assert(_callback != nullptr);
+	_taskImplementationInfo.run = NodeNamespace::body;
+	_taskImplementationInfo.device_type_id = nanos6_device_t::nanos6_host_device;
+	_taskImplementationInfo.task_label = "Cluster_Namespace";
+	_taskImplementationInfo.declaration_source = "Cluster Namespace spawned within the runtime";
+	_taskImplementationInfo.get_constraints = nullptr;
 
-	SpawnFunction::spawnFunction(
-		NodeNamespace::body, this,
-		NodeNamespace::callback, this,
-		"Cluster_Namespace",
-		false,
-		(size_t) Task::nanos6_task_runtime_flag_t::nanos6_polling_flag
+	_taskInfo.implementations = &_taskImplementationInfo;
+	_taskInfo.implementation_count = 1;
+	_taskInfo.num_symbols = 0;
+	_taskInfo.destroy_args_block = nullptr;
+	_taskInfo.register_depinfo = nullptr;
+	_taskInfo.get_priority = nullptr;
+
+	size_t flags = (size_t) Task::nanos6_task_runtime_flag_t::nanos6_remote_wrapper_flag
+		| (size_t) Task::nanos6_task_runtime_flag_t::nanos6_polling_flag
+		| (1 << Task::preallocated_args_block_flag);
+
+	// create the task and pass this as argument.
+	_namespaceTask = AddTask::createTask(
+		&_taskInfo,
+		&_invocationInfo,
+		this, sizeof(NodeNamespace), flags,
+		0 /* Num dependencies */, false /* from user code */
 	);
+	assert(_namespaceTask != nullptr);
+
+	AddTask::submitTask(_namespaceTask, nullptr, false);
 }
 
 NodeNamespace::~NodeNamespace()
 {
 	// We need to wait until the callback is executed.
 	printf("Called %s\n", __func__);
-
-	_condVar.wait();
-
-	delete _callback;
+	assert(_callback.getCounterValue() == 0);
 }
 
 
@@ -51,13 +66,16 @@ void NodeNamespace::bodyPrivate()
 	// This is the task body start so this is inside a task and it is not
 	// supposed to change during the execution so we register that only
 	// once.
+	_callback.increment();
+
 	Instrument::stateNodeNamespace(1);
 
 	WorkerThread *workerThread = WorkerThread::getCurrentWorkerThread();
 	assert(workerThread != nullptr);
-
-	_namespaceTask = workerThread->getTask();
 	assert(_namespaceTask != nullptr);
+	assert(workerThread->getTask() != nullptr);
+
+	assert(workerThread->getTask() == _namespaceTask);
 
 	while (true) {
 		_spinlock.lock();
@@ -84,20 +102,20 @@ void NodeNamespace::bodyPrivate()
 			_blockedTask.store(_namespaceTask);
 			BlockingAPI::blockCurrentTask(false);
 			Instrument::stateNodeNamespace(2);
-
 		}
 	}
+	_callback.decrement();
 }
 
-void NodeNamespace::callbackPrivate()
+void NodeNamespace::callbackDecrementPrivate()
 {
-	printf("Called %s\n", __func__);
-	assert(_callback != nullptr);
-	_callback->execute();
-
-	_condVar.signal();
-	Instrument::stateNodeNamespace(0);
+	if (_callback.decrement() == 0) {
+		printf("Decremented reached zero\n");
+		Instrument::stateNodeNamespace(0);
+	}
+	printf("Decremented reached something else\n");
 }
+
 
 bool NodeNamespace::tryWakeUp()
 {
@@ -131,12 +149,3 @@ void NodeNamespace::enqueueTaskMessagePrivate(MessageTaskNew *message)
 	tryWakeUp();
 }
 
-void NodeNamespace::shutdownPrivate()
-{
-	printf("Called %s\n", __func__);
-	assert(_singleton != nullptr);
-
-	_singleton->_mustShutdown.store(true);
-
-	tryWakeUp();
-}

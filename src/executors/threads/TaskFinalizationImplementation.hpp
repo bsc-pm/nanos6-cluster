@@ -23,7 +23,7 @@
 #include <InstrumentTaskExecution.hpp>
 #include <InstrumentTaskStatus.hpp>
 #include <InstrumentThreadId.hpp>
-
+#include <NodeNamespace.hpp>
 
 void TaskFinalization::taskFinished(Task *task, ComputePlace *computePlace, bool fromBusyThread)
 {
@@ -88,8 +88,9 @@ void TaskFinalization::taskFinished(Task *task, ComputePlace *computePlace, bool
 						ready = source->finishChild();
 						assert(!ready);
 						ready = true;
-						if (source->markAsReleased())
+						if (source->markAsReleased()) {
 							TaskFinalization::disposeTask(source);
+						}
 					}
 				}
 			}
@@ -176,9 +177,14 @@ void TaskFinalization::disposeTask(Task *task)
 
 			StreamFunctionCallback *spawnCallback = task->getParentSpawnCallback();
 			if (spawnCallback != nullptr) {
-				StreamExecutor *executor = (StreamExecutor *)(task->getParent());
+				StreamExecutor *executor = (StreamExecutor *) parent;
 				assert(executor != nullptr);
 				executor->decreaseCallbackParticipants(spawnCallback);
+			} else if (NodeNamespace::isEnabled()
+				&& parent != nullptr
+				&& parent->isNodeNamespace()) {
+
+				NodeNamespace::callbackDecrement();
 			}
 
 			// taskloop and taskfor flags can both be enabled for the same task.

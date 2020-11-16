@@ -40,6 +40,7 @@
 #include <TaskDataAccesses.hpp>
 #include <TaskDataAccessesInfo.hpp>
 
+#include <cluster/NodeNamespace.hpp>
 
 #define DATA_ALIGNMENT_SIZE sizeof(void *)
 
@@ -180,6 +181,15 @@ void AddTask::submitTask(Task *task, Task *parent, bool fromUserCode)
 				task->setParentSpawnCallback(callback);
 				executor->increaseCallbackParticipants(callback);
 			}
+		} else if (parent->isNodeNamespace()) {
+			//TODO: Make the empty file for conditional compilation OR add #ifdef CLUSTER here.
+			assert(NodeNamespace::isEnabled());
+
+			// In case we need to access to the NodeNamespace directly use:
+			//NodeNamespace *parentNamespace = static_cast<NodeNamespace *>(parent->getArgsBlock());
+
+			// Increment the callback pointer to wait until this task finishes.
+			NodeNamespace::callbackIncrement();
 		}
 	}
 

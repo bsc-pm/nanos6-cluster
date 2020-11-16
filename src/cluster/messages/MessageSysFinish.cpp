@@ -33,7 +33,7 @@ bool MessageSysFinish::handleMessage()
 	} while (!callback && !NodeNamespace::isEnabled());
 
 	if (NodeNamespace::isEnabled()) {
-		NodeNamespace::shutdown();
+		NodeNamespace::notifyShutdown();
 	} else {
 		assert(callback != nullptr);
 		callback->execute();

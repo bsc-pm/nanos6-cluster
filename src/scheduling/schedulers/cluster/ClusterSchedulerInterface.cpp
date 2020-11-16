@@ -16,7 +16,12 @@ bool ClusterSchedulerInterface::handleClusterSchedulerConstrains(
 	//! We do not offload spawned functions, if0 tasks, remote task
 	//! and tasks that already have an ExecutionWorkflow created for
 	//! them
-	if (task->isSpawned() || task->isIf0() || task->isRemote() || task->getWorkflow() != nullptr) {
+	if (task->isSpawned()             // Don't offload spawned tasks.
+		|| task->isRemoteWrapper()    // This will save the day when we want offload spawned tasks
+		|| task->isRemoteTask()       // Already offloaded don't re-offload
+		|| task->isIf0()
+		|| task->isPolling()          // Polling tasks
+		|| task->getWorkflow() != nullptr) {
 		addLocalReadyTask(task, computePlace, hint);
 		return true;
 	}

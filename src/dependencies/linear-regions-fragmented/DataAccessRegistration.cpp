@@ -2392,7 +2392,7 @@ namespace DataAccessRegistration {
 						//! information later on, otherwise this is a local access,
 						//! so no location is setup yet.
 						//! For now we set it to the Directory MemoryPlace.
-						if (!targetAccess->getOriginator()->isRemote()) {
+						if (!targetAccess->getOriginator()->isRemoteTask()) {
 							/* TBD? Is this an access from e.g. a malloc inside the parent task? */
 							targetAccess->setReadSatisfied(Directory::getDirectoryMemoryPlace());
 							targetAccess->setWriteSatisfied();

@@ -171,6 +171,7 @@ private:
 
 	//! Nesting level of the task
 	int _nestingLevel;
+
 public:
 	inline Task(
 		void *argsBlock,
@@ -839,10 +840,6 @@ public:
 	{
 		_flags[remote_flag] = true;
 	}
-	inline bool isRemote() const
-	{
-		return _flags[remote_flag];
-	}
 
 	inline void setClusterContext(TaskOffloading::ClusterTaskContext *clusterContext)
 	{
@@ -931,6 +928,18 @@ public:
 
 	virtual inline void increaseMaxChildDependencies()
 	{
+	}
+
+	bool isNodeNamespace() const
+	{
+		const bool ret = _flags[remote_wrapper_flag] && _flags[polling_flag];
+
+		if (ret) {
+			assert(_flags[preallocated_args_block_flag]);
+			return true;
+		}
+
+		return false;
 	}
 };
 
