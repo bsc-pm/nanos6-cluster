@@ -72,6 +72,7 @@ private:
 		HAS_BEEN_DISCOUNTED_BIT,
 #endif
 		PROPAGATED_IN_REMOTE_NAMESPACE,
+		NO_NAMESPACE_PROPAGATE_NEXT_BIT,
 		TOTAL_STATUS_BITS
 	};
 
@@ -772,6 +773,16 @@ public:
 	void setValidNamespace(int validNamespace)
 	{
 		_validNamespace = validNamespace;
+	}
+
+	bool getNoNamespacePropagation() const
+	{
+		return _status[NO_NAMESPACE_PROPAGATE_NEXT_BIT];
+	}
+
+	void setNoNamespacePropagation()
+	{
+		_status[NO_NAMESPACE_PROPAGATE_NEXT_BIT] = true;
 	}
 
 };

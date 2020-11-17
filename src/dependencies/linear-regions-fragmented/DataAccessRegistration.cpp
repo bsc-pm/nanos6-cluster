@@ -3777,6 +3777,29 @@ namespace DataAccessRegistration {
 #endif
 	}
 
+	void setNoNamespacePropagation(Task *parent, DataAccessRegion region)
+	{
+		clusterCout << "setNoNameSpacePropagation " << parent->getLabel() << " region " << region << "\n";
+		assert(parent != nullptr);
+
+		TaskDataAccesses &parentAccessStructures = parent->getDataAccesses();
+		assert(!parentAccessStructures.hasBeenDeleted());
+		std::lock_guard<TaskDataAccesses::spinlock_t> parentGuard(parentAccessStructures._lock);
+		foreachBottomMapMatch(
+			region,
+			parentAccessStructures, parent,
+			[&] (DataAccess *access, TaskDataAccesses &currentAccessStructures, Task *currentTask) {
+				(void)currentAccessStructures;
+				(void)currentTask;
+				std::cout << "setNoNamespacePropagation " << access << "\n";
+				access->setNoNamespacePropagation();
+				assert(false);
+			},
+			[] (BottomMapEntry *) {}
+		);
+	}
+
+
 	/*
 	 * Enter a taskwait (called from nanos6_taskwait).
 	 *

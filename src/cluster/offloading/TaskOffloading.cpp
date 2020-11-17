@@ -30,6 +30,11 @@
 
 namespace TaskOffloading {
 
+	void setNoNamespacePropagation(Task *parentTask, DataAccessRegion region)
+	{
+		DataAccessRegistration::setNoNamespacePropagation(parentTask, region);
+	}
+
 	void propagateSatisfiability(Task *localTask, SatisfiabilityInfo const &satInfo)
 	{
 		assert(localTask != nullptr);
@@ -42,13 +47,6 @@ namespace TaskOffloading {
 		CPUDependencyData localDependencyData;
 		CPUDependencyData &hpDependencyData =
 			(cpu != nullptr) ? cpu->getDependencyData() : localDependencyData;
-
-		// Not implemented yet! (may need proxy tasks). Actually this
-		// is pessimistic because the bit is set when the last access
-		// was in a different namespace, even if it hasn't been used at 
-		// all in this namespace. This case does not need a proxy task
-		// but will be easy to detect here.
-		assert(!satInfo._noRemotePropagation);
 
 		if (!Directory::isDirectoryMemoryPlace(satInfo._src)) {
 			MemoryPlace const *loc;
@@ -246,6 +244,15 @@ namespace TaskOffloading {
 		void *remoteTaskIdentifier = msg->getOffloadedTaskId();
 		ClusterNode *remoteNode = ClusterManager::getClusterNode(msg->getSenderId());
 
+		// Check satisfiability for noRemotePropagation
+		size_t numSatInfo;
+		TaskOffloading::SatisfiabilityInfo *satInfo = msg->getSatisfiabilityInfo(numSatInfo);
+		for (size_t i = 0; i < numSatInfo; ++i) {
+			if (satInfo[i]._noRemotePropagation) {
+				setNoNamespacePropagation(parent, satInfo[i]._region);
+			}
+		}
+
 		// Create the task with no dependencies. Treat this call
 		// as user code since we are inside a spawned task context
 		Task *task = AddTask::createTask(
@@ -292,10 +299,10 @@ namespace TaskOffloading {
 		AddTask::submitTask(task, parent, true);
 
 		// Propagate satisfiability embedded in the Message
-		size_t numSatInfo;
-		TaskOffloading::SatisfiabilityInfo *satInfo = msg->getSatisfiabilityInfo(numSatInfo);
 		for (size_t i = 0; i < numSatInfo; ++i) {
-			propagateSatisfiability(task, satInfo[i]);
+			if (satInfo[i]._readSat || satInfo[i]._writeSat) {
+				propagateSatisfiability(task, satInfo[i]);
+			}
 		}
 
 		// Propagate also any satisfiability that has already arrived

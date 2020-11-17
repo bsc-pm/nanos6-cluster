@@ -90,6 +90,8 @@ namespace DataAccessRegistration {
 		MemoryPlace const *location
 	);
 
+	void setNoNamespacePropagation(Task *parentTask, DataAccessRegion region);
+
 	void handleEnterTaskwait(Task *task, ComputePlace *computePlace, CPUDependencyData &dependencyData);
 
 	void handleExitTaskwait(Task *task, ComputePlace *computePlace, CPUDependencyData &dependencyData);
