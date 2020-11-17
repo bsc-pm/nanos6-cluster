@@ -905,11 +905,18 @@ namespace DataAccessRegistration {
 			step->releaseRegion(access->getAccessRegion(), access->getLocation());
 		}
 
-		const bool linksRead = initialStatus._triggersDataLinkRead != updatedStatus._triggersDataLinkRead;
-		const bool linksWrite = initialStatus._triggersDataLinkWrite != updatedStatus._triggersDataLinkWrite;
+		/*
+		 * If task offloaded from this node to another node receives read
+		 * satisfiability twice (once through the local dependency system and
+		 * again from the remote namespace), then triggersDataLinkRead for this
+		 * access will follow the sequence:
+		 *     0    (has DataLinkStep but not read satisfied)
+		 *     1    (has DataLinkStep and read satisfied locally) => linkRegion
+		 *     0    (DataLinkStep unset and read satisfied again remotely) => nothing
+		 */
+		const bool linksRead = initialStatus._triggersDataLinkRead < updatedStatus._triggersDataLinkRead;
+		const bool linksWrite = initialStatus._triggersDataLinkWrite < updatedStatus._triggersDataLinkWrite;
 		if (linksRead || linksWrite) {
-			assert (!initialStatus._triggersDataLinkRead);
-			assert (!initialStatus._triggersDataLinkWrite);
 			assert(access->hasDataLinkStep());
 
 			ExecutionWorkflow::DataLinkStep *step = access->getDataLinkStep();
