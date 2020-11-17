@@ -582,7 +582,8 @@ namespace DataAccessRegistration {
 		DataAccessStatusEffects const &initialStatus,
 		DataAccessStatusEffects const &updatedStatus,
 		DataAccess *access, TaskDataAccesses &accessStructures, Task *task,
-		/* OUT */ CPUDependencyData &hpDependencyData
+		/* OUT */ CPUDependencyData &hpDependencyData,
+		bool dontPropagate = false
 	) {
 		/* Check lock on task's access structures already taken by caller */
 		assert(task->getDataAccesses()._lock.isLockedByThisThread());
@@ -728,7 +729,7 @@ namespace DataAccessRegistration {
 		}
 
 		// Propagation to Next
-		if (access->hasNext()) {
+		if (!dontPropagate && access->hasNext()) {
 			/*
 			 * Prepare an update operation that will affect the next task.
 			 */
@@ -2683,14 +2684,17 @@ namespace DataAccessRegistration {
 
 	static inline void finalizeAccess(
 		Task *finishedTask, DataAccess *dataAccess, DataAccessRegion region,
-		MemoryPlace const *location, /* OUT */ CPUDependencyData &hpDependencyData)
-	{
+		MemoryPlace const *location, /* OUT */ CPUDependencyData &hpDependencyData, 
+		bool isRemote, bool isReleaseAccess
+	) {
 		assert(finishedTask != nullptr);
 		assert(dataAccess != nullptr);
 		assert((location != nullptr) || dataAccess->isWeak());
 
 		assert(dataAccess->getOriginator() == finishedTask);
 		assert(!region.empty());
+
+		bool dontPropagate = isRemote && !isReleaseAccess;
 
 		// The access may already have been released through the "release" directive
 		if (dataAccess->complete()) {
@@ -2711,7 +2715,34 @@ namespace DataAccessRegistration {
 
 				DataAccessStatusEffects initialStatus(accessOrFragment);
 				accessOrFragment->setComplete();
-				if (location != nullptr) {
+
+				if (isRemote && isReleaseAccess) {
+					bool notSat = false;
+					if (!accessOrFragment->readSatisfied()) {
+						accessOrFragment->setReadSatisfied(location);
+						notSat = true;
+					}
+					if (!accessOrFragment->writeSatisfied()) {
+						accessOrFragment->setWriteSatisfied();
+						notSat = true;
+					}
+					if (notSat) {
+						accessOrFragment->setTopmost();
+						accessOrFragment->setReceivedReductionInfo();
+						accessOrFragment->unsetDataLinkStep();
+					} else {
+						assert(accessOrFragment->isTopmost());
+						assert(accessOrFragment->receivedReductionInfo());
+					}
+				}
+
+				if (dontPropagate) {
+					const MemoryPlace *currLocation = accessOrFragment->getLocation();
+					if (currLocation == nullptr) {
+						// accessOrFragment->setLocation( (const MemoryPlace *)-1);  // TODO! if it works make a new kind of MemoryPlace
+					}
+				} else if (location != nullptr) {
+					/* Normal non-cluster case e.g. for NUMA */
 					accessOrFragment->setLocation(location);
 				}
 				DataAccessStatusEffects updatedStatus(accessOrFragment);
@@ -2719,7 +2750,8 @@ namespace DataAccessRegistration {
 				handleDataAccessStatusChanges(
 					initialStatus, updatedStatus,
 					accessOrFragment, finishedTask->getDataAccesses(), finishedTask,
-					hpDependencyData);
+					hpDependencyData, dontPropagate
+				);
 
 				return true; // Apply also to subaccesses if any
 			});
@@ -2912,8 +2944,10 @@ namespace DataAccessRegistration {
 				BottomMapEntry *bottomMapEntry = &(*bottomMapPosition);
 				assert(bottomMapEntry != nullptr);
 
-				if (bottomMapEntry->_accessType != NO_ACCESS_TYPE) {
-					// Not a local access
+				if (!task->isRemoteTask()) {
+					// Not an offloaded task.
+					// Remote tasks require a top-level sink for all accesses to collect
+					// the release regions to send back to the offloader.
 					return true;
 				}
 
@@ -3246,7 +3280,7 @@ namespace DataAccessRegistration {
 					}
 
 					dataAccess = fragmentAccess(dataAccess, region, accessStructures);
-					finalizeAccess(task, dataAccess, region, releaseLocation, /* OUT */ hpDependencyData);
+					finalizeAccess(task, dataAccess, region, releaseLocation, /* OUT */ hpDependencyData, true, true);
 
 					return true;
 				});
@@ -3595,6 +3629,9 @@ namespace DataAccessRegistration {
 
 			createTopLevelSink(task, accessStructures, hpDependencyData);
 
+			bool isRemote = location->getType() ==  nanos6_device_t::nanos6_cluster_device
+							&& location->getIndex() != ClusterManager::getCurrentClusterNode()->getIndex();
+			clusterCout << "unregisterTaskDataAccesses for " << task->getLabel() << ": isremote=" << isRemote << "\n";
 			accesses.processAll(
 				[&](TaskDataAccesses::accesses_t::iterator position) -> bool {
 					DataAccess *dataAccess = &(*position);
@@ -3602,7 +3639,7 @@ namespace DataAccessRegistration {
 
 					MemoryPlace *accessLocation = (dataAccess->isWeak()) ? nullptr : location;
 
-					finalizeAccess(task, dataAccess, dataAccess->getAccessRegion(), accessLocation, /* OUT */ hpDependencyData);
+					finalizeAccess(task, dataAccess, dataAccess->getAccessRegion(), accessLocation, /* OUT */ hpDependencyData, isRemote, false);
 
 					return true;
 				});
