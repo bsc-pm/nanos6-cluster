@@ -43,6 +43,13 @@ namespace TaskOffloading {
 		CPUDependencyData &hpDependencyData =
 			(cpu != nullptr) ? cpu->getDependencyData() : localDependencyData;
 
+		// Not implemented yet! (may need proxy tasks). Actually this
+		// is pessimistic because the bit is set when the last access
+		// was in a different namespace, even if it hasn't been used at 
+		// all in this namespace. This case does not need a proxy task
+		// but will be easy to detect here.
+		assert(!satInfo._noRemotePropagation);
+
 		if (!Directory::isDirectoryMemoryPlace(satInfo._src)) {
 			MemoryPlace const *loc;
 			if (satInfo._src == -1) {

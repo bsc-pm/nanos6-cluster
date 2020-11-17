@@ -44,7 +44,10 @@ namespace ExecutionWorkflow {
 		//! write satisfiability at creation time
 		bool _write;
 
+		bool _noRemotePropagation;
+
 		bool _started;
+
 	public:
 		ClusterDataLinkStep(
 			MemoryPlace const *sourceMemoryPlace,
@@ -57,9 +60,26 @@ namespace ExecutionWorkflow {
 			_task(access->getOriginator()),
 			_read(access->readSatisfied()),
 			_write(access->writeSatisfied()),
+			_noRemotePropagation(false),
 			_started(false)
 		{
 			access->setDataLinkStep(this);
+
+			assert(targetMemoryPlace->getType() == nanos6_device_t::nanos6_cluster_device);
+			int targetNamespace = targetMemoryPlace->getIndex();
+
+			if (access->getValidNamespace() == VALID_NAMESPACE_UNKNOWN) {
+				// clusterCout << "access " << access << " of " << access->getOriginator()->getLabel() << " : no problem, namespace was unknown\n";
+				access->setValidNamespace(targetNamespace);
+			} else if (access->getValidNamespace() == targetNamespace) {
+				// clusterCout << "access " << access << " of " << access->getOriginator()->getLabel() << " : valid namespace "
+				// 		     	<< access->getValidNamespace() << " matches target namespace\n";
+			} else {
+				// clusterCout << "access " << access << " of " << access->getOriginator()->getLabel() << " : valid namespace "
+				// 				<< access->getValidNamespace() << " mismatches target namespace " << targetNamespace << "\n";
+				_noRemotePropagation = true;
+				access->setValidNamespace(targetNamespace);
+			}
 		}
 
 		void linkRegion(
@@ -224,7 +244,8 @@ namespace ExecutionWorkflow {
 		//! \param[in] size is the size of the region being copied.
 		//! \param[in] read is true if access is read-satisfied
 		//! \param[in] write is true if access is write-satisfied
-		void addDataLink(int source, DataAccessRegion const &region, bool read, bool write);
+		//! \param[in] noRemotePropagation is true if remote namespace propagation is disabled
+		void addDataLink(int source, DataAccessRegion const &region, bool read, bool write, bool noRemotePropagation);
 
 		//! Start the execution of the Step
 		void start() override;

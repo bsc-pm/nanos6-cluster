@@ -746,6 +746,8 @@ namespace DataAccessRegistration {
 				updateOperation._location = access->getLocation();
 			}
 
+			updateOperation._validNamespace = access->getValidNamespace();
+
 			if (initialStatus._propagatesWriteSatisfiabilityToNext != updatedStatus._propagatesWriteSatisfiabilityToNext) {
 				assert(!initialStatus._propagatesWriteSatisfiabilityToNext);
 
@@ -1519,6 +1521,11 @@ namespace DataAccessRegistration {
 
 		DataAccessStatusEffects initialStatus(access);
 
+		/* Calculate the valid namespace.
+		 * NOTE: this assumes that ready tasks are scheduled in order, even if they
+		 * are weak. This appears to be the case with the default scheduler.
+		 */
+		access->setValidNamespace(updateOperation._validNamespace);
 
 		if (updateOperation._makeReadSatisfied) {
 			if (access->readSatisfied()) {

@@ -27,14 +27,18 @@ namespace TaskOffloading {
 		//! makes access write satisfied
 		bool _writeSat;
 
-		SatisfiabilityInfo(DataAccessRegion region, int src, bool read, bool write)
-			: _region(region), _src(src), _readSat(read), _writeSat(write)
+		//! hint bit to disable remote propagation (may still not happen even if allowed)
+		bool _noRemotePropagation;
+
+		SatisfiabilityInfo(DataAccessRegion region, int src, bool read, bool write, bool noRemotePropagation)
+			: _region(region), _src(src), _readSat(read), _writeSat(write), _noRemotePropagation(noRemotePropagation)
 		{
+			std::cout << "construct SatisfiabilityInfo with nrp = " << noRemotePropagation << "\n";
 		}
 
 		bool empty() const
 		{
-			return !_readSat && !_writeSat;
+			return !_readSat && !_writeSat && !_noRemotePropagation;
 		}
 
 		friend std::ostream& operator<<(std::ostream &o,
@@ -48,7 +52,8 @@ namespace TaskOffloading {
 		return o << "Satisfiability info for region:" << satInfo._region <<
 			" read:" << satInfo._readSat <<
 			" write:" << satInfo._writeSat <<
-			" location:" << satInfo._src;
+			" location:" << satInfo._src <<
+			" no-remote-propagation: " << satInfo._noRemotePropagation;
 	}
 
 }

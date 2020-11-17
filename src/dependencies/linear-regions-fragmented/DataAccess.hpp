@@ -37,6 +37,8 @@ struct DataAccess;
 class Task;
 class MemoryPlace;
 
+#define VALID_NAMESPACE_UNKNOWN -1
+
 //! The accesses that one or more tasks perform sequentially to a memory location that can occur concurrently (unless commutative).
 struct DataAccess : protected DataAccessBase {
 	friend struct TaskDataAccessLinkingArtifacts;
@@ -119,6 +121,8 @@ private:
 	//! DataLinkStep related with this data access
 	ExecutionWorkflow::DataLinkStep *_dataLinkStep;
 
+	int _validNamespace;
+
 public:
 	DataAccess(
 		DataAccessObjectType objectType,
@@ -147,7 +151,8 @@ public:
 		_location(location),
 		_outputLocation(outputLocation),
 		_dataReleaseStep(dataReleaseStep),
-		_dataLinkStep(dataLinkStep)
+		_dataLinkStep(dataLinkStep),
+		_validNamespace(VALID_NAMESPACE_UNKNOWN)
 	{
 		assert(originator != nullptr);
 
@@ -175,7 +180,8 @@ public:
 		_location(other.getLocation()),
 		_outputLocation(other.getOutputLocation()),
 		_dataReleaseStep(other.getDataReleaseStep()),
-		_dataLinkStep(other.getDataLinkStep())
+		_dataLinkStep(other.getDataLinkStep()),
+		_validNamespace(other.getValidNamespace())
 	{}
 
 	~DataAccess()
@@ -756,6 +762,16 @@ public:
 	symbols_t getSymbols() const
 	{
 		return _symbols;
+	}
+
+	int getValidNamespace() const
+	{
+		return _validNamespace;
+	}
+
+	void setValidNamespace(int validNamespace)
+	{
+		_validNamespace = validNamespace;
 	}
 
 };

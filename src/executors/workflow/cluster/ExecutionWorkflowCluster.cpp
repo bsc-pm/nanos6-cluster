@@ -53,7 +53,11 @@ namespace ExecutionWorkflow {
 				locationIndex = location->getIndex();
 			}
 
-			TaskOffloading::SatisfiabilityInfo satInfo(region, locationIndex, read, write);
+			// noRemotePropagation is in principle irrelevant, because it only matters when the
+			// task is created, not when a satisfiability message is sent (which is what is
+			// happening now). Nevertheless, this only happens when propagation does not happen
+			// in the namespace; so send the value true.
+			TaskOffloading::SatisfiabilityInfo satInfo(region, locationIndex, read, write, /* noRemotePropagation */ true);
 
 			TaskOffloading::ClusterTaskContext *clusterTaskContext = _task->getClusterContext();
 			TaskOffloading::sendSatisfiability(_task, clusterTaskContext->getRemoteNode(), satInfo);
@@ -81,19 +85,23 @@ namespace ExecutionWorkflow {
 			std::lock_guard<SpinLock> guard(_lock);
 			assert(_targetMemoryPlace != nullptr);
 
-			if (!_read && !_write) {
+			if (!_read && !_write && !_noRemotePropagation) {
 				//! Nothing to do here. We can release the execution
 				//! step. Location will be linked later on.
 				releaseSuccessors();
 				return;
 			}
 
-			assert(_sourceMemoryPlace != nullptr);
+			int location = -1;
+			if (_read || _write) {
+				assert(_sourceMemoryPlace != nullptr);
+				location = _sourceMemoryPlace->getIndex();
+			}
 			Instrument::logMessage(
 					Instrument::ThreadInstrumentationContext::getCurrent(),
 					"ClusterDataLinkStep for MessageTaskNew. ",
 					"Current location of ", _region,
-					" Node:", _sourceMemoryPlace->getIndex()
+					" Node:", location
 			);
 
 			//! The current node is the source node. We just propagate
@@ -102,14 +110,14 @@ namespace ExecutionWorkflow {
 			ClusterExecutionStep *execStep = dynamic_cast<ClusterExecutionStep *>(_successors[0]);
 			assert(execStep != nullptr); // This asserts that the next step is the execution step
 
-			assert(_read || _write);
+			// assert(_read || _write);
 
 			// This assert is to prevent future errors when working with maleability.
 			// For now the index and the comIndex are the same. A more complete implementation
 			// Will have a pointer in ClusterMemoryNode to the ClusterNode and will get the
 			// Commindex from there with getCommIndex.
 			// assert(_sourceMemoryPlace->getIndex() == _sourceMemoryPlace->getCommIndex());
-			execStep->addDataLink(_sourceMemoryPlace->getIndex(), _region, _read, _write);
+			execStep->addDataLink(location, _region, _read, _write, _noRemotePropagation);
 
 			const size_t linkedBytes = _region.getSize();
 			//! If at the moment of offloading the access is not both
@@ -209,12 +217,13 @@ namespace ExecutionWorkflow {
 		int source,
 		DataAccessRegion const &region,
 		bool read,
-		bool write
+		bool write,
+		bool noRemotePropagation
 	) {
 		// This lock should already have been taken by the caller
 		// Apparently it is not.
 		//assert(_lock.isLockedByThisThread());
-		_satInfo.push_back( TaskOffloading::SatisfiabilityInfo(region, source, read, write) );
+		_satInfo.push_back( TaskOffloading::SatisfiabilityInfo(region, source, read, write, noRemotePropagation) );
 	}
 
 	void ClusterExecutionStep::start()
