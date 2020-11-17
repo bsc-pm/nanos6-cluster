@@ -49,7 +49,6 @@ public:
 
 		if ((_counter -= val) == 0) {
 			this->execute();
-			return 0;
 		}
 
 		return _counter.load();

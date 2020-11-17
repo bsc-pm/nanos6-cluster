@@ -13,7 +13,7 @@
 
 #include "system/BlockingAPI.hpp"
 #include "system/ompss/AddTask.hpp"
-
+#include "cluster/ClusterUtil.hpp"
 
 
 NodeNamespace *NodeNamespace::_singleton = nullptr;
@@ -56,7 +56,7 @@ NodeNamespace::NodeNamespace(SpawnFunction::function_t mainCallback, void *args)
 NodeNamespace::~NodeNamespace()
 {
 	// We need to wait until the callback is executed.
-	printf("Called %s\n", __func__);
+	clusterPrintf("Called %s\n", __func__);
 	assert(_callback.getCounterValue() == 0);
 }
 
@@ -110,10 +110,10 @@ void NodeNamespace::bodyPrivate()
 void NodeNamespace::callbackDecrementPrivate()
 {
 	if (_callback.decrement() == 0) {
-		printf("Decremented reached zero\n");
+		clusterPrintf("Decremented reached zero\n");
 		Instrument::stateNodeNamespace(0);
 	}
-	printf("Decremented reached something else\n");
+	clusterPrintf("Decremented reached something else\n");
 }
 
 

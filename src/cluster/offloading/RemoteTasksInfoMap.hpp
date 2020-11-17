@@ -12,6 +12,8 @@
 
 #include <SatisfiabilityInfo.hpp>
 
+#include "ClusterUtil.hpp"
+
 
 namespace TaskOffloading {
 
@@ -66,8 +68,7 @@ namespace TaskOffloading {
 		{
 			auto key = std::make_pair(offloadTaskId, offloaderId);
 
-			printf("Node %d: Adding remote task %p %d\n", nanos6_get_cluster_node_id(), offloadTaskId, offloaderId);
-			//std::cout << Backtrace() << std::endl;
+			clusterPrintf("Adding remoteTaskInfo %p %d\n", offloadTaskId, offloaderId);
 			std::lock_guard<PaddedSpinLock<>> guard(_lock);
 			return _taskMap[key];
 		}
@@ -80,8 +81,8 @@ namespace TaskOffloading {
 
 			std::lock_guard<PaddedSpinLock<>> guard(_lock);
 
-			printf("Node %d: Removing remote task %p %d\n", nanos6_get_cluster_node_id(), offloadTaskId, offloaderId);
-			//std::cout << Backtrace() << std::endl;
+			clusterPrintf("Removing remoteTaskInfo %p %d\n", offloadTaskId, offloaderId);
+			//std::cout << clusterBacktrace() << std::endl;
 
 			remote_map_t::iterator it = _taskMap.find(key);
 			assert(it != _taskMap.end());

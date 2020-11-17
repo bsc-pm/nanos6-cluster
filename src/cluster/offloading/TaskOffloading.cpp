@@ -26,6 +26,8 @@
 #include "MessageSatisfiability.hpp"
 #include <NodeNamespace.hpp>
 
+#include <ClusterUtil.hpp>
+
 namespace TaskOffloading {
 
 	void propagateSatisfiability(Task *localTask, SatisfiabilityInfo const &satInfo)
@@ -107,14 +109,14 @@ namespace TaskOffloading {
 
 	void sendRemoteTaskFinished(void *offloadedTaskId, ClusterNode *offloader)
 	{
-		printf("Sending taskfinished from: %p %d\n", offloadedTaskId, offloader->getIndex());
+		clusterPrintf("Sending taskfinished for: %p %d\n", offloadedTaskId, offloader->getIndex());
 		// Unregister remote tasks first
 		assert(offloadedTaskId != nullptr);
 		assert(offloader != nullptr);
 		RemoteTasksInfoMap::eraseRemoteTaskInfo(offloadedTaskId, offloader->getIndex());
 
-		printf("Node %d: Sending sendRemoteTaskFinished remote task %p %d\n",
-			nanos6_get_cluster_node_id(), offloadedTaskId, offloader->getIndex());
+		clusterPrintf("Sending sendRemoteTaskFinished remote task %p %d\n",
+			offloadedTaskId, offloader->getIndex());
 
 		// The notify back sending message
 		MessageTaskFinished *msg =
@@ -179,8 +181,7 @@ namespace TaskOffloading {
 		std::stringstream ss;
 		ss << region;
 
-		printf("Node %d: Sending MessageReleaseAccess remote task %p [%s] to %d\n",
-			nanos6_get_cluster_node_id(),
+		clusterPrintf("Sending MessageReleaseAccess remote task %p [%s] to %d\n",
 			offloadedTaskId,
 			ss.str().c_str(),
 			offloader->getIndex());

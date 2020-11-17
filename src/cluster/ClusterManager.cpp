@@ -120,6 +120,7 @@ void ClusterManager::initClusterNamespaceOrSetCallback(
 	EnvironmentVariable<bool> useNamespace("cluster.use_namespace");
 
 	if (useNamespace) {
+		clusterPrintf("Using namespace\n");
 		NodeNamespace::init(func, args);
 	} else {
 		assert(_singleton->_callback.load() == nullptr);
