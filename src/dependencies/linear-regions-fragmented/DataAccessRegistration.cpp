@@ -403,18 +403,22 @@ namespace DataAccessRegistration {
 				// Being satisfied implies all predecessors (reduction or not) have been completed
 				&& access->satisfied();
 
-			_isRemovable = access->isTopmost()
-						   && access->readSatisfied() && access->writeSatisfied()
-						   && access->receivedReductionInfo()
-						   // Read as: If this (reduction) access is part of its predecessor reduction,
-						   // it needs to have received the 'ReductionSlotSet' before being removed
-						   && ((access->getType() != REDUCTION_ACCESS_TYPE)
-							   || access->allocatedReductionInfo() || access->receivedReductionSlotSet())
-						   && access->complete()
-						   && (!access->isInBottomMap() || access->hasNext()
-							   || (access->getType() == NO_ACCESS_TYPE)
-							   || (access->getObjectType() == taskwait_type)
-							   || (access->getObjectType() == top_level_sink_type));
+			_isRemovable = access->propagatedInRemoteNamespace() ||
+				(access->isTopmost()
+				&& access->readSatisfied() && access->writeSatisfied()
+				&& access->receivedReductionInfo()
+				// Read as: If this (reduction) access is part of its predecessor reduction,
+				// it needs to have received the 'ReductionSlotSet' before being removed
+				&& ((access->getType() != REDUCTION_ACCESS_TYPE)
+					|| access->allocatedReductionInfo() || access->receivedReductionSlotSet())
+				&& access->complete()
+				&& (
+					!access->isInBottomMap() || access->hasNext()
+					|| access->getOriginator()->isRemoteTask()
+					|| (access->getType() == NO_ACCESS_TYPE)
+					|| (access->getObjectType() == taskwait_type)
+					|| (access->getObjectType() == top_level_sink_type)
+				));
 
 			/*
 			 *If the access is a taskwait access (from createTaskwait)
@@ -904,6 +908,8 @@ namespace DataAccessRegistration {
 		const bool linksRead = initialStatus._triggersDataLinkRead != updatedStatus._triggersDataLinkRead;
 		const bool linksWrite = initialStatus._triggersDataLinkWrite != updatedStatus._triggersDataLinkWrite;
 		if (linksRead || linksWrite) {
+			assert (!initialStatus._triggersDataLinkRead);
+			assert (!initialStatus._triggersDataLinkWrite);
 			assert(access->hasDataLinkStep());
 
 			ExecutionWorkflow::DataLinkStep *step = access->getDataLinkStep();
@@ -1508,7 +1514,20 @@ namespace DataAccessRegistration {
 
 
 		if (updateOperation._makeReadSatisfied) {
-			access->setReadSatisfied(updateOperation._location);
+			if (access->readSatisfied()) {
+				/*
+				 * If two tasks A and B are offloaded to the same namespace,
+				 * and both have in dependencies, then read satisfiability is
+				 * propagated from A to B both inside the remote namespace
+				 * (this is the normal optimization from a namespace) and in
+				 * the offloader's dependency system. So task B receives
+				 * read satisfiability twice. This is harmless.
+				 */
+				assert(access->getType() == READ_ACCESS_TYPE);
+				assert(access->getOriginator()->isRemoteTask());
+			} else {
+				access->setReadSatisfied(updateOperation._location);
+			}
 		}
 		if (updateOperation._makeWriteSatisfied) {
 			/*
@@ -1530,6 +1549,18 @@ namespace DataAccessRegistration {
 			access->setCommutativeSatisfied();
 		}
 		if (updateOperation._releaseStep != nullptr) {
+			if (access->hasDataReleaseStep()) {
+
+				/*
+				 * This means that an earlier offloaded task had its data release step propagated to
+				 * dependent tasks inside the namespace. This data release step is now overtaken by
+				 * the data release step for a later dependent task in the namespace.
+				 */
+				ExecutionWorkflow::DataReleaseStep *oldReleaseStep = access->getDataReleaseStep();
+				assert(updateOperation._releaseStep != access->getDataReleaseStep());
+				oldReleaseStep->releaseRegion(access->getAccessRegion(), nullptr);
+				access->unsetDataReleaseStep();
+			}
 			access->setDataReleaseStep(updateOperation._releaseStep);
 		}
 
@@ -2728,11 +2759,17 @@ namespace DataAccessRegistration {
 					}
 					if (notSat) {
 						accessOrFragment->setTopmost();
-						accessOrFragment->setReceivedReductionInfo();
+						if (!accessOrFragment->receivedReductionInfo()) {
+							accessOrFragment->setReceivedReductionInfo();
+						}
 						accessOrFragment->unsetDataLinkStep();
 					} else {
 						assert(accessOrFragment->isTopmost());
 						assert(accessOrFragment->receivedReductionInfo());
+					}
+				} else if (isRemote && !isReleaseAccess) {
+					if (!accessOrFragment->writeSatisfied()) {
+						accessOrFragment->setPropagatedInRemoteNamespace();
 					}
 				}
 
@@ -3631,7 +3668,6 @@ namespace DataAccessRegistration {
 
 			bool isRemote = location->getType() ==  nanos6_device_t::nanos6_cluster_device
 							&& location->getIndex() != ClusterManager::getCurrentClusterNode()->getIndex();
-			clusterCout << "unregisterTaskDataAccesses for " << task->getLabel() << ": isremote=" << isRemote << "\n";
 			accesses.processAll(
 				[&](TaskDataAccesses::accesses_t::iterator position) -> bool {
 					DataAccess *dataAccess = &(*position);

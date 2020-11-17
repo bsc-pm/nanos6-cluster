@@ -69,6 +69,7 @@ private:
 		IS_REACHABLE_BIT,
 		HAS_BEEN_DISCOUNTED_BIT,
 #endif
+		PROPAGATED_IN_REMOTE_NAMESPACE,
 		TOTAL_STATUS_BITS
 	};
 
@@ -317,6 +318,17 @@ public:
 	bool commutativeSatisfied() const
 	{
 		return _status[COMMUTATIVE_SATISFIED_BIT];
+	}
+
+	void setPropagatedInRemoteNamespace()
+	{
+		assert(!propagatedInRemoteNamespace());
+		_status[PROPAGATED_IN_REMOTE_NAMESPACE] = true;
+	}
+
+	bool propagatedInRemoteNamespace() const
+	{
+		return _status[PROPAGATED_IN_REMOTE_NAMESPACE];
 	}
 
 	void setReceivedReductionInfo()

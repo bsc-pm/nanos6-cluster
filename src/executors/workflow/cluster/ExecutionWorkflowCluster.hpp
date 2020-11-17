@@ -132,14 +132,23 @@ namespace ExecutionWorkflow {
 
 		void releaseRegion(DataAccessRegion const &region, MemoryPlace const *location) override
 		{
-			Instrument::logMessage(
-				Instrument::ThreadInstrumentationContext::getCurrent(),
-				"releasing remote region:", region
-			);
+			/*
+			 * location == nullptr means that the access was propagated in this node's
+			 * namespace rather than being released to the offloader. This means that
+			 * the RELEASE_ACCESS message should not be sent. This function is still
+			 * called so that the workflow step can be deleted once all accesses are
+			 * accounted for.
+			 */
+			if (location != nullptr) {
+				Instrument::logMessage(
+					Instrument::ThreadInstrumentationContext::getCurrent(),
+					"releasing remote region:", region
+				);
 
-			TaskOffloading::sendRemoteAccessRelease(
-				_remoteTaskIdentifier, _offloader, region, _type, _weak, location
-			);
+				TaskOffloading::sendRemoteAccessRelease(
+					_remoteTaskIdentifier, _offloader, region, _type, _weak, location
+				);
+			}
 
 			_bytesToRelease -= region.getSize();
 			if (_bytesToRelease == 0) {
