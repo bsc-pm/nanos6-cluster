@@ -39,12 +39,12 @@
 #include <InstrumentTaskId.hpp>
 #include <InstrumentDependencySubsystemEntryPoints.hpp>
 #include <ObjectAllocator.hpp>
+#include <ClusterUtil.hpp>
 
 #pragma GCC visibility push(hidden)
 
 namespace DataAccessRegistration {
 
-#ifndef NDEBUG
 	/*
 	 * Debugging function to print out the accesses and fragments for a task
 	 *
@@ -59,8 +59,13 @@ namespace DataAccessRegistration {
 		assert(!accessStructures.hasBeenDeleted());
 
 		// Take lock on access structures if not already done
+#ifndef NDEBUG
 		TaskDataAccesses::spinlock_t *lock = accessStructures._lock.isLockedByThisThread() ?
 								nullptr : &accessStructures._lock;
+#else
+		TaskDataAccesses::spinlock_t *lock = nullptr;
+#endif
+
 		if (lock)
 			lock->lock();
 
@@ -104,11 +109,48 @@ namespace DataAccessRegistration {
 				return true; /* always continue, don't stop here */
 			}
 		);
+
+		/*
+		 * Print all the taskwait fragments.
+		 */
+		accessStructures._taskwaitFragments.processAll(
+			/* processor: called for each task access fragment */
+			[&](TaskDataAccesses::access_fragments_t::iterator position) -> bool {
+				DataAccess *taskwaitFragment = &(*position);
+				assert(taskwaitFragment != nullptr);
+				std::cout << "taskwaitFragment: (DataAccess *)" << taskwaitFragment << ": "
+					<< taskwaitFragment->getAccessRegion().getStartAddress() << ":"
+					<< taskwaitFragment->getAccessRegion().getSize() << "\n";
+				return true; /* always continue, don't stop here */
+			}
+		);
+
+		/*
+		 * Print all the bottom map entries.
+		 */
+		accessStructures._subaccessBottomMap.processAll(
+			/* processor: called for each bottom map entry */
+			[&](TaskDataAccesses::subaccess_bottom_map_t::iterator bottomMapPosition) -> bool {
+				BottomMapEntry *bottomMapEntry = &(*bottomMapPosition);
+				assert(bottomMapEntry != nullptr);
+
+				DataAccessLink previous = bottomMapEntry->_link;
+				DataAccessRegion region = bottomMapEntry->_region;
+				std::cout << "bottom map: region: " << region << " for task ";
+				if (previous._task) {
+					std::cout << previous._task->getLabel();
+				}
+				std::cout << "\n";
+
+				/* Always continue with the rest of the bottom map */
+				return true;
+			}
+		);
+
 		// Release lock if not already done by the caller
 		if (lock)
 			lock->unlock();
 	}
-#endif /* NDEBUG */
 
 	typedef CPUDependencyData::removable_task_list_t removable_task_list_t;
 

@@ -57,6 +57,9 @@ inline void __cluster_assert_fail(const char *__assertion, const char *__file,
 		? void (0)														\
 		: __cluster_assert_fail (#expr, __FILE__, __LINE__, __ASSERT_FUNCTION))
 
+
+#define clusterCout std::cout << "Node:" << ClusterManager::getCurrentClusterNode()->getIndex() << " "
+
 // This function produces a stack backtrace with demangled function & method names.
 inline std::string clusterBacktrace()
 {
