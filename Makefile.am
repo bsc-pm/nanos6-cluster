@@ -1334,6 +1334,7 @@ instrument_extrae_sources += \
 noinst_HEADERS += \
 	src/cluster/ClusterShutdownCallback.hpp \
 	src/cluster/ClusterManager.hpp \
+	src/cluster/ClusterUtil.hpp \
 	src/cluster/ClusterMemoryManagement.hpp \
 	src/cluster/NodeNamespace.hpp \
 	src/cluster/messages/Message.hpp \
