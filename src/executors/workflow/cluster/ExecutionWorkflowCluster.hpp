@@ -149,10 +149,31 @@ namespace ExecutionWorkflow {
 
 		bool checkDataRelease(DataAccess const *access) override
 		{
-			const bool releases = (access->getObjectType() == taskwait_type)
-				&& access->getOriginator()->isSpawned()
-				&& access->readSatisfied()
-				&& access->writeSatisfied();
+			Task *task = access->getOriginator();
+
+			/*
+			 * Release an access for an offloaded (remote task) when it is complete and it has no next.
+			 *
+			 * The task must have finished (otherwise it could taskwait).
+			 *
+			 * Several cases where access should be released:
+			 *
+			 * 1. Task completes, strong access, not on bottom map:   When ordinary access becomes completes
+			 * 2. Task completes, strong access, on bottom map:       When top-level sink (taskwait) completes
+			 * 3. Task completes, weak access, not on bottom map:     (access not used at all) ** not supported yet? **
+			 * 4. Task completes, weak access, on bottom map:         When top-level sink (taskwait) completes
+			 *
+			 * 5. Taskwait inside task:                               Task not finished, so don't release access
+			 * 
+			 */
+
+			const bool releases = ( (access->getObjectType() == taskwait_type) // top level sink
+			                        || !access->isWeak()) // or a non-weak access when the task finishes
+				&& task->hasFinished()
+				&& access->readSatisfied() && access->writeSatisfied()
+				&& access->getOriginator()->isRemoteTask()
+				&& access->complete()
+				&& !access->hasNext();
 
 			Instrument::logMessage(
 				Instrument::ThreadInstrumentationContext::getCurrent(),
@@ -161,6 +182,9 @@ namespace ExecutionWorkflow {
 				" spawned originator:", access->getOriginator()->isSpawned(),
 				" read:", access->readSatisfied(),
 				" write:", access->writeSatisfied(),
+				" complete:", access->complete(),
+				" has-next:", access->hasNext(),
+				" task finished:", task->hasFinished(),
 				" releases:", releases
 			);
 
