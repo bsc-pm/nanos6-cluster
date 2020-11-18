@@ -648,7 +648,9 @@ public:
 
 	inline bool isRemoteTask() const
 	{
-		return _flags[remote_flag];
+		const bool ret =_flags[remote_flag];
+		assert(ret ? (_parent != nullptr) : true);
+		return ret;
 	}
 
 	inline bool isPolling() const
@@ -941,6 +943,14 @@ public:
 
 		return false;
 	}
+
+	inline bool isRemoteTaskInNamespace() const
+	{
+		// isRemoteTask asserts the parent is non null when true
+		// This assumes
+		return isRemoteTask() && _parent->isNodeNamespace();
+	}
+
 };
 
 
