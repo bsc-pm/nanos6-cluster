@@ -575,6 +575,7 @@ namespace DataAccessRegistration {
 		DataAccess *dataAccess, DataAccessRegion const &region,
 		TaskDataAccesses &accessStructures);
 
+	static inline void removeAccessFromBottomMap(DataAccess *access);
 
 	/*
 	 * Make the changes to the data access implied by the differences between
@@ -909,6 +910,9 @@ namespace DataAccessRegistration {
 			ExecutionWorkflow::DataReleaseStep *step = access->getDataReleaseStep();
 			access->unsetDataReleaseStep();
 			step->releaseRegion(access->getAccessRegion(), access->getLocation());
+			clusterCout << "deadlock danger!\n";
+			removeAccessFromBottomMap(access);
+			clusterCout << "deadlock danger over!\n";
 		}
 
 		/*
@@ -1037,6 +1041,46 @@ namespace DataAccessRegistration {
 				}
 			}
 		}
+	}
+
+	static inline void removeAccessFromBottomMap(DataAccess *access)
+	{
+		assert(access != nullptr);
+		Task *task = access->getOriginator();
+		assert(task != nullptr);
+		Task *parent = task->getParent();
+		assert(parent != nullptr);
+		TaskDataAccesses &parentAccessStructures = parent->getDataAccesses();
+		assert(!parentAccessStructures.hasBeenDeleted());
+		std::lock_guard<TaskDataAccesses::spinlock_t> guard(parentAccessStructures._lock);
+
+		parentAccessStructures._subaccessBottomMap.processIntersecting(
+			access->getAccessRegion(),
+			[&](TaskDataAccesses::subaccess_bottom_map_t::iterator bottomMapPosition) -> bool {
+				BottomMapEntry *bottomMapEntry = &(*bottomMapPosition);
+				assert(bottomMapEntry != nullptr);
+				assert(access->getAccessRegion().fullyContainedIn(bottomMapEntry->getAccessRegion()));
+
+				if (bottomMapEntry->_link._task != task) {
+					/* not in the bottom map */
+					return true;
+				}
+				// assert(bottomMapEntry->_link._objectType == access->getObjectType());
+
+				if (access->getAccessRegion() == bottomMapEntry->getAccessRegion()) {
+					parentAccessStructures._subaccessBottomMap.erase(bottomMapEntry);
+					ObjectAllocator<BottomMapEntry>::deleteObject(bottomMapEntry);
+				} else {
+					fragmentBottomMapEntry(
+						bottomMapEntry, access->getAccessRegion(),
+						parentAccessStructures,
+						/* remove intersection */ true
+					);
+				}
+
+				return true;
+			}
+		);
 	}
 
 
@@ -3791,7 +3835,7 @@ namespace DataAccessRegistration {
 	void setNamespacePredecessor(Task *parent, DataAccessRegion region, ClusterNode *remoteNode, void *namespacePredecessor)
 	{
 		clusterCout << "setNamespacePredecessor " << parent->getLabel() << " region " << region << " id " << namespacePredecessor << "\n";
-		printTaskAccessesAndFragments("in setNamespacePredecessor", parent);
+		// printTaskAccessesAndFragments("in setNamespacePredecessor", parent);
 		assert(parent != nullptr);
 
 		TaskDataAccesses &parentAccessStructures = parent->getDataAccesses();
