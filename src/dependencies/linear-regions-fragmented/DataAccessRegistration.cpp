@@ -462,7 +462,9 @@ namespace DataAccessRegistration {
 			assert(domainParent != nullptr);
 
 			/*
-			 * Does it make the next access topmost
+			 * Does it make the next access topmost (meaning that
+			 * the access is safe to delete because no earlier
+			 * access will reference this one).
 			 */
 			if (_isRemovable && access->hasNext()) {
 				Task *nextDomainParent;
@@ -2424,10 +2426,15 @@ namespace DataAccessRegistration {
 				/*
 				 * Link the dataAccess and unset
 				 */
-				//clusterCout << "Actually link previous access " << previous << " of " << previous->getOriginator()->getLabel()
-				//		<< " to " << dataAccess << " of " << dataAccess->getOriginator()->getLabel() << ": "
-				//		<< previous->noNamespacePropagation() << "\n";
-				if (!previous->noNamespacePropagation()) {
+				if (previous->noNamespacePropagation()) {
+					// No namespace propagation: do not set as next. Instead set the topmost bit
+					// and that it is received the reduction info, both of which will be needed
+					// to delete the access later.
+					dataAccess->setTopmost();
+					dataAccess->setReceivedReductionInfo();
+				} else {
+					// Normal propagation: set the new access to be the next access after the
+					// access that was in the bottom map.
 					previous->setNext(next);
 				}
 				previous->unsetInBottomMap();  /* only unsets the status bit, doesn't actually remove it */
