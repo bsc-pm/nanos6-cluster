@@ -775,7 +775,7 @@ public:
 		_validNamespace = validNamespace;
 	}
 
-	bool getNoNamespacePropagation() const
+	bool noNamespacePropagation() const
 	{
 		return _status[NO_NAMESPACE_PROPAGATE_NEXT_BIT];
 	}

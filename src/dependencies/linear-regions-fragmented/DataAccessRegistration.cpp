@@ -2424,7 +2424,12 @@ namespace DataAccessRegistration {
 				/*
 				 * Link the dataAccess and unset
 				 */
-				previous->setNext(next);
+				//clusterCout << "Actually link previous access " << previous << " of " << previous->getOriginator()->getLabel()
+				//		<< " to " << dataAccess << " of " << dataAccess->getOriginator()->getLabel() << ": "
+				//		<< previous->noNamespacePropagation() << "\n";
+				if (!previous->noNamespacePropagation()) {
+					previous->setNext(next);
+				}
 				previous->unsetInBottomMap();  /* only unsets the status bit, doesn't actually remove it */
 
 				DataAccessStatusEffects updatedStatus(previous);
@@ -3793,7 +3798,6 @@ namespace DataAccessRegistration {
 				(void)currentTask;
 				std::cout << "setNoNamespacePropagation " << access << "\n";
 				access->setNoNamespacePropagation();
-				assert(false);
 			},
 			[] (BottomMapEntry *) {}
 		);
