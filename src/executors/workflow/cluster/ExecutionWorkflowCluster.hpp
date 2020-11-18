@@ -183,30 +183,14 @@ namespace ExecutionWorkflow {
 		{
 			Task *task = access->getOriginator();
 
-			/*
-			 * Release an access for an offloaded (remote task) when it is complete and it has no next.
-			 *
-			 * The task must have finished (otherwise it could taskwait).
-			 *
-			 * Several cases where access should be released:
-			 *
-			 * 1. Task completes, strong access, not on bottom map:   When ordinary access becomes completes
-			 * 2. Task completes, strong access, on bottom map:       When top-level sink (taskwait) completes
-			 * 3. Task completes, weak access, not on bottom map:     (access not used at all) ** not supported yet? **
-			 * 4. Task completes, weak access, on bottom map:         When top-level sink (taskwait) completes
-			 *
-			 * 5. Taskwait inside task:                               Task not finished, so don't release access
-			 * 
-			 */
 
 			const bool releases = ( (access->getObjectType() == taskwait_type) // top level sink
-			                        || !access->isWeak()) // or a non-weak access when the task finishes
-								    // || (access->isWeak() && isRemovable) )
-				&& task->hasFinished()
+			                        || !access->hasSubaccesses()) // or no fragments (i.e. no subtask to wait for)
+				&& task->hasFinished()     // must have finished; i.e. not taskwait inside task
 				&& access->readSatisfied() && access->writeSatisfied()
-				&& access->getOriginator()->isRemoteTask()
-				&& access->complete()
-				&& !access->hasNext();
+				&& access->getOriginator()->isRemoteTask()  // only offloaded tasks
+				&& access->complete()                       // access must be complete
+				&& !access->hasNext();                      // no next access at the remote side
 
 			Instrument::logMessage(
 				Instrument::ThreadInstrumentationContext::getCurrent(),
