@@ -30,11 +30,6 @@
 
 namespace TaskOffloading {
 
-	void setNoNamespacePropagation(Task *parentTask, DataAccessRegion region)
-	{
-		DataAccessRegistration::setNoNamespacePropagation(parentTask, region);
-	}
-
 	void propagateSatisfiability(Task *localTask, SatisfiabilityInfo const &satInfo)
 	{
 		assert(localTask != nullptr);
@@ -248,9 +243,7 @@ namespace TaskOffloading {
 		size_t numSatInfo;
 		TaskOffloading::SatisfiabilityInfo *satInfo = msg->getSatisfiabilityInfo(numSatInfo);
 		for (size_t i = 0; i < numSatInfo; ++i) {
-			if (satInfo[i]._noRemotePropagation) {
-				setNoNamespacePropagation(parent, satInfo[i]._region);
-			}
+			DataAccessRegistration::setNamespacePredecessor(parent, satInfo[i]._region, remoteNode, satInfo[i]._namespacePredecessor);
 		}
 
 		// Create the task with no dependencies. Treat this call

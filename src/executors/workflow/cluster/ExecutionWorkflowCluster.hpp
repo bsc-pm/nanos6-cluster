@@ -44,7 +44,7 @@ namespace ExecutionWorkflow {
 		//! write satisfiability at creation time
 		bool _write;
 
-		bool _noRemotePropagation;
+		Task *_namespacePredecessor;
 
 		bool _started;
 
@@ -60,7 +60,7 @@ namespace ExecutionWorkflow {
 			_task(access->getOriginator()),
 			_read(access->readSatisfied()),
 			_write(access->writeSatisfied()),
-			_noRemotePropagation(false),
+			_namespacePredecessor(nullptr),
 			_started(false)
 		{
 			access->setDataLinkStep(this);
@@ -70,16 +70,18 @@ namespace ExecutionWorkflow {
 
 			if (access->getValidNamespace() == VALID_NAMESPACE_UNKNOWN) {
 				// clusterCout << "*** access " << access << " of " << access->getOriginator()->getLabel() << " : namespace was unknown, cannot propagate remotely\n";
-				_noRemotePropagation = true;
-				access->setValidNamespace(targetNamespace);
+				_namespacePredecessor = nullptr;
+				access->setValidNamespace(targetNamespace, access->getOriginator());
 			} else if (access->getValidNamespace() == targetNamespace) {
+				_namespacePredecessor = access->getNamespacePredecessor(); // remote propagation valid if predecessor task and offloading node matches
+				access->setValidNamespace(targetNamespace, access->getOriginator());
 				// clusterCout << "access " << access << " of " << access->getOriginator()->getLabel() << " : valid namespace "
 				// 		     	<< access->getValidNamespace() << " matches target namespace\n";
 			} else {
 				// clusterCout << "access " << access << " of " << access->getOriginator()->getLabel() << " : valid namespace "
 				// 				<< access->getValidNamespace() << " mismatches target namespace " << targetNamespace << "\n";
-				_noRemotePropagation = true;
-				access->setValidNamespace(targetNamespace);
+				_namespacePredecessor = nullptr;
+				access->setValidNamespace(targetNamespace, access->getOriginator());
 			}
 		}
 
@@ -247,8 +249,8 @@ namespace ExecutionWorkflow {
 		//! \param[in] size is the size of the region being copied.
 		//! \param[in] read is true if access is read-satisfied
 		//! \param[in] write is true if access is write-satisfied
-		//! \param[in] noRemotePropagation is true if remote namespace propagation is disabled
-		void addDataLink(int source, DataAccessRegion const &region, bool read, bool write, bool noRemotePropagation);
+		//! \param[in] namespacePredecessorId is nullptr or predecessor remote task ID
+		void addDataLink(int source, DataAccessRegion const &region, bool read, bool write, void *namespacePredecessorId);
 
 		//! Start the execution of the Step
 		void start() override;

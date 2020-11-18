@@ -40,6 +40,7 @@
 #include <InstrumentDependencySubsystemEntryPoints.hpp>
 #include <ObjectAllocator.hpp>
 #include <ClusterUtil.hpp>
+#include "ClusterTaskContext.hpp"
 
 #pragma GCC visibility push(hidden)
 
@@ -749,6 +750,7 @@ namespace DataAccessRegistration {
 			}
 
 			updateOperation._validNamespace = access->getValidNamespace();
+			updateOperation._namespacePredecessor = access->getNamespacePredecessor();
 
 			if (initialStatus._propagatesWriteSatisfiabilityToNext != updatedStatus._propagatesWriteSatisfiabilityToNext) {
 				assert(!initialStatus._propagatesWriteSatisfiabilityToNext);
@@ -1527,7 +1529,7 @@ namespace DataAccessRegistration {
 		 * NOTE: this assumes that ready tasks are scheduled in order, even if they
 		 * are weak. This appears to be the case with the default scheduler.
 		 */
-		access->setValidNamespace(updateOperation._validNamespace);
+		access->setValidNamespace(updateOperation._validNamespace, updateOperation._namespacePredecessor);
 
 		if (updateOperation._makeReadSatisfied) {
 			if (access->readSatisfied()) {
@@ -2789,9 +2791,6 @@ namespace DataAccessRegistration {
 							accessOrFragment->setReceivedReductionInfo();
 						}
 						accessOrFragment->unsetDataLinkStep();
-					} else {
-						assert(accessOrFragment->isTopmost());
-						assert(accessOrFragment->receivedReductionInfo());
 					}
 				} else if (isRemote && !isReleaseAccess) {
 					if (!accessOrFragment->writeSatisfied()) {
@@ -3789,9 +3788,10 @@ namespace DataAccessRegistration {
 #endif
 	}
 
-	void setNoNamespacePropagation(Task *parent, DataAccessRegion region)
+	void setNamespacePredecessor(Task *parent, DataAccessRegion region, ClusterNode *remoteNode, void *namespacePredecessor)
 	{
-		clusterCout << "setNoNameSpacePropagation " << parent->getLabel() << " region " << region << "\n";
+		clusterCout << "setNamespacePredecessor " << parent->getLabel() << " region " << region << " id " << namespacePredecessor << "\n";
+		printTaskAccessesAndFragments("in setNamespacePredecessor", parent);
 		assert(parent != nullptr);
 
 		TaskDataAccesses &parentAccessStructures = parent->getDataAccesses();
@@ -3803,8 +3803,24 @@ namespace DataAccessRegistration {
 			[&] (DataAccess *access, TaskDataAccesses &currentAccessStructures, Task *currentTask) {
 				(void)currentAccessStructures;
 				(void)currentTask;
-				std::cout << "setNoNamespacePropagation " << access << "\n";
-				access->setNoNamespacePropagation();
+				std::cout << "setNamespacePredecessor " << access << "\n";
+				Task *previousTask = access->getOriginator();
+
+				if (!previousTask->isRemoteTask() ) {
+					clusterCout << "previous " << previousTask->getLabel() << " not remote!\n";
+					access->setNoNamespacePropagation();
+				} else {
+					TaskOffloading::ClusterTaskContext *prevContext = previousTask->getClusterContext();
+					ClusterNode *offloader = prevContext->getRemoteNode();
+					void *prevRemoteTaskIdentifier = prevContext->getRemoteIdentifier();
+					clusterCout << " prev nodes: " << offloader->getIndex() << " " << remoteNode->getIndex()
+								<< " prev ids: " << prevRemoteTaskIdentifier << " " << namespacePredecessor << "\n";
+					if (offloader != remoteNode || prevRemoteTaskIdentifier != namespacePredecessor) {
+						clusterCout << "so no namespace propagation\n";
+						access->setNoNamespacePropagation();
+					}
+				}
+
 			},
 			[] (BottomMapEntry *) {}
 		);

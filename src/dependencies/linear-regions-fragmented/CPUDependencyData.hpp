@@ -46,6 +46,7 @@ struct CPUDependencyData {
 		bool _setReductionInfo; // Note: Both this and next field are required, as a null ReductionInfo can be propagated
 		ReductionInfo *_reductionInfo;
 		int _validNamespace;
+		Task *_namespacePredecessor;
 
 		boost::dynamic_bitset<> _reductionSlotSet;
 
@@ -56,7 +57,8 @@ struct CPUDependencyData {
 			_location(nullptr), _releaseStep(nullptr),
 			_makeTopmost(false), _makeTopLevel(false),
 			_setReductionInfo(false), _reductionInfo(nullptr),
-			_validNamespace(-1)
+			_validNamespace(-1),
+			_namespacePredecessor(nullptr)
 		{
 		}
 
@@ -67,7 +69,8 @@ struct CPUDependencyData {
 			_location(nullptr), _releaseStep(nullptr),
 			_makeTopmost(false), _makeTopLevel(false),
 			_setReductionInfo(false), _reductionInfo(nullptr),
-			_validNamespace(-1)
+			_validNamespace(-1),
+			_namespacePredecessor(nullptr)
 		{
 		}
 

@@ -14,6 +14,7 @@
 #include "../DataAccessType.hpp"
 #include "ReductionSpecific.hpp"
 
+class ClusterNode;
 class ComputePlace;
 class Task;
 
@@ -90,7 +91,7 @@ namespace DataAccessRegistration {
 		MemoryPlace const *location
 	);
 
-	void setNoNamespacePropagation(Task *parentTask, DataAccessRegion region);
+	void setNamespacePredecessor(Task *parentTask, DataAccessRegion region, ClusterNode *remoteNode, void *namespacePredecessor);
 
 	void handleEnterTaskwait(Task *task, ComputePlace *computePlace, CPUDependencyData &dependencyData);
 

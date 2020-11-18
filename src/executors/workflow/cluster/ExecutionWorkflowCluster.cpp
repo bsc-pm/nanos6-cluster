@@ -53,11 +53,11 @@ namespace ExecutionWorkflow {
 				locationIndex = location->getIndex();
 			}
 
-			// noRemotePropagation is in principle irrelevant, because it only matters when the
+			// namespacePredecessor is in principle irrelevant, because it only matters when the
 			// task is created, not when a satisfiability message is sent (which is what is
 			// happening now). Nevertheless, this only happens when propagation does not happen
-			// in the namespace; so send the value true.
-			TaskOffloading::SatisfiabilityInfo satInfo(region, locationIndex, read, write, /* noRemotePropagation */ true);
+			// in the namespace; so send the value nullptr.
+			TaskOffloading::SatisfiabilityInfo satInfo(region, locationIndex, read, write, /* namespacePredecessor */ nullptr);
 
 			TaskOffloading::ClusterTaskContext *clusterTaskContext = _task->getClusterContext();
 			TaskOffloading::sendSatisfiability(_task, clusterTaskContext->getRemoteNode(), satInfo);
@@ -85,13 +85,6 @@ namespace ExecutionWorkflow {
 			std::lock_guard<SpinLock> guard(_lock);
 			assert(_targetMemoryPlace != nullptr);
 
-			if (!_read && !_write && !_noRemotePropagation) {
-				//! Nothing to do here. We can release the execution
-				//! step. Location will be linked later on.
-				releaseSuccessors();
-				return;
-			}
-
 			int location = -1;
 			if (_read || _write) {
 				assert(_sourceMemoryPlace != nullptr);
@@ -117,7 +110,7 @@ namespace ExecutionWorkflow {
 			// Will have a pointer in ClusterMemoryNode to the ClusterNode and will get the
 			// Commindex from there with getCommIndex.
 			// assert(_sourceMemoryPlace->getIndex() == _sourceMemoryPlace->getCommIndex());
-			execStep->addDataLink(location, _region, _read, _write, _noRemotePropagation);
+			execStep->addDataLink(location, _region, _read, _write, (void *)_namespacePredecessor);
 
 			const size_t linkedBytes = _region.getSize();
 			//! If at the moment of offloading the access is not both
@@ -218,12 +211,12 @@ namespace ExecutionWorkflow {
 		DataAccessRegion const &region,
 		bool read,
 		bool write,
-		bool noRemotePropagation
+		void *namespacePredecessor
 	) {
 		// This lock should already have been taken by the caller
 		// Apparently it is not.
 		//assert(_lock.isLockedByThisThread());
-		_satInfo.push_back( TaskOffloading::SatisfiabilityInfo(region, source, read, write, noRemotePropagation) );
+		_satInfo.push_back( TaskOffloading::SatisfiabilityInfo(region, source, read, write, namespacePredecessor) );
 	}
 
 	void ClusterExecutionStep::start()

@@ -27,18 +27,18 @@ namespace TaskOffloading {
 		//! makes access write satisfied
 		bool _writeSat;
 
-		//! hint bit to disable remote propagation (may still not happen even if allowed)
-		bool _noRemotePropagation;
+		//! predecessor remote task ID expected for remote namespace propagation
+		void *_namespacePredecessor;
 
-		SatisfiabilityInfo(DataAccessRegion region, int src, bool read, bool write, bool noRemotePropagation)
-			: _region(region), _src(src), _readSat(read), _writeSat(write), _noRemotePropagation(noRemotePropagation)
+		SatisfiabilityInfo(DataAccessRegion region, int src, bool read, bool write, void *namespacePredecessor)
+			: _region(region), _src(src), _readSat(read), _writeSat(write), _namespacePredecessor(namespacePredecessor)
 		{
-			std::cout << "construct SatisfiabilityInfo with nrp = " << noRemotePropagation << "\n";
+			// std::cout << "construct SatisfiabilityInfo with nrp = " << namespacePredecessor << "\n";
 		}
 
 		bool empty() const
 		{
-			return !_readSat && !_writeSat && !_noRemotePropagation;
+			return false; // never empty !_readSat && !_writeSat && !_noRemotePropagation;
 		}
 
 		friend std::ostream& operator<<(std::ostream &o,
@@ -53,7 +53,7 @@ namespace TaskOffloading {
 			" read:" << satInfo._readSat <<
 			" write:" << satInfo._writeSat <<
 			" location:" << satInfo._src <<
-			" no-remote-propagation: " << satInfo._noRemotePropagation;
+			" namespace-predecessor: " << satInfo._namespacePredecessor;
 	}
 
 }

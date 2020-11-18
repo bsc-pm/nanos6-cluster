@@ -123,6 +123,7 @@ private:
 	ExecutionWorkflow::DataLinkStep *_dataLinkStep;
 
 	int _validNamespace;
+	Task *_namespacePredecessor;
 
 public:
 	DataAccess(
@@ -153,7 +154,8 @@ public:
 		_outputLocation(outputLocation),
 		_dataReleaseStep(dataReleaseStep),
 		_dataLinkStep(dataLinkStep),
-		_validNamespace(VALID_NAMESPACE_UNKNOWN)
+		_validNamespace(VALID_NAMESPACE_UNKNOWN),
+		_namespacePredecessor(nullptr)
 	{
 		assert(originator != nullptr);
 
@@ -182,7 +184,8 @@ public:
 		_outputLocation(other.getOutputLocation()),
 		_dataReleaseStep(other.getDataReleaseStep()),
 		_dataLinkStep(other.getDataLinkStep()),
-		_validNamespace(other.getValidNamespace())
+		_validNamespace(other.getValidNamespace()),
+		_namespacePredecessor(other.getNamespacePredecessor())
 	{}
 
 	~DataAccess()
@@ -770,9 +773,17 @@ public:
 		return _validNamespace;
 	}
 
-	void setValidNamespace(int validNamespace)
+	Task *getNamespacePredecessor() const
+	{
+		return _namespacePredecessor;
+	}
+
+	// validNamespace: nodeId where task was last offloaded
+	// namespacePredecessor: last task offloaded to that node
+	void setValidNamespace(int validNamespace, Task *namespacePredecessor)
 	{
 		_validNamespace = validNamespace;
+		_namespacePredecessor = namespacePredecessor;
 	}
 
 	bool noNamespacePropagation() const
