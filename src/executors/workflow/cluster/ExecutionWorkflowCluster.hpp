@@ -69,7 +69,8 @@ namespace ExecutionWorkflow {
 			int targetNamespace = targetMemoryPlace->getIndex();
 
 			if (access->getValidNamespace() == VALID_NAMESPACE_UNKNOWN) {
-				// clusterCout << "access " << access << " of " << access->getOriginator()->getLabel() << " : no problem, namespace was unknown\n";
+				// clusterCout << "*** access " << access << " of " << access->getOriginator()->getLabel() << " : namespace was unknown, cannot propagate remotely\n";
+				_noRemotePropagation = true;
 				access->setValidNamespace(targetNamespace);
 			} else if (access->getValidNamespace() == targetNamespace) {
 				// clusterCout << "access " << access << " of " << access->getOriginator()->getLabel() << " : valid namespace "
