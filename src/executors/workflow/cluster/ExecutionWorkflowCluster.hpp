@@ -176,7 +176,7 @@ namespace ExecutionWorkflow {
 			}
 		}
 
-		bool checkDataRelease(DataAccess const *access) override
+		bool checkDataRelease(DataAccess const *access, bool isRemovable) override
 		{
 			Task *task = access->getOriginator();
 
@@ -197,7 +197,8 @@ namespace ExecutionWorkflow {
 			 */
 
 			const bool releases = ( (access->getObjectType() == taskwait_type) // top level sink
-			                        || !access->isWeak()) // or a non-weak access when the task finishes
+			                        || !access->isWeak() // or a non-weak access when the task finishes
+								    || (access->isWeak() && isRemovable) )
 				&& task->hasFinished()
 				&& access->readSatisfied() && access->writeSatisfied()
 				&& access->getOriginator()->isRemoteTask()
@@ -214,6 +215,7 @@ namespace ExecutionWorkflow {
 				" complete:", access->complete(),
 				" has-next:", access->hasNext(),
 				" task finished:", task->hasFinished(),
+				" removable:", isRemovable,
 				" releases:", releases
 			);
 

@@ -81,7 +81,8 @@ namespace ExecutionWorkflow {
 		) {
 		}
 
-		inline bool checkDataRelease(__attribute__((unused))DataAccess const *access)
+		inline bool checkDataRelease(__attribute__((unused))DataAccess const *access,
+											 __attribute__((unused))bool isRemovable)
 		{
 			return false;
 		}
