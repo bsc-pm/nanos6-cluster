@@ -200,8 +200,8 @@ namespace ExecutionWorkflow {
 			 */
 
 			const bool releases = ( (access->getObjectType() == taskwait_type) // top level sink
-			                        || !access->isWeak() // or a non-weak access when the task finishes
-								    || (access->isWeak() && isRemovable) )
+			                        || !access->isWeak()) // or a non-weak access when the task finishes
+								    // || (access->isWeak() && isRemovable) )
 				&& task->hasFinished()
 				&& access->readSatisfied() && access->writeSatisfied()
 				&& access->getOriginator()->isRemoteTask()
