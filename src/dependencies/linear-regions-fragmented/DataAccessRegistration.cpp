@@ -1573,7 +1573,8 @@ namespace DataAccessRegistration {
 				/*
 				 * This means that an earlier offloaded task had its data release step propagated to
 				 * dependent tasks inside the namespace. This data release step is now overtaken by
-				 * the data release step for a later dependent task in the namespace.
+				 * the data release step for a later dependent task in the namespace. TODO: don't
+				 * allow the data release step to be propagated from one remote task to another.
 				 */
 				ExecutionWorkflow::DataReleaseStep *oldReleaseStep = access->getDataReleaseStep();
 				assert(updateOperation._releaseStep != access->getDataReleaseStep());
