@@ -575,8 +575,6 @@ namespace DataAccessRegistration {
 		DataAccess *dataAccess, DataAccessRegion const &region,
 		TaskDataAccesses &accessStructures);
 
-	static inline void removeAccessFromBottomMap(DataAccess *access);
-
 	/*
 	 * Make the changes to the data access implied by the differences between
 	 * initialStatus and updatedStatus. This is called with the lock for the
@@ -737,39 +735,48 @@ namespace DataAccessRegistration {
 		}
 
 		// Propagation to Next
-		if (!dontPropagate && access->hasNext()) {
+		if (access->hasNext()) {
 			/*
 			 * Prepare an update operation that will affect the next task.
 			 */
 			UpdateOperation updateOperation(access->getNext(), access->getAccessRegion());
 
-			if (initialStatus._propagatesReadSatisfiabilityToNext != updatedStatus._propagatesReadSatisfiabilityToNext) {
-				assert(!initialStatus._propagatesReadSatisfiabilityToNext);
-				updateOperation._makeReadSatisfied = true; /* make next task read satisfied */
-				assert(access->hasLocation());
-				updateOperation._location = access->getLocation();
-			}
+			if (!dontPropagate) {
+				if (initialStatus._propagatesReadSatisfiabilityToNext != updatedStatus._propagatesReadSatisfiabilityToNext) {
+					assert(!initialStatus._propagatesReadSatisfiabilityToNext);
+					updateOperation._makeReadSatisfied = true; /* make next task read satisfied */
+					assert(access->hasLocation());
+					updateOperation._location = access->getLocation();
+				}
 
-			updateOperation._validNamespace = access->getValidNamespace();
-			updateOperation._namespacePredecessor = access->getNamespacePredecessor();
+				updateOperation._validNamespace = access->getValidNamespace();
+				updateOperation._namespacePredecessor = access->getNamespacePredecessor();
 
-			if (initialStatus._propagatesWriteSatisfiabilityToNext != updatedStatus._propagatesWriteSatisfiabilityToNext) {
-				assert(!initialStatus._propagatesWriteSatisfiabilityToNext);
+				if (initialStatus._propagatesWriteSatisfiabilityToNext != updatedStatus._propagatesWriteSatisfiabilityToNext) {
+					assert(!initialStatus._propagatesWriteSatisfiabilityToNext);
 
-				/*
-				 * This assertion happens occasionally. Temporarily disable it.
-				 */
-				// assert(!access->canPropagateReductionInfo() || updatedStatus._propagatesReductionInfoToNext);
-				updateOperation._makeWriteSatisfied = true;
-			}
+					/*
+					 * This assertion happens occasionally. Temporarily disable it.
+					 */
+					// assert(!access->canPropagateReductionInfo() || updatedStatus._propagatesReductionInfoToNext);
+					updateOperation._makeWriteSatisfied = true;
+				}
 
-			if (initialStatus._propagatesConcurrentSatisfiabilityToNext != updatedStatus._propagatesConcurrentSatisfiabilityToNext) {
-				assert(!initialStatus._propagatesConcurrentSatisfiabilityToNext);
-				updateOperation._makeConcurrentSatisfied = true;
-			}
-			if (initialStatus._propagatesCommutativeSatisfiabilityToNext != updatedStatus._propagatesCommutativeSatisfiabilityToNext) {
-				assert(!initialStatus._propagatesCommutativeSatisfiabilityToNext);
-				updateOperation._makeCommutativeSatisfied = true;
+				if (initialStatus._propagatesConcurrentSatisfiabilityToNext != updatedStatus._propagatesConcurrentSatisfiabilityToNext) {
+					assert(!initialStatus._propagatesConcurrentSatisfiabilityToNext);
+					updateOperation._makeConcurrentSatisfied = true;
+				}
+				if (initialStatus._propagatesCommutativeSatisfiabilityToNext != updatedStatus._propagatesCommutativeSatisfiabilityToNext) {
+					assert(!initialStatus._propagatesCommutativeSatisfiabilityToNext);
+					updateOperation._makeCommutativeSatisfied = true;
+				}
+
+				if (initialStatus._propagatesDataReleaseStepToNext != updatedStatus._propagatesDataReleaseStepToNext) {
+					assert(!initialStatus._propagatesDataReleaseStepToNext);
+
+					updateOperation._releaseStep = access->getDataReleaseStep();
+					access->unsetDataReleaseStep();
+				}
 			}
 
 			if (initialStatus._propagatesReductionInfoToNext != updatedStatus._propagatesReductionInfoToNext) {
@@ -790,13 +797,6 @@ namespace DataAccessRegistration {
 				assert(access->isWeak() || task->isFinal() || access->getReductionSlotSet().any());
 
 				updateOperation._reductionSlotSet = access->getReductionSlotSet();
-			}
-
-			if (initialStatus._propagatesDataReleaseStepToNext != updatedStatus._propagatesDataReleaseStepToNext) {
-				assert(!initialStatus._propagatesDataReleaseStepToNext);
-
-				updateOperation._releaseStep = access->getDataReleaseStep();
-				access->unsetDataReleaseStep();
 			}
 
 			// Make Next Topmost
@@ -910,9 +910,7 @@ namespace DataAccessRegistration {
 			ExecutionWorkflow::DataReleaseStep *step = access->getDataReleaseStep();
 			access->unsetDataReleaseStep();
 			step->releaseRegion(access->getAccessRegion(), access->getLocation());
-			clusterCout << "deadlock danger!\n";
-			removeAccessFromBottomMap(access);
-			clusterCout << "deadlock danger over!\n";
+
 		}
 
 		/*
@@ -1042,47 +1040,6 @@ namespace DataAccessRegistration {
 			}
 		}
 	}
-
-	static inline void removeAccessFromBottomMap(DataAccess *access)
-	{
-		assert(access != nullptr);
-		Task *task = access->getOriginator();
-		assert(task != nullptr);
-		Task *parent = task->getParent();
-		assert(parent != nullptr);
-		TaskDataAccesses &parentAccessStructures = parent->getDataAccesses();
-		assert(!parentAccessStructures.hasBeenDeleted());
-		std::lock_guard<TaskDataAccesses::spinlock_t> guard(parentAccessStructures._lock);
-
-		parentAccessStructures._subaccessBottomMap.processIntersecting(
-			access->getAccessRegion(),
-			[&](TaskDataAccesses::subaccess_bottom_map_t::iterator bottomMapPosition) -> bool {
-				BottomMapEntry *bottomMapEntry = &(*bottomMapPosition);
-				assert(bottomMapEntry != nullptr);
-				assert(access->getAccessRegion().fullyContainedIn(bottomMapEntry->getAccessRegion()));
-
-				if (bottomMapEntry->_link._task != task) {
-					/* not in the bottom map */
-					return true;
-				}
-				// assert(bottomMapEntry->_link._objectType == access->getObjectType());
-
-				if (access->getAccessRegion() == bottomMapEntry->getAccessRegion()) {
-					parentAccessStructures._subaccessBottomMap.erase(bottomMapEntry);
-					ObjectAllocator<BottomMapEntry>::deleteObject(bottomMapEntry);
-				} else {
-					fragmentBottomMapEntry(
-						bottomMapEntry, access->getAccessRegion(),
-						parentAccessStructures,
-						/* remove intersection */ true
-					);
-				}
-
-				return true;
-			}
-		);
-	}
-
 
 	static inline void removeBottomMapTaskwaitOrTopLevelSink( DataAccess *access, TaskDataAccesses &accessStructures,
 		__attribute__((unused)) Task *task
@@ -2830,10 +2787,10 @@ namespace DataAccessRegistration {
 						notSat = true;
 					}
 					if (notSat) {
-						accessOrFragment->setTopmost();
-						if (!accessOrFragment->receivedReductionInfo()) {
-							accessOrFragment->setReceivedReductionInfo();
-						}
+						// accessOrFragment->setTopmost();
+						// if (!accessOrFragment->receivedReductionInfo()) {
+						// 	accessOrFragment->setReceivedReductionInfo();
+						// }
 						accessOrFragment->unsetDataLinkStep();
 					}
 				} else if (isRemote && !isReleaseAccess) {
@@ -3730,6 +3687,34 @@ namespace DataAccessRegistration {
 		}
 #endif
 
+		// Needed for namespace support. If a remote task completes before one
+		// or all of its accesses have a successor (either due to timing or
+		// because it is the very last task using this array), then some or all
+		// of its accesses may still be in the bottom map, even though these
+		// accesses will have already been deleted. These accesses are removed
+		// from the bottom map here. This definitely needs to be done  before
+		// the task is destroyed (otherwise a dangling pointer to the task
+		// would be left in the bottom map).
+		Task *parent = task->getParent();
+		if (parent) {
+			TaskDataAccesses &parentAccessStructures = parent->getDataAccesses();
+			// TaskDataAccesses::accesses_t &parentAccesses = parentAccessStructures._accesses;
+			std::lock_guard<TaskDataAccesses::spinlock_t> guard(parentAccessStructures._lock);
+			parentAccessStructures._subaccessBottomMap.processAll(
+				[&](TaskDataAccesses::subaccess_bottom_map_t::iterator bottomMapPosition) -> bool {
+					BottomMapEntry *bottomMapEntry = &(*bottomMapPosition);
+					assert(bottomMapEntry != nullptr);
+
+					if (bottomMapEntry->_link._task == task) {
+						parentAccessStructures._subaccessBottomMap.erase(bottomMapEntry);
+						ObjectAllocator<BottomMapEntry>::deleteObject(bottomMapEntry);
+					}
+
+					return true;
+				}
+			);
+		}
+
 		{
 			std::lock_guard<TaskDataAccesses::spinlock_t> guard(accessStructures._lock);
 
@@ -3834,7 +3819,7 @@ namespace DataAccessRegistration {
 
 	void setNamespacePredecessor(Task *parent, DataAccessRegion region, ClusterNode *remoteNode, void *namespacePredecessor)
 	{
-		clusterCout << "setNamespacePredecessor " << parent->getLabel() << " region " << region << " id " << namespacePredecessor << "\n";
+		// clusterCout << "setNamespacePredecessor " << parent->getLabel() << " region " << region << " id " << namespacePredecessor << "\n";
 		// printTaskAccessesAndFragments("in setNamespacePredecessor", parent);
 		assert(parent != nullptr);
 
@@ -3847,20 +3832,20 @@ namespace DataAccessRegistration {
 			[&] (DataAccess *access, TaskDataAccesses &currentAccessStructures, Task *currentTask) {
 				(void)currentAccessStructures;
 				(void)currentTask;
-				std::cout << "setNamespacePredecessor " << access << "\n";
+				// std::cout << "setNamespacePredecessor " << access << "\n";
 				Task *previousTask = access->getOriginator();
 
 				if (!previousTask->isRemoteTask() ) {
-					clusterCout << "previous " << previousTask->getLabel() << " not remote!\n";
+					// clusterCout << "previous " << previousTask->getLabel() << " not remote!\n";
 					access->setNoNamespacePropagation();
 				} else {
 					TaskOffloading::ClusterTaskContext *prevContext = previousTask->getClusterContext();
 					ClusterNode *offloader = prevContext->getRemoteNode();
 					void *prevRemoteTaskIdentifier = prevContext->getRemoteIdentifier();
-					clusterCout << " prev nodes: " << offloader->getIndex() << " " << remoteNode->getIndex()
-								<< " prev ids: " << prevRemoteTaskIdentifier << " " << namespacePredecessor << "\n";
+					// clusterCout << " prev nodes: " << offloader->getIndex() << " " << remoteNode->getIndex()
+					// 				<< " prev ids: " << prevRemoteTaskIdentifier << " " << namespacePredecessor << "\n";
 					if (offloader != remoteNode || prevRemoteTaskIdentifier != namespacePredecessor) {
-						clusterCout << "so no namespace propagation\n";
+						// clusterCout << "so no namespace propagation\n";
 						access->setNoNamespacePropagation();
 					}
 				}
