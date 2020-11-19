@@ -119,6 +119,10 @@ void nanos6_preinit(void)
 	LeaderThread::initialize(leaderThreadCPU);
 
 	CPUManager::initialize();
+
+	if (ClusterManager::isMasterNode()) {
+		ClusterManager::initClusterNamespaceOrSetCallback(nullptr, nullptr);
+	}
 	Instrument::nanos6_preinit_finished();
 
 	// Assert config conditions if any

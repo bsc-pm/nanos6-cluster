@@ -115,7 +115,6 @@ void ClusterManager::initClusterNamespaceOrSetCallback(
 	void *args
 ) {
 	assert(_singleton != nullptr);
-	assert(!ClusterManager::isMasterNode());
 
 	EnvironmentVariable<bool> useNamespace("cluster.use_namespace");
 
@@ -137,6 +136,7 @@ void ClusterManager::shutdownPhase1()
 	if (inClusterMode()) {
 
 		if (isMasterNode()) {
+			NodeNamespace::notifyShutdown();
 			for (ClusterNode *slaveNode : _singleton->_clusterNodes) {
 				if (slaveNode != _singleton->_thisNode) {
 					MessageSysFinish msg(_singleton->_thisNode);

@@ -73,7 +73,6 @@ public:
 	static void init(void (*func)(void *), void *args)
 	{
 		assert(ClusterManager::inClusterMode() == true);
-		assert(ClusterManager::isMasterNode() == false);
 		assert(_singleton == nullptr);
 
 		_singleton = new NodeNamespace(func, args);
