@@ -404,6 +404,16 @@ namespace DataAccessRegistration {
 				// Being satisfied implies all predecessors (reduction or not) have been completed
 				&& access->satisfied();
 
+			if (access->hasDataReleaseStep()) {
+				ExecutionWorkflow::DataReleaseStep *releaseStep =
+					access->getDataReleaseStep();
+
+				_triggersDataRelease =
+					releaseStep->checkDataRelease(access, _isRemovable);
+			} else {
+				_triggersDataRelease = false;
+			}
+
 			_isRemovable = access->propagatedInRemoteNamespace() ||
 				(access->isTopmost()
 				&& access->readSatisfied() && access->writeSatisfied()
@@ -415,7 +425,7 @@ namespace DataAccessRegistration {
 				&& access->complete()
 				&& (
 					!access->isInBottomMap() || access->hasNext()
-					|| access->getOriginator()->isRemoteTask()
+					|| _triggersDataRelease // access->getOriginator()->isRemoteTask()
 					|| (access->getType() == NO_ACCESS_TYPE)
 					|| (access->getObjectType() == taskwait_type)
 					|| (access->getObjectType() == top_level_sink_type)
@@ -428,16 +438,6 @@ namespace DataAccessRegistration {
 										&& access->readSatisfied()
 										&& access->writeSatisfied()
 										&& access->hasOutputLocation();
-
-			if (access->hasDataReleaseStep()) {
-				ExecutionWorkflow::DataReleaseStep *releaseStep =
-					access->getDataReleaseStep();
-
-				_triggersDataRelease =
-					releaseStep->checkDataRelease(access, _isRemovable);
-			} else {
-				_triggersDataRelease = false;
-			}
 
 			_triggersDataLinkRead = access->hasDataLinkStep()
 									&& access->readSatisfied();
@@ -3707,8 +3707,17 @@ namespace DataAccessRegistration {
 					assert(bottomMapEntry != nullptr);
 
 					if (bottomMapEntry->_link._task == task) {
+						DataAccessRegion region = bottomMapEntry->getAccessRegion();
 						parentAccessStructures._subaccessBottomMap.erase(bottomMapEntry);
 						ObjectAllocator<BottomMapEntry>::deleteObject(bottomMapEntry);
+						accessStructures._accesses.processIntersecting(
+							region,
+							[&](TaskDataAccesses::accesses_t::iterator position) -> bool {
+								DataAccess *dataAccess = &(*position);
+								dataAccess->unsetInBottomMap();
+								return true;
+							}
+						);
 					}
 
 					return true;
