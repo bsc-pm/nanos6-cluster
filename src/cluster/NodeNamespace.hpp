@@ -9,10 +9,12 @@
 #define NODENAMESPACE_H
 
 #include <deque>
+#include <unistd.h>
 
 #include "ClusterManager.hpp"
 #include "messages/MessageTaskNew.hpp"
 #include "tasks/Task.hpp"
+#include <ClusterUtil.hpp>
 
 
 class NodeNamespace {
@@ -108,7 +110,25 @@ public:
 	static void deallocate()
 	{
 		assert(_singleton->_mustShutdown.load() == true);
-		assert(_singleton->_callback.getCounterValue() == 0);
+
+		/*
+		 * TODO: the shutdown procedure on node 0 should start when both main
+		 * and the NodeNamespace have finished. Currently it starts when the
+		 * callback from main is called, i.e. once main has finished.  If main
+		 * has finished, then the NodeNamespace on node 0 should have finished
+		 * executing tasks, but there is a race condition between (a) sending
+		 * the completion messages among nodes, ultimately back to node 0 and
+		 * finishing main and (b) finalizing the NodeNamespace task on node 0.
+		 * This race condition is much more likely when there is more than one
+		 * MPI rank (="node" within Nanos6) per physical node. This is a hack
+		 * that will serve for now.
+		 */
+		if (_singleton->_callback.getCounterValue() > 0) {
+			clusterCout << "Waiting for NodeNamespace callback counter to become zero...\n";
+			while (_singleton->_callback.getCounterValue() > 0) {
+				sleep(1);
+			}
+		}
 
 		delete _singleton;
 		_singleton = nullptr;
