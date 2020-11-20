@@ -3697,7 +3697,7 @@ namespace DataAccessRegistration {
 		// the task is destroyed (otherwise a dangling pointer to the task
 		// would be left in the bottom map).
 		Task *parent = task->getParent();
-		if (parent) {
+		if (parent && parent->isNodeNamespace()) {
 			TaskDataAccesses &parentAccessStructures = parent->getDataAccesses();
 			// TaskDataAccesses::accesses_t &parentAccesses = parentAccessStructures._accesses;
 			std::lock_guard<TaskDataAccesses::spinlock_t> guard(parentAccessStructures._lock);
