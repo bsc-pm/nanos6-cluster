@@ -91,7 +91,7 @@ namespace DataAccessRegistration {
 		MemoryPlace const *location
 	);
 
-	void setNamespacePredecessor(Task *parentTask, DataAccessRegion region, ClusterNode *remoteNode, void *namespacePredecessor);
+	void setNamespacePredecessor(Task *task, Task *parentTask, DataAccessRegion region, ClusterNode *remoteNode, void *namespacePredecessor);
 
 	void handleEnterTaskwait(Task *task, ComputePlace *computePlace, CPUDependencyData &dependencyData);
 

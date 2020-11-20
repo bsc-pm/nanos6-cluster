@@ -239,13 +239,6 @@ namespace TaskOffloading {
 		void *remoteTaskIdentifier = msg->getOffloadedTaskId();
 		ClusterNode *remoteNode = ClusterManager::getClusterNode(msg->getSenderId());
 
-		// Check satisfiability for noRemotePropagation
-		size_t numSatInfo;
-		TaskOffloading::SatisfiabilityInfo *satInfo = msg->getSatisfiabilityInfo(numSatInfo);
-		for (size_t i = 0; i < numSatInfo; ++i) {
-			DataAccessRegistration::setNamespacePredecessor(parent, satInfo[i]._region, remoteNode, satInfo[i]._namespacePredecessor);
-		}
-
 		// Create the task with no dependencies. Treat this call
 		// as user code since we are inside a spawned task context
 		Task *task = AddTask::createTask(
@@ -254,6 +247,13 @@ namespace TaskOffloading {
 			msg->getFlags(), 0, true
 		);
 		assert(task != nullptr);
+
+		// Check satisfiability for noRemotePropagation
+		size_t numSatInfo;
+		TaskOffloading::SatisfiabilityInfo *satInfo = msg->getSatisfiabilityInfo(numSatInfo);
+		for (size_t i = 0; i < numSatInfo; ++i) {
+			DataAccessRegistration::setNamespacePredecessor(task, parent, satInfo[i]._region, remoteNode, satInfo[i]._namespacePredecessor);
+		}
 
 		void *argsBlockPtr = task->getArgsBlock();
 		if (argsBlockSize != 0) {

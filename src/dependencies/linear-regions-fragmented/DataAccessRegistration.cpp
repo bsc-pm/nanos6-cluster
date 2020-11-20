@@ -53,7 +53,7 @@ namespace DataAccessRegistration {
 	 */
 	void printTaskAccessesAndFragments(const char *desc, Task *task)
 	{
-		std::cout << desc << task->getLabel() << "\n";
+		clusterCout << desc << task->getLabel() << "\n";
 
 		assert(task != nullptr);
 		TaskDataAccesses &accessStructures = task->getDataAccesses();
@@ -2430,7 +2430,7 @@ namespace DataAccessRegistration {
 				/*
 				 * Link the dataAccess and unset
 				 */
-				if (previous->noNamespacePropagation()) {
+				if (parent->isNodeNamespace() && previous->getNamespaceSuccessor() != dataAccess->getOriginator()) {
 					// No namespace propagation: do not set as next. Instead set the topmost bit
 					// and that it is received the reduction info, both of which will be needed
 					// to delete the access later.
@@ -3827,11 +3827,45 @@ namespace DataAccessRegistration {
 #endif
 	}
 
-	void setNamespacePredecessor(Task *parent, DataAccessRegion region, ClusterNode *remoteNode, void *namespacePredecessor)
+	/*
+	 * Link accesses inside a namespace. The sequence of operations is:
+	 *
+	 *   (1)  TaskOffloading::remoteTaskCreateAndSubmit creates the task.
+	 *   (2)  setNamespacePredecessor checks the bottom map of the namespace and,
+	 *        if the task on the bottom map matches namespacePredecessor provided
+	 *        by the offloader node, it sets that task's namespaceSuccessor to the
+	 *        newly-created offloaded task.
+	 *   (3)  The newly offloaded task is submitted and registered in the
+	 *        dependency system.
+	 *   (4a) If there is no race condition, i.e. no new task was added to the
+	 *        namespace's bottom map for this region between (1) and (4a), then
+	 *        linkTaskAccesses will find that the task on the bottom map (still)
+	 *        has a namespaceSuccessor that matches the new task, so remote 
+	 *        propagation will be enabled.
+	 *   (4b) In case of a race condition, a different task will be on the bottom
+	 *        map for this region, and its namespaceSuccessor will either be
+	 *        nullptr or maybe even a different task. Alteratively there may no
+	 *        longer be any task on the bottom map. In either case it is impossible
+	 *        for there to be a different task on the bottom map whose
+	 *        namespaceSuccessor is our new task. In this case remote namespace
+	 *        propagation will be disabled.
+	 *
+	 * A cleaner alternative may be to store the namespacePredecessor in the
+	 * data access rather than the namespaceSuccessor, and change the condition in
+	 * replaceMatchingInBottomMapLinkAndPropagate in the natural way. But there
+	 * seems to be no clean way to do this. This would require setting the
+	 * namespacePredecessor within registerTaskDataAccesses, and that would
+	 * need a new interface between registerTaskDataAccesses and 
+	 * TaskOffloading::remoteTaskCreateAndSubmit (e.g. a callback) that doesn't
+	 * exist. In the end it would likely be no more convoluted than this way of
+	 * doing it.
+	 */
+	void setNamespacePredecessor(Task *task, Task *parent, DataAccessRegion region, ClusterNode *remoteNode, void *namespacePredecessor)
 	{
 		// clusterCout << "setNamespacePredecessor " << parent->getLabel() << " region " << region << " id " << namespacePredecessor << "\n";
 		// printTaskAccessesAndFragments("in setNamespacePredecessor", parent);
 		assert(parent != nullptr);
+		assert(parent->isNodeNamespace());
 
 		TaskDataAccesses &parentAccessStructures = parent->getDataAccesses();
 		assert(!parentAccessStructures.hasBeenDeleted());
@@ -3842,22 +3876,17 @@ namespace DataAccessRegistration {
 			[&] (DataAccess *access, TaskDataAccesses &currentAccessStructures, Task *currentTask) {
 				(void)currentAccessStructures;
 				(void)currentTask;
-				// std::cout << "setNamespacePredecessor " << access << "\n";
-				Task *previousTask = access->getOriginator();
 
-				if (!previousTask->isRemoteTask() ) {
-					// clusterCout << "previous " << previousTask->getLabel() << " not remote!\n";
-					access->setNoNamespacePropagation();
-				} else {
-					TaskOffloading::ClusterTaskContext *prevContext = previousTask->getClusterContext();
-					ClusterNode *offloader = prevContext->getRemoteNode();
-					void *prevRemoteTaskIdentifier = prevContext->getRemoteIdentifier();
-					// clusterCout << " prev nodes: " << offloader->getIndex() << " " << remoteNode->getIndex()
-					// 				<< " prev ids: " << prevRemoteTaskIdentifier << " " << namespacePredecessor << "\n";
-					if (offloader != remoteNode || prevRemoteTaskIdentifier != namespacePredecessor) {
-						// clusterCout << "so no namespace propagation\n";
-						access->setNoNamespacePropagation();
-					}
+				Task *previousTask = access->getOriginator();
+				assert(previousTask->isRemoteTask());
+
+				/* Does the previous task match the offloading task and remote ID? */
+				TaskOffloading::ClusterTaskContext *prevContext = previousTask->getClusterContext();
+				ClusterNode *offloader = prevContext->getRemoteNode();
+				void *prevRemoteTaskIdentifier = prevContext->getRemoteIdentifier();
+				if (offloader != remoteNode || prevRemoteTaskIdentifier != namespacePredecessor) {
+					// Match, so set the namespace successor
+					access->setNamespaceSuccessor(task);
 				}
 
 			},

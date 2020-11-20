@@ -72,7 +72,6 @@ private:
 		HAS_BEEN_DISCOUNTED_BIT,
 #endif
 		PROPAGATED_IN_REMOTE_NAMESPACE,
-		NO_NAMESPACE_PROPAGATE_NEXT_BIT,
 		TOTAL_STATUS_BITS
 	};
 
@@ -124,6 +123,7 @@ private:
 
 	int _validNamespace;
 	Task *_namespacePredecessor;
+	Task *_namespaceSuccessor;
 
 public:
 	DataAccess(
@@ -155,7 +155,8 @@ public:
 		_dataReleaseStep(dataReleaseStep),
 		_dataLinkStep(dataLinkStep),
 		_validNamespace(VALID_NAMESPACE_UNKNOWN),
-		_namespacePredecessor(nullptr)
+		_namespacePredecessor(nullptr),
+		_namespaceSuccessor(nullptr)
 	{
 		assert(originator != nullptr);
 
@@ -185,7 +186,8 @@ public:
 		_dataReleaseStep(other.getDataReleaseStep()),
 		_dataLinkStep(other.getDataLinkStep()),
 		_validNamespace(other.getValidNamespace()),
-		_namespacePredecessor(other.getNamespacePredecessor())
+		_namespacePredecessor(other.getNamespacePredecessor()),
+		_namespaceSuccessor(other.getNamespaceSuccessor())
 	{}
 
 	~DataAccess()
@@ -786,14 +788,14 @@ public:
 		_namespacePredecessor = namespacePredecessor;
 	}
 
-	bool noNamespacePropagation() const
+	Task *getNamespaceSuccessor() const
 	{
-		return _status[NO_NAMESPACE_PROPAGATE_NEXT_BIT];
+		return _namespaceSuccessor;
 	}
 
-	void setNoNamespacePropagation()
+	void setNamespaceSuccessor(Task *namespaceSuccessor)
 	{
-		_status[NO_NAMESPACE_PROPAGATE_NEXT_BIT] = true;
+		_namespaceSuccessor = namespaceSuccessor;
 	}
 
 };
