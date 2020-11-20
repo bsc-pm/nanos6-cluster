@@ -1526,10 +1526,7 @@ namespace DataAccessRegistration {
 
 		DataAccessStatusEffects initialStatus(access);
 
-		/* Calculate the valid namespace.
-		 * NOTE: this assumes that ready tasks are scheduled in order, even if they
-		 * are weak. This appears to be the case with the default scheduler.
-		 */
+		// Calculate the valid namespace.
 		access->setValidNamespace(updateOperation._validNamespace, updateOperation._namespacePredecessor);
 
 		if (updateOperation._makeReadSatisfied) {
@@ -3884,7 +3881,7 @@ namespace DataAccessRegistration {
 				TaskOffloading::ClusterTaskContext *prevContext = previousTask->getClusterContext();
 				ClusterNode *offloader = prevContext->getRemoteNode();
 				void *prevRemoteTaskIdentifier = prevContext->getRemoteIdentifier();
-				if (offloader != remoteNode || prevRemoteTaskIdentifier != namespacePredecessor) {
+				if (offloader == remoteNode && prevRemoteTaskIdentifier == namespacePredecessor) {
 					// Match, so set the namespace successor
 					access->setNamespaceSuccessor(task);
 				}
