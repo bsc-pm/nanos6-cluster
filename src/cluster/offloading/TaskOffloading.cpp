@@ -288,6 +288,17 @@ namespace TaskOffloading {
 		assert(remoteTaskInfo._localTask == nullptr);
 		remoteTaskInfo._localTask = task;
 
+		// TODO: This is a workaround for the case where the task actually
+		// executes and finishes before we leave this function (and release
+		// remoteTaskInfo._lock). When this happens the remoteTaskInfo is
+		// actually destroyed inside the same thread (i.e. as a nested function
+		// call inside AddTask::submitTask or propagateSatisfiability). This
+		// raises an assertion in the debug build (lock destroyed while held by
+		// the same thread) and would be potential memory corruption otherwise.
+		// This is a workaround that stops this happening, but it does cause
+		// a memory leak on the remoteTaskInfos.
+		remoteTaskInfo._taskBeingConstructed = true;
+
 		// Submit the task
 		AddTask::submitTask(task, parent, true);
 
@@ -303,6 +314,7 @@ namespace TaskOffloading {
 			propagateSatisfiability(task, sat);
 		}
 
+		remoteTaskInfo._taskBeingConstructed = false;
 		remoteTaskInfo._satInfo.clear();
 	}
 
