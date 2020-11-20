@@ -104,12 +104,23 @@ void NodeNamespace::bodyPrivate()
 			Instrument::stateNodeNamespace(2);
 		}
 	}
-	_callback.decrement();
+
+	/* Don't decrement the callback here. The callback is actually decremented
+	 * in TaskFinalization::disposeTask when the namespace task is actually
+	 * destroyed.  Otherwise it is possible for the NodeNamespace to be
+	 * deallocated before the Task itself is destroyed. Later,
+	 * TaskFinalization::taskFinished will need to call Task::hasFinished, and
+	 * this needs the taskImplementationInfo, which is part of the
+	 * NodeNamespace singleton.
+	 */
+	// _callback.decrement();
 }
 
 void NodeNamespace::callbackDecrementPrivate()
 {
-	if (_callback.decrement() == 0) {
+	int countdown = _callback.decrement();
+	assert (countdown >= 0);
+	if (countdown == 0) {
 		clusterPrintf("Decremented reached zero\n");
 		Instrument::stateNodeNamespace(0);
 	}

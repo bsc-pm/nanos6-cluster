@@ -181,8 +181,10 @@ void TaskFinalization::disposeTask(Task *task)
 				assert(executor != nullptr);
 				executor->decreaseCallbackParticipants(spawnCallback);
 			} else if (NodeNamespace::isEnabled()
-				&& parent != nullptr
-				&& parent->isNodeNamespace()) {
+						&& (task->isNodeNamespace()
+							|| (parent != nullptr
+								&& parent->isNodeNamespace())
+						   )) {
 
 				NodeNamespace::callbackDecrement();
 			}
