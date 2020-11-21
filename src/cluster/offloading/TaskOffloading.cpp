@@ -109,14 +109,14 @@ namespace TaskOffloading {
 
 	void sendRemoteTaskFinished(void *offloadedTaskId, ClusterNode *offloader)
 	{
-		clusterPrintf("Sending taskfinished for: %p %d\n", offloadedTaskId, offloader->getIndex());
+		// clusterPrintf("Sending taskfinished for: %p %d\n", offloadedTaskId, offloader->getIndex());
 		// Unregister remote tasks first
 		assert(offloadedTaskId != nullptr);
 		assert(offloader != nullptr);
 		RemoteTasksInfoMap::eraseRemoteTaskInfo(offloadedTaskId, offloader->getIndex());
 
-		clusterPrintf("Sending sendRemoteTaskFinished remote task %p %d\n",
-			offloadedTaskId, offloader->getIndex());
+		// clusterPrintf("Sending sendRemoteTaskFinished remote task %p %d\n",
+			// offloadedTaskId, offloader->getIndex());
 
 		// The notify back sending message
 		MessageTaskFinished *msg =
@@ -181,10 +181,10 @@ namespace TaskOffloading {
 		std::stringstream ss;
 		ss << region;
 
-		clusterPrintf("Sending MessageReleaseAccess remote task %p [%s] to %d\n",
-			offloadedTaskId,
-			ss.str().c_str(),
-			offloader->getIndex());
+		// clusterPrintf("Sending MessageReleaseAccess remote task %p [%s] to %d\n",
+		// 	offloadedTaskId,
+		// 	ss.str().c_str(),
+		// 	offloader->getIndex());
 
 		MessageReleaseAccess *msg =
 			new MessageReleaseAccess(current, offloadedTaskId, region, type, weak, location->getIndex());

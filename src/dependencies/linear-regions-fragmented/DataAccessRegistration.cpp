@@ -3068,6 +3068,7 @@ namespace DataAccessRegistration {
 
 				// Unlock to avoid potential deadlock
 				if (previous._task != task) {
+					// std::cout << "me: " << task->getLabel() << " previous: " << previous._task->getLabel() << "\n";
 					accessStructures._lock.unlock();
 					previousAccessStructures._lock.lock();
 				}

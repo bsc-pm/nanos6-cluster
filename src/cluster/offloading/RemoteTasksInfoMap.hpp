@@ -69,7 +69,7 @@ namespace TaskOffloading {
 		{
 			auto key = std::make_pair(offloadTaskId, offloaderId);
 
-			clusterPrintf("Adding remoteTaskInfo %p %d\n", offloadTaskId, offloaderId);
+			// clusterPrintf("Adding remoteTaskInfo %p %d\n", offloadTaskId, offloaderId);
 			std::lock_guard<PaddedSpinLock<>> guard(_lock);
 			return _taskMap[key];
 		}
@@ -82,7 +82,7 @@ namespace TaskOffloading {
 
 			std::lock_guard<PaddedSpinLock<>> guard(_lock);
 
-			clusterPrintf("Removing remoteTaskInfo %p %d\n", offloadTaskId, offloaderId);
+			// clusterPrintf("Removing remoteTaskInfo %p %d\n", offloadTaskId, offloaderId);
 			//std::cout << clusterBacktrace() << std::endl;
 
 			remote_map_t::iterator it = _taskMap.find(key);

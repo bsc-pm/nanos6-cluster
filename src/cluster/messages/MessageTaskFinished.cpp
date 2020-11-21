@@ -6,6 +6,7 @@
 
 #include "MessageTaskFinished.hpp"
 #include "tasks/Task.hpp"
+#include <ClusterUtil.hpp>
 
 MessageTaskFinished::MessageTaskFinished(const ClusterNode *from,
 		void *offloadedTaskId)
@@ -21,15 +22,11 @@ bool MessageTaskFinished::handleMessage()
 	ExecutionWorkflow::Step *step = task->getExecutionStep();
 	assert(step != nullptr);
 
+	clusterCout << "Handle MessageTaskFinished for task " << task->getLabel() << "\n";
+
 	task->setExecutionStep(nullptr);
 	step->releaseSuccessors();
 	delete step;
-
-	printf("Node %d: Handle MessageTaskFinished %p for task %p\n",
-		ClusterManager::getCurrentClusterNode()->getIndex(),
-		this,
-		_content->_offloadedTaskId
-	);
 
 	return true;
 }

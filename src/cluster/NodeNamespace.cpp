@@ -121,10 +121,10 @@ void NodeNamespace::callbackDecrementPrivate()
 	int countdown = _callback.decrement();
 	assert (countdown >= 0);
 	if (countdown == 0) {
-		clusterPrintf("Decremented reached zero\n");
+		// clusterPrintf("Decremented reached zero\n");
 		Instrument::stateNodeNamespace(0);
 	}
-	clusterPrintf("Decremented reached something else\n");
+	// clusterPrintf("Decremented reached something else\n");
 }
 
 

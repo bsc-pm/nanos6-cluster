@@ -4,10 +4,12 @@
 	Copyright (C) 2019 Barcelona Supercomputing Center (BSC)
 */
 
+#include "tasks/Task.hpp"
 #include "MessageReleaseAccess.hpp"
 
 #include <ClusterManager.hpp>
 #include <TaskOffloading.hpp>
+#include <ClusterUtil.hpp>
 
 MessageReleaseAccess::MessageReleaseAccess(const ClusterNode *from,
 		void *offloadedTaskId, DataAccessRegion const &region,
@@ -27,14 +29,8 @@ bool MessageReleaseAccess::handleMessage()
 	ClusterMemoryNode *memoryPlace =
 		ClusterManager::getMemoryNode(_content->_location);
 
-	std::stringstream ss;
-	ss << _content->_region;
-
-	printf("Node %d: Handle MessageReleaseAccess task %p [%s]\n",
-		ClusterManager::getCurrentClusterNode()->getIndex(),
-		_content->_offloadedTaskId,
-		ss.str().c_str()
-	);
+	Task *task = (Task *)_content->_offloadedTaskId;
+	clusterCout << "Handle MessageReleaseAccess " << task->getLabel() << " " << _content->_region << "\n";
 
 	TaskOffloading::releaseRemoteAccess((Task *)_content->_offloadedTaskId,
 			_content->_region, _content->_type, _content->_weak, memoryPlace);
