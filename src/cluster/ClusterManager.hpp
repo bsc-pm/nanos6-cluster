@@ -109,7 +109,7 @@ public:
 	{
 		assert(id >= 0);
 		assert(!_singleton->_clusterNodes.empty());
-		assert(id < _singleton->_clusterNodes.size());
+		assert((size_t)id < _singleton->_clusterNodes.size());
 
 		return _singleton->_clusterNodes[id];
 	}
