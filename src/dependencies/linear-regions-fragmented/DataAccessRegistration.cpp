@@ -2434,9 +2434,17 @@ namespace DataAccessRegistration {
 				if (parent->isNodeNamespace() && previous->getNamespaceSuccessor() != dataAccess->getOriginator()) {
 					// No namespace propagation: do not set as next. Instead set the topmost bit
 					// and that it is received the reduction info, both of which will be needed
-					// to delete the access later.
-					dataAccess->setTopmost();
-					dataAccess->setReceivedReductionInfo();
+					// to delete the access later. We are inside a lambda supplied to
+					// foreachBottomMapMatchPossiblyCreatingInitialFragmentsAndMissingRegion
+					// because the predecessor task may have created children that fragmented the
+					// access in the bottom map. So we may do this same code multiple times for the
+					// same dataAccess (each time with the same decision on whether to propagate in
+					// the namespace). In that case only set topmost and received reduction info
+					// for the first subaccess.
+					if (!dataAccess->isTopmost()) {
+						dataAccess->setTopmost();
+						dataAccess->setReceivedReductionInfo();
+					}
 				} else {
 					// Normal propagation: set the new access to be the next access after the
 					// access that was in the bottom map.
