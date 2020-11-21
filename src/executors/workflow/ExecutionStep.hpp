@@ -16,6 +16,7 @@
 
 struct DataAccess;
 class MemoryPlace;
+class Task;
 
 namespace ExecutionWorkflow {
 
@@ -143,6 +144,8 @@ namespace ExecutionWorkflow {
 		std::atomic<size_t> _bytesToRelease;
 
 	public:
+		Task *_task;
+
 		//! \brief Create a DataReleaseStep
 		//!
 		//! Create a DataReleaseStep associated with a DataAccess. This

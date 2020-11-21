@@ -22,7 +22,8 @@ namespace ExecutionWorkflow {
 		: Step(),
 		_type(access->getType()),
 		_weak(access->isWeak()),
-		_bytesToRelease(access->getAccessRegion().getSize())
+		_bytesToRelease(access->getAccessRegion().getSize()),
+		_task(access->getOriginator())
 	{
 	}
 }

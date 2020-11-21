@@ -277,6 +277,17 @@ namespace DataAccessRegistration {
 
 			// Propagation to next
 			if (_hasNext) {
+				bool nextWrongOffloaded = false;
+				Task *nextTask = access->getNext()._task;
+				if ((nextTask->getParent() != nullptr)
+					&& nextTask->getParent()->isNodeNamespace()) {
+						if (access->hasDataReleaseStep()) {
+							Task *myReleaseTask = access->getDataReleaseStep()->_task;
+							if (nextTask != myReleaseTask) {
+								nextWrongOffloaded = true;
+							}
+						}
+				}
 				assert(access->getObjectType() != taskwait_type);
 				assert(access->getObjectType() != top_level_sink_type);
 
@@ -300,7 +311,7 @@ namespace DataAccessRegistration {
 						&& ((access->getType() != WRITE_ACCESS_TYPE) && (access->getType() != READWRITE_ACCESS_TYPE));
 					_propagatesReductionSlotSetToNext = false; // ReductionSlotSet is propagated through the fragments
 					// Occasionally data release step needs to be propagated here
-					_propagatesDataReleaseStepToNext = access->complete() && access->hasDataReleaseStep();
+					_propagatesDataReleaseStepToNext = access->complete() && access->hasDataReleaseStep() && !nextWrongOffloaded;
 				} else if (
 					(access->getObjectType() == fragment_type)
 					|| (access->getObjectType() == taskwait_type)
@@ -324,8 +335,8 @@ namespace DataAccessRegistration {
 						&& access->receivedReductionInfo()
 						&& !access->closesReduction()
 						&& (access->allocatedReductionInfo()
-							|| access->receivedReductionSlotSet());
-					_propagatesDataReleaseStepToNext = access->hasDataReleaseStep();
+								|| access->receivedReductionSlotSet());
+					_propagatesDataReleaseStepToNext = access->hasDataReleaseStep() && !nextWrongOffloaded;
 				} else {
 					assert(access->getObjectType() == access_type);
 					assert(!access->hasSubaccesses());
@@ -370,7 +381,7 @@ namespace DataAccessRegistration {
 						&& (access->allocatedReductionInfo()
 							|| access->receivedReductionSlotSet());
 					_propagatesDataReleaseStepToNext =
-						access->hasDataReleaseStep() && access->complete();
+						access->hasDataReleaseStep() && access->complete() && !nextWrongOffloaded;
 				}
 			} else {
 				assert(!access->hasNext());
@@ -1092,6 +1103,7 @@ namespace DataAccessRegistration {
 				originalAccess->setLocation(access->getLocation());
 
 				if (dataReleaseStep) {
+
 					originalAccess->setDataReleaseStep(dataReleaseStep);
 				}
 
@@ -1565,19 +1577,6 @@ namespace DataAccessRegistration {
 			access->setCommutativeSatisfied();
 		}
 		if (updateOperation._releaseStep != nullptr) {
-			if (access->hasDataReleaseStep()) {
-
-				/*
-				 * This means that an earlier offloaded task had its data release step propagated to
-				 * dependent tasks inside the namespace. This data release step is now overtaken by
-				 * the data release step for a later dependent task in the namespace. TODO: don't
-				 * allow the data release step to be propagated from one remote task to another.
-				 */
-				ExecutionWorkflow::DataReleaseStep *oldReleaseStep = access->getDataReleaseStep();
-				assert(updateOperation._releaseStep != access->getDataReleaseStep());
-				oldReleaseStep->releaseRegion(access->getAccessRegion(), nullptr);
-				access->unsetDataReleaseStep();
-			}
 			access->setDataReleaseStep(updateOperation._releaseStep);
 		}
 
