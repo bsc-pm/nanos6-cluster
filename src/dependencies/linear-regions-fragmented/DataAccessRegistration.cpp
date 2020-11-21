@@ -3352,8 +3352,8 @@ namespace DataAccessRegistration {
 
 		TaskDataAccesses &accessStructures = task->getDataAccesses();
 
-		printf("Node %d: Release acceses for Task: %p -> %p\n",
-			nanos6_get_cluster_node_id(), task, &accessStructures);
+		// printf("Node %d: Release acceses for Task: %p -> %p\n",
+		// nanos6_get_cluster_node_id(), task, &accessStructures);
 
 		assert(!accessStructures.hasBeenDeleted());
 		TaskDataAccesses::accesses_t &accesses = accessStructures._accesses;
