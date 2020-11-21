@@ -2432,19 +2432,61 @@ namespace DataAccessRegistration {
 				 * Link the dataAccess and unset
 				 */
 				if (parent->isNodeNamespace() && previous->getNamespaceSuccessor() != dataAccess->getOriginator()) {
-					// No namespace propagation: do not set as next. Instead set the topmost bit
-					// and that it is received the reduction info, both of which will be needed
-					// to delete the access later. We are inside a lambda supplied to
-					// foreachBottomMapMatchPossiblyCreatingInitialFragmentsAndMissingRegion
-					// because the predecessor task may have created children that fragmented the
-					// access in the bottom map. So we may do this same code multiple times for the
-					// same dataAccess (each time with the same decision on whether to propagate in
-					// the namespace). In that case only set topmost and received reduction info
-					// for the first subaccess.
-					if (!dataAccess->isTopmost()) {
-						dataAccess->setTopmost();
-						dataAccess->setReceivedReductionInfo();
-					}
+
+					// No namespace propagation. Need to set Topmost and set up reduction info in a similar way
+					// to the missing-from-bottom-map case below (in the second lambda).
+					DataAccessRegion previousRegion = previous->getAccessRegion();
+					accessStructures._accesses.processIntersecting(
+						previousRegion,
+						[&](TaskDataAccesses::accesses_t::iterator position) -> bool {
+							DataAccess *targetAccess = &(*position);
+							assert(targetAccess != nullptr);
+							assert(!targetAccess->hasBeenDiscounted());
+
+							// We need to allocate the reductionInfo before fragmenting the access
+							// (this might not work!)
+							if ((dataAccess->getType() == REDUCTION_ACCESS_TYPE) && !hasAllocatedReductionInfo) {
+								hasAllocatedReductionInfo = true;
+
+								DataAccessStatusEffects initialStatusR(dataAccess);
+								allocateReductionInfo(*dataAccess, *next._task);
+								DataAccessStatusEffects updatedStatusR(dataAccess);
+
+								handleDataAccessStatusChanges(
+									initialStatusR, updatedStatusR,
+									dataAccess, accessStructures, next._task,
+									hpDependencyData
+								);
+							}
+
+							targetAccess = fragmentAccess(targetAccess, previousRegion, accessStructures);
+
+							DataAccessStatusEffects initialStatusT(targetAccess);
+
+							targetAccess->setConcurrentSatisfied(); // ?
+							targetAccess->setCommutativeSatisfied(); // ?
+
+							targetAccess->setTopLevel();
+							targetAccess->setReceivedReductionInfo();
+
+							// Note: setting ReductionSlotSet as received is not necessary, as its not always propagated
+							targetAccess->setTopmost();
+							DataAccessStatusEffects updatedStatusT(targetAccess);
+
+							// TODO: We could mark in the task that there are local accesses (and remove the mark in taskwaits)
+
+							handleDataAccessStatusChanges(
+								initialStatusT, updatedStatusT,
+								targetAccess, accessStructures, next._task,
+								hpDependencyData
+							);
+
+							/* keep going with the other task data accesses that intersect this
+							 * hole in the bottom map */
+							return true;
+						}
+					);
+
 				} else {
 					// Normal propagation: set the new access to be the next access after the
 					// access that was in the bottom map.
@@ -2484,7 +2526,6 @@ namespace DataAccessRegistration {
 #endif
 
 				// NOTE: holes in the parent bottom map that are not in the parent accesses become fully satisfied
-
 				accessStructures._accesses.processIntersecting(
 					missingRegion,
 					[&](TaskDataAccesses::accesses_t::iterator position) -> bool {
@@ -2520,7 +2561,9 @@ namespace DataAccessRegistration {
 						}
 						targetAccess->setConcurrentSatisfied();
 						targetAccess->setCommutativeSatisfied();
+
 						targetAccess->setReceivedReductionInfo();
+
 						// Note: setting ReductionSlotSet as received is not necessary, as its not always propagated
 						targetAccess->setTopmost();
 						targetAccess->setTopLevel();
