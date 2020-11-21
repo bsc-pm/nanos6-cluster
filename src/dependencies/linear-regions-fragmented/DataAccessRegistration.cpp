@@ -1545,13 +1545,18 @@ namespace DataAccessRegistration {
 			if (access->readSatisfied()) {
 				/*
 				 * If two tasks A and B are offloaded to the same namespace,
-				 * and both have in dependencies, then read satisfiability is
-				 * propagated from A to B both inside the remote namespace
-				 * (this is the normal optimization from a namespace) and in
-				 * the offloader's dependency system. So task B receives
-				 * read satisfiability twice. This is harmless.
+				 * and A has an in dependency, then at the remote side, read
+				 * satisfiability is propagated from A to B both via the
+				 * offloader's dependency system and via remote propagation in
+				 * the remote namespace (this is the normal optimization from a
+				 * namespace). So task B receives read satisfiability twice.
+				 * This is harmless.  TODO: It would be good to add an
+				 * assertion to make sure that read satisfiability arrives
+				 * twice only in the circumstance described here, but we can no
+				 * longer check what type of dependency the access of task A
+				 * had (in fact the access may already have been deleted). This
+				 * info would have to be added to the UpdateOperation.
 				 */
-				assert(access->getType() == READ_ACCESS_TYPE);
 				assert(access->getOriginator()->isRemoteTask());
 			} else {
 				access->setReadSatisfied(updateOperation._location);
