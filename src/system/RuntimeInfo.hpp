@@ -151,6 +151,7 @@ public:
 
 	static void shutdown()
 	{
+		_lock.lock();
 		for (nanos6_runtime_info_entry_t entry : _contents) {
 			free((void *) entry.name);
 			free((void *) entry.description);
@@ -159,6 +160,7 @@ public:
 			}
 			free((void *) entry.units);
 		}
+		_lock.unlock();
 	}
 };
 
