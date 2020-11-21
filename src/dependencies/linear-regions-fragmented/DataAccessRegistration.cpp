@@ -311,7 +311,7 @@ namespace DataAccessRegistration {
 						&& ((access->getType() != WRITE_ACCESS_TYPE) && (access->getType() != READWRITE_ACCESS_TYPE));
 					_propagatesReductionSlotSetToNext = false; // ReductionSlotSet is propagated through the fragments
 					// Occasionally data release step needs to be propagated here
-					_propagatesDataReleaseStepToNext = access->complete() && access->hasDataReleaseStep() && !nextWrongOffloaded;
+					_propagatesDataReleaseStepToNext = access->hasDataReleaseStep() && !nextWrongOffloaded;
 				} else if (
 					(access->getObjectType() == fragment_type)
 					|| (access->getObjectType() == taskwait_type)
@@ -381,7 +381,7 @@ namespace DataAccessRegistration {
 						&& (access->allocatedReductionInfo()
 							|| access->receivedReductionSlotSet());
 					_propagatesDataReleaseStepToNext =
-						access->hasDataReleaseStep() && access->complete() && !nextWrongOffloaded;
+						access->hasDataReleaseStep() && !nextWrongOffloaded;
 				}
 			} else {
 				assert(!access->hasNext());
