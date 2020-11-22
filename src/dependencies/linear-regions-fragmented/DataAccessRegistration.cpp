@@ -573,7 +573,9 @@ namespace DataAccessRegistration {
 		TaskDataAccesses &accessStructures, Task *task,
 		/* OUT */ CPUDependencyData &hpDependencyData);
 	static inline void removeBottomMapTaskwaitOrTopLevelSink(
-		DataAccess *access, TaskDataAccesses &accessStructures, __attribute__((unused)) Task *task);
+		DataAccess *access, TaskDataAccesses &accessStructures, __attribute__((unused)) Task *task,
+		/* OUT */ CPUDependencyData &hpDependencyData
+	);
 	static inline BottomMapEntry *fragmentBottomMapEntry(
 		BottomMapEntry *bottomMapEntry, DataAccessRegion region,
 		TaskDataAccesses &accessStructures, bool removeIntersection = false);
@@ -1028,7 +1030,7 @@ namespace DataAccessRegistration {
 				if ((access->getObjectType() == taskwait_type)
 					|| (access->getObjectType() == top_level_sink_type))
 				{
-					removeBottomMapTaskwaitOrTopLevelSink(access, accessStructures, task);
+					removeBottomMapTaskwaitOrTopLevelSink(access, accessStructures, task, hpDependencyData);
 				} else {
 					assert(access->getObjectType() == access_type
 						   && access->getType() == NO_ACCESS_TYPE);
@@ -1053,7 +1055,8 @@ namespace DataAccessRegistration {
 	}
 
 	static inline void removeBottomMapTaskwaitOrTopLevelSink( DataAccess *access, TaskDataAccesses &accessStructures,
-		__attribute__((unused)) Task *task
+		__attribute__((unused)) Task *task,
+		/* OUT */ CPUDependencyData &hpDependencyData
 	) {
 		assert(access != nullptr);
 		assert(task != nullptr);
@@ -1104,7 +1107,14 @@ namespace DataAccessRegistration {
 
 				if (dataReleaseStep) {
 
+					DataAccessStatusEffects initialStatus(originalAccess);
 					originalAccess->setDataReleaseStep(dataReleaseStep);
+					DataAccessStatusEffects updatedStatus(originalAccess);
+					handleDataAccessStatusChanges(
+						initialStatus, updatedStatus,
+						originalAccess, accessStructures, originalAccess->getOriginator(),
+						hpDependencyData
+					);
 				}
 
 				return true;
