@@ -69,6 +69,7 @@ namespace ExecutionWorkflow {
 			assert(targetMemoryPlace->getType() == nanos6_device_t::nanos6_cluster_device);
 			int targetNamespace = targetMemoryPlace->getIndex();
 
+			/* Starting workflow on another node: set the namespace and predecessor task */
 			if (access->getValidNamespace() == targetNamespace) {
 				_namespacePredecessor = access->getNamespacePredecessor(); // remote propagation valid if predecessor task and offloading node matches
 			} else {

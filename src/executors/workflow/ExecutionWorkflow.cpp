@@ -58,6 +58,7 @@ namespace ExecutionWorkflow {
 
 		const nanos6_device_t targetType = targetMemoryPlace->getType();
 
+		/* Starting workflow for a task on the host: not in a namespace */
 		if (targetType == nanos6_host_device ||
 			targetMemoryPlace == ClusterManager::getCurrentMemoryNode()) {
 				access->setValidNamespace( ClusterManager::getCurrentMemoryNode()->getIndex(), access->getOriginator());
