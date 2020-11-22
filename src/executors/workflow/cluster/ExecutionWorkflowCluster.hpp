@@ -150,17 +150,6 @@ namespace ExecutionWorkflow {
 			_remoteTaskIdentifier(context->getRemoteIdentifier()),
 			_offloader(context->getRemoteNode())
 		{
-			if (access->hasDataReleaseStep()) {
-				/*
-				 * This means that an earlier offloaded task had its data release step propagated to
-				 * dependent tasks inside the namespace. This data release step is now overtaken by
-				 * the data release step for a later dependent task in the namespace. TODO: don't
-				 * allow the data release step to be propagated from one remote task to another.
-				 */
-				ExecutionWorkflow::DataReleaseStep *oldReleaseStep = access->getDataReleaseStep();
-				oldReleaseStep->releaseRegion(access->getAccessRegion(), nullptr);
-				access->unsetDataReleaseStep();
-			}
 			access->setDataReleaseStep(this);
 		}
 
