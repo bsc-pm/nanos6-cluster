@@ -30,7 +30,7 @@ bool MessageReleaseAccess::handleMessage()
 		ClusterManager::getMemoryNode(_content->_location);
 
 	Task *task = (Task *)_content->_offloadedTaskId;
-	clusterCout << "Handle MessageReleaseAccess " << task->getLabel() << " " << _content->_region << "\n";
+	// clusterCout << "Handle MessageReleaseAccess " << task->getLabel() << " " << _content->_region << "\n";
 
 	TaskOffloading::releaseRemoteAccess((Task *)_content->_offloadedTaskId,
 			_content->_region, _content->_type, _content->_weak, memoryPlace);

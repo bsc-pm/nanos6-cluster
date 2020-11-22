@@ -20,6 +20,7 @@
 #include <TaskOffloading.hpp>
 #include <VirtualMemoryManagement.hpp>
 #include <tasks/Task.hpp>
+#include <ClusterUtil.hpp>
 
 class ComputePlace;
 class MemoryPlace;
@@ -68,21 +69,12 @@ namespace ExecutionWorkflow {
 			assert(targetMemoryPlace->getType() == nanos6_device_t::nanos6_cluster_device);
 			int targetNamespace = targetMemoryPlace->getIndex();
 
-			if (access->getValidNamespace() == VALID_NAMESPACE_UNKNOWN) {
-				// clusterCout << "*** access " << access << " of " << access->getOriginator()->getLabel() << " : namespace was unknown, cannot propagate remotely\n";
-				_namespacePredecessor = nullptr;
-				access->setValidNamespace(targetNamespace, access->getOriginator());
-			} else if (access->getValidNamespace() == targetNamespace) {
+			if (access->getValidNamespace() == targetNamespace) {
 				_namespacePredecessor = access->getNamespacePredecessor(); // remote propagation valid if predecessor task and offloading node matches
-				access->setValidNamespace(targetNamespace, access->getOriginator());
-				// clusterCout << "access " << access << " of " << access->getOriginator()->getLabel() << " : valid namespace "
-				// 		     	<< access->getValidNamespace() << " matches target namespace\n";
 			} else {
-				// clusterCout << "access " << access << " of " << access->getOriginator()->getLabel() << " : valid namespace "
-				// 				<< access->getValidNamespace() << " mismatches target namespace " << targetNamespace << "\n";
 				_namespacePredecessor = nullptr;
-				access->setValidNamespace(targetNamespace, access->getOriginator());
 			}
+			access->setValidNamespace(targetNamespace, access->getOriginator());
 		}
 
 		void linkRegion(

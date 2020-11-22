@@ -3929,8 +3929,6 @@ namespace DataAccessRegistration {
 	 */
 	void setNamespacePredecessor(Task *task, Task *parent, DataAccessRegion region, ClusterNode *remoteNode, void *namespacePredecessor)
 	{
-		// clusterCout << "setNamespacePredecessor " << parent->getLabel() << " region " << region << " id " << namespacePredecessor << "\n";
-		// printTaskAccessesAndFragments("in setNamespacePredecessor", parent);
 		assert(parent != nullptr);
 		assert(parent->isNodeNamespace());
 

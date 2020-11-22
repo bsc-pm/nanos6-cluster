@@ -22,7 +22,7 @@ bool MessageTaskFinished::handleMessage()
 	ExecutionWorkflow::Step *step = task->getExecutionStep();
 	assert(step != nullptr);
 
-	clusterCout << "Handle MessageTaskFinished for task " << task->getLabel() << "\n";
+	// clusterCout << "Handle MessageTaskFinished for task " << task->getLabel() << "\n";
 
 	task->setExecutionStep(nullptr);
 	step->releaseSuccessors();
