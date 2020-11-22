@@ -38,6 +38,7 @@ class Task;
 class MemoryPlace;
 
 #define VALID_NAMESPACE_UNKNOWN -1
+#define VALID_NAMESPACE_NONE -2
 
 //! The accesses that one or more tasks perform sequentially to a memory location that can occur concurrently (unless commutative).
 struct DataAccess : protected DataAccessBase {

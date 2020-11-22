@@ -762,7 +762,11 @@ namespace DataAccessRegistration {
 					updateOperation._location = access->getLocation();
 				}
 
-				updateOperation._validNamespace = access->getValidNamespace();
+				if (access->isWeak()) {
+					updateOperation._validNamespace = access->getValidNamespace();
+				} else {
+					updateOperation._validNamespace = VALID_NAMESPACE_NONE;
+				}
 				updateOperation._namespacePredecessor = access->getNamespacePredecessor();
 
 				if (initialStatus._propagatesWriteSatisfiabilityToNext != updatedStatus._propagatesWriteSatisfiabilityToNext) {
