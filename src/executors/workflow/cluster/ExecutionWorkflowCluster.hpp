@@ -199,7 +199,7 @@ namespace ExecutionWorkflow {
 			                        || !access->hasSubaccesses()) // or no fragments (i.e. no subtask to wait for)
 				&& task->hasFinished()     // must have finished; i.e. not taskwait inside task
 				&& access->readSatisfied() && access->writeSatisfied()
-				&& access->getOriginator()->isRemoteTask()  // only offloaded tasks
+				&& access->getOriginator()->isRemoteTask()  // only offloaded tasks: necessary (e.g. otherwise taskwait on will release)
 				&& access->complete()                       // access must be complete
 				&& !access->hasNext();                      // no next access at the remote side
 
