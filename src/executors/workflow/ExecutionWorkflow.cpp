@@ -58,6 +58,11 @@ namespace ExecutionWorkflow {
 
 		const nanos6_device_t targetType = targetMemoryPlace->getType();
 
+		if (targetType == nanos6_host_device ||
+			targetMemoryPlace == ClusterManager::getCurrentMemoryNode()) {
+				access->setValidNamespace( ClusterManager::getCurrentMemoryNode()->getIndex(), access->getOriginator());
+		}
+
 		return _transfersMap[sourceType][targetType](
 			sourceMemoryPlace,
 			targetMemoryPlace,
