@@ -285,7 +285,7 @@ namespace TaskOffloading {
 		);
 
 		std::lock_guard<PaddedSpinLock<>> lock(remoteTaskInfo._lock);
-		assert(remoteTaskInfo._localTask == nullptr);
+		// assert(remoteTaskInfo._localTask == nullptr);
 		remoteTaskInfo._localTask = task;
 
 		// TODO: This is a workaround for the case where the task actually
