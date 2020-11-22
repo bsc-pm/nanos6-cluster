@@ -73,7 +73,27 @@ namespace ExecutionWorkflow {
 			}
 		}
 		if (deleteStep) {
-			delete this;
+
+			/*
+			 * If two tasks A and B are offloaded to the same namespace,
+			 * and A has an in dependency, then at the remote side, read
+			 * satisfiability is propagated from A to B both via the
+			 * offloader's dependency system and via remote propagation in
+			 * the remote namespace (this is the normal optimization from a
+			 * namespace). So task B receives read satisfiability twice.
+			 * This is harmless.  TODO: It would be good to add an
+			 * assertion to make sure that read satisfiability arrives
+			 * twice only in the circumstance described here, but we can no
+			 * longer check what type of dependency the access of task A
+			 * had (in fact the access may already have been deleted). This
+			 * info would have to be added to the UpdateOperation.
+			 *
+			 * This unfortunately messes up the counting of linked bytes.
+			 * The master should be able to figure out when this happens
+			 * and update its own _bytesToLink value accordingly. Or
+			 * maybe there is a way to avoid this happening.
+			 */
+			// delete this;
 		}
 	}
 
@@ -131,6 +151,7 @@ namespace ExecutionWorkflow {
 		}
 
 		if (deleteStep) {
+			// TODO: See comment in linkRegion
 			delete this;
 		}
 	}
