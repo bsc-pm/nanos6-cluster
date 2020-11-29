@@ -511,12 +511,14 @@ namespace DataAccessRegistration {
 				));
 
 			/*
-			 *If the access is a taskwait access (from createTaskwait)
+			 * If the access is a taskwait access (from createTaskwait)
+			 * Note: taskwait noflush has no output location, but still uses the
+			 * notification via the workflow.
 			 */
 			_triggersTaskwaitWorkflow = (access->getObjectType() == taskwait_type)
 										&& access->readSatisfied()
-										&& access->writeSatisfied()
-										&& access->hasOutputLocation();
+										&& access->writeSatisfied();
+										// && access->hasOutputLocation();
 
 			_triggersDataLinkRead = access->hasDataLinkStep()
 									&& access->readSatisfied();
@@ -2190,6 +2192,98 @@ namespace DataAccessRegistration {
 			});
 	}
 
+	template <typename MatchingProcessorType, typename MissingProcessorType>
+	static inline bool foreachBottomMapMatchMissingRegionCreatingInitialFragments(
+		Task *parent, TaskDataAccesses &parentAccessStructures,
+		DataAccessRegion region,
+		MatchingProcessorType matchingProcessor, MissingProcessorType missingProcessor
+	) {
+		assert(parent != nullptr);
+		assert((&parentAccessStructures) == (&parent->getDataAccesses()));
+		assert(!parentAccessStructures.hasBeenDeleted());
+
+		return parentAccessStructures._subaccessBottomMap.processIntersectingAndMissing(
+			region,
+
+			/*
+			 * A region of the new task's data access is already in the bottom map. Do nothing.
+			 */
+			[&](TaskDataAccesses::subaccess_bottom_map_t::iterator ) -> bool {
+				return true;
+			},
+
+			/*
+			 * A region of the new task's data access that is not (yet) in the bottom map.
+			 * Iterate over the parent's accesses and divide into those parts that intersect
+			 * parent accesses and those that do not.
+			 */
+			[&](DataAccessRegion missingRegion) -> bool {
+				parentAccessStructures._accesses.processIntersectingAndMissing(
+					missingRegion,
+					/*
+					 * intersectingProcessor: it's not in the bottom map yet, but it
+					 * is part of one of the parent task's accesses. Create a new
+					 * bottom map entry and now that it exists, give it to the
+					 * matching processor.
+					 */
+					[&](TaskDataAccesses::accesses_t::iterator superaccessPosition) -> bool {
+						DataAccessStatusEffects initialStatus;
+
+						/* Create an initial fragment */
+						DataAccess *previous = createInitialFragment(
+							superaccessPosition, parentAccessStructures,
+							missingRegion
+						);
+						assert(previous != nullptr);
+						assert(previous->getObjectType() == fragment_type);
+
+						previous->setTopmost(); /* it's top-most: in the parent? */
+						previous->setRegistered(); /* register it immediately */
+
+						DataAccessStatusEffects updatedStatus(previous);
+
+						BottomMapEntryContents bmeContents(
+							DataAccessLink(parent, fragment_type),
+							previous->getType(),
+							previous->getReductionTypeAndOperatorIndex()
+						);
+
+						{
+							CPUDependencyData hpDependencyData;
+							handleDataAccessStatusChanges(
+								initialStatus, updatedStatus,
+								previous, parentAccessStructures, parent,
+								hpDependencyData
+							);
+							/* There should not be any delayed operations */
+							assert(hpDependencyData.empty());
+						}
+
+						previous = fragmentAccess(previous, missingRegion, parentAccessStructures);
+
+						/*
+						 *Now that the bottom map entry has been created, pass it
+						 * to the matching processor
+						 */
+						return matchingProcessor(previous, bmeContents);
+					},
+
+					/*
+					 * missingProcessor: the region isn't in the bottom map or
+					 * the parent task's accesses. Pass this "hole" up to the
+					 * missing processor to deal with.
+					 */
+					[&](DataAccessRegion regionUncoveredByParent) -> bool {
+						return missingProcessor(regionUncoveredByParent);
+					}
+				);
+
+				/* Keep going, with other regions of the bottom map */
+				return true;
+			}
+		);
+	}
+
 
 	template <typename ProcessorType, typename BottomMapEntryProcessorType>
 	static inline void foreachBottomMapMatch(
@@ -2481,8 +2575,10 @@ namespace DataAccessRegistration {
 			region,
 
 			/* matchingProcessor: handle a region (part of the new overall
-			 * data access) that was already in the bottom map. The existing
-			 * bottom map access is 'previous'. */
+			 * data access) that is now in the bottom map. This bottom map entry
+			 * may have just been created by
+			 * "foreachBottomMapMatchPossiblyCreatingInitialFragmentsAndMissingRegion".
+			 * The bottom map access is 'previous'. */
 			[&](DataAccess *previous, BottomMapEntryContents const &bottomMapEntryContents) -> bool {
 				assert(previous != nullptr);
 				assert(previous->isReachable());
@@ -2645,7 +2741,8 @@ namespace DataAccessRegistration {
 			},
 
 			/* missingProcessor: handle a region (part of the overall data access)
-			 * that is not yet in the parent's bottom map */
+			 * that is not part of the parent's accesses.
+			 */
 			[&](DataAccessRegion missingRegion) -> bool {
 				assert(!parentAccessStructures._accesses.contains(missingRegion));
 
@@ -3059,13 +3156,12 @@ namespace DataAccessRegistration {
 		assert(task != nullptr);
 		assert(accessStructures._lock.isLockedByThisThread());
 
-		if (accessStructures._subaccessBottomMap.empty()) {
-			return;
-		}
-
 		// The last taskwait fragment will decrease the blocking count.
 		// This is necessary to force the task to wait until all taskwait fragments have finished.
-		task->increaseBlockingCount();
+		bool mustWait = false;
+		if (!accessStructures._subaccessBottomMap.empty()) {
+			mustWait = true;
+		}
 
 		/*
 		 * There should not already be any taskwait fragments.
@@ -3073,12 +3169,78 @@ namespace DataAccessRegistration {
 		assert(accessStructures._taskwaitFragments.empty());
 
 		/*
-		 * The accesses to wait for are precisely those in the bottom map.
-		 * Iterate through the bottom map and for each subaccess in the bottom
-		 * map, create a new taskwait fragment that depends on it.
-		 *
+		 * If a normal taskwait (without noflush) is performed after a taskwait noflush,
+		 * there may be accesses that are not on the bottom map but that have not been
+		 * brought back to this task. These can be recognized as task accesses that
+		 * are not weak and not on the bottom map but whose location is not the current
+		 * node. These accesses just need a new bottom map entry to cover them.
 		 */
+		if (computePlace && !noflush) {
+			accessStructures._accesses.processAll(
+				/* processor: called for each task access */
+				[&](TaskDataAccesses::accesses_t::iterator position) -> bool {
+					DataAccess *access = &(*position);
+					assert(access != nullptr);
+					const MemoryPlace *location = access->getLocation();
 
+					if (!access->isWeak()) {
+						// Non-weak accesses must already have a location
+						assert(location);
+						if (location->getType() == nanos6_cluster_device
+						    && location != ClusterManager::getCurrentMemoryNode()) {
+
+							DataAccessRegion region = access->getAccessRegion();
+							DataAccessType accessType = access->getType();
+							// access->setLocation(ClusterManager::getCurrentMemoryNode());
+							bool foundGap = false;
+
+							foreachBottomMapMatchMissingRegionCreatingInitialFragments(
+								task,
+								accessStructures,
+								region,
+
+								/* matchingProcessor: handle a region (part of the new overall
+								 * data access) that is now in the bottom map. This bottom map entry
+								 * may have just been created by
+								 * "foreachBottomMapMatchPossiblyCreatingInitialFragmentsAndMissingRegion".
+								 * The bottom map access is 'previous'. */
+
+								[&](DataAccess *previous, BottomMapEntryContents const ) -> bool {
+									(void)previous;
+									assert(previous->isInBottomMap());
+									mustWait = true;
+									foundGap = true;
+									return true;
+								},
+								/* missingProcessor: handle a region (part of the overall data access)
+								 * that is not part of the parent's accesses. Cannot happen.
+								 */
+								[&](DataAccessRegion ) -> bool {
+									assert(false);
+									return true; // avoid compiler warning
+								}
+
+							);
+
+							// Add the entry to the bottom map
+							if (foundGap) {
+								DataAccessLink next = DataAccessLink(task, fragment_type);
+								BottomMapEntry *bottomMapEntry = ObjectAllocator<BottomMapEntry>::newObject(
+										region, next, accessType, no_reduction_type_and_operator);
+								accessStructures._subaccessBottomMap.insert(*bottomMapEntry);
+							}
+						}
+					}
+					return true; /* always continue, don't stop here */
+				}
+			);
+		}
+
+		/*
+		 * All taskwaits must also wait for all accesses that are on the bottom
+		 * map.  Iterate through the bottom map and for each subaccess in the
+		 * bottom map, create a new taskwait fragment that depends on it.
+		 */
 		accessStructures._subaccessBottomMap.processAll(
 			[&](TaskDataAccesses::subaccess_bottom_map_t::iterator bottomMapPosition) -> bool {
 				BottomMapEntry *bottomMapEntry = &(*bottomMapPosition);
@@ -3106,9 +3268,8 @@ namespace DataAccessRegistration {
 					taskwaitFragment->setRegistered();
 					if (computePlace != nullptr) {
 						taskwaitFragment->setOutputLocation(computePlace->getMemoryPlace(0));
-					} else {
-						taskwaitFragment->setComplete();
 					}
+					// taskwaitFragment->setComplete();
 
 				// NOTE: For now we create it as completed, but we could actually link
 				// that part of the status to any other actions that needed to be carried
@@ -3164,6 +3325,7 @@ namespace DataAccessRegistration {
 						/*
 						 * Link to the taskwait and unset flag indicating that it was in bottom map.
 						 */
+
 						previousAccess->setNext(DataAccessLink(task, taskwait_type));
 						previousAccess->unsetInBottomMap();
 						DataAccessStatusEffects updatedStatus(previousAccess);
@@ -3171,7 +3333,8 @@ namespace DataAccessRegistration {
 						handleDataAccessStatusChanges(
 							initialStatus, updatedStatus,
 							previousAccess, previousAccessStructures, previous._task,
-							hpDependencyData);
+							hpDependencyData
+						);
 
 						return true;
 					});
@@ -3185,6 +3348,9 @@ namespace DataAccessRegistration {
 				/* Always continue with the rest of the bottom map */
 				return true;
 			});
+		if (mustWait) {
+			task->increaseBlockingCount();
+		}
 	}
 
 	/*
@@ -3953,7 +4119,9 @@ namespace DataAccessRegistration {
 					DataAccess *dataAccess = &(*position);
 					assert(dataAccess != nullptr);
 
-					MemoryPlace *accessLocation = nullptr; // (dataAccess->isWeak()) ? nullptr : location;
+					// If a task contains a taskwait noflush or has a sync clause, it is NOT true that all non-weak
+					// data is located at the task
+					MemoryPlace *accessLocation = nullptr;
 
 					finalizeAccess(task, dataAccess, dataAccess->getAccessRegion(), 0, accessLocation, /* OUT */ hpDependencyData, isRemote, false);
 					return true;

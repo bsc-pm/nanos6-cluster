@@ -153,11 +153,23 @@ namespace ClusterMemoryManagement {
 
 	void *lmalloc(size_t size)
 	{
-		return MemoryAllocator::alloc(size);
+		// Register the lmalloc in the task's dependency system.
+		// This is needed for taskwait noflush, as a place to put the
+		// location information.
+		void *lptr = MemoryAllocator::alloc(size);
+		WorkerThread *currentThread = WorkerThread::getCurrentWorkerThread();
+		Task *task = currentThread->getTask();
+		DataAccessRegion allocatedRegion(lptr, size);
+		DataAccessRegistration::registerLocalAccess(task, allocatedRegion);
+		return lptr;
 	}
 
 	void lfree(void *ptr, size_t size)
 	{
+		DataAccessRegion allocatedRegion(ptr, size);
+		WorkerThread *currentThread = WorkerThread::getCurrentWorkerThread();
+		Task *task = currentThread->getTask();
+		DataAccessRegistration::unregisterLocalAccess(task, allocatedRegion);
 		MemoryAllocator::free(ptr, size);
 	}
 }
