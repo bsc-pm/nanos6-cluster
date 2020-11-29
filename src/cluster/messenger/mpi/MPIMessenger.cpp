@@ -97,10 +97,9 @@ void MPIMessenger::sendMessage(Message *msg, ClusterNode const *toNode, bool blo
 		ret = MPI_Send((void *)delv, msgSize, MPI_BYTE, mpiDst, tag, INTRA_COMM);
 		MPIErrorHandler::handle(ret, INTRA_COMM);
 
-		msg->markAsCompleted();
-
+		// Note: instrument before mark as completed, otherwise possible use-after-free
 		Instrument::clusterMessageCompleteSend(msg);
-
+		msg->markAsCompleted();
 		return;
 	}
 
@@ -111,9 +110,11 @@ void MPIMessenger::sendMessage(Message *msg, ClusterNode const *toNode, bool blo
 	MPIErrorHandler::handle(ret, INTRA_COMM);
 
 	msg->setMessengerData((void *)request);
+
+	// Note instrument before add as pending, otherwise can be processed and freed => use-after-free
+	Instrument::clusterMessageCompleteSend(msg);
 	ClusterPollingServices::PendingQueue<Message>::addPending(msg);
 
-	Instrument::clusterMessageCompleteSend(msg);
 }
 
 DataTransfer *MPIMessenger::sendData(
