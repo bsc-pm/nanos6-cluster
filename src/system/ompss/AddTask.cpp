@@ -9,6 +9,10 @@
 #define _XOPEN_SOURCE 600
 #endif
 
+#ifdef HAVE_CONFIG_H
+#include <config.h>
+#endif
+
 #include <cassert>
 #include <cstdlib>
 
@@ -224,29 +228,26 @@ void AddTask::submitTask(Task *task, Task *parent, bool fromUserCode)
 		);
 	}
 
-	const bool executesInDevice = (task->getDeviceType() != nanos6_host_device);
 	const bool isIf0 = task->isIf0();
+
+#ifndef USE_EXEC_WORKFLOW
+	// Without workflow: queue the task if ready and not if0. Device if0 ready
+	// tasks must be queued too; they are managed by the device scheduling
+	// infrastructure
+	const bool executesInDevice = (task->getDeviceType() != nanos6_host_device);
+	const bool queueIfReady = (!isIf0 || executesInDevice);
+#else
+	// With workflow: always queue ready tasks, even if0 tasks, so that the
+	// workflow is used.  This is necessary for data transfers in the cluster
+	// version, which are still needed for if0 tasks.
+	const bool queueIfReady = true;
+#endif
 
 	assert(parent != nullptr || ready);
 	assert(parent != nullptr || !isIf0);
 
 	// const bool executesInDevice = (task->getDeviceType() != nanos6_host_device);
-	const bool queueIfReady = (!isIf0 || executesInDevice);
-
-// #ifndef USE_EXEC_WORKFLOW
-// 	// Without workflow: queue the task if ready and not if0. Device if0 ready
-// 	// tasks must be queued too; they are managed by the device scheduling
-// 	// infrastructure
-// 	printf("in NDEF\n");
-// 	const bool executesInDevice = (task->getDeviceType() != nanos6_host_device);
-// 	const bool queueIfReady = (!isIf0 || executesInDevice);
-// #else
-// 	// With workflow: always queue ready tasks, even if0 tasks, so that the
-// 	// workflow is used.  This is necessary for data transfers in the cluster
-// 	// version, which are still needed for if0 tasks.
-// 	printf("in DEF\n");
-// 	const bool queueIfReady = true;
-// #endif
+	// const bool queueIfReady = (!isIf0 || executesInDevice);
 
 	if (ready && queueIfReady) {
 		ReadyTaskHint hint = (parent != nullptr) ? CHILD_TASK_HINT : NO_HINT;
@@ -256,7 +257,7 @@ void AddTask::submitTask(Task *task, Task *parent, bool fromUserCode)
 
 	// Special handling for if0 tasks
 	if (isIf0) {
-		if (ready && !executesInDevice) {
+		if (ready && !queueIfReady) {
 			// Ready if0 tasks are executed inline, if they are not device tasks
 			If0Task::executeInline(workerThread, parent, task, computePlace);
 		} else {

@@ -100,6 +100,10 @@ void WorkerThread::body()
 					CPUManager::executeCPUManagerPolicy(cpu, HANDLE_TASKFOR, 0);
 				}
 
+#ifdef USE_EXEC_WORKFLOW
+				// Execute all tasks (including if0 tasks) with the workflow.
+				handleTask(cpu);
+#else
 				if (_task->isIf0()) {
 					// An if0 task executed outside of the implicit taskwait of its parent (i.e. not inline)
 					Task *if0Task = _task;
@@ -111,6 +115,7 @@ void WorkerThread::body()
 				} else {
 					handleTask(cpu);
 				}
+#endif
 
 				_task = nullptr;
 			}
