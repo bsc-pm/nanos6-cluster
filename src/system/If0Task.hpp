@@ -60,6 +60,10 @@ namespace If0Task {
 		WorkerThread *currentThread, Task *currentTask, Task *if0Task,
 		ComputePlace *computePlace
 	) {
+#ifdef USE_EXEC_WORKFLOW
+		// Do not execute if(0) tasks inline using the workflow
+		assert(false);
+#endif
 		assert(currentThread != nullptr);
 		assert(currentTask != nullptr);
 		assert(if0Task != nullptr);
@@ -88,7 +92,9 @@ namespace If0Task {
 		Task *parent = if0Task->getParent();
 		assert(parent != nullptr);
 
+#ifndef USE_EXEC_WORKFLOW
 		currentThread->handleTask((CPU *) computePlace, if0Task);
+#endif
 
 		// The thread can migrate during the execution of the task
 		computePlace = currentThread->getComputePlace();
