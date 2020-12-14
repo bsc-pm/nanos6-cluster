@@ -1026,6 +1026,7 @@ noinst_HEADERS = \
 	src/instrument/lint/Callbacks.hpp \
 	src/instrument/lint/InstrumentAddTask.hpp \
 	src/instrument/lint/InstrumentBlockingAPI.hpp \
+	src/instrument/lint/InstrumentCluster.hpp \
 	src/instrument/lint/InstrumentComputePlaceId.hpp \
 	src/instrument/lint/InstrumentComputePlaceManagement.hpp \
 	src/instrument/lint/InstrumentCPULocalData.hpp \
