@@ -1212,6 +1212,7 @@ noinst_HEADERS = \
 	src/memory/allocator/pool/ExternalMemoryPool.hpp \
 	src/memory/allocator/pool/MemoryAllocator.hpp \
 	src/memory/allocator/pool/MemoryPool.hpp \
+	src/memory/allocator/pool/Poison.hpp \
 	src/memory/allocator/pool/MemoryPoolGlobal.hpp \
 	src/memory/allocator/pool/NUMAObjectCache.hpp \
 	src/memory/allocator/pool/ObjectAllocator.hpp \
