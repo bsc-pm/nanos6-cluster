@@ -91,7 +91,7 @@ struct TaskDataAccesses
 
 	TaskDataAccesses(TaskDataAccesses const &other) = delete;
 
-	constexpr inline size_t getAdditionalMemorySize() const
+	inline size_t getAdditionalMemorySize() const
 	{
 		return 0;
 	}
