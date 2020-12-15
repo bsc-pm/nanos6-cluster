@@ -12,8 +12,6 @@
 #include <BottomMapEntry.hpp>
 #include <ObjectCache.hpp>
 
-#include <InstrumentMemory.hpp>
-
 template <typename T>
 class ObjectAllocator {
 public:
@@ -21,38 +19,31 @@ public:
 
 private:
 	static inner_type *_cache;
-	static Instrument::instrument_allocator_t<T> _instrumentAllocator;
 
 public:
 	static void initialize()
 	{
-		_instrumentAllocator.allocatorInitialize();
 		_cache = new ObjectCache<T>();
 	}
 
 	static void shutdown()
 	{
 		delete _cache;
-		_instrumentAllocator.allocatorShutdown();
 	}
 
 	template <typename... ARGS>
 	static inline T *newObject(ARGS &&... args)
 	{
-		_instrumentAllocator.allocateObject();
 		return _cache->newObject(std::forward<ARGS>(args)...);
 	}
 
 	static inline void deleteObject(T *ptr)
 	{
-		_instrumentAllocator.deallocateObject();
 		_cache->deleteObject(ptr);
 	}
 };
 
 
 template <typename T> typename ObjectAllocator<T>::inner_type *ObjectAllocator<T>::_cache = nullptr;
-template <typename T> Instrument::instrument_allocator_t<T> ObjectAllocator<T>::_instrumentAllocator;
-
 
 #endif /* __OBJECT_ALLOCATOR_HPP__ */
