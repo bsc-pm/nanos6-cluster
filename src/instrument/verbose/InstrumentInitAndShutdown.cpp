@@ -53,7 +53,6 @@ namespace Instrument {
 				_verboseDependenciesByAccessLinks = true;
 				_verboseDependenciesByGroup = true;
 				_verboseLeaderThread = true;
-				_verboseMemoryAllocation = true;
 				_verboseReductions = true;
 				_verboseTaskExecution = true;
 				_verboseTaskStatus = true;
@@ -79,8 +78,6 @@ namespace Instrument {
 				_verboseDependenciesByGroup = true;
 			} else if (area == "leaderthread") {
 				_verboseLeaderThread = true;
-			} else if (area == "memoryallocation") {
-				_verboseMemoryAllocation = true;
 			} else if (area == "reductions") {
 				_verboseReductions = true;
 			} else if (area == "taskexecution") {
@@ -114,8 +111,6 @@ namespace Instrument {
 				_verboseDependenciesByGroup = false;
 			} else if (area == "!leaderthread") {
 				_verboseLeaderThread = false;
-			} else if (area == "!memoryallocation") {
-				_verboseMemoryAllocation = false;
 			} else if (area == "!reductions") {
 				_verboseReductions = false;
 			} else if (area == "!taskexecution") {
