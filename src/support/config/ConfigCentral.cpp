@@ -20,6 +20,7 @@ void ConfigCentral::initialize()
 	registerOption<memory_t>("cluster.local_memory", 0);
 	registerOption<string_t>("cluster.scheduling_policy", "locality");
 	registerOption<integer_t>("cluster.va_start", 0);
+	registerOption<bool_t>("cluster.use_namespace", false);
 
 	// CPU manager
 	registerOption<string_t>("cpumanager.policy", "default");

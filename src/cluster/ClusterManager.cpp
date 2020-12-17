@@ -118,7 +118,7 @@ void ClusterManager::initClusterNamespaceOrSetCallback(
 	assert(_singleton != nullptr);
 	assert(!ClusterManager::isMasterNode());
 
-	EnvironmentVariable<bool> useNamespace("NANOS6_CLUSTER_NAMESPACE", false);
+	EnvironmentVariable<bool> useNamespace("cluster.use_namespace");
 
 	if (useNamespace) {
 		NodeNamespace::init(func, args);
