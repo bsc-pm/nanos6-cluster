@@ -120,9 +120,9 @@ void ClusterManager::initClusterNamespaceOrSetCallback(
 	assert(_singleton != nullptr);
 	assert(!ClusterManager::isMasterNode());
 
-	EnvironmentVariable<bool> useNamespace("cluster.use_namespace");
+	ConfigVariable<bool> useNamespace("cluster.use_namespace");
 
-	if (useNamespace) {
+	if (useNamespace.getValue()) {
 		clusterPrintf("Using namespace\n");
 		NodeNamespace::init(func, args);
 	} else {
