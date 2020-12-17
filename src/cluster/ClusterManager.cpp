@@ -51,7 +51,7 @@ ClusterManager::ClusterManager(std::string const &commType)
 	_msn->synchronizeAll();
 	_callback.store(nullptr);
 
-	ConfigVariable<bool> inTask("cluster.services_in_task", false);
+	ConfigVariable<bool> inTask("cluster.services_in_task");
 	_taskInPoolins = inTask;
 }
 

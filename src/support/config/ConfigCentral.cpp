@@ -14,6 +14,7 @@
 void ConfigCentral::initialize()
 {
 	// Cluster
+	registerOption<bool_t>("cluster.services_in_task", false);
 	registerOption<string_t>("cluster.communication", "disabled");
 	registerOption<memory_t>("cluster.distributed_memory", 2UL << 30);
 	registerOption<memory_t>("cluster.local_memory", 0);
