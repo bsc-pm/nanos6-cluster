@@ -23,22 +23,26 @@ private:
 public:
 	static void initialize()
 	{
+		assert(_cache == nullptr);
 		_cache = new ObjectCache<T>();
 	}
 
 	static void shutdown()
 	{
+		assert(_cache != nullptr);
 		delete _cache;
 	}
 
 	template <typename... ARGS>
 	static inline T *newObject(ARGS &&... args)
 	{
+		assert(_cache != nullptr);
 		return _cache->newObject(std::forward<ARGS>(args)...);
 	}
 
 	static inline void deleteObject(T *ptr)
 	{
+		assert(_cache != nullptr);
 		_cache->deleteObject(ptr);
 	}
 };

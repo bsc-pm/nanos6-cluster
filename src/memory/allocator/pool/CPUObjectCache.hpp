@@ -44,7 +44,7 @@ class CPUObjectCache {
 public:
 	CPUObjectCache(NUMAObjectCache<T> *pool, size_t numaId, size_t numaNodeCount)
 		: _NUMAObjectCache(pool), _NUMANodeId(numaId),
-		_numaNodeCount(numaNodeCount), _allocationSize (1)
+		_numaNodeCount(numaNodeCount), _allocationSize(1)
 	{
 		assert(numaId <= numaNodeCount);
 		_available.resize(numaNodeCount + 1);
@@ -52,12 +52,16 @@ public:
 
 	~CPUObjectCache()
 	{
+		_available.clear();
 	}
 
 	//! Allocate an object from the current CPU memory pool
 	template <typename... TS>
 	T *newObject(TS &&... args)
 	{
+		assert(_available.size() >= 1);
+		assert(_NUMANodeId < _available.size());
+
 		pool_t &local = _available.at(_NUMANodeId);
 
 		if (local.empty()) {
