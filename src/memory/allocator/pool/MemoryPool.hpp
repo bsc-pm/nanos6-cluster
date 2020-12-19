@@ -57,13 +57,13 @@ public:
 			NEXT_CHUNK(prevChunk) = nullptr;
 
 			// Poison whole region
-			poison_memory_region(_topChunk, globalChunkSize);
+			AddressSanitizer::poisonMemoryRegion(_topChunk, globalChunkSize);
 		}
 
 		void *chunk = _topChunk;
 
 		// Unpoison chunk
-		unpoison_memory_region(chunk, _chunkSize);
+		AddressSanitizer::unpoisonMemoryRegion(chunk, _chunkSize);
 		_topChunk = NEXT_CHUNK(chunk);
 
 		return chunk;
@@ -75,7 +75,7 @@ public:
 		_topChunk = chunk;
 
 		// Poison now it is in the linked list
-		poison_memory_region(chunk, _chunkSize);
+		AddressSanitizer::poisonMemoryRegion(chunk, _chunkSize);
 	}
 };
 
