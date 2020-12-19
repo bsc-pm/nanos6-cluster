@@ -17,7 +17,7 @@
 
 template <typename T>
 class CPUObjectCache {
-	NUMAObjectCache<T> *_NUMAObjectCache;
+	NUMAObjectCache<T> * const _NUMAObjectCache;
 	const size_t _NUMANodeId;
 	const size_t _numaNodeCount;
 
@@ -37,17 +37,18 @@ class CPUObjectCache {
 	 *
 	 * These pools are not thread safe, i.e. they are meant to be accessed
 	 * only by the thread that runs on the current CPU. */
-	std::deque<pool_t> _available;
+	std::vector<pool_t> _available;
 
 	CPUObjectCache () =  delete;
 
 public:
 	CPUObjectCache(NUMAObjectCache<T> *pool, size_t numaId, size_t numaNodeCount)
 		: _NUMAObjectCache(pool), _NUMANodeId(numaId),
-		_numaNodeCount(numaNodeCount), _allocationSize(1)
+		_numaNodeCount(numaNodeCount), _allocationSize(1),
+		_available(_numaNodeCount + 1)
 	{
-		assert(numaId <= numaNodeCount);
-		_available.resize(numaNodeCount + 1);
+		assert(_NUMAObjectCache != nullptr);
+		assert(_NUMANodeId <= _numaNodeCount);
 	}
 
 	~CPUObjectCache()
@@ -59,7 +60,7 @@ public:
 	template <typename... TS>
 	T *newObject(TS &&... args)
 	{
-		assert(_available.size() >= 1);
+		assert(1 <= _available.size());
 		assert(_NUMANodeId < _available.size());
 
 		pool_t &local = _available.at(_NUMANodeId);
@@ -102,8 +103,12 @@ public:
 	//! Deallocate an object
 	void deleteObject(T *ptr)
 	{
+		assert(1 <= _available.size());
+		assert(_NUMANodeId < _available.size());
+
 		const size_t nodeId = VirtualMemoryManagement::findNUMA((void *)ptr);
 		assert (nodeId < _available.size());
+
 		ptr->~T();
 
 		AddressSanitizer::poisonMemoryRegion(ptr, sizeof(T));
