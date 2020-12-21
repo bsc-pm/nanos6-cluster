@@ -169,11 +169,18 @@ void VirtualMemoryManagement::initialize()
 	assert(distribSize > 0);
 	distribSize = ROUND_UP(distribSize, HardwareInfo::getPageSize());
 
-	// The cluster.local_memory variable determines the size of the local address space
-	// per cluster node. The default value is the minimum between 2GB and the 5% of the
-	// total physical memory of the machine
+	// The cluster.local_memory variable determines the size of the local address space per cluster
+	// node.  If the value is not set in the config file then the runtime will use the minimum
+	// between 2GB and the 5% of the total physical memory of the machine if not set.
 	ConfigVariable<StringifiedMemorySize> localSizeEnv("cluster.local_memory");
 	size_t localSize = localSizeEnv.getValue();
+
+	// If the config value is zero it means it is not set. As zero local virtual memory is not a
+	// useful value any way.
+	if (localSize == 0) {
+		const size_t totalMemory = HardwareInfo::getPhysicalMemorySize();
+		localSize = std::min(2UL << 30, totalMemory / 20);
+	}
 	assert(localSize > 0);
 	localSize = ROUND_UP(localSize, HardwareInfo::getPageSize());
 
