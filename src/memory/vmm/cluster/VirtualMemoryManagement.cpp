@@ -201,6 +201,8 @@ void VirtualMemoryManagement::initialize()
 void VirtualMemoryManagement::shutdown()
 {
 	for (auto &vma : _localNUMAVMA) {
+		DataAccessRegion numaRegion(vma->getAddress(), vma->getSize());
+		Directory::erase(numaRegion);
 		delete vma;
 	}
 
