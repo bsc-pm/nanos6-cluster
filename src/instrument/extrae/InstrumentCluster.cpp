@@ -75,102 +75,79 @@ namespace Instrument {
 		}
 	}
 
-	void clusterMessageInitSend(Message const *msg, int receiver, InstrumentationContext const &)
+	void clusterSendMessage(Message const *msg, int receiver)
 	{
 		if (!_extraeInstrumentCluster)
 			return;
 
 		const unsigned int messageType = msg->getType();
-		extrae_type_t type = (extrae_type_t) EventType::MESSAGE_SEND;
-		extrae_value_t value = (extrae_value_t)(messageType + 1);
 
 		extrae_combined_events_t ce;
 		ce.HardwareCounters = 0;
 		ce.Callers = 0;
 		ce.UserFunction = EXTRAE_USER_FUNCTION_NONE;
-		ce.nEvents = 1;
-		ce.nCommunications = 1;
-		ce.Communications =
-			(extrae_user_communication_t *) alloca(sizeof(extrae_user_communication_t));
+
+		extrae_type_t type = (extrae_type_t) EventType::MESSAGE_SEND;
 		ce.Types = &type;
+
+		// Default values.
+		ce.nEvents = 1;
+		extrae_value_t value = 0;
 		ce.Values = &value;
 
-		ce.Communications[0].type = EXTRAE_USER_SEND;
-		ce.Communications[0].tag = (extrae_comm_tag_t)EventType::MESSAGE_SEND;
-		ce.Communications[0].size = messageType;
-		ce.Communications[0].partner = receiver;
-		ce.Communications[0].id = msg->getId();
-
-		ExtraeAPI::emit_CombinedEvents(&ce);
-	}
-
-	void clusterMessageCompleteSend(Message const *, InstrumentationContext const &)
-	{
-		if (!_extraeInstrumentCluster)
-			return;
-
-		extrae_type_t type = (extrae_type_t) EventType::MESSAGE_SEND;
-		extrae_value_t value = 0;
-
-		extrae_combined_events_t ce;
-		ce.HardwareCounters = 0;
-		ce.Callers = 0;
-		ce.UserFunction = EXTRAE_USER_FUNCTION_NONE;
-		ce.nEvents = 1;
 		ce.nCommunications = 0;
 		ce.Communications = NULL;
-		ce.Types = &type;
-		ce.Values = &value;
+
+		if (receiver >= 0) {
+			value = (extrae_value_t)(messageType + 1);
+			ce.nCommunications = 1;
+			ce.Communications =
+				(extrae_user_communication_t *) alloca(sizeof(extrae_user_communication_t));
+
+			ce.Communications[0].type = EXTRAE_USER_SEND;
+			ce.Communications[0].tag = (extrae_comm_tag_t)EventType::MESSAGE_SEND;
+			ce.Communications[0].size = messageType;
+			ce.Communications[0].partner = receiver;
+			ce.Communications[0].id = msg->getId();
+		}
 
 		ExtraeAPI::emit_CombinedEvents(&ce);
 	}
 
-	void enterHandleReceivedMessage(Message const *msg, int senderId, InstrumentationContext const &)
+	void clusterHandleMessage(Message const *msg, int senderId)
 	{
 		if (!_extraeInstrumentCluster)
 			return;
 
 		const unsigned int messageType = msg->getType();
-		extrae_type_t type = (extrae_type_t)EventType::MESSAGE_HANDLE;
-		extrae_value_t value = (extrae_value_t)(messageType + 1);
 
 		extrae_combined_events_t ce;
 		ce.HardwareCounters = 0;
 		ce.Callers = 0;
 		ce.UserFunction = EXTRAE_USER_FUNCTION_NONE;
-		ce.nEvents = 1;
-		ce.nCommunications = 1;
-		ce.Communications =
-			(extrae_user_communication_t *) alloca(sizeof(extrae_user_communication_t));
+
+		extrae_type_t type = (extrae_type_t)EventType::MESSAGE_HANDLE;
 		ce.Types = &type;
+
+		// Default values.
+		ce.nEvents = 1;
+		extrae_value_t value = 0;
 		ce.Values = &value;
 
-		ce.Communications[0].type = EXTRAE_USER_RECV;
-		ce.Communications[0].tag = (extrae_comm_tag_t)EventType::MESSAGE_SEND;
-		ce.Communications[0].size = messageType;
-		ce.Communications[0].partner = senderId;
-		ce.Communications[0].id = msg->getId();
-
-		ExtraeAPI::emit_CombinedEvents(&ce);
-	}
-
-	void exitHandleReceivedMessage(Message const *, InstrumentationContext const &)
-	{
-		if (!_extraeInstrumentCluster)
-			return;
-
-		extrae_type_t type = (extrae_type_t)EventType::MESSAGE_HANDLE;
-		extrae_value_t value = 0;
-
-		extrae_combined_events_t ce;
-		ce.HardwareCounters = 0;
-		ce.Callers = 0;
-		ce.UserFunction = EXTRAE_USER_FUNCTION_NONE;
-		ce.nEvents = 1;
 		ce.nCommunications = 0;
 		ce.Communications = NULL;
-		ce.Types = &type;
-		ce.Values = &value;
+
+		if (senderId >= 0) {
+			value = (extrae_value_t)(messageType + 1);
+			ce.nCommunications = 1;
+			ce.Communications =
+				(extrae_user_communication_t *) alloca(sizeof(extrae_user_communication_t));
+			ce.Communications[0].type = EXTRAE_USER_RECV;
+			ce.Communications[0].tag = (extrae_comm_tag_t)EventType::MESSAGE_SEND;
+			ce.Communications[0].size = messageType;
+			ce.Communications[0].partner = senderId;
+			ce.Communications[0].id = msg->getId();
+		}
 
 		ExtraeAPI::emit_CombinedEvents(&ce);
 	}

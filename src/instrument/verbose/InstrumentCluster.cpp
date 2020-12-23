@@ -13,82 +13,61 @@ using namespace Instrument::Verbose;
 
 namespace Instrument {
 
-	void clusterMessageInitSend(
-		Message const *msg,
-		int receiverId,
-		InstrumentationContext const &context
-	) {
-		if (!_verboseClusterMessages) {
-			return;
-		}
-
-		LogEntry *logEntry = getLogEntry(context);
-		assert(logEntry != nullptr);
-
-		logEntry->appendLocation(context);
-		logEntry->_contents << " --> SendClusterMessage "
-			<< msg->getName()
-			<< " id:" << msg->getId() << " "
-			<< msg->toString()
-			<< " targetNode:" << receiverId;
-
-		addLogEntry(logEntry);
-	}
-
-	void clusterMessageCompleteSend(Message const *msg, InstrumentationContext const &context)
+	void clusterSendMessage(Message const *msg, int receiverId)
 	{
 		if (!_verboseClusterMessages) {
 			return;
 		}
 
+		InstrumentationContext const &context = ThreadInstrumentationContext::getCurrent();
+
 		LogEntry *logEntry = getLogEntry(context);
 		assert(logEntry != nullptr);
 
 		logEntry->appendLocation(context);
-		logEntry->_contents << " <-- SendClusterMessage id:" << msg->getId();
+
+		// If not receiverId then it is the end of the event.
+		if (receiverId >= 0) {
+			logEntry->_contents << " --> SendClusterMessage "
+				<< msg->getName()
+				<< " id:" << msg->getId() << " "
+				<< msg->toString()
+				<< " targetNode:" << receiverId;
+		} else {
+			logEntry->_contents << " <-- SendClusterMessage id:" << msg->getId();
+		}
+
+		addLogEntry(logEntry);
+	}
+
+	void clusterHandleMessage(Message const *msg, int senderId)
+	{
+		if (!_verboseClusterMessages) {
+			return;
+		}
+
+		InstrumentationContext const &context = ThreadInstrumentationContext::getCurrent();
+
+		LogEntry *logEntry = getLogEntry(context);
+		assert(logEntry != nullptr);
+
+		logEntry->appendLocation(context);
+
+		if (senderId >= 0) {
+			logEntry->_contents << " --> HandleClusterMessage "
+				<< msg->getName()
+				<< " id:" << msg->getId() << " "
+				<< msg->toString()
+				<< " sourceNode:" << senderId;
+		} else {
+			logEntry->_contents << " <-- HandleClusterMessage id:" <<  msg->getId();
+		}
 
 		addLogEntry(logEntry);
 	}
 
 	void clusterDataSend(void *, size_t, int, InstrumentationContext const &)
 	{
-	}
-
-	void enterHandleReceivedMessage(
-		Message const *msg,
-		int senderId,
-		InstrumentationContext const &context
-	) {
-		if (!_verboseClusterMessages) {
-			return;
-		}
-
-		LogEntry *logEntry = getLogEntry(context);
-		assert(logEntry != nullptr);
-
-		logEntry->appendLocation(context);
-		logEntry->_contents << " --> HandleClusterMessage "
-			<< msg->getName()
-			<< " id:" << msg->getId() << " "
-			<< msg->toString()
-			<< " sourceNode:" << senderId;
-
-		addLogEntry(logEntry);
-	}
-
-	void exitHandleReceivedMessage(Message const *msg, InstrumentationContext const &context)
-	{
-		if (!_verboseClusterMessages) {
-			return;
-		}
-
-		LogEntry *logEntry = getLogEntry(context);
-		assert(logEntry != nullptr);
-
-		logEntry->appendLocation(context);
-		logEntry->_contents << " <-- HandleClusterMessage id:" <<  msg->getId();
-
-		addLogEntry(logEntry);
 	}
 
 	void clusterDataReceived(void *, size_t, int, InstrumentationContext const &)

@@ -41,9 +41,9 @@ namespace ClusterPollingServices {
 				msg = ClusterManager::checkMail();
 
 				if (msg != nullptr) {
-					Instrument::enterHandleReceivedMessage(msg, msg->getSenderId());
+					Instrument::clusterHandleMessage(msg, msg->getSenderId());
 					const bool shouldDelete = msg->handleMessage();
-					Instrument::exitHandleReceivedMessage(msg);
+					Instrument::clusterHandleMessage(msg, -1);
 
 					if (shouldDelete) {
 						delete msg;

@@ -15,13 +15,7 @@ namespace Instrument {
 
 	void initClusterCounters();
 
-	inline void clusterMessageCompleteSend(Message const *, InstrumentationContext const &)
-	{
-	}
-
-	inline void exitHandleReceivedMessage(Message const *, InstrumentationContext const &)
-	{
-	}
+	void showClusterCounters(std::ofstream &output);
 
 	inline void taskIsOffloaded(task_id_t, InstrumentationContext const &)
 	{
@@ -34,8 +28,6 @@ namespace Instrument {
 	inline void offloadedTaskCompletes(task_id_t, InstrumentationContext const &)
 	{
 	}
-
-	void showClusterCounters(std::ofstream &output);
 
 	inline void stateNodeNamespace(int, InstrumentationContext const &)
 	{
