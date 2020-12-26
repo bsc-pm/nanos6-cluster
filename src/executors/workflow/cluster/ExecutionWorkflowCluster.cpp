@@ -215,9 +215,7 @@ namespace ExecutionWorkflow {
 				assert(pendingTarget->getType() == nanos6_cluster_device);
 
 				if (pendingTarget->getIndex() == _targetMemoryPlace->getIndex()
-					&& _region.getStartAddress() >= pendingRegion.getStartAddress()
-					&& ((char*)_region.getStartAddress() + _region.getSize() <=
-						(char *)pendingRegion.getStartAddress() + pendingRegion.getSize())) {
+					&& _region.fullyContainedIn(pendingRegion)) {
 
 					// Yes, the pending data transfer contains this region: so add a callback
 					// for this task
@@ -237,10 +235,9 @@ namespace ExecutionWorkflow {
 					// Done, so return true: do not check any more pending transfers and
 					// also return true to the caller
 					return true;
-				} else {
-					// Not a match: continue checking pending data transfers
-					return false;
 				}
+				// Not a match: continue checking pending data transfers
+				return false;
 			}
 		);
 
