@@ -155,7 +155,9 @@ namespace ClusterMemoryManagement {
 	{
 		// Register the lmalloc in the task's dependency system.
 		// This is needed for taskwait noflush, as a place to put the
-		// location information.
+		// location information. Ideally we should register the whole local
+		// region all at once. At the moment the lmalloc and lfree have to
+		// be in the same task, which is a bit restrictive.
 		void *lptr = MemoryAllocator::alloc(size);
 		WorkerThread *currentThread = WorkerThread::getCurrentWorkerThread();
 		Task *task = currentThread->getTask();
