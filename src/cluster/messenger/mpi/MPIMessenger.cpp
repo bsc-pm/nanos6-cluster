@@ -45,6 +45,11 @@ MPIMessenger::MPIMessenger()
 
 	//! Create a new communicator
 	ret = MPI_Comm_dup(MPI_COMM_WORLD, &INTRA_COMM);
+#if 1
+	ret = MPI_Comm_dup(MPI_COMM_WORLD, &INTRA_COMM_DATA_RAW);
+#else
+	INTRA_COMM_DATA_RAW = INTRA_COMM;
+#endif
 	MPIErrorHandler::handle(ret, MPI_COMM_WORLD);
 
 	//! make sure the new communicator returns errors
@@ -133,8 +138,8 @@ DataTransfer *MPIMessenger::sendData(
 	int tag = (messageId << 8) | DATA_RAW;
 
 	if (block) {
-		ret = MPI_Send(address, size, MPI_BYTE, mpiDst, tag, INTRA_COMM);
-		MPIErrorHandler::handle(ret, INTRA_COMM);
+		ret = MPI_Send(address, size, MPI_BYTE, mpiDst, tag, INTRA_COMM_DATA_RAW);
+		MPIErrorHandler::handle(ret, INTRA_COMM_DATA_RAW);
 
 		return nullptr;
 	}
@@ -143,8 +148,8 @@ DataTransfer *MPIMessenger::sendData(
 
 	FatalErrorHandler::failIf(request == nullptr, "Could not allocate memory for MPI_Request");
 
-	ret = MPI_Isend(address, size, MPI_BYTE, mpiDst, tag, INTRA_COMM, request);
-	MPIErrorHandler::handle(ret, INTRA_COMM);
+	ret = MPI_Isend(address, size, MPI_BYTE, mpiDst, tag, INTRA_COMM_DATA_RAW, request);
+	MPIErrorHandler::handle(ret, INTRA_COMM_DATA_RAW);
 
 	return new MPIDataTransfer(region, ClusterManager::getCurrentMemoryNode(),
 		to->getMemoryNode(), request);
@@ -167,8 +172,8 @@ DataTransfer *MPIMessenger::fetchData(
 	int tag = (messageId << 8) | DATA_RAW;
 
 	if (block) {
-		ret = MPI_Recv(address, size, MPI_BYTE, mpiSrc, tag, INTRA_COMM, MPI_STATUS_IGNORE);
-		MPIErrorHandler::handle(ret, INTRA_COMM);
+		ret = MPI_Recv(address, size, MPI_BYTE, mpiSrc, tag, INTRA_COMM_DATA_RAW, MPI_STATUS_IGNORE);
+		MPIErrorHandler::handle(ret, INTRA_COMM_DATA_RAW);
 		if (instrument) {
 			Instrument::clusterDataReceived(address, size, mpiSrc);
 		}
@@ -180,9 +185,9 @@ DataTransfer *MPIMessenger::fetchData(
 
 	FatalErrorHandler::failIf(request == nullptr, "Could not allocate memory for MPI_Request");
 
-	ret = MPI_Irecv(address, size, MPI_BYTE, mpiSrc, tag, INTRA_COMM, request);
+	ret = MPI_Irecv(address, size, MPI_BYTE, mpiSrc, tag, INTRA_COMM_DATA_RAW, request);
 
-	MPIErrorHandler::handle(ret, INTRA_COMM);
+	MPIErrorHandler::handle(ret, INTRA_COMM_DATA_RAW);
 
 	return new MPIDataTransfer(region, from->getMemoryNode(),
 		ClusterManager::getCurrentMemoryNode(), request);
@@ -193,6 +198,7 @@ void MPIMessenger::synchronizeAll(void)
 	int ret = MPI_Barrier(INTRA_COMM);
 	MPIErrorHandler::handle(ret, INTRA_COMM);
 }
+
 
 Message *MPIMessenger::checkMail(void)
 {
@@ -211,6 +217,7 @@ Message *MPIMessenger::checkMail(void)
 	//! methods
 	type = status.MPI_TAG & 0xff;
 	if (type == DATA_RAW) {
+		std::cout << "give up checkMail for DATA_RAW\n";
 		return nullptr;
 	}
 

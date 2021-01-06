@@ -24,7 +24,7 @@ class MPIMessenger : public Messenger {
 private:
 	// Default value useful for asserts
 	int _wrank = -1, _wsize = -1;
-	MPI_Comm INTRA_COMM, PARENT_COMM;
+	MPI_Comm INTRA_COMM, INTRA_COMM_DATA_RAW, PARENT_COMM;
 
 	template<typename T>
 	void testCompletionInternal(std::vector<T *> &pending);
