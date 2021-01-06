@@ -88,6 +88,15 @@ namespace ExtraeAPI {
 		ExtraeSymbolResolver<void, &Instrument::_Extrae_register_function_address_symbolName, void *, const char *, const char *, unsigned>::call(ptr, funcname, modname, line);
 	}
 	
+	static inline void set_taskid_function (unsigned (*taskid_function)(void))
+	{
+		ExtraeSymbolResolver<void, &Instrument::_Extrae_set_taskid_function_symbolName, unsigned (*)(void)>::call(taskid_function);
+	}
+
+	static inline void set_numtasks_function (unsigned (*numtasks_function)(void))
+	{
+		ExtraeSymbolResolver<void, &Instrument::_Extrae_set_numtasks_function_symbolName, unsigned (*)(void)>::call(numtasks_function);
+	}
 	
 	static inline void set_numthreads_function (unsigned (*numthreads_function)(void))
 	{

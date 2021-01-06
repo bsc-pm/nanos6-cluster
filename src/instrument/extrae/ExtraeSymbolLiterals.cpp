@@ -22,5 +22,7 @@ namespace Instrument {
 	StringLiteral const _Extrae_register_function_address_symbolName("Extrae_register_function_address");
 	StringLiteral const _Extrae_set_numthreads_function_symbolName("Extrae_set_numthreads_function");
 	StringLiteral const _Extrae_set_threadid_function_symbolName("Extrae_set_threadid_function");
+	StringLiteral const _Extrae_set_taskid_function_symbolName("Extrae_set_taskid_function");
+	StringLiteral const _Extrae_set_numtasks_function_symbolName("Extrae_set_numtasks_function");
 }
 

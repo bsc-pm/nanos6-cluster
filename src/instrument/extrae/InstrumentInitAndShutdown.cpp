@@ -24,10 +24,23 @@
 #include "system/RuntimeInfo.hpp"
 #include "system/ompss/SpawnFunction.hpp"
 #include "lowlevel/TokenizedEnvironmentVariable.hpp"
+#include "ClusterManager.hpp"
 
 using namespace Instrument::Extrae;
 
 namespace Instrument {
+
+	static unsigned int extrae_nanos6_get_numtasks()
+	{
+		unsigned int ret = ClusterManager::clusterSize();
+		return ret;
+	}
+
+	static unsigned int extrae_nanos6_get_task_id()
+	{
+		unsigned int ret = ClusterManager::getCurrentClusterNode()->getIndex();
+		return ret;
+	}
 
 	static unsigned int extrae_nanos6_get_thread_id()
 	{
@@ -98,6 +111,30 @@ namespace Instrument {
 				"Extrae Configuration File",
 				getenv("EXTRAE_CONFIG_FILE")
 			);
+		}
+
+		// Set up thread information callbacks before initiating library, so
+		// that the Extrae backend is initialized with the right number of tasks
+		// for clusters.
+		// Thread information callbacks
+		if (_traceAsThreads) {
+			ExtraeAPI::set_threadid_function(extrae_nanos6_get_thread_id);
+			if (ClusterManager::inClusterMode()) {
+				ExtraeAPI::set_taskid_function(extrae_nanos6_get_task_id);
+				ExtraeAPI::set_numtasks_function(extrae_nanos6_get_numtasks);
+			}
+			ExtraeAPI::set_numthreads_function(extrae_nanos6_get_num_threads);
+			ExtraeAPI::change_num_threads(extrae_nanos6_get_num_threads());
+			RuntimeInfo::addEntry("extrae_tracing_target", "Extrae Tracing Target", "thread");
+		} else {
+			ExtraeAPI::set_threadid_function(extrae_nanos6_get_virtual_cpu_or_external_thread_id);
+			if (ClusterManager::inClusterMode()) {
+				ExtraeAPI::set_taskid_function(extrae_nanos6_get_task_id);
+				ExtraeAPI::set_numtasks_function(extrae_nanos6_get_numtasks);
+			}
+			ExtraeAPI::set_numthreads_function(extrae_nanos6_get_num_cpus_and_external_threads);
+			ExtraeAPI::change_num_threads(extrae_nanos6_get_num_cpus_and_external_threads());
+			RuntimeInfo::addEntry("extrae_tracing_target", "Extrae Tracing Target", "cpu");
 		}
 
 		// Initialize extrae library
@@ -188,18 +225,6 @@ namespace Instrument {
 			);
 		}
 
-		// Thread information callbacks
-		if (_traceAsThreads) {
-			ExtraeAPI::set_threadid_function(extrae_nanos6_get_thread_id);
-			ExtraeAPI::set_numthreads_function(extrae_nanos6_get_num_threads);
-			ExtraeAPI::change_num_threads(extrae_nanos6_get_num_threads());
-			RuntimeInfo::addEntry("extrae_tracing_target", "Extrae Tracing Target", "thread");
-		} else {
-			ExtraeAPI::set_threadid_function(extrae_nanos6_get_virtual_cpu_or_external_thread_id);
-			ExtraeAPI::set_numthreads_function(extrae_nanos6_get_num_cpus_and_external_threads);
-			ExtraeAPI::change_num_threads(extrae_nanos6_get_num_cpus_and_external_threads());
-			RuntimeInfo::addEntry("extrae_tracing_target", "Extrae Tracing Target", "cpu");
-		}
 
 		// Force an event that allows to detect the trace as an OmpSs trace
 		{
