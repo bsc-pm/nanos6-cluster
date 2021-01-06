@@ -31,6 +31,8 @@ namespace ClusterPollingServices {
 	class PendingQueue {
 
 	private:
+		PaddedSpinLock<> _incomingLock;
+		std::vector<T *> _incomingPendings;
 		PaddedSpinLock<> _lock;
 		std::vector<T *> _pendings;
 		std::atomic<bool> _live;
@@ -40,8 +42,21 @@ namespace ClusterPollingServices {
 	public:
 		static void addPending(T *dt)
 		{
-			std::lock_guard<PaddedSpinLock<>> guard(_singleton._lock);
-			_singleton._pendings.push_back(dt);
+			std::lock_guard<PaddedSpinLock<>> guard(_singleton._incomingLock);
+			_singleton._incomingPendings.push_back(dt);
+		}
+
+		static int takePendings()
+		{
+			// _lock must be taken
+			int count = 0;
+			std::lock_guard<PaddedSpinLock<>> guard(_singleton._incomingLock);
+			for (T *t : _singleton._incomingPendings) {
+				_singleton._pendings.push_back(t);
+				count ++;
+			}
+			_singleton._incomingPendings.clear();
+			return count;
 		}
 
 		// Run a lambda function on the pending queue (with the lock taken)
@@ -70,31 +85,36 @@ namespace ClusterPollingServices {
 			std::vector<T *> &pendings = _singleton._pendings;
 			std::lock_guard<PaddedSpinLock<>> guard(_singleton._lock);
 
-			// There is nothing to process so we can exit now.
-			if (pendings.size() == 0) {
-				return true;
-			}
+			bool firstIter = true;
+			while(1) { 
+				int count = takePendings();
 
-			ClusterManager::testCompletion<T>(pendings);
+				// There is nothing (new) to process so we can exit now.
+				if (pendings.size() == 0
+					|| (!firstIter && count == 0)) {
+					return true;
+				}
 
-			pendings.erase(
-				std::remove_if(
-					pendings.begin(), pendings.end(),
-					[](T *msg) {
-						assert(msg != nullptr);
+				ClusterManager::testCompletion<T>(pendings);
 
-						const bool completed = msg->isCompleted();
-						if (completed) {
-							delete msg;
+				pendings.erase(
+					std::remove_if(
+						pendings.begin(), pendings.end(),
+						[](T *msg) {
+							assert(msg != nullptr);
+
+							const bool completed = msg->isCompleted();
+							if (completed) {
+								delete msg;
+							}
+
+							return completed;
 						}
-
-						return completed;
-					}
-				),
-				std::end(pendings)
-			);
-
-			return true;
+					),
+					std::end(pendings)
+				);
+				firstIter = false;
+			}
 		}
 
 		static void registerService()
