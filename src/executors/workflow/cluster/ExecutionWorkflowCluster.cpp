@@ -195,9 +195,11 @@ namespace ExecutionWorkflow {
 
 		dt->addCompletionCallback(
 			[&]() {
-				Instrument::clusterDataReceived(_targetTranslation._hostRegion.getStartAddress(),
-				                                _targetTranslation._hostRegion.getSize(),
-												_sourceMemoryPlace->getIndex());
+				Instrument::clusterDataReceived(
+					_region.getStartAddress(),
+					_region.getSize(),
+					_sourceMemoryPlace->getIndex()
+				);
 				//! If this data copy is performed for a taskwait we
 				//! don't need to update the location here.
 				DataAccessRegistration::updateTaskDataAccessLocation(
