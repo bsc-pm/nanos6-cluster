@@ -26,14 +26,14 @@ MessageReleaseAccess::MessageReleaseAccess(const ClusterNode *from,
 
 bool MessageReleaseAccess::handleMessage()
 {
-	ClusterMemoryNode *memoryPlace =
-		ClusterManager::getMemoryNode(_content->_location);
+	ClusterMemoryNode *memoryPlace = ClusterManager::getMemoryNode(_content->_location);
 
 	Task *task = (Task *)_content->_offloadedTaskId;
 	// clusterCout << "Handle MessageReleaseAccess " << task->getLabel() << " " << _content->_region << "\n";
 
-	TaskOffloading::releaseRemoteAccess((Task *)_content->_offloadedTaskId,
-			_content->_region, _content->_type, _content->_weak, memoryPlace);
+	TaskOffloading::releaseRemoteAccess(
+		task, _content->_region, _content->_type, _content->_weak, memoryPlace
+	);
 
 	return true;
 }
