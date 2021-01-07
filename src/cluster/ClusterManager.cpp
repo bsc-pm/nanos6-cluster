@@ -25,7 +25,8 @@ ClusterManager::ClusterManager()
 	: _clusterNodes(1),
 	_thisNode(new ClusterNode(0, 0)),
 	_masterNode(_thisNode),
-	_msn(nullptr), _callback(nullptr)
+	_msn(nullptr), _usingNamespace(false),
+	_callback(nullptr)
 {
 	_clusterNodes[0] = _thisNode;
 }
@@ -58,7 +59,7 @@ ClusterManager::ClusterManager(std::string const &commType)
 	_callback.store(nullptr);
 
 	ConfigVariable<bool> inTask("cluster.services_in_task");
-	_taskInPoolins = inTask;
+	_taskInPoolins = inTask.getValue();
 }
 
 ClusterManager::~ClusterManager()
@@ -116,10 +117,11 @@ void ClusterManager::initClusterNamespaceOrSetCallback(
 ) {
 	assert(_singleton != nullptr);
 
-	EnvironmentVariable<bool> useNamespace("cluster.use_namespace");
+	ConfigVariable<bool> useNamespace("cluster.use_namespace");
 
-	if (useNamespace) {
+	if (useNamespace.getValue()) {
 		clusterPrintf("Using namespace\n");
+		_singleton->_usingNamespace = true;
 		NodeNamespace::init(func, args);
 	} else {
 		assert(_singleton->_callback.load() == nullptr);
@@ -133,10 +135,15 @@ void ClusterManager::shutdownPhase1()
 	assert(_singleton != nullptr);
 	assert(MemoryAllocator::isInitialized());
 
+	if (_singleton->_usingNamespace && isMasterNode()) {
+		// _usingNamespace duplicates the information of NodeNamespace::isEnabled().
+		assert(NodeNamespace::isEnabled());
+		NodeNamespace::notifyShutdown();
+	}
+
 	if (inClusterMode()) {
 
 		if (isMasterNode()) {
-			NodeNamespace::notifyShutdown();
 			for (ClusterNode *slaveNode : _singleton->_clusterNodes) {
 				if (slaveNode != _singleton->_thisNode) {
 					MessageSysFinish msg(_singleton->_thisNode);

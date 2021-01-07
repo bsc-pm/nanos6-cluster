@@ -74,7 +74,6 @@ public:
 
 	static void init(void (*func)(void *), void *args)
 	{
-		assert(ClusterManager::inClusterMode() == true);
 		assert(_singleton == nullptr);
 
 		_singleton = new NodeNamespace(func, args);
@@ -100,7 +99,7 @@ public:
 	static void notifyShutdown()
 	{
 		assert(_singleton != nullptr);
-		assert(_singleton->_mustShutdown.load() == false);
+		assert(!_singleton->_mustShutdown.load());
 
 		// The loop checks two conditions to exit.
 		_singleton->_mustShutdown.store(true);

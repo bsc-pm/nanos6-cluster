@@ -43,6 +43,9 @@ private:
 	//! The pooling services are in tasks or in pooling
 	bool _taskInPoolins;
 
+	//! Using cluster namespace
+	bool _usingNamespace;
+
 	//! The ShutdownCallback for this ClusterNode.
 	//! At the moment this is an atomic variable, because we might have
 	//! to poll for this, until it's set from external code. For example,
