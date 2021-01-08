@@ -289,7 +289,9 @@ namespace DataAccessRegistration {
 						}
 				}
 				assert(access->getObjectType() != taskwait_type);
-				assert(access->getObjectType() != top_level_sink_type);
+
+				// This can happen now if a remote task has a successor in the namespace
+				// assert(access->getObjectType() != top_level_sink_type);
 
 				if (access->hasSubaccesses()) {
 					assert(access->getObjectType() == access_type);
@@ -1037,8 +1039,9 @@ namespace DataAccessRegistration {
 				{
 					removeBottomMapTaskwaitOrTopLevelSink(access, accessStructures, task, hpDependencyData);
 				} else {
-					assert(access->getObjectType() == access_type
-						   && access->getType() == NO_ACCESS_TYPE);
+					assert(access->getOriginator()->isRemoteTask()
+						|| (access->getObjectType() == access_type
+							&& access->getType() == NO_ACCESS_TYPE));
 
 					Instrument::removedDataAccess(access->getInstrumentationId());
 					accessStructures._accesses.erase(access);
