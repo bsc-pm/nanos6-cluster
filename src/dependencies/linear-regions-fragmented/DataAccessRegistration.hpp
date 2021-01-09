@@ -58,13 +58,46 @@ namespace DataAccessRegistration {
 		MemoryPlace const *location = nullptr
 	);
 
-	void unregisterTaskDataAccesses(
+	void unregisterTaskDataAccesses1(
+		Task *task,
+		ComputePlace *computePlace,
+		CPUDependencyData &dependencyData,
+		MemoryPlace *location,
+		bool fromBusyThread
+	);
+
+	void unregisterTaskDataAccesses2(
+		Task *task,
+		ComputePlace *computePlace,
+		CPUDependencyData &dependencyData,
+		MemoryPlace *location,
+		bool fromBusyThread
+	);
+
+	inline void unregisterTaskDataAccesses(
 		Task *task,
 		ComputePlace *computePlace,
 		CPUDependencyData &dependencyData,
 		MemoryPlace *location = nullptr,
 		bool fromBusyThread = false
-	);
+	) {
+		unregisterTaskDataAccesses1(task, computePlace, dependencyData, location, fromBusyThread);
+		unregisterTaskDataAccesses2(task, computePlace, dependencyData, location, fromBusyThread);
+	}
+
+	template <typename CallbackType>
+	inline void unregisterTaskDataAccessesWithCallback(
+		Task *task,
+		ComputePlace *computePlace,
+		CPUDependencyData &dependencyData,
+		CallbackType callback,
+		MemoryPlace *location = nullptr,
+		bool fromBusyThread = false
+	) {
+		unregisterTaskDataAccesses1(task, computePlace, dependencyData, location, fromBusyThread);
+		callback();
+		unregisterTaskDataAccesses2(task, computePlace, dependencyData, location, fromBusyThread);
+	}
 
 	//! \brief Combines the task reductions without releasing the dependencies
 	//!

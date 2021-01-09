@@ -1707,6 +1707,31 @@ namespace DataAccessRegistration {
 		}
 	}
 
+	/*
+	 * Process the delayed operations that are in the given task.
+	 */
+
+	static inline void processDelayedOperationsSameTask(
+		/* INOUT */ CPUDependencyData &hpDependencyData,
+					Task *task)
+	{
+		std::lock_guard<TaskDataAccesses::spinlock_t> parentGuard(task->getDataAccesses()._lock);
+
+		hpDependencyData._delayedOperations.erase(
+			std::remove_if(
+				hpDependencyData._delayedOperations.begin(),
+				hpDependencyData._delayedOperations.end(),
+				[&](UpdateOperation delayedOperation) {
+					if (delayedOperation._target._task == task) {
+						processUpdateOperation(delayedOperation, hpDependencyData);
+						return true;
+					} else {
+						return false;
+					}
+				}),
+			std::end(hpDependencyData._delayedOperations)
+		);
+	}
 
 	/*
 	 * Process the delayed operations. These are operations that are triggered
@@ -3729,14 +3754,23 @@ namespace DataAccessRegistration {
 	}
 
 	/*
-	 * Unregister all the task data accesses (when the task completes).
+	 * First part of unregistering all the task data accesses (when the task
+	 * completes). Handle the accesses themselves and any dependent accesses
+	 * within the same task. But do not propagate to any other tasks yet.  This
+	 * gives a safe point at which to dispose of the task, and for clusters
+	 * send the MessageTaskFinished, BEFORE any effects on other tasks, which
+	 * may also send MessageTaskFinished (as it means passing on read and write
+	 * satisfiabilities). If this is not done carefully, then the namespace
+	 * implementation may send MessageTaskFinished out of order.
 	 */
-	void unregisterTaskDataAccesses(Task *task,
+	void unregisterTaskDataAccesses1(Task *task,
 									ComputePlace *computePlace,
 									CPUDependencyData &hpDependencyData,
 									MemoryPlace *location,
 									bool fromBusyThread)
 	{
+		(void)computePlace;
+		(void)fromBusyThread;
 		assert(task != nullptr);
 
 		Instrument::enterUnregisterTaskDataAcesses();
@@ -3816,6 +3850,21 @@ namespace DataAccessRegistration {
 				});
 		}
 
+		processDelayedOperationsSameTask(hpDependencyData, task);
+	}
+
+	/*
+	 * Second part of unregistering all the task data accesses (when the task
+	 * completes). Handle any effects on other tasks.
+	 */
+	void unregisterTaskDataAccesses2(Task *task,
+									ComputePlace *computePlace,
+									CPUDependencyData &hpDependencyData,
+									MemoryPlace *location,
+									bool fromBusyThread)
+	{
+		(void)task;
+		(void)location;
 		processDelayedOperationsSatisfiedOriginatorsAndRemovableTasks(hpDependencyData, computePlace, fromBusyThread);
 
 #ifndef NDEBUG

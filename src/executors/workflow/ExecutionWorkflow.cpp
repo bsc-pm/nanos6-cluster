@@ -141,15 +141,9 @@ namespace ExecutionWorkflow {
 
 				assert (task->hasFinished());
 				if (task->mustDelayRelease()) {
-
-					WorkerThread *currThread = WorkerThread::getCurrentWorkerThread();
-					CPU *cpu = currThread == nullptr ? nullptr : currThread->getComputePlace();
-
-					if (task->markAllChildrenAsFinished(cpu)) {
+					if (task->markAsReleased()) {
+						TaskFinalization::disposeTask(task);
 					}
-				}
-				if (task->markAsReleased()) {
-					TaskFinalization::disposeTask(task);
 				}
 			} else {
 				executionStep->start();
@@ -183,19 +177,50 @@ namespace ExecutionWorkflow {
 					(cpu == nullptr) ? localDependencyData : cpu->getDependencyData();
 
 				if (task->markAsFinished(cpu/* cpu */)) {
-					DataAccessRegistration::unregisterTaskDataAccesses(
-						task,
-						cpu, /*cpu, */
-						hpDependencyData,
-						targetMemoryPlace
-					);
+					if (task->isRemoteTaskInNamespace()) {
+							DataAccessRegistration::unregisterTaskDataAccessesWithCallback(
+								task,
+								cpu, /*cpu, */
+								hpDependencyData,
 
-					TaskFinalization::taskFinished(task, cpu);
-					if (task->markAsReleased()) {
-						TaskFinalization::disposeTask(task);
+								/* For clusters, finalize this task and send
+								 * the MessageTaskFinished BEFORE propagating
+								 * satisfiability to any other tasks. This is to
+								 * avoid potentially sending the
+								 * MessageTaskFinished messages out of order
+								 */
+								[&] {
+									TaskFinalization::taskFinished(task, cpu);
+									bool ret = task->markAsReleased();
+									if (ret) {
+										// const std::string label = task->getLabel();
+										TaskFinalization::disposeTask(task);
+									}
+								},
+								targetMemoryPlace);
+						} else {
+							assert(!task->isRemoteTaskInNamespace());
+							/* PMC: I don't understand why the above approach
+							 * using the callback sometimes fails when the parent
+							 * task is on the same node. This seems to indicate
+							 * a bug somewhere, but as a workaround do it the
+							 * normal way if the task is not offloaded in the
+							 * namespace. This is needed for manual_wait_15, which
+							 * otherwise sometimes fails.
+							 */
+							DataAccessRegistration::unregisterTaskDataAccesses(
+								task,
+								cpu, /*cpu, */
+								hpDependencyData,
+								targetMemoryPlace);
+							TaskFinalization::taskFinished(task, cpu);
+							bool ret = task->markAsReleased();
+							if (ret) {
+								// const std::string label = task->getLabel();
+								TaskFinalization::disposeTask(task);
+							}
+						}
 					}
-				}
-
 				delete workflow;
 			},
 			targetComputePlace
