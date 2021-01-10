@@ -82,10 +82,12 @@ namespace ClusterPollingServices {
 		}
 
 		// Run a lambda function on the pending queue (with the lock taken)
-		static bool checkPendingQueue(std::function<bool(T*)>  checkPending)
+		static bool checkPendingQueueInternal(std::function<bool(T*)>  checkPending,
+		                                      PaddedSpinLock<> &lock,
+											  std::vector<T *> &queue)
 		{
-			std::lock_guard<PaddedSpinLock<>> guard(_singleton._lock);
-			for (T *t: _singleton._pendings) {
+			std::lock_guard<PaddedSpinLock<>> guard(lock);
+			for (T *t: queue) {
 				bool done = checkPending(t);
 				if (done) {
 					/* Return done flag */
@@ -94,6 +96,15 @@ namespace ClusterPollingServices {
 			}
 			/* Return not done */
 			return false;
+		}
+
+		static bool checkPendingQueue(std::function<bool(T*)>  checkPending)
+		{
+			bool ret = checkPendingQueueInternal(checkPending, _singleton._incomingLock, _singleton._incomingPendings);
+			if (!ret) {
+				ret = checkPendingQueueInternal(checkPending, _singleton._lock, _singleton._pendings);
+			}
+			return ret;
 		}
 
 		// When the function returns false the service stops.
