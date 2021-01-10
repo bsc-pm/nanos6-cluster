@@ -22,6 +22,8 @@
 #include <string.h>
 #include <time.h>
 
+#include "ClusterUtil.hpp"
+
 
 namespace Instrument {
 
@@ -217,6 +219,10 @@ class Timer {
 	
 	inline void accumulateLast()
 	{
+		if (_startTime == InternalRepresentation()) {
+			std::cout << "Warning: accumulateLast: _startTime uninitialized\n";
+			return;
+		}
 		assert(_startTime != InternalRepresentation());
 		assert(_endTime >= _startTime);
 		_accumulated += _endTime - _startTime;

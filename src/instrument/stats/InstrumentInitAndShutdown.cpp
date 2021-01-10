@@ -110,6 +110,7 @@ namespace Instrument {
 			output << std::endl;
 		}
 
+if (0) {
 		output << "STATS\t" << "Total CPUs\t" << CPUManager::getTotalCPUs() << std::endl;
 		output << "STATS\t" << "Total time\t" << totalTime << "\tns" << std::endl;
 		output << "STATS\t" << "Total threads\t" << numThreads << std::endl;
@@ -188,6 +189,7 @@ namespace Instrument {
 				phase++;
 			}
 		}
+}
 
 #ifdef USE_CLUSTER
 		showClusterCounters(output);
