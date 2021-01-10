@@ -14,12 +14,15 @@
 #include <RemoteTasksInfoMap.hpp>
 #include <ClusterNode.hpp>
 #include <NodeNamespace.hpp>
+#include "ClusterUtil.hpp"
 
 TaskOffloading::RemoteTasksInfoMap *TaskOffloading::RemoteTasksInfoMap::_singleton = nullptr;
 ClusterManager *ClusterManager::_singleton = nullptr;
 
 std::atomic<size_t> ClusterServicesPolling::_activeClusterPollingServices;
 std::atomic<size_t> ClusterServicesTask::_activeClusterTaskServices;
+
+const EnvironmentVariable<int> disableRemotePropagation("DISABLE_REMOTE", 0);
 
 ClusterManager::ClusterManager()
 	: _clusterNodes(1),
@@ -35,6 +38,8 @@ ClusterManager::ClusterManager(std::string const &commType)
 	:_msn(nullptr), _callback(nullptr)
 {
 	TaskOffloading::RemoteTasksInfoMap::init();
+	
+	_disableRemote = (bool)disableRemotePropagation.getValue();
 
 	_msn = GenericFactory<std::string, Messenger*>::getInstance().create(commType);
 	assert(_msn);
@@ -45,6 +50,8 @@ ClusterManager::ClusterManager(std::string const &commType)
 	const size_t clusterSize = _msn->getClusterSize();
 	const int nodeIndex = _msn->getNodeIndex();
 	const int masterIndex = _msn->getMasterIndex();
+
+	std::cout << "Node " << nodeIndex << " DISABLE_REMOTE: " <<  _disableRemote << "\n";
 
 	_clusterNodes.resize(clusterSize);
 

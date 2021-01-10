@@ -54,6 +54,8 @@ private:
 	//! callback.
 	std::atomic<ClusterShutdownCallback*> _callback;
 
+	bool _disableRemote;
+
 	//! private constructors. This is a singleton.
 	ClusterManager();
 
@@ -366,6 +368,12 @@ public:
 	//! \param[in] func is the callback function
 	//! \param[in] args is the callback function argument
 	static void initClusterNamespaceOrSetCallback(void (*func)(void *), void *args);
+
+	static bool getDisableRemote()
+	{
+		assert(_singleton != nullptr);
+		return _singleton->_disableRemote;
+	}
 };
 
 
