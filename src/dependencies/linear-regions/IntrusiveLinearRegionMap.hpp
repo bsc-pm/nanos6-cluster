@@ -130,6 +130,9 @@ public:
 	template <typename ProcessorType>
 	bool processAll(ProcessorType processor);
 
+	template <typename ProcessorType>
+	bool processAllWithErase(ProcessorType processor);
+
 	//! \brief Pass all elements through a lambda and restart from the last location if instructed
 	//!
 	//! \param[in] processor a lambda that receives an iterator to each element that returns a boolean that is false to have the traversal restart from the current logical position (since the contents may have changed)

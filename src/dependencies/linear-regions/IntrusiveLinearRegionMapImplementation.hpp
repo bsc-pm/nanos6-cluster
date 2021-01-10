@@ -35,6 +35,26 @@ bool IntrusiveLinearRegionMap<ContentType, Hook>::processAll(ProcessorType proce
 }
 
 template <typename ContentType, class Hook> template <typename ProcessorType>
+bool IntrusiveLinearRegionMap<ContentType, Hook>::processAllWithErase(ProcessorType processor)
+{
+	VERIFY_MAP();
+	for (iterator it = BaseType::begin(); it != BaseType::end(); ) {
+		iterator position = it;
+		VERIFY_MAP();
+
+		bool erase = processor(position); // NOTE: an error here indicates that the lambda is missing the "bool" return type
+		VERIFY_MAP();
+		it++; 
+		if (erase) {
+			BaseType::erase(position);
+		}
+	}
+	VERIFY_MAP();
+
+	return true;
+}
+
+template <typename ContentType, class Hook> template <typename ProcessorType>
 void IntrusiveLinearRegionMap<ContentType, Hook>::processAllWithRestart(ProcessorType processor)
 {
 	VERIFY_MAP();
