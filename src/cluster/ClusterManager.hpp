@@ -150,6 +150,12 @@ public:
 		return _singleton->_masterNode == _singleton->_thisNode;
 	}
 
+	static bool isLocalMemoryPlace(const MemoryPlace *location)
+	{
+		return (location->getType() != nanos6_cluster_device)
+				|| (location == getCurrentMemoryNode());
+	}
+
 	//! \brief Get the number of cluster nodes
 	//!
 	//! \returns the number of cluster nodes

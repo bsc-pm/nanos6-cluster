@@ -153,7 +153,7 @@ namespace DataAccessRegistration {
 			lock->unlock();
 	}
 
-	void unfragmentTaskAccesses(Task *task, TaskDataAccesses &accessStructures)
+	void unfragmentOffloadedTaskAccesses(Task *task, TaskDataAccesses &accessStructures)
 	{
 		 // printTaskAccessesAndFragments("before unfragmentTaskAccesses ", task);
 		 (void)task;
@@ -164,7 +164,8 @@ namespace DataAccessRegistration {
 				DataAccess *access = &(*position);
 				assert(access != nullptr);
 				assert(access->getOriginator() == task);
-			/*	std::cout << "FOUND access: (DataAccess *)" << access << ": "
+#if 0
+				std::cout << "FOUND access: (DataAccess *)" << access << ": "
 					<< access->getAccessRegion().getStartAddress() << ":"
 					<< access->getAccessRegion().getSize()
 					<< " status: " << access->getStatus()
@@ -174,20 +175,22 @@ namespace DataAccessRegistration {
 					<< " namespacepred: " << access->getNamespacePredecessor()
 					<< " next: " << access->getNext()._task
 					<< " next: " << access->getNext()._objectType
-					<< " status " << DataAccess::TOTAL_STATUS_BITS
 					<< " " << access->propagatedInRemoteNamespace()
 					<< " " << access->isTopLevel()
-					<< " " << access->isTopmost() << "\n";  */
+					<< " " << access->isTopmost() << "\n";
+#endif
 
 				if (lastAccess != nullptr) {
 					if (access->getAccessRegion().getStartAddress() == lastAccess->getAccessRegion().getEndAddress()
 						&& access->getStatus() == lastAccess->getStatus()
-						&& access->getLocation() == lastAccess->getLocation()
+						&& lastAccess->getLocation()
+						&& ClusterManager::isLocalMemoryPlace(lastAccess->getLocation())
+						&& access->getLocation()
+						&& ClusterManager::isLocalMemoryPlace(access->getLocation())
 						&& access->getDataReleaseStep() == lastAccess->getDataReleaseStep() 
 						&& access->getDataLinkStep() == lastAccess->getDataLinkStep() 
-						// && access->getNamespacePredecessor() == lastAccess->getNamespacePredecessor() 
-						// && access->getValidNamespace() == lastAccess->getValidNamespace()
-						&& access->getNext()._task == lastAccess->getNext()._task
+						&& lastAccess->getNext()._task == nullptr // no next in the namespace
+						&& access->getNext()._task == nullptr // no next in the namespace
 						&& access->getNext()._objectType == lastAccess->getNext()._objectType
 						// && !access->isInBottomMap() // not sure why needed exactly
 						){
@@ -994,6 +997,7 @@ namespace DataAccessRegistration {
 
 			ExecutionWorkflow::DataReleaseStep *step = access->getDataReleaseStep();
 			access->unsetDataReleaseStep();
+			// std::cout << "releaseRegion " << access->getAccessRegion() << " of task " << access->getOriginator()->getLabel() << "\n";
 			step->releaseRegion(access->getAccessRegion(), access->getWriteID(), access->getLocation());
 		}
 
@@ -3877,12 +3881,6 @@ namespace DataAccessRegistration {
 		}
 #endif
 
-		Task *parent = task->getParent();
-		if (parent && parent->isNodeNamespace()) {
-			std::lock_guard<TaskDataAccesses::spinlock_t> guard(accessStructures._lock);
-			 unfragmentTaskAccesses(task, accessStructures);
-		}
-
 		// Needed for namespace support. If a remote task completes before one
 		// or all of its accesses have a successor (either due to timing or
 		// because it is the very last task using this array), then some or all
@@ -3891,6 +3889,7 @@ namespace DataAccessRegistration {
 		// from the bottom map here. This definitely needs to be done  before
 		// the task is destroyed (otherwise a dangling pointer to the task
 		// would be left in the bottom map).
+		Task *parent = task->getParent();
 		if (parent && parent->isNodeNamespace()) {
 			TaskDataAccesses &parentAccessStructures = parent->getDataAccesses();
 			// TaskDataAccesses::accesses_t &parentAccesses = parentAccessStructures._accesses;
@@ -4157,6 +4156,13 @@ namespace DataAccessRegistration {
 		assert(!accessStructures.hasBeenDeleted());
 		std::lock_guard<TaskDataAccesses::spinlock_t> guard(accessStructures._lock);
 
+
+		if (task->isRemoteTask()) {
+			// An offloaded task
+			 unfragmentOffloadedTaskAccesses(task, accessStructures);
+		}
+
+
 		if (!accessStructures._accesses.empty()) {
 			// Mark all accesses as not having subaccesses (meaning fragments,
 			// as they will all be deleted below
@@ -4165,7 +4171,10 @@ namespace DataAccessRegistration {
 				[&](TaskDataAccesses::accesses_t::iterator position) -> bool {
 					DataAccess *dataAccess = &(*position);
 					assert(dataAccess != nullptr);
-					assert(!dataAccess->hasBeenDiscounted());
+
+					// When handleExitTaskwait is called by Task::markAsFinished
+					// for a task with a wait clause, then the access may be discounted
+					// assert(!dataAccess->hasBeenDiscounted());
 
 					if (dataAccess->hasSubaccesses()) {
 						dataAccess->unsetHasSubaccesses();
