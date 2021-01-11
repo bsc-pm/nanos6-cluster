@@ -73,7 +73,7 @@ namespace ClusterPollingServices {
 				_singleton._queueBytes += (int)t->getSize();
 			}
 			_singleton._incomingPendings.clear();
-			if (_singleton._eventTypeIncoming) {
+			if (count > 0 && _singleton._eventTypeIncoming) {
 				Instrument::emitClusterEvent(_singleton._eventTypeIncoming, 0);
 				Instrument::emitClusterEvent(_singleton._eventTypePending, _singleton._pendings.size());
 				Instrument::emitClusterEvent(_singleton._eventTypeBytes, _singleton._queueBytes);
@@ -130,14 +130,16 @@ namespace ClusterPollingServices {
 
 				ClusterManager::testCompletion<T>(pendings);
 
+				int numCompleted = 0;
 				pendings.erase(
 					std::remove_if(
 						pendings.begin(), pendings.end(),
-						[](T *msg) {
+						[&](T *msg) {
 							assert(msg != nullptr);
 
 							const bool completed = msg->isCompleted();
 							if (completed) {
+								numCompleted++;
 								_singleton._queueBytes -= (int)msg->getSize();
 								delete msg;
 							}
@@ -148,7 +150,7 @@ namespace ClusterPollingServices {
 					std::end(pendings)
 				);
 
-				if (_singleton._eventTypeIncoming) {
+				if (numCompleted > 0 && _singleton._eventTypeIncoming) {
 					Instrument::emitClusterEvent(_singleton._eventTypePending, pendings.size());
 					Instrument::emitClusterEvent(_singleton._eventTypeBytes, _singleton._queueBytes);
 				}
