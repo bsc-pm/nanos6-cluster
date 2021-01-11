@@ -156,6 +156,16 @@ public:
 				|| (location == getCurrentMemoryNode());
 	}
 
+	static int getMemoryPlaceNodeIndex(const MemoryPlace *location)
+	{
+		if (location == nullptr) {
+			return -1;
+		}
+		return (location->getType() != nanos6_cluster_device) ?
+					getCurrentMemoryNode()->getIndex() :
+					location->getIndex();
+	}
+
 	//! \brief Get the number of cluster nodes
 	//!
 	//! \returns the number of cluster nodes

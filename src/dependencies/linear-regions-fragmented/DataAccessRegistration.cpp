@@ -86,7 +86,10 @@ namespace DataAccessRegistration {
 				assert(access != nullptr);
 				std::cout << "access: (DataAccess *)" << access << ": "
 					<< access->getAccessRegion().getStartAddress() << ":"
-					<< access->getAccessRegion().getSize() << "\n";
+					<< access->getAccessRegion().getSize()
+					<< " rw: " << access->readSatisfied() << access->writeSatisfied()
+					<< " loc: " << ClusterManager::getMemoryPlaceNodeIndex(access->getLocation())
+					<< "\n";
 				return true; /* always continue, don't stop here */
 			}
 		);
@@ -106,7 +109,10 @@ namespace DataAccessRegistration {
 				assert(fragment != nullptr);
 				std::cout << "fragment: (DataAccess *)" << fragment << ": "
 					<< fragment->getAccessRegion().getStartAddress() << ":"
-					<< fragment->getAccessRegion().getSize() << "\n";
+					<< fragment->getAccessRegion().getSize()
+					<< " rw: " << fragment->readSatisfied() << fragment->writeSatisfied()
+					<< " loc: " << ClusterManager::getMemoryPlaceNodeIndex(fragment->getLocation())
+					<< "\n";
 				return true; /* always continue, don't stop here */
 			}
 		);
@@ -121,7 +127,10 @@ namespace DataAccessRegistration {
 				assert(taskwaitFragment != nullptr);
 				std::cout << "taskwaitFragment: (DataAccess *)" << taskwaitFragment << ": "
 					<< taskwaitFragment->getAccessRegion().getStartAddress() << ":"
-					<< taskwaitFragment->getAccessRegion().getSize() << "\n";
+					<< taskwaitFragment->getAccessRegion().getSize()
+					<< " rw: " << taskwaitFragment->readSatisfied() << taskwaitFragment->writeSatisfied()
+					<< " loc: " << ClusterManager::getMemoryPlaceNodeIndex(taskwaitFragment->getLocation())
+					<< "\n";
 				return true; /* always continue, don't stop here */
 			}
 		);
@@ -813,7 +822,7 @@ namespace DataAccessRegistration {
 			 */
 			UpdateOperation updateOperation(access->getNext(), access->getAccessRegion());
 
-			if (!dontPropagate) {
+			if (!dontPropagate || access->getNext()._task == access->getOriginator()) {
 				if (initialStatus._propagatesReadSatisfiabilityToNext != updatedStatus._propagatesReadSatisfiabilityToNext) {
 					assert(!initialStatus._propagatesReadSatisfiabilityToNext);
 					updateOperation._makeReadSatisfied = true; /* make next task read satisfied */
@@ -2929,7 +2938,7 @@ namespace DataAccessRegistration {
 	) {
 		assert(finishedTask != nullptr);
 		assert(dataAccess != nullptr);
-		assert((location != nullptr) || dataAccess->isWeak());
+		// assert((location != nullptr) || dataAccess->isWeak());
 
 		assert(dataAccess->getOriginator() == finishedTask);
 		assert(!region.empty());
@@ -2950,11 +2959,16 @@ namespace DataAccessRegistration {
 			dataAccess, region,
 			finishedTask->getDataAccesses(),
 			[&](DataAccess *accessOrFragment) -> bool {
-				assert(!accessOrFragment->complete());
+
 				assert(accessOrFragment->getOriginator() == finishedTask);
 
 				DataAccessStatusEffects initialStatus(accessOrFragment);
-				accessOrFragment->setComplete();
+
+				// the access will already be complete only if it is a task with a wait clause
+				// ???
+				if (!accessOrFragment->complete()) {
+					accessOrFragment->setComplete();
+				}
 
 				if (isRemote && isReleaseAccess) {
 					bool notSat = false;
@@ -2987,7 +3001,13 @@ namespace DataAccessRegistration {
 				} else if (location != nullptr) {
 					/* Normal non-cluster case e.g. for NUMA */
 					accessOrFragment->setLocation(location);
+				} else {
+					if (accessOrFragment->getLocation() == nullptr) {
+						clusterPrintf("Warning: set location to current node\n");
+						accessOrFragment->setLocation(ClusterManager::getCurrentMemoryNode());
+					}
 				}
+
 				if (writeID != 0 && accessOrFragment->getAccessRegion() == region) {
 					accessOrFragment->setWriteID(writeID);
 				}
@@ -3932,7 +3952,7 @@ namespace DataAccessRegistration {
 					DataAccess *dataAccess = &(*position);
 					assert(dataAccess != nullptr);
 
-					MemoryPlace *accessLocation = (dataAccess->isWeak()) ? nullptr : location;
+					MemoryPlace *accessLocation = nullptr; // (dataAccess->isWeak()) ? nullptr : location;
 
 					finalizeAccess(task, dataAccess, dataAccess->getAccessRegion(), 0, accessLocation, /* OUT */ hpDependencyData, isRemote, false);
 					return true;
