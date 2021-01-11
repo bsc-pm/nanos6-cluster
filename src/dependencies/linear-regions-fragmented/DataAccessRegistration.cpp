@@ -153,6 +153,60 @@ namespace DataAccessRegistration {
 			lock->unlock();
 	}
 
+	void unfragmentTaskAccesses(Task *task, TaskDataAccesses &accessStructures)
+	{
+		 // printTaskAccessesAndFragments("before unfragmentTaskAccesses ", task);
+		 (void)task;
+
+		DataAccess *lastAccess = nullptr;
+		accessStructures._accesses.processAllWithErase(
+			[&](TaskDataAccesses::accesses_t::iterator position) -> bool {
+				DataAccess *access = &(*position);
+				assert(access != nullptr);
+				assert(access->getOriginator() == task);
+			/*	std::cout << "FOUND access: (DataAccess *)" << access << ": "
+					<< access->getAccessRegion().getStartAddress() << ":"
+					<< access->getAccessRegion().getSize()
+					<< " status: " << access->getStatus()
+					<< " location: " << access->getLocation()
+					<< " datarelstep: " << access->getDataReleaseStep()
+					<< " datalinkstep: " << access->getDataLinkStep()
+					<< " namespacepred: " << access->getNamespacePredecessor()
+					<< " next: " << access->getNext()._task
+					<< " next: " << access->getNext()._objectType
+					<< " status " << DataAccess::TOTAL_STATUS_BITS
+					<< " " << access->propagatedInRemoteNamespace()
+					<< " " << access->isTopLevel()
+					<< " " << access->isTopmost() << "\n";  */
+
+				if (lastAccess != nullptr) {
+					if (access->getAccessRegion().getStartAddress() == lastAccess->getAccessRegion().getEndAddress()
+						&& access->getStatus() == lastAccess->getStatus()
+						&& access->getLocation() == lastAccess->getLocation()
+						&& access->getDataReleaseStep() == lastAccess->getDataReleaseStep() 
+						&& access->getDataLinkStep() == lastAccess->getDataLinkStep() 
+						// && access->getNamespacePredecessor() == lastAccess->getNamespacePredecessor() 
+						// && access->getValidNamespace() == lastAccess->getValidNamespace()
+						&& access->getNext()._task == lastAccess->getNext()._task
+						&& access->getNext()._objectType == lastAccess->getNext()._objectType
+						// && !access->isInBottomMap() // not sure why needed exactly
+						){
+							DataAccessRegion newrel(lastAccess->getAccessRegion().getStartAddress(), access->getAccessRegion().getEndAddress());
+							lastAccess->setAccessRegion(newrel);
+							accessStructures._removalBlockers--;
+							assert(accessStructures._removalBlockers > 0);
+							// std::cout << "remove it\n";
+							return true;
+					}
+				}
+				lastAccess = access;
+				return false;
+			}
+		);
+
+		 // printTaskAccessesAndFragments("after unfragmentTaskAccesses ", task);
+	}
+
 	typedef CPUDependencyData::removable_task_list_t removable_task_list_t;
 
 
@@ -3823,6 +3877,12 @@ namespace DataAccessRegistration {
 		}
 #endif
 
+		Task *parent = task->getParent();
+		if (parent && parent->isNodeNamespace()) {
+			std::lock_guard<TaskDataAccesses::spinlock_t> guard(accessStructures._lock);
+			 unfragmentTaskAccesses(task, accessStructures);
+		}
+
 		// Needed for namespace support. If a remote task completes before one
 		// or all of its accesses have a successor (either due to timing or
 		// because it is the very last task using this array), then some or all
@@ -3831,11 +3891,12 @@ namespace DataAccessRegistration {
 		// from the bottom map here. This definitely needs to be done  before
 		// the task is destroyed (otherwise a dangling pointer to the task
 		// would be left in the bottom map).
-		Task *parent = task->getParent();
 		if (parent && parent->isNodeNamespace()) {
 			TaskDataAccesses &parentAccessStructures = parent->getDataAccesses();
 			// TaskDataAccesses::accesses_t &parentAccesses = parentAccessStructures._accesses;
 			std::lock_guard<TaskDataAccesses::spinlock_t> guard(parentAccessStructures._lock);
+
+
 			parentAccessStructures._subaccessBottomMap.processAll(
 				[&](TaskDataAccesses::subaccess_bottom_map_t::iterator bottomMapPosition) -> bool {
 					BottomMapEntry *bottomMapEntry = &(*bottomMapPosition);
@@ -4086,51 +4147,6 @@ namespace DataAccessRegistration {
 		 // printTaskAccessesAndFragments("after handleEnterTaskwait", task);
 	}
 
-	void unfragmentTaskAccesses(Task *task, TaskDataAccesses &accessStructures)
-	{
-		 // printTaskAccessesAndFragments("before unfragmentTaskAccesses ", task);
-		 (void)task;
-
-		DataAccess *lastAccess = nullptr;
-		accessStructures._accesses.processAllWithErase(
-			[&](TaskDataAccesses::accesses_t::iterator position) -> bool {
-				DataAccess *access = &(*position);
-				assert(access != nullptr);
-				/*
-				std::cout << "FOUND access: (DataAccess *)" << access << ": "
-					<< access->getAccessRegion().getStartAddress() << ":"
-					<< access->getAccessRegion().getSize()
-					<< " status: " << access->getStatus()
-					<< " location: " << access->getLocation()
-					<< " datarelstep: " << access->getDataReleaseStep()
-					<< " datalinkstep: " << access->getDataLinkStep()
-					<< " namespacepred: " << access->getNamespacePredecessor()
-					<< "\n";
-					*/
-
-				if (lastAccess != nullptr) {
-					if (access->getAccessRegion().getStartAddress() == lastAccess->getAccessRegion().getEndAddress()
-						&& access->getStatus() == lastAccess->getStatus()
-						&& access->getLocation() == lastAccess->getLocation()
-						&& access->getDataReleaseStep() == lastAccess->getDataReleaseStep() 
-						&& access->getDataLinkStep() == lastAccess->getDataLinkStep() 
-						&& access->getNamespacePredecessor() == lastAccess->getNamespacePredecessor() 
-						){
-							DataAccessRegion newrel(lastAccess->getAccessRegion().getStartAddress(), access->getAccessRegion().getEndAddress());
-							lastAccess->setAccessRegion(newrel);
-							accessStructures._removalBlockers--;
-							assert(accessStructures._removalBlockers > 0);
-							// std::cout << "remove it\n";
-							return true;
-					}
-				}
-				lastAccess = access;
-				return false;
-			}
-		);
-
-		 // printTaskAccessesAndFragments("after unfragmentTaskAccesses ", task);
-	}
 
 	void handleExitTaskwait(Task *task, ComputePlace *, CPUDependencyData &)
 	{
@@ -4219,7 +4235,7 @@ namespace DataAccessRegistration {
 			});
 		assert(accessStructures._subaccessBottomMap.empty());
 
-		 unfragmentTaskAccesses(task, accessStructures);
+		 // unfragmentTaskAccesses(task, accessStructures);
 		 // printTaskAccessesAndFragments("after exitHandleTaskwait ", task);
 	}
 

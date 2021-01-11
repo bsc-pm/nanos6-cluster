@@ -189,7 +189,9 @@ namespace ExecutionWorkflow {
 		bool checkDataRelease(DataAccess const *access, bool isRemovable) override
 		{
 			Task *task = access->getOriginator();
+			(void)isRemovable;
 
+			const bool mustWait = task->mustDelayRelease() && !task->allChildrenHaveFinished();
 
 			const bool releases = ( (access->getObjectType() == taskwait_type) // top level sink
 			                        || !access->hasSubaccesses()) // or no fragments (i.e. no subtask to wait for)
@@ -197,7 +199,8 @@ namespace ExecutionWorkflow {
 				&& access->readSatisfied() && access->writeSatisfied()
 				&& access->getOriginator()->isRemoteTask()  // only offloaded tasks: necessary (e.g. otherwise taskwait on will release)
 				&& access->complete()                       // access must be complete
-				&& !access->hasNext();                      // no next access at the remote side
+				&& !access->hasNext()                       // no next access at the remote side
+				&& !mustWait;
 
 			Instrument::logMessage(
 				Instrument::ThreadInstrumentationContext::getCurrent(),

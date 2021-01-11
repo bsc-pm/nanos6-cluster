@@ -446,6 +446,11 @@ public:
 	//! \returns true if its depedencies can be released
 	inline bool markAllChildrenAsFinished(ComputePlace *computePlace);
 
+	inline bool allChildrenHaveFinished()
+	{
+		return _countdownToRelease == 0;
+	}
+
 	//! \brief Mark it as blocked
 	//!
 	//! \returns true if the change makes the task become ready
