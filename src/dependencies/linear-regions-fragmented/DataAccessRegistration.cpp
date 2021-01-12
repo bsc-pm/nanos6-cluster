@@ -2965,10 +2965,11 @@ namespace DataAccessRegistration {
 				DataAccessStatusEffects initialStatus(accessOrFragment);
 
 				// the access will already be complete only if it is a task with a wait clause
-				// ???
-				if (!accessOrFragment->complete()) {
-					accessOrFragment->setComplete();
+				if (accessOrFragment->complete()) {
+					return true;
 				}
+
+				accessOrFragment->setComplete();
 
 				if (isRemote && isReleaseAccess) {
 					bool notSat = false;
@@ -3003,7 +3004,7 @@ namespace DataAccessRegistration {
 					accessOrFragment->setLocation(location);
 				} else {
 					if (accessOrFragment->getLocation() == nullptr) {
-						clusterPrintf("Warning: set location to current node\n");
+						// This should only happen on a weak access if no subtask has strong access ??
 						accessOrFragment->setLocation(ClusterManager::getCurrentMemoryNode());
 					}
 				}

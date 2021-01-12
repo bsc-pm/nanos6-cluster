@@ -14,6 +14,7 @@
 #include "system/TrackingPoints.hpp"
 #include "tasks/TaskImplementation.hpp"
 #include "src/memory/directory/Directory.hpp"
+#include "scheduling/Scheduler.hpp"
 
 #include <ClusterManager.hpp>
 #include <DataAccess.hpp>
@@ -130,21 +131,64 @@ namespace ExecutionWorkflow {
 			ExecutionWorkflow::Step *executionStep = task->getExecutionStep();
 
 			if (executionStep == nullptr) {
-				/* Either this task has already executed and has been
-				 * waiting for its children to complete or the task has
-				 * no body (task->hasCode() is false).
-				 *
-				 * NOTE: in the former case, task->getWorkflow() is actually
-				 *       a dangling pointer as the workflow has already been deleted.
-				 *       In the latter it never gets deleted.
-				 */
 
+				/* Task has already executed and is in a "wait" clause waiting
+				 * for its children to complete. The notification step has
+				 * already been executed, but markAsFinished returned false.
+				 * Now, finally, the wait clause is done, the accesses can be
+				 * unregistered and the task disposed. NOTE:
+				 * task->getWorkflow() is actually a dangling pointer as the
+				 * workflow has already been deleted.
+				 */
+				assert(task->mustDelayRelease());
+				WorkerThread *currThread = WorkerThread::getCurrentWorkerThread();
+				CPU * const cpu =
+					(currThread != nullptr) ? currThread->getComputePlace() : nullptr;
+				CPUDependencyData localDependencyData;
+				CPUDependencyData &hpDependencyData =
+					(cpu == nullptr) ? localDependencyData : cpu->getDependencyData();
+
+				/*
+				 * Continue what was started in Task::markAsFinished, i.e.
+				 * everything after Task::markAsBlocked returned false.
+				 */
+				task->completeDelayedRelease();
+				DataAccessRegistration::handleExitTaskwait(task, cpu, hpDependencyData);
+
+				/*
+				 * Now finish the notification step, i.e. everything after
+				 * Task::markAsFinished returned false, except that the work
+				 * of TaskFinalization::taskFinished(task, cpu) was already done
+				 * when a child finished and called TaskFinalization::taskFinished.
+				 */
 				assert (task->hasFinished());
-				if (task->mustDelayRelease()) {
-					if (task->markAsReleased()) {
-						TaskFinalization::disposeTask(task);
-					}
-				}
+
+				DataAccessRegistration::unregisterTaskDataAccessesWithCallback(
+					task,
+					cpu, /*cpu, */
+					hpDependencyData,
+
+					/* For clusters, finalize this task and send
+					 * the MessageTaskFinished BEFORE propagating
+					 * satisfiability to any other tasks. This is to
+					 * avoid potentially sending the
+					 * MessageTaskFinished messages out of order
+					 */
+					[&] {
+						bool ret = task->markAsReleased();
+						if (ret) {
+							// const std::string label = task->getLabel();
+							TaskFinalization::disposeTask(task);
+						}
+						Task *parent = task->getParent();
+						if (parent) {
+							// Parent in a taskwait that finishes at this point
+							if (parent->finishChild()) {
+								Scheduler::addReadyTask(parent, cpu, UNBLOCKED_TASK_HINT);
+							}
+						}
+					},
+					targetMemoryPlace);
 			} else {
 				executionStep->start();
 			}
