@@ -118,6 +118,7 @@ namespace ExecutionWorkflow {
 		DataAccessRegistration::combineTaskReductions(_task, cpu);
 
 		// Release the subsequent steps
+		_task->setExecutionStep(nullptr);
 		releaseSuccessors();
 		delete this;
 	}
