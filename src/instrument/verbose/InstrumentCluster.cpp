@@ -66,13 +66,47 @@ namespace Instrument {
 		addLogEntry(logEntry);
 	}
 
-	void clusterDataSend(void *, size_t, int, InstrumentationContext const &)
+    void clusterDataSend(void *, size_t dataSize, int dest, int, InstrumentationContext const &)
 	{
+		if(!_verboseClusterMessages) {
+			return;
+		}
+
+		InstrumentationContext const &context = ThreadInstrumentationContext::getCurrent();
+
+		LogEntry *logEntry = getLogEntry(context);
+		assert(logEntry != nullptr);
+		assert(dest >= 0);
+
+		logEntry->appendLocation(context);
+
+		logEntry->_contents << " --> SendingRawData size:"
+				<< dataSize
+				<< " targetNode:" << dest;
+
+		addLogEntry(logEntry);
 	}
 
-	void clusterDataReceived(void *, size_t, int, InstrumentationContext const &)
+	void clusterDataReceived(void *, size_t dataSize, int source, int, InstrumentationContext const &)
 	{
-	}
+		if(!_verboseClusterMessages) {
+			return;
+		}
+
+		InstrumentationContext const &context = ThreadInstrumentationContext::getCurrent();
+
+		LogEntry *logEntry = getLogEntry(context);
+		assert(logEntry != nullptr);
+		assert(source >= 0);
+
+		logEntry->appendLocation(context);
+
+		logEntry->_contents << " <-- ReceivingRawData size:"
+				<< dataSize
+				<< " sourceNode:" << source;
+
+		addLogEntry(logEntry);
+	}	
 
 	void taskIsOffloaded(task_id_t, InstrumentationContext const &)
 	{
