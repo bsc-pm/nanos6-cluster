@@ -24,13 +24,6 @@ namespace Instrument {
 	}
 #endif
 
-	inline void clusterDataSend(void *, size_t, int, InstrumentationContext const &)
-	{
-	}
-
-	inline void clusterDataReceived(void *, size_t, int, InstrumentationContext const &)
-	{
-	}
 }
 
 #endif //! INSTRUMENT_EXTRAE_CLUSTER_HPP

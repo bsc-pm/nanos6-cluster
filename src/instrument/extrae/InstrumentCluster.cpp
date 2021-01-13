@@ -100,6 +100,7 @@ namespace Instrument {
 
 		if (receiver >= 0) {
 			value = (extrae_value_t)(messageType + 1);
+			ce.Values = &value;
 			ce.nCommunications = 1;
 			ce.Communications =
 				(extrae_user_communication_t *) alloca(sizeof(extrae_user_communication_t));
@@ -139,9 +140,11 @@ namespace Instrument {
 
 		if (senderId >= 0) {
 			value = (extrae_value_t)(messageType + 1);
+			ce.Values = &value;
 			ce.nCommunications = 1;
 			ce.Communications =
 				(extrae_user_communication_t *) alloca(sizeof(extrae_user_communication_t));
+
 			ce.Communications[0].type = EXTRAE_USER_RECV;
 			ce.Communications[0].tag = (extrae_comm_tag_t)EventType::MESSAGE_SEND;
 			ce.Communications[0].size = messageType;
@@ -151,6 +154,78 @@ namespace Instrument {
 
 		ExtraeAPI::emit_CombinedEvents(&ce);
 	}
+
+	//! This function is called when sending raw data
+    void clusterDataSend(void *, size_t, int dest, int messageId, InstrumentationContext const &)
+    {
+        if (!_extraeInstrumentCluster)
+            return;
+
+        const unsigned int messageType = MessageType::DATA_RAW;
+        extrae_type_t type = (extrae_type_t) EventType::MESSAGE_SEND;
+        extrae_value_t value = (extrae_value_t)(messageType + 1);
+
+        extrae_combined_events_t ce;
+        ce.HardwareCounters = 0;
+        ce.Callers = 0;
+
+
+        ce.UserFunction = EXTRAE_USER_FUNCTION_NONE; 
+        ce.nEvents = 1;
+        ce.nCommunications = 1;
+        ce.Communications =
+            (extrae_user_communication_t *) alloca(sizeof(extrae_user_communication_t));
+        ce.Types = &type;
+        ce.Values = &value;
+
+        ce.Communications[0].type = EXTRAE_USER_SEND;
+        ce.Communications[0].tag = (extrae_comm_tag_t)EventType::MESSAGE_SEND;
+        ce.Communications[0].size = messageType;
+        ce.Communications[0].partner = dest;
+        ce.Communications[0].id = messageId;
+
+        ExtraeAPI::emit_CombinedEvents(&ce);
+    }
+
+    //! This function is called when receiving raw data
+    void clusterDataReceived(void *, size_t, int source, int messageId, InstrumentationContext const &)
+    {
+        if (!_extraeInstrumentCluster)
+            return;
+
+        const unsigned int messageType = MessageType::DATA_RAW;
+
+        extrae_combined_events_t ce;
+        ce.HardwareCounters = 0;
+        ce.Callers = 0;
+        ce.UserFunction = EXTRAE_USER_FUNCTION_NONE;
+
+		extrae_type_t type = (extrae_type_t) EventType::MESSAGE_HANDLE;
+		ce.Types = &type;
+
+		ce.nEvents = 1;
+		extrae_value_t value = 0;
+		ce.Values = &value;
+
+		ce.nCommunications = 0;
+		ce.Communications = NULL;
+
+		if(messageId >= 0)
+		{
+			value = (extrae_value_t)(messageType + 1);
+			ce.Values = &value;
+			ce.nCommunications = 1;
+			ce.Communications =
+				(extrae_user_communication_t *) alloca(sizeof(extrae_user_communication_t));
+			ce.Communications[0].type = EXTRAE_USER_RECV;
+			ce.Communications[0].tag = (extrae_comm_tag_t)EventType::MESSAGE_SEND;
+			ce.Communications[0].size = messageType;
+			ce.Communications[0].partner = source;
+			ce.Communications[0].id = messageId;
+		}
+
+        ExtraeAPI::emit_CombinedEvents(&ce);
+    }
 
 	void taskIsOffloaded(__attribute__((unused)) task_id_t taskId,
 		__attribute__((unused)) InstrumentationContext const &context) {

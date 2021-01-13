@@ -20,11 +20,11 @@ namespace Instrument {
 	{
 	}
 
-	inline void clusterDataSend(void *, size_t, int, InstrumentationContext const &)
+	inline void clusterDataSend(void *, size_t, int, int, InstrumentationContext const &)
 	{
 	}
 
-	inline void clusterDataReceived(void *, size_t, int, InstrumentationContext const &)
+	inline void clusterDataReceived(void *, size_t, int, int, InstrumentationContext const &)
 	{
 	}
 

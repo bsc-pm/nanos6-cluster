@@ -132,7 +132,7 @@ DataTransfer *MPIMessenger::sendData(
 	assert(mpiDst < _wsize && mpiDst != _wrank);
 
 	if (instrument) {
-		Instrument::clusterDataSend(address, size, mpiDst);
+		Instrument::clusterDataSend(address, size, mpiDst, messageId);
 	}
 
 	int tag = (messageId << 8) | DATA_RAW;
@@ -152,7 +152,7 @@ DataTransfer *MPIMessenger::sendData(
 	MPIErrorHandler::handle(ret, INTRA_COMM_DATA_RAW);
 
 	return new MPIDataTransfer(region, ClusterManager::getCurrentMemoryNode(),
-		to->getMemoryNode(), request);
+		to->getMemoryNode(), request, mpiDst, messageId);
 }
 
 DataTransfer *MPIMessenger::fetchData(
@@ -175,7 +175,7 @@ DataTransfer *MPIMessenger::fetchData(
 		ret = MPI_Recv(address, size, MPI_BYTE, mpiSrc, tag, INTRA_COMM_DATA_RAW, MPI_STATUS_IGNORE);
 		MPIErrorHandler::handle(ret, INTRA_COMM_DATA_RAW);
 		if (instrument) {
-			Instrument::clusterDataReceived(address, size, mpiSrc);
+			Instrument::clusterDataReceived(address, size, mpiSrc, messageId);
 		}
 
 		return nullptr;
@@ -190,7 +190,7 @@ DataTransfer *MPIMessenger::fetchData(
 	MPIErrorHandler::handle(ret, INTRA_COMM_DATA_RAW);
 
 	return new MPIDataTransfer(region, from->getMemoryNode(),
-		ClusterManager::getCurrentMemoryNode(), request);
+		ClusterManager::getCurrentMemoryNode(), request, mpiSrc, messageId);
 }
 
 void MPIMessenger::synchronizeAll(void)

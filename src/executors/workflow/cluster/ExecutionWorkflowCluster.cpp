@@ -255,11 +255,6 @@ namespace ExecutionWorkflow {
 				_region,
 				_sourceMemoryPlace,
 				[&]() {
-					Instrument::clusterDataReceived(
-						_region.getStartAddress(),
-						_region.getSize(),
-						_sourceMemoryPlace->getIndex()
-					);
 					//! If this data copy is performed for a taskwait we
 					//! don't need to update the location here.
 					DataAccessRegistration::updateTaskDataAccessLocation(

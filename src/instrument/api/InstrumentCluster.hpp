@@ -42,14 +42,17 @@ namespace Instrument {
 		void *address,
 		size_t size,
 		int dest,
+		int messageId,
 		InstrumentationContext const &context = ThreadInstrumentationContext::getCurrent()
 	);
 
-	//! This function is called when sending raw data
+	//! This function is called when receiving raw data
+	//!
 	void clusterDataReceived(
 		void *address,
 		size_t size,
 		int dest,
+		int messageId,
 		InstrumentationContext const &context = ThreadInstrumentationContext::getCurrent()
 	);
 

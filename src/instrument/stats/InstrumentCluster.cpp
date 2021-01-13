@@ -50,14 +50,14 @@ namespace Instrument {
 		bytesMessagesReceived[messageType] += msg->getSize();
 	}
 
-	void clusterDataSend(void *, size_t size, int, InstrumentationContext const &)
+	void clusterDataSend(void *, size_t size, int, int, InstrumentationContext const &)
 	{
 		countMessagesSent[DATA_RAW] ++;
 		bytesMessagesSent[DATA_RAW] += size;
 	}
 
 
-	void clusterDataReceived(void *, size_t size, int, InstrumentationContext const &)
+	void clusterDataReceived(void *, size_t size, int, int, InstrumentationContext const &)
 	{
 		countMessagesReceived[DATA_RAW] ++;
 		bytesMessagesReceived[DATA_RAW] += size;

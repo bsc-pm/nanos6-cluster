@@ -13,6 +13,8 @@
 
 #include <DataAccessRegion.hpp>
 
+#include "InstrumentCluster.hpp"
+
 class MemoryPlace;
 
 class DataTransfer {
@@ -25,6 +27,12 @@ public:
 
 	//! Target memory place
 	MemoryPlace const *_target;
+
+	//! ID as the mesage index for instrumentating the transferred region
+	int _id;
+
+	//! rank of MPI source for instrumentating the transferred region (non-bocking case)
+	int _MPISource;
 
 	typedef std::function<void ()> data_transfer_callback_t;
 
@@ -43,8 +51,10 @@ public:
 		DataAccessRegion const &region,
 		MemoryPlace const *source,
 		MemoryPlace const *target,
-		void *messengerData
-	) : _region(region), _source(source), _target(target),
+		void *messengerData,
+		int MPISource,
+		int id
+	) : _region(region), _source(source), _target(target), _MPISource(MPISource), _id(id),
 		_callbacks(), _completed(false), _messengerData(messengerData)
 	{
 	}
@@ -73,6 +83,12 @@ public:
 		return _target;
 	}
 
+	//! \brief Return the the mesage index for instrumentating a transferred region
+	inline int getMessageId() const
+	{
+		return _id;
+	}
+
 	//! \brief Set the callback for the DataTransfer
 	//!
 	//! \param[in] callback is the completion callback
@@ -87,11 +103,16 @@ public:
 	//! be invoked
 	inline void markAsCompleted()
 	{
+		Instrument::clusterDataReceived(_region.getStartAddress(), _region.getSize(), _MPISource, _id);
+
 		for(data_transfer_callback_t callback : _callbacks) {
 			callback();
 		}
 
 		_completed = true;
+
+		Instrument::clusterDataReceived(NULL, 0, _MPISource, -1);
+
 	}
 
 	//! \brief Check if the DataTransfer is completed

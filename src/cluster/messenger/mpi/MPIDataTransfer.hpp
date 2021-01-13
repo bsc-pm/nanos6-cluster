@@ -20,8 +20,10 @@ public:
 		DataAccessRegion const &region,
 		MemoryPlace const *source,
 		MemoryPlace const *target,
-		MPI_Request *request
-	) : DataTransfer(region, source, target, request)
+		MPI_Request *request,
+		int MPISource,
+		int transferId
+	) : DataTransfer(region, source, target, request, MPISource, transferId)
 	{
 	}
 
