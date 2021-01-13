@@ -220,7 +220,7 @@ class Timer {
 	inline void accumulateLast()
 	{
 		if (_startTime == InternalRepresentation()) {
-			std::cout << "Warning: accumulateLast: _startTime uninitialized\n";
+			// std::cout << "Warning: accumulateLast: _startTime uninitialized\n";
 			return;
 		}
 		assert(_startTime != InternalRepresentation());
