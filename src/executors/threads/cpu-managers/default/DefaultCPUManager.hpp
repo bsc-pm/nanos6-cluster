@@ -25,6 +25,8 @@ private:
 
 public:
 
+	bool _reserveCPUforLeaderThread;
+
 	/*    CPUMANAGER    */
 
 	void preinitialize();
