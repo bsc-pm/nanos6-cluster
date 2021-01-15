@@ -176,11 +176,11 @@ namespace ExecutionWorkflow {
 					 */
 					[&] {
 						bool ret = task->markAsReleased();
+						Task *parent = task->getParent();
 						if (ret) {
 							// const std::string label = task->getLabel();
 							TaskFinalization::disposeTask(task);
 						}
-						Task *parent = task->getParent();
 						if (parent) {
 							// Parent in a taskwait that finishes at this point
 							if (parent->finishChild()) {
@@ -221,49 +221,26 @@ namespace ExecutionWorkflow {
 					(cpu == nullptr) ? localDependencyData : cpu->getDependencyData();
 
 				if (task->markAsFinished(cpu/* cpu */)) {
-					if (task->isRemoteTaskInNamespace()) {
-							DataAccessRegistration::unregisterTaskDataAccessesWithCallback(
-								task,
-								cpu, /*cpu, */
-								hpDependencyData,
+						DataAccessRegistration::unregisterTaskDataAccessesWithCallback(
+							task,
+							cpu, /*cpu, */
+							hpDependencyData,
 
-								/* For clusters, finalize this task and send
-								 * the MessageTaskFinished BEFORE propagating
-								 * satisfiability to any other tasks. This is to
-								 * avoid potentially sending the
-								 * MessageTaskFinished messages out of order
-								 */
-								[&] {
-									TaskFinalization::taskFinished(task, cpu);
-									bool ret = task->markAsReleased();
-									if (ret) {
-										// const std::string label = task->getLabel();
-										TaskFinalization::disposeTask(task);
-									}
-								},
-								targetMemoryPlace);
-						} else {
-							assert(!task->isRemoteTaskInNamespace());
-							/* PMC: I don't understand why the above approach
-							 * using the callback sometimes fails when the parent
-							 * task is on the same node. This seems to indicate
-							 * a bug somewhere, but as a workaround do it the
-							 * normal way if the task is not offloaded in the
-							 * namespace. This is needed for manual_wait_15, which
-							 * otherwise sometimes fails.
+							/* For clusters, finalize this task and send
+							 * the MessageTaskFinished BEFORE propagating
+							 * satisfiability to any other tasks. This is to
+							 * avoid potentially sending the
+							 * MessageTaskFinished messages out of order
 							 */
-							DataAccessRegistration::unregisterTaskDataAccesses(
-								task,
-								cpu, /*cpu, */
-								hpDependencyData,
-								targetMemoryPlace);
-							TaskFinalization::taskFinished(task, cpu);
-							bool ret = task->markAsReleased();
-							if (ret) {
-								// const std::string label = task->getLabel();
-								TaskFinalization::disposeTask(task);
-							}
-						}
+							[&] {
+								TaskFinalization::taskFinished(task, cpu);
+								bool ret = task->markAsReleased();
+								if (ret) {
+									// const std::string label = task->getLabel();
+									TaskFinalization::disposeTask(task);
+								}
+							},
+							targetMemoryPlace);
 					}
 				delete workflow;
 			},
