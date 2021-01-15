@@ -41,9 +41,11 @@ void DefaultCPUManager::preinitialize()
 
 	// Create the chosen policy for this CPUManager
 	std::string policyValue = _policyChosen.getValue();
-	if (policyValue == "default" || policyValue == "idle") {
+	if (policyValue == "idle" || (policyValue == "default" && !ClusterManager::inClusterMode())) {
+		// default is normally the idle policy
 		_cpuManagerPolicy = new IdlePolicy(numCPUs);
-	} else if (policyValue == "busy") {
+	} else if (policyValue == "busy" || (policyValue == "default" && ClusterManager::inClusterMode())) {
+		// in cluster mode, default is the busy policy
 		_cpuManagerPolicy = new BusyPolicy();
 	} else {
 		FatalErrorHandler::fail("Unexistent '", policyValue, "' CPU Manager Policy");
