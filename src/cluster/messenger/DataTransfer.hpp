@@ -26,9 +26,9 @@ public:
 	//! Target memory place
 	MemoryPlace const *_target;
 
-private:
 	typedef std::function<void ()> data_transfer_callback_t;
 
+private:
 	//! The callback that we will invoke when the DataTransfer completes
 	std::vector<data_transfer_callback_t> _callbacks;
 

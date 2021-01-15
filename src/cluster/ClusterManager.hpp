@@ -13,11 +13,13 @@
 #include <vector>
 
 #include "cluster/messenger/Messenger.hpp"
+#include "cluster/messenger/DataTransfer.hpp"
 
 #include <ClusterNode.hpp>
 #include <MessageDataFetch.hpp>
 #include <MessageDataSend.hpp>
 #include <ClusterShutdownCallback.hpp>
+
 
 class ClusterMemoryNode;
 
@@ -287,6 +289,8 @@ public:
 	//!		from the remote node
 	//! \param[in] from is the MemoryPlace we fetch the data from. This
 	//!		must be a cluster memory place
+	//! \param[in] postcallback is a function that will be set as a callback for the
+	//!     datatransfer associated with fetchDataRaw callback.
 	//! \param[in] block determines whether the operation will be blocking.
 	//!		If block is true then upon return, the data will have
 	//!		been succesfully fetched and region will be updated.
@@ -295,27 +299,12 @@ public:
 	//!		object which can be used to track the completion of the
 	//!		data transfer. In blocking mode this always returns
 	//!		nullptr
-	static inline DataTransfer *fetchData(
+	static void fetchData(
 		DataAccessRegion const &region,
 		MemoryPlace const *from,
-		bool block = false
-	) {
-		assert(_singleton->_msn != nullptr);
-		assert(from != nullptr);
-		assert(from->getType() == nanos6_cluster_device);
-
-		ClusterNode const *remoteNode = getClusterNode(from->getIndex());
-
-		assert(remoteNode != _singleton->_thisNode);
-
-		//! At the moment we do not translate addresses on remote
-		//! nodes, so the region we are fetching, on the remote node is
-		//! the same as the local one
-		MessageDataFetch msg(_singleton->_thisNode, region);
-		_singleton->_msn->sendMessage(&msg, remoteNode, true);
-
-		return fetchDataRaw(region, from, msg.getId(), block);
-	}
+		DataTransfer::data_transfer_callback_t postcallback,
+		bool block
+	);
 
 	//! \brief Initiate a data send operation
 	//!

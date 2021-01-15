@@ -188,3 +188,36 @@ void ClusterManager::shutdownPhase2()
 	delete _singleton;
 	_singleton = nullptr;
 }
+
+void ClusterManager::fetchData(
+	DataAccessRegion const &region,
+	MemoryPlace const *from,
+	DataTransfer::data_transfer_callback_t postcallback,
+	bool block
+) {
+	assert(_singleton->_msn != nullptr);
+	assert(from != nullptr);
+	assert(from->getType() == nanos6_cluster_device);
+	assert((size_t)from->getIndex() < _singleton->_clusterNodes.size());
+
+	ClusterNode const *remoteNode = getClusterNode(from->getIndex());
+
+	assert(remoteNode != _singleton->_thisNode);
+
+	//! At the moment we do not translate addresses on remote
+	//! nodes, so the region we are fetching, on the remote node is
+	//! the same as the local one
+	MessageDataFetch *msg = new MessageDataFetch(_singleton->_thisNode, region);
+	int messageId = msg->getId();
+
+	msg->addCompletionCallback(
+		[region, from, postcallback, messageId, block](){
+			DataTransfer *dt = fetchDataRaw(region, from, messageId, block);
+
+			dt->addCompletionCallback(postcallback);
+
+			ClusterPollingServices::PendingQueue<DataTransfer>::addPending(dt);
+		});
+
+	_singleton->_msn->sendMessage(msg, remoteNode);
+}

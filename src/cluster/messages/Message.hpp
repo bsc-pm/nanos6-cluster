@@ -41,7 +41,12 @@ public:
 		char payload[];
 	} Deliverable;
 
+	typedef std::function<void ()> message_callback_t;
+
 private:
+	//! The callback that we will invoke when the DataTransfer completes
+	std::vector<message_callback_t> _callbacks;
+
 	//! An opaque pointer to Messenger-specific data
 	void * _messengerData;
 
@@ -58,7 +63,7 @@ public:
 
 	//! Construct a message from a received(?) Deliverable structure
 	Message(Deliverable *dlv)
-		: _messengerData(nullptr), _completed(false),
+		: _callbacks(), _messengerData(nullptr), _completed(false),
 		_deliverable(dlv)
 	{
 		assert(dlv != nullptr);
@@ -120,6 +125,10 @@ public:
 	//! \brief Mark the Message as delivered
 	inline void markAsCompleted()
 	{
+		for (message_callback_t callback : _callbacks) {
+			callback();
+		}
+
 		_completed = true;
 	}
 
@@ -127,6 +136,14 @@ public:
 	inline bool isCompleted() const
 	{
 		return _completed;
+	}
+
+	//! \brief Set the callback for the Message
+	//!
+	//! \param[in] callback is the completion callback
+	inline void addCompletionCallback(message_callback_t callback)
+	{
+		_callbacks.push_back(callback);
 	}
 
 	//! \brief Handles the received message

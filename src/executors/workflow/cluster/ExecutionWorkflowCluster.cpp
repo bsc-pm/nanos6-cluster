@@ -215,25 +215,25 @@ namespace ExecutionWorkflow {
 				assert(pendingTarget->getType() == nanos6_cluster_device);
 
 				if (pendingTarget->getIndex() == _targetMemoryPlace->getIndex()
-				  && _region.getStartAddress() >= pendingRegion.getStartAddress()
+					&& _region.getStartAddress() >= pendingRegion.getStartAddress()
 					&& ((char*)_region.getStartAddress() + _region.getSize() <=
 						(char *)pendingRegion.getStartAddress() + pendingRegion.getSize())) {
 
 					// Yes, the pending data transfer contains this region: so add a callback
 					// for this task
 					dtPending->addCompletionCallback(
-								[&]() {
-									//! If this data copy is performed for a taskwait we
-									//! don't need to update the location here.
-									DataAccessRegistration::updateTaskDataAccessLocation(
-										_task,
-										_region,
-										_targetMemoryPlace,
-										_isTaskwait
-									);
-									this->releaseSuccessors();
-									delete this;
-								});
+						[&]() {
+							//! If this data copy is performed for a taskwait we
+							//! don't need to update the location here.
+							DataAccessRegistration::updateTaskDataAccessLocation(
+								_task,
+								_region,
+								_targetMemoryPlace,
+								_isTaskwait
+							);
+							this->releaseSuccessors();
+							delete this;
+						});
 					// Done, so return true: do not check any more pending transfers and
 					// also return true to the caller
 					return true;
@@ -241,7 +241,6 @@ namespace ExecutionWorkflow {
 					// Not a match: continue checking pending data transfers
 					return false;
 				}
-
 			}
 		);
 
@@ -255,30 +254,28 @@ namespace ExecutionWorkflow {
 				" to Node:", _targetMemoryPlace->getIndex()
 			);
 
-			DataTransfer *dt = ClusterManager::fetchData(
+			ClusterManager::fetchData(
 				_region,
-				_sourceMemoryPlace
+				_sourceMemoryPlace,
+				[&]() {
+					Instrument::clusterDataReceived(
+						_region.getStartAddress(),
+						_region.getSize(),
+						_sourceMemoryPlace->getIndex()
+					);
+					//! If this data copy is performed for a taskwait we
+					//! don't need to update the location here.
+					DataAccessRegistration::updateTaskDataAccessLocation(
+						_task,
+						_region,
+						_targetMemoryPlace,
+						_isTaskwait
+					);
+					this->releaseSuccessors();
+					delete this;
+				},
+				false
 			);
-
-			/* Callback for this region, also instrument the data transfer */
-			dt->addCompletionCallback(
-					[&]() {
-						Instrument::clusterDataReceived(_region.getStartAddress(),
-														_region.getSize(),
-														_sourceMemoryPlace->getIndex());
-						//! If this data copy is performed for a taskwait we
-						//! don't need to update the location here.
-						DataAccessRegistration::updateTaskDataAccessLocation(
-							_task,
-							_region,
-							_targetMemoryPlace,
-							_isTaskwait
-						);
-						WriteIDManager::registerWriteIDasLocal(_writeID, _region);
-						this->releaseSuccessors();
-						delete this;
-					});
-			ClusterPollingServices::PendingQueue<DataTransfer>::addPending(dt);
 		}
 	}
 
