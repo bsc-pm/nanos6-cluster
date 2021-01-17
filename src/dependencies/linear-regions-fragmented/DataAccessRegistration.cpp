@@ -1809,15 +1809,26 @@ namespace DataAccessRegistration {
 		/* INOUT */ CPUDependencyData &hpDependencyData,
 					Task *task)
 	{
-		std::lock_guard<TaskDataAccesses::spinlock_t> parentGuard(task->getDataAccesses()._lock);
+		std::lock_guard<TaskDataAccesses::spinlock_t> accessGuard(task->getDataAccesses()._lock);
 
+		// Safe but slow iteration, since processUpdateOperation can append to the
+		// delayed operations.
+		size_t idx = 0;
+		while (hpDependencyData._delayedOperations.size() > idx) {
+			UpdateOperation &delayedOperation = hpDependencyData._delayedOperations[idx];
+			if (delayedOperation._target._task == task) {
+				processUpdateOperation(delayedOperation, hpDependencyData);
+			}
+			idx++;
+		}
+
+		// Delete all processed operations.
 		hpDependencyData._delayedOperations.erase(
 			std::remove_if(
 				hpDependencyData._delayedOperations.begin(),
 				hpDependencyData._delayedOperations.end(),
 				[&](UpdateOperation delayedOperation) {
 					if (delayedOperation._target._task == task) {
-						processUpdateOperation(delayedOperation, hpDependencyData);
 						return true;
 					} else {
 						return false;
@@ -1825,6 +1836,7 @@ namespace DataAccessRegistration {
 				}),
 			std::end(hpDependencyData._delayedOperations)
 		);
+
 	}
 
 	/*
