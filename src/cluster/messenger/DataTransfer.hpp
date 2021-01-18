@@ -54,7 +54,7 @@ public:
 		void *messengerData,
 		int MPISource,
 		int id
-	) : _region(region), _source(source), _target(target), _MPISource(MPISource), _id(id),
+	) : _region(region), _source(source), _target(target), _id(id), _MPISource(MPISource),
 		_callbacks(), _completed(false), _messengerData(messengerData)
 	{
 	}
