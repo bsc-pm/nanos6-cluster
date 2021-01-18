@@ -16,6 +16,7 @@
 #include <NodeNamespace.hpp>
 #include "ClusterUtil.hpp"
 #include "WriteID.hpp"
+#include "MessageId.hpp"
 
 TaskOffloading::RemoteTasksInfoMap *TaskOffloading::RemoteTasksInfoMap::_singleton = nullptr;
 ClusterManager *ClusterManager::_singleton = nullptr;
@@ -52,6 +53,7 @@ ClusterManager::ClusterManager(std::string const &commType)
 	const int nodeIndex = _msn->getNodeIndex();
 	const int masterIndex = _msn->getMasterIndex();
 
+	MessageId::initialize(nodeIndex, clusterSize);
 	std::cout << "Node " << nodeIndex << " DISABLE_REMOTE: " <<  _disableRemote << "\n";
 
 	_clusterNodes.resize(clusterSize);

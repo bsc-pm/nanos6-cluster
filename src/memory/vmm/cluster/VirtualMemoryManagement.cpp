@@ -113,7 +113,6 @@ static DataAccessRegion findSuitableMemoryRegion()
 		return gap;
 	}
 
-	int messageId = MessageId::nextMessageId(DMALLOC);
 	if (ClusterManager::isMasterNode()) {
 		// Master node gathers all the gaps from all other nodes and
 		// calculates the intersection of all those.
@@ -129,7 +128,7 @@ static DataAccessRegion findSuitableMemoryRegion()
 
 			MemoryPlace *memoryNode = remote->getMemoryNode();
 			// do not instrument as instrumentation subsystem not initialized yet
-			ClusterManager::fetchDataRaw(buffer, memoryNode, messageId, /* block */ true, /* instrument */ false);
+			ClusterManager::fetchDataRaw(buffer, memoryNode, 0, /* block */ true, /* instrument */ false);
 
 			gap = gap.intersect(remoteGap);
 		}
@@ -143,7 +142,7 @@ static DataAccessRegion findSuitableMemoryRegion()
 
 			MemoryPlace *memoryNode = remote->getMemoryNode();
 			// do not instrument as instrumentation subsystem not initialized yet
-			ClusterManager::sendDataRaw(buffer, memoryNode, messageId, /* block */ true, /* instrument */ false);
+			ClusterManager::sendDataRaw(buffer, memoryNode, 0, /* block */ true, /* instrument */ false);
 		}
 	} else {
 		DataAccessRegion buffer(&gap, sizeof(gap));
@@ -151,10 +150,10 @@ static DataAccessRegion findSuitableMemoryRegion()
 		MemoryPlace *masterMemory = master->getMemoryNode();
 
 		// First send my local gap to master node
-		ClusterManager::sendDataRaw(buffer, masterMemory, messageId, /* block */ true, /* instrument */ false);
+		ClusterManager::sendDataRaw(buffer, masterMemory, 0, /* block */ true, /* instrument */ false);
 
 		// Then receive the intersection of all gaps
-		ClusterManager::fetchDataRaw(buffer, masterMemory, messageId, /* block */ true, /* instrument */ false);
+		ClusterManager::fetchDataRaw(buffer, masterMemory, 0, /* block */ true, /* instrument */ false);
 	}
 
 	return gap;

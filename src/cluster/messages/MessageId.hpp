@@ -13,8 +13,11 @@
 
 namespace MessageId {
 
+	//! \brief Initialize globally unique MessageIds
+	void initialize(int rank, int numRanks);
+
 	//! \brief Get the next available MessageId
-	uint32_t nextMessageId(MessageType type);
+	uint32_t nextMessageId();
 }
 
 #endif /* MESSAGE_ID_HPP */

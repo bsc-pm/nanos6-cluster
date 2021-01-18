@@ -182,6 +182,11 @@ namespace Instrument {
         ce.Communications[0].tag = (extrae_comm_tag_t)EventType::MESSAGE_SEND;
         ce.Communications[0].size = messageType;
         ce.Communications[0].partner = dest;
+
+		// NOTE: this assumes that the message ID is globally unique (i.e. you
+		// cannot receive a MessageDmalloc and MessageDataFetch from the same
+		// node with the same messageId, as they would both result in a DATA_RAW
+		// message with the same messageId.
         ce.Communications[0].id = messageId;
 
         ExtraeAPI::emit_CombinedEvents(&ce);
@@ -221,6 +226,10 @@ namespace Instrument {
 			ce.Communications[0].tag = (extrae_comm_tag_t)EventType::MESSAGE_SEND;
 			ce.Communications[0].size = messageType;
 			ce.Communications[0].partner = source;
+
+			// NOTE: this assumes that the message ID is globally unique (i.e. you
+			// cannot have a MessageDmalloc and MessageDataFetch with the same messageId, as
+			// both have accompanying DATA_RAW messages).
 			ce.Communications[0].id = messageId;
 		}
 
