@@ -28,10 +28,10 @@ public:
 	//! Target memory place
 	MemoryPlace const *_target;
 
-	//! ID as the mesage index for instrumentating the transferred region
+	//! ID as the message index for instrumenting the transferred region
 	int _id;
 
-	//! rank of MPI source for instrumentating the transferred region (non-bocking case)
+	//! rank of MPI source for instrumenting the transferred region (non-blocking case)
 	int _MPISource;
 
 	typedef std::function<void ()> data_transfer_callback_t;
@@ -83,7 +83,7 @@ public:
 		return _target;
 	}
 
-	//! \brief Return the the mesage index for instrumentating a transferred region
+	//! \brief Return the message index for instrumenting a transferred region
 	inline int getMessageId() const
 	{
 		return _id;
