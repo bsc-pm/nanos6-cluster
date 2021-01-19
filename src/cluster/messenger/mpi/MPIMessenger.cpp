@@ -151,6 +151,10 @@ DataTransfer *MPIMessenger::sendData(
 	ret = MPI_Isend(address, size, MPI_BYTE, mpiDst, tag, INTRA_COMM_DATA_RAW, request);
 	MPIErrorHandler::handle(ret, INTRA_COMM_DATA_RAW);
 
+	if (instrument) {
+		Instrument::clusterDataSend(NULL, 0, mpiDst, -1);
+	}
+
 	return new MPIDataTransfer(region, ClusterManager::getCurrentMemoryNode(),
 		to->getMemoryNode(), request, mpiDst, messageId);
 }

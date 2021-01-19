@@ -162,32 +162,42 @@ namespace Instrument {
             return;
 
         const unsigned int messageType = MessageType::DATA_RAW;
-        extrae_type_t type = (extrae_type_t) EventType::MESSAGE_SEND;
-        extrae_value_t value = (extrae_value_t)(messageType + 1);
+        
 
         extrae_combined_events_t ce;
         ce.HardwareCounters = 0;
         ce.Callers = 0;
-
-
         ce.UserFunction = EXTRAE_USER_FUNCTION_NONE; 
-        ce.nEvents = 1;
-        ce.nCommunications = 1;
-        ce.Communications =
-            (extrae_user_communication_t *) alloca(sizeof(extrae_user_communication_t));
+		
+		extrae_type_t type = (extrae_type_t) EventType::MESSAGE_SEND;
         ce.Types = &type;
+        
+		ce.nEvents = 1;
+        extrae_value_t value = 0;
         ce.Values = &value;
 
-        ce.Communications[0].type = EXTRAE_USER_SEND;
-        ce.Communications[0].tag = (extrae_comm_tag_t)EventType::MESSAGE_SEND;
-        ce.Communications[0].size = messageType;
-        ce.Communications[0].partner = dest;
+		ce.nCommunications = 0;
+		ce.Communications = NULL;
+		
+		if(messageId >= 0)
+		{
+			value = (extrae_value_t)(messageType + 1);
+			ce.Values = &value;
+			ce.nCommunications = 1;
+			ce.Communications =
+				(extrae_user_communication_t *) alloca(sizeof(extrae_user_communication_t));
 
-		// NOTE: this assumes that the message ID is globally unique (i.e. you
-		// cannot receive a MessageDmalloc and MessageDataFetch from the same
-		// node with the same messageId, as they would both result in a DATA_RAW
-		// message with the same messageId.
-        ce.Communications[0].id = messageId;
+			ce.Communications[0].type = EXTRAE_USER_SEND;
+			ce.Communications[0].tag = (extrae_comm_tag_t)EventType::MESSAGE_SEND;
+			ce.Communications[0].size = messageType;
+			ce.Communications[0].partner = dest;
+
+			// NOTE: this assumes that the message ID is globally unique (i.e. you
+			// cannot receive a MessageDmalloc and MessageDataFetch from the same
+			// node with the same messageId, as they would both result in a DATA_RAW
+			// message with the same messageId.
+			ce.Communications[0].id = messageId;
+		}
 
         ExtraeAPI::emit_CombinedEvents(&ce);
     }
