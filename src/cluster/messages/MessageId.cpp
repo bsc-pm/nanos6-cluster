@@ -6,6 +6,7 @@
 
 #include <atomic>
 #include <cassert>
+#include <limits.h>
 
 #include "MessageId.hpp"
 
@@ -63,7 +64,7 @@ namespace MessageId {
 
 		/* Check for overflow */
 		assert(_numRanks != 0);
-		assert(ret != -1);
+		assert(ret != UINT_MAX);
 
 		return ret;
 	}
