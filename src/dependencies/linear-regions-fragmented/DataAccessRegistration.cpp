@@ -1803,23 +1803,58 @@ namespace DataAccessRegistration {
 	}
 
 	/*
-	 * Process the delayed operations that are in the given task.
+	 * Process the delayed operations that are in the given task or any
+	 * of its descendents.
 	 */
 
+	static Task *getOffloadedTask(Task *task)
+	{
+		while (task->getParent() != nullptr) {
+			if (task->getParent()->isNodeNamespace()) {
+				// it is an offloaded task
+				return task;
+			}
+			task=task->getParent();
+		}
+		return nullptr;
+	}
+
+
+	// Process all delayed operations that relate to access that are
+	// not in a different offloaded task.
 	static inline void processDelayedOperationsSameTask(
 		/* INOUT */ CPUDependencyData &hpDependencyData,
 					Task *task)
 	{
-		std::lock_guard<TaskDataAccesses::spinlock_t> accessGuard(task->getDataAccesses()._lock);
+		Task *lastLocked = nullptr;
+		Task *myOffloadedTask = getOffloadedTask(task);
 
 		// Safe but slow iteration, since processUpdateOperation can append to the
 		// delayed operations.
 		size_t idx = 0;
 		while (hpDependencyData._delayedOperations.size() > idx) {
 			UpdateOperation &delayedOperation = hpDependencyData._delayedOperations[idx];
-			if (delayedOperation._target._task == task) {
+
+			Task *targetOffloadedTask = getOffloadedTask(delayedOperation._target._task);
+
+			// Process the delayed operation if there are in the same offloaded
+			// task (or a descendent of the same one), OR neither of them is 
+			// the descendent of an offloaded task
+			assert( ((myOffloadedTask == nullptr) && (targetOffloadedTask == nullptr))
+					|| ((myOffloadedTask != nullptr) && (targetOffloadedTask != nullptr)) );
+
+			if (myOffloadedTask == targetOffloadedTask) {
+				if (lastLocked != nullptr) {
+					lastLocked->getDataAccesses()._lock.unlock();
+				}
+				lastLocked = delayedOperation._target._task;
+				lastLocked->getDataAccesses()._lock.lock();
+				// Process the delayed operation
 				processUpdateOperation(delayedOperation, hpDependencyData);
+				// Mark it to be deleted below
+				delayedOperation._target._task = nullptr;
 			}
+				
 			idx++;
 		}
 
@@ -1829,7 +1864,7 @@ namespace DataAccessRegistration {
 				hpDependencyData._delayedOperations.begin(),
 				hpDependencyData._delayedOperations.end(),
 				[&](UpdateOperation delayedOperation) {
-					if (delayedOperation._target._task == task) {
+					if (delayedOperation._target._task == nullptr) {
 						return true;
 					} else {
 						return false;
@@ -1838,6 +1873,9 @@ namespace DataAccessRegistration {
 			std::end(hpDependencyData._delayedOperations)
 		);
 
+		if (lastLocked != nullptr) {
+			lastLocked->getDataAccesses()._lock.unlock();
+		}
 	}
 
 	/*
@@ -4141,6 +4179,14 @@ namespace DataAccessRegistration {
 				});
 		}
 
+		// Process all delayed operations that do not involve
+		// remote namespace propagation, i.e. among subtasks of the
+		// same offloaded task (or among any subtasks that are not
+		// descendents of any offloaded task). If delayed operations
+		// could update later offloaded tasks, it would be possible
+		// for the later offloaded tasks to complete and send
+		// a MessageTaskFinished before sending the MessageTaskFinished
+		// for the current task.
 		processDelayedOperationsSameTask(hpDependencyData, task);
 	}
 
