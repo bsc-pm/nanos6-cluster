@@ -156,25 +156,24 @@ namespace Instrument {
 	}
 
 	//! This function is called when sending raw data
-    void clusterDataSend(void *, size_t, int dest, int messageId, InstrumentationContext const &)
-    {
-        if (!_extraeInstrumentCluster)
-            return;
+	void clusterDataSend(void *, size_t, int dest, int messageId, InstrumentationContext const &)
+	{
+		if (!_extraeInstrumentCluster)
+		return;
 
-        const unsigned int messageType = MessageType::DATA_RAW;
-        
+		const unsigned int messageType = MessageType::DATA_RAW;
 
-        extrae_combined_events_t ce;
-        ce.HardwareCounters = 0;
-        ce.Callers = 0;
-        ce.UserFunction = EXTRAE_USER_FUNCTION_NONE; 
+		extrae_combined_events_t ce;
+		ce.HardwareCounters = 0;
+		ce.Callers = 0;
+		ce.UserFunction = EXTRAE_USER_FUNCTION_NONE; 
 		
 		extrae_type_t type = (extrae_type_t) EventType::MESSAGE_SEND;
-        ce.Types = &type;
+		ce.Types = &type;
         
 		ce.nEvents = 1;
-        extrae_value_t value = 0;
-        ce.Values = &value;
+		extrae_value_t value = 0;
+		ce.Values = &value;
 
 		ce.nCommunications = 0;
 		ce.Communications = NULL;
@@ -199,21 +198,21 @@ namespace Instrument {
 			ce.Communications[0].id = messageId;
 		}
 
-        ExtraeAPI::emit_CombinedEvents(&ce);
-    }
+		ExtraeAPI::emit_CombinedEvents(&ce);
+	}
 
-    //! This function is called when receiving raw data
-    void clusterDataReceived(void *, size_t, int source, int messageId, InstrumentationContext const &)
-    {
-        if (!_extraeInstrumentCluster)
-            return;
+	//! This function is called when receiving raw data
+	void clusterDataReceived(void *, size_t, int source, int messageId, InstrumentationContext const &)
+	{
+		if (!_extraeInstrumentCluster)
+		return;
 
-        const unsigned int messageType = MessageType::DATA_RAW;
+		const unsigned int messageType = MessageType::DATA_RAW;
 
-        extrae_combined_events_t ce;
-        ce.HardwareCounters = 0;
-        ce.Callers = 0;
-        ce.UserFunction = EXTRAE_USER_FUNCTION_NONE;
+		extrae_combined_events_t ce;
+		ce.HardwareCounters = 0;
+		ce.Callers = 0;
+		ce.UserFunction = EXTRAE_USER_FUNCTION_NONE;
 
 		extrae_type_t type = (extrae_type_t) EventType::MESSAGE_HANDLE;
 		ce.Types = &type;
@@ -243,8 +242,8 @@ namespace Instrument {
 			ce.Communications[0].id = messageId;
 		}
 
-        ExtraeAPI::emit_CombinedEvents(&ce);
-    }
+		ExtraeAPI::emit_CombinedEvents(&ce);
+	}
 
 	void taskIsOffloaded(__attribute__((unused)) task_id_t taskId,
 		__attribute__((unused)) InstrumentationContext const &context) {
