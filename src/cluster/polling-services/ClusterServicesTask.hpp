@@ -95,6 +95,12 @@ namespace ClusterServicesTask {
 		assert(MemoryAllocator::isInitialized());
 		assert(_activeClusterTaskServices.load() > 0);
 
+		// Occasionally a slave node receives the MessageSysFinish and starts
+		// the shutdown procedure before the PendingQueue<Message> has checked
+		// completion of all the messages it has sent. So just wait for
+		// completion before shutting down the polling services.
+		ClusterPollingServices::PendingQueue<Message>::waitUntilFinished();
+
 		unregisterService<ClusterPollingServices::PendingQueue<DataTransfer>>();
 		unregisterService<ClusterPollingServices::PendingQueue<Message>>();
 		unregisterService<ClusterPollingServices::MessageHandler<Message>>();
