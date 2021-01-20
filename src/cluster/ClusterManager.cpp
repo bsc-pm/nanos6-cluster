@@ -24,24 +24,20 @@ ClusterManager *ClusterManager::_singleton = nullptr;
 std::atomic<size_t> ClusterServicesPolling::_activeClusterPollingServices;
 std::atomic<size_t> ClusterServicesTask::_activeClusterTaskServices;
 
-const EnvironmentVariable<int> disableRemotePropagation("DISABLE_REMOTE", 0);
-
 ClusterManager::ClusterManager()
 	: _clusterNodes(1),
 	_thisNode(new ClusterNode(0, 0)),
 	_masterNode(_thisNode),
-	_msn(nullptr), _usingNamespace(false),
+	_msn(nullptr), _usingNamespace(false), _disableRemote(false),
 	_callback(nullptr)
 {
 	_clusterNodes[0] = _thisNode;
 }
 
 ClusterManager::ClusterManager(std::string const &commType)
-	:_msn(nullptr), _callback(nullptr)
+	:_msn(nullptr), _disableRemote(false), _callback(nullptr)
 {
 	TaskOffloading::RemoteTasksInfoMap::init();
-	
-	_disableRemote = (bool)disableRemotePropagation.getValue();
 
 	_msn = GenericFactory<std::string, Messenger*>::getInstance().create(commType);
 	assert(_msn);
@@ -54,7 +50,6 @@ ClusterManager::ClusterManager(std::string const &commType)
 	const int masterIndex = _msn->getMasterIndex();
 
 	MessageId::initialize(nodeIndex, clusterSize);
-	std::cout << "Node " << nodeIndex << " DISABLE_REMOTE: " <<  _disableRemote << "\n";
 
 	_clusterNodes.resize(clusterSize);
 
@@ -70,6 +65,14 @@ ClusterManager::ClusterManager(std::string const &commType)
 
 	ConfigVariable<bool> inTask("cluster.services_in_task");
 	_taskInPoolins = inTask.getValue();
+
+	ConfigVariable<bool> usingNamespace("cluster.use_namespace");
+	_usingNamespace = usingNamespace.getValue();
+
+	if (_usingNamespace) {
+		ConfigVariable<bool> disableRemote("cluster.disable_remote");
+		_disableRemote = disableRemote.getValue();
+	}
 }
 
 ClusterManager::~ClusterManager()
@@ -129,11 +132,7 @@ void ClusterManager::initClusterNamespaceOrSetCallback(
 ) {
 	assert(_singleton != nullptr);
 
-	ConfigVariable<bool> useNamespace("cluster.use_namespace");
-
-	if (useNamespace.getValue()) {
-		clusterPrintf("Using namespace\n");
-		_singleton->_usingNamespace = true;
+	if (_singleton->_usingNamespace) {
 		NodeNamespace::init(func, args);
 	} else {
 		assert(_singleton->_callback.load() == nullptr);

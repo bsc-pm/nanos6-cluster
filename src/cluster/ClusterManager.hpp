@@ -48,6 +48,8 @@ private:
 	//! Using cluster namespace
 	bool _usingNamespace;
 
+	bool _disableRemote;
+
 	//! The ShutdownCallback for this ClusterNode.
 	//! At the moment this is an atomic variable, because we might have
 	//! to poll for this, until it's set from external code. For example,
@@ -56,7 +58,6 @@ private:
 	//! callback.
 	std::atomic<ClusterShutdownCallback*> _callback;
 
-	bool _disableRemote;
 
 	//! private constructors. This is a singleton.
 	ClusterManager();
