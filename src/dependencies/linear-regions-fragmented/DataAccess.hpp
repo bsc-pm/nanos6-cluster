@@ -85,6 +85,7 @@ private:
 		DISABLE_READ_PROPAGATION_UNTIL_HERE,
 		DATA_RELEASED_BIT,
 		DISABLE_EAGER_SEND_BIT,
+		NAMESPACE_NEXT_IS_IN_BIT,
 		TOTAL_STATUS_BITS
 	};
 
@@ -868,6 +869,17 @@ public:
 	{
 		_status[DATA_RELEASED_BIT] = true;
 	}
+
+	bool getNamespaceNextIsIn() const
+	{
+		return _status[NAMESPACE_NEXT_IS_IN_BIT];
+	}
+
+	void setNamespaceNextIsIn()
+	{
+		_status[NAMESPACE_NEXT_IS_IN_BIT] = true;
+	}
+
 	// Get and set the initial location to a group of concurrent accesses.
 	const MemoryPlace *getConcurrentInitialLocation() const
 	{

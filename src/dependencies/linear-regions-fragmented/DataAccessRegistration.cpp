@@ -333,12 +333,14 @@ namespace DataAccessRegistration {
 					_propagatesReadSatisfiabilityToNext =
 						access->canPropagateReadSatisfiability()
 						&& access->readSatisfied();
-					_propagatesWriteSatisfiabilityToNext = access->writeSatisfied();
+					_propagatesWriteSatisfiabilityToNext = access->writeSatisfied() && !access->getNamespaceNextIsIn();
 					_propagatesConcurrentSatisfiabilityToNext =
 						access->canPropagateConcurrentSatisfiability()
+						&& !access->getNamespaceNextIsIn()
 						&& access->concurrentSatisfied();
 					_propagatesCommutativeSatisfiabilityToNext =
 						access->canPropagateCommutativeSatisfiability()
+						&& !access->getNamespaceNextIsIn()
 						&& access->commutativeSatisfied();
 					_propagatesReductionInfoToNext =
 						access->canPropagateReductionInfo()
@@ -364,6 +366,7 @@ namespace DataAccessRegistration {
 						&& ((access->getType() == READ_ACCESS_TYPE) || (access->getType() == NO_ACCESS_TYPE) || access->complete());
 					_propagatesWriteSatisfiabilityToNext =
 						access->writeSatisfied() && access->complete()
+						&& !access->getNamespaceNextIsIn()
 						// Note: This is important for not propagating write
 						// satisfiability before reductions are combined
 						&& _isSatisfied;
@@ -374,10 +377,12 @@ namespace DataAccessRegistration {
 						// Note: If a reduction is to be combined, being the (reduction) access 'satisfied'
 						// and 'complete' should allow it to be done before propagating this satisfiability
 						&& _isSatisfied
+						&& !access->getNamespaceNextIsIn()
 						&& ((access->getType() == CONCURRENT_ACCESS_TYPE) || access->complete());
 					_propagatesCommutativeSatisfiabilityToNext =
 						access->canPropagateCommutativeSatisfiability()
 						&& access->commutativeSatisfied()
+						&& !access->getNamespaceNextIsIn()
 						&& ((access->getType() == COMMUTATIVE_ACCESS_TYPE) || access->complete());
 					_propagatesReductionInfoToNext =
 						access->canPropagateReductionInfo()
@@ -389,6 +394,7 @@ namespace DataAccessRegistration {
 					_propagatesReductionSlotSetToNext =
 						(access->getType() == REDUCTION_ACCESS_TYPE)
 						&& access->complete()
+						// && !access->getNamespaceNextIsIn()
 						&& !access->closesReduction()
 						&& (access->allocatedReductionInfo()
 							|| access->receivedReductionSlotSet());
@@ -443,7 +449,7 @@ namespace DataAccessRegistration {
 						|| access->receivedReductionSlotSet())
 					&& access->complete()
 					&& (!access->isInBottomMap()
-						|| access->hasNext()
+						|| (access->hasNext() && !access->getNamespaceNextIsIn())
 						|| (access->getType() == NO_ACCESS_TYPE)
 						|| (access->getObjectType() == taskwait_type)
 						|| (access->getObjectType() == top_level_sink_type)));
@@ -607,6 +613,7 @@ namespace DataAccessRegistration {
 		bool _inhibitReductionInfoPropagation;
 
 		bool _setCloseReduction;
+		bool _namespaceNextIsIn;
 
 		DataAccessLink _next;
 
@@ -619,6 +626,7 @@ namespace DataAccessRegistration {
 			_inhibitCommutativeSatisfiabilityPropagation(false),
 			_inhibitReductionInfoPropagation(false),
 			_setCloseReduction(false),
+			_namespaceNextIsIn(false),
 			_next()
 		{
 		}
@@ -632,6 +640,7 @@ namespace DataAccessRegistration {
 			_inhibitCommutativeSatisfiabilityPropagation(false),
 			_inhibitReductionInfoPropagation(false),
 			_setCloseReduction(false),
+			_namespaceNextIsIn(false),
 			_next()
 		{
 		}
@@ -994,6 +1003,7 @@ namespace DataAccessRegistration {
 
 				bottomMapUpdateOperation._linkBottomMapAccessesToNext = true;
 				bottomMapUpdateOperation._next = access->getNext();
+				bottomMapUpdateOperation._namespaceNextIsIn = access->getNamespaceNextIsIn();
 
 				bottomMapUpdateOperation._inhibitReadSatisfiabilityPropagation = (access->getType() == READ_ACCESS_TYPE);
 				assert(!updatedStatus._propagatesWriteSatisfiabilityToNext);
@@ -1245,7 +1255,7 @@ namespace DataAccessRegistration {
 				DataAccess *originalAccess = &(*position);
 				assert(originalAccess != nullptr);
 				// Skip accesses handled by unregisterLocallyPropagatedTaskDataAccesses.
-				if (originalAccess->complete()) {
+				if (originalAccess->complete() && !originalAccess->getNamespaceNextIsIn()) {
 					return true;
 				}
 				assert(!originalAccess->hasBeenDiscounted());
@@ -1281,7 +1291,9 @@ namespace DataAccessRegistration {
 					// Either the original access was already local or the new location
 					// is non-local. In either case, we only need to update the location
 					// and writeID of the original access.
-					originalAccess->setLocation(location);
+					if (access->getType() != READ_ACCESS_TYPE) {
+						originalAccess->setLocation(location);
+					}
 				} else {
 					// Updating the location of the original access from a non-local to
 					// a local location may cause read satisfiability to be propagated to
@@ -1801,8 +1813,9 @@ namespace DataAccessRegistration {
 				// NO_ACCESS_TYPE is used by propagateSatisfiability to reproduce the namespace
 				// previous on the remote node (which is OK as it was OK on the offloader node).
 				if (updateOperation._namespaceAccessType == NO_ACCESS_TYPE
-					|| ((updateOperation._namespaceAccessType == READ_ACCESS_TYPE)
-							== (access->getType() == READ_ACCESS_TYPE))) {
+					// Not read access to non-read
+					|| !((updateOperation._namespaceAccessType == READ_ACCESS_TYPE)
+							&& (access->getType() != READ_ACCESS_TYPE))) {
 					access->setValidNamespacePrevious(
 						updateOperation._validNamespace,
 						updateOperation._namespacePredecessor
@@ -1813,31 +1826,59 @@ namespace DataAccessRegistration {
 			}
 		}
 
-		/* Take read, commutative and concurrent satisfiability from the update
-		 * operation, unless it is for propagate satisfiability into a task
-		 * that is propagated in the namespace instead. These flags are set
-		 * exactly once, and trying to set them a second time risks a
-		 * use-after-free error, because the task may already be deleted.
-		 */
+		// When an access is propagated in the namespace, we need to be careful in the
+		// setting of read (R), write (W), and concurrent/commutative (C) satisfiability.
+		// There are three cases:
+		//
+		//   (a) non-namespace
+		//
+		//          Access       For a non-namespace access, R, W and C satisfiability
+		//            |          are of course propagated from the previous access.
+		//            | R,W,C    The arrow shows the access's "next" field.
+		//            v
+		//          Access
+		//
+		//   (b) Namespace non-in => non-in
+		//
+		//          Non-in       For a namespace non-in to non-in access (e.g. inout to
+		//            |          inout), R, W and C	satisfiability are propagated from the
+		//            | R,W,C    previous in the remote namespace. There must be no
+		//            v          satisfiability messages (which could arrive after the task
+		//          Non-in       has been deleted).
+		//
+		//   (c) Namespace non-in => in
+		//
+		//          Access       For a namespace access to an in access (e.g. inout to in or
+		//            |          in to in), R and C	satisfiability are propagated from the
+		//            | R,C      previous in the remote namespace. This allows the "in"
+		//   W        v          in access to quickly become satisfied. But the offloader does
+		// ------>    in         not track which of potentially multiple remote nodes are able
+		//                       to propagate in the remote namespace, so it sends R and W
+		//                       satisfiability to all of them. We ignore the R satisfiability
+		//                       in the message but take the W satisfiability. This ensures that
+		//                       the task cannot have been deleted when the message arrives.
+		if (access->getPropagateFromNamespace()) {
+			// If propagated into this access in the remote namespace, then... 
+			if (updateOperation._propagateSatisfiability) {
+				// (1) Only read accesses get read and write satisfiability (note:
+				// the setting of the node namespace predecessor is a different
+				// type of satisfiability operation, which is allowed).
+				if (access->getType() != READ_ACCESS_TYPE) {
+					assert(!updateOperation._makeReadSatisfied && !updateOperation._makeWriteSatisfied);
+				}
+			} else {
+				// and (2) Read accesses never get write satisfiability in the namespace (case c)
+				if (access->getType() == READ_ACCESS_TYPE) {
+					assert(!updateOperation._makeWriteSatisfied);
+				}
+			}
+		}
+
 		if ( !(access->getPropagateFromNamespace()
 				&& updateOperation._propagateSatisfiability)) {
 
 			if (updateOperation._makeReadSatisfied) {
 				if (access->readSatisfied()) {
-					/*
-					 * If two tasks A and B are offloaded to the same namespace,
-					 * and A has an in dependency, then at the remote side, read
-					 * satisfiability is propagated from A to B both via the
-					 * offloader's dependency system and via remote propagation in
-					 * the remote namespace (this is the normal optimization from a
-					 * namespace). So task B receives read satisfiability twice.
-					 * This is harmless.  TODO: It would be good to add an
-					 * assertion to make sure that read satisfiability arrives
-					 * twice only in the circumstance described here, but we can no
-					 * longer check what type of dependency the access of task A
-					 * had (in fact the access may already have been deleted). This
-					 * info would have to be added to the UpdateOperation.
-					 */
 					// Actually there are other circumstances when this happens (TBD)
 					// assert(access->getOriginator()->isRemoteTask());
 				} else {
@@ -1882,8 +1923,14 @@ namespace DataAccessRegistration {
 			 * _make{Read/Write}Satisfied and calling
 			 * applyUpdateOperationOnAccess as a delayed operation.
 			 */
+
 			if (updateOperation._makeWriteSatisfied) {
-				access->setWriteSatisfied();
+
+				if (!access->getPropagateFromNamespace() || access->getType() != READ_ACCESS_TYPE) {
+					// not if it is a read access from the namespace; in this case we take (pseudo)write
+					// satisfiability from the satisfiability messages
+					access->setWriteSatisfied();
+				}
 
 				if (updateOperation._previousIsCommutative
 					&& (access->getType() != COMMUTATIVE_ACCESS_TYPE)) {
@@ -1929,6 +1976,8 @@ namespace DataAccessRegistration {
 			// should still be ignored.
 			if (updateOperation._makeWriteSatisfied) {
 				assert(access->getType() == READ_ACCESS_TYPE);
+				assert(!access->writeSatisfied());
+				access->setWriteSatisfied();
 			}
 
 			// Also, commutative satisfiability for commutative accesses
@@ -2762,6 +2811,9 @@ namespace DataAccessRegistration {
 
 				assert(!access->hasNext());
 				access->setNext(operation._next);
+				if (operation._namespaceNextIsIn) {
+					access->setNamespaceNextIsIn();
+				}
 
 				// We are setting the next of a child task of some task (A) to
 				// point to the successor of A.  We need to make sure that
@@ -2982,27 +3034,18 @@ namespace DataAccessRegistration {
 				 * Link the dataAccess and unset
 				 */
 #ifdef USE_CLUSTER
+
 				bool canPropagateInNamespace = false;
 				if (parent->isNodeNamespace()) {
 					if (previous->getDataReleased()) {
 						Instrument::namespacePropagation(Instrument::NamespacePredecessorFinished, dataAccess->getAccessRegion());
 					} else if (previous->getNamespaceSuccessor() == dataAccess->getOriginator()) {
 
-						// When the access type of an offloaded task is READ_ACCESS_TYPE, then write satisfiability
-						// means pseudowrite satisfiability. We cannot propagate in the namespace from pseudowrite
-						// to true write or vice versa.
-						// Pseudowrite to true write is invalid at the remote side, because the remote node does not know
-						// whether all concurrent reads on other nodes have finished, so it cannot treat pseudowrite
-						// satisfied as true write satisfied. Write to pseudowrite is invalid because when the remote
-						// node has pseudowrite, the offloader has to also propagate true write satisfiability at its
-						// end. But namespace propagation from true write to pseudowrite would mean that the
-						// offloader never receives the true write satisfiability from the previous offloaded task.
-						// This is now checked in applyUpdateOperationOnAccess
-						assert ((previous->getType() == READ_ACCESS_TYPE) == (dataAccess->getType() == READ_ACCESS_TYPE));
+						// We should never be asked to connect in the namespace from a read access to a non-read access.
+						assert(! ((previous->getType() == READ_ACCESS_TYPE) && (dataAccess->getType() != READ_ACCESS_TYPE)));
 
 						canPropagateInNamespace = true;
 						Instrument::namespacePropagation(Instrument::NamespaceSuccessful, dataAccess->getAccessRegion());
-
 					} else if (previous->getNamespaceSuccessor() != nullptr) {
 						Instrument::namespacePropagation(Instrument::NamespaceWrongPredecessor, dataAccess->getAccessRegion());
 					} else {
@@ -3067,8 +3110,10 @@ namespace DataAccessRegistration {
 					// Normal propagation: set the new access to be the next access after the
 					// access that was in the bottom map.
 					previous->setNext(next);
-
 					if (parent->isNodeNamespace()) {
+						if (dataAccess->getType() == READ_ACCESS_TYPE) {
+							previous->setNamespaceNextIsIn();
+						}
 						if (dataAccess->getAccessRegion().fullyContainedIn(previous->getAccessRegion())) {
 							dataAccess->setPropagateFromNamespace();
 						} else {
@@ -3905,7 +3950,7 @@ namespace DataAccessRegistration {
 									return true;
 								}
 								addr = accessRegion.getEndAddress();
-								if (dataAccess->getEarlyReleaseInNamespace()) {
+								if (dataAccess->getEarlyReleaseInNamespace() && !dataAccess->getNamespaceNextIsIn()) {
 									// This access has early release in the namespace
 									if (dataAccess->getAccessRegion().getStartAddress() > region.getStartAddress()) {
 										// There is a bit before this complete access
@@ -4081,7 +4126,7 @@ namespace DataAccessRegistration {
 								return true;
 							}
 							addr = accessRegion.getEndAddress();
-							if (dataAccess->hasNext()) {
+							if (dataAccess->hasNext() && !dataAccess->getNamespaceNextIsIn()) {
 								// This access has early release in the namespace
 								if (dataAccess->getAccessRegion().getStartAddress() > region.getStartAddress()) {
 									// There is a bit before this complete access
@@ -4861,7 +4906,7 @@ namespace DataAccessRegistration {
 					assert(dataAccess != nullptr);
 
 					// Do we need to finalize it?
-					if (dataAccess->hasNext()) {
+					if (dataAccess->hasNext() && !dataAccess->getNamespaceNextIsIn()) {
 						assert(!dataAccess->isInBottomMap());
 						dataAccess->setEarlyReleaseInNamespace();
 

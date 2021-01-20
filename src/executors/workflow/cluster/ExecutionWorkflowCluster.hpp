@@ -353,7 +353,8 @@ namespace ExecutionWorkflow {
 				&& access->readSatisfied() && access->writeSatisfied()
 				&& access->getOriginator()->isRemoteTask()  // only offloaded tasks: necessary (e.g. otherwise taskwait on will release)
 				&& access->complete()                       // access must be complete
-				&& !access->hasNext()                       // no next access at the remote side
+				&& (!access->hasNext()                      // no next access at the remote side or propagating to an "in" access
+					|| access->getNamespaceNextIsIn())
 				&& !mustWait;
 
 			Instrument::logMessage(
