@@ -87,6 +87,7 @@ private:
 		DISABLE_EAGER_SEND_BIT,
 		NAMESPACE_NEXT_IS_IN_BIT,
 		IS_STRONG_LOCAL_ACCESS,
+		AUTO_READONLY_BIT,
 		TOTAL_STATUS_BITS
 	};
 
@@ -894,6 +895,17 @@ public:
 	void unsetIsStrongLocalAccess()
 	{
 		_status[IS_STRONG_LOCAL_ACCESS] = false;
+	}
+
+	bool isAutoReadOnly() const
+	{
+		return _status[AUTO_READONLY_BIT];
+	}
+
+	void setAutoReadOnly()
+	{
+		assert(_type == AUTO_ACCESS_TYPE);
+		_status[AUTO_READONLY_BIT] = true;
 	}
 
 	// Get and set the initial location to a group of concurrent accesses.

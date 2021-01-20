@@ -236,17 +236,20 @@ namespace TaskOffloading {
 		);
 	}
 
-	void sendAccessInfo(Task *task, const std::vector<AccessInfo> &regions)
+	void sendAccessInfo(ClusterNode *offloader, const std::vector<AccessInfo> &regions)
 	{
-		ClusterTaskContext *context = task->getClusterContext();
-		ClusterNode *offloader = context->getRemoteNode();
 		MessageAccessInfo *msg = new MessageAccessInfo(regions.size(), regions);
 		ClusterManager::sendMessage(msg, offloader);
 	}
 
 	void receivedAccessInfo(Task *task, DataAccessRegion region, bool noEagerSend, bool isReadOnly)
 	{
-		DataAccessRegistration::accessInfo(task, region, noEagerSend, isReadOnly);
+		WorkerThread *currentThread = WorkerThread::getCurrentWorkerThread();
+		CPU * const cpu = (currentThread == nullptr) ? nullptr : currentThread->getComputePlace();
+		CPUDependencyData localDependencyData;
+		CPUDependencyData &hpDependencyData =
+			(cpu != nullptr) ? cpu->getDependencyData() : localDependencyData;
+		DataAccessRegistration::accessInfo(task, region, hpDependencyData, noEagerSend, isReadOnly);
 	}
 
 	void remoteTaskCreateAndSubmit(

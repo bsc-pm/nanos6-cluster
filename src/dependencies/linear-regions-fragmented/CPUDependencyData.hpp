@@ -166,7 +166,7 @@ struct CPUDependencyData {
 #ifdef USE_CLUSTER
 	TaskOffloading::SatisfiabilityInfoMap _satisfiabilityMap; // Node's: list of satisfiabilities to send.
 	TaskOffloading::DataSendRegionInfoMap _dataSendRegionInfoMap;
-	std::vector<TaskOffloading::AccessInfo> _accessInfoVector;
+	TaskOffloading::AccessInfoMap _accessInfoMap;
 #endif // USE_CLUSTER
 
 	CPUDependencyData()

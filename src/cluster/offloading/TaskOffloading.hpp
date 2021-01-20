@@ -68,8 +68,8 @@ namespace TaskOffloading {
 	//! \param[in] args the MessageTaskNew of the remote Task as a void pointer
 	void remoteTaskCleanup(void *args);
 
-	//! \brief Send no eager send message
-	void sendAccessInfo(Task *task, const std::vector<AccessInfo> &regions);
+	//! \brief Send AccessInfo message
+	void sendAccessInfo(ClusterNode *offloader, const std::vector<AccessInfo> &regions);
 
 	//! \brief Handle an info message for offloaded task, e.g. disable eager send of data for offloaded task's dependency that is not accessed
 	void receivedAccessInfo(Task *task, DataAccessRegion region, bool noEagerSend, bool isReadOnly);
