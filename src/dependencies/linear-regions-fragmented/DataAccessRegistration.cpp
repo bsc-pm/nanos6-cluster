@@ -860,7 +860,6 @@ namespace DataAccessRegistration {
 			//     fragmented while it is in the _completedTaskwaits list, which
 			//     will fail (since only the first fragment would be in the list).
 			if (updatedStatus._allowNamespacePropagation
-				&& !access->hasSubaccesses()
 				&& !access->getPropagatedNamespaceInfo()
 				&& (access->getNext()._objectType == access_type)
 				&& (access->getValidNamespaceSelf() != VALID_NAMESPACE_UNKNOWN)) {
@@ -1635,6 +1634,9 @@ namespace DataAccessRegistration {
 
 		// Calculate the valid namespace.
 		if (updateOperation._validNamespace != VALID_NAMESPACE_UNKNOWN) {
+			// Must not receive namespace information more than once. Propagating it
+			// more than once may result in a use-after-free.
+			assert(access->getValidNamespacePrevious() == VALID_NAMESPACE_UNKNOWN);
 			access->setValidNamespacePrevious(updateOperation._validNamespace, updateOperation._namespacePredecessor);
 		}
 
@@ -2516,6 +2518,13 @@ namespace DataAccessRegistration {
 
 				assert(!access->hasNext());
 				access->setNext(operation._next);
+
+				// We are setting the next of a child task of some task (A) to
+				// point to the successor of A.  We need to make sure that
+				// the child task does not pass the namespace information, since
+				// it must be passed exactly once, and this is done by A itself.
+				assert(!access->getPropagatedNamespaceInfo());
+				access->setPropagatedNamespaceInfo();
 
 				DataAccessStatusEffects updatedStatus(access);
 
