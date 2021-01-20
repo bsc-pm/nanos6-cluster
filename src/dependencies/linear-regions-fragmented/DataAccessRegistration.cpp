@@ -449,7 +449,8 @@ namespace DataAccessRegistration {
 						&& (access->allocatedReductionInfo()
 							|| access->receivedReductionSlotSet());
 					_propagatesDataReleaseStepToNext =
-						access->hasDataReleaseStep() && !nextWrongOffloaded;
+						access->hasDataReleaseStep() && !nextWrongOffloaded
+							&& (_propagatesReadSatisfiabilityToNext || _propagatesWriteSatisfiabilityToNext);
 				}
 			} else {
 				assert(!access->hasNext());
