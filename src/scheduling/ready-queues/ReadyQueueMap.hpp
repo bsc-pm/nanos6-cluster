@@ -49,6 +49,7 @@ public:
 			it->second.push_back(task);
 		}
 
+
 		++_numReadyTasks;
 	}
 
@@ -73,6 +74,22 @@ public:
 		}
 
 		return nullptr;
+	}
+
+	long getNextTaskPriority()
+	{
+		if (_readyMap.empty()) {
+			return 0;
+		}
+		ready_map_t::iterator it = _readyMap.begin();
+		while (it != _readyMap.end()) {
+			if (it->second.empty()) {
+				it++;
+			} else {
+				return (long)it->first;
+			}
+		}
+		return 0;
 	}
 
 	inline size_t getNumReadyTasks() const

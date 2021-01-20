@@ -52,6 +52,11 @@ public:
 		return _readyDeque.size();
 	}
 
+	inline long getNextTaskPriority()
+	{
+		return 0;
+	}
+
 };
 
 

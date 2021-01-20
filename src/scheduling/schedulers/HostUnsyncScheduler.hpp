@@ -17,6 +17,7 @@ class HostUnsyncScheduler : public UnsyncScheduler {
 	typedef Container::vector<Taskfor *> taskfor_group_slots_t;
 
 	taskfor_group_slots_t _groupSlots;
+	std::list<Taskfor *> _interruptedTaskfors;
 
 public:
 	HostUnsyncScheduler(SchedulingPolicy policy, bool enablePriority, bool enableImmediateSuccessor) :

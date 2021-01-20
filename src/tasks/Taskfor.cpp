@@ -44,6 +44,15 @@ void Taskfor::run(Taskfor &source, nanos6_address_translation_entry_t *translati
 
 		completedIterations += myIterations;
 
+		// Stop after one chunk, to give the scheduler the opportunity to interrupt this
+		// taskfor and schedule a higher priority task. Note: this does somewhat increase
+		// the overhead when each chunk is a tiny amount of work. The workaround is simply
+		// to increase the chunksize. If it is ever a problem, we could (1) ask the
+		// scheduler here if it has a higher priority task and stop if it does or (2)
+		// stop and re-enter the scheduler after a fixed wallclock time that is large enough
+		// to ensure that the re-scheduling overhead is manageable.
+		break;
+
 		_myChunk = source.getNextChunk(cpuId);
 		if (_myChunk >= 0) {
 			myIterations = computeChunkBounds(totalChunks, sourceBounds);

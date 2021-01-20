@@ -30,24 +30,60 @@ Task *HostUnsyncScheduler::getReadyTask(ComputePlace *computePlace)
 		return result;
 	}
 
-	// 2. Try to get work from the current group taskfor
+	Task::priority_t topPriority;
+
+retry:
+	// 2a. Try to get work from the current group taskfor
 	if (groupId != -1) {
 		Taskfor *groupTaskfor = _groupSlots[groupId];
 
+		// Get the priority of the highest priority ready task
+		if (groupTaskfor || !_interruptedTaskfors.empty()) {
+			topPriority = _readyTasks->getNextTaskPriority();
+		}
+
 		if (groupTaskfor != nullptr) {
+			long priority = groupTaskfor->getPriority();
+			if (priority >= topPriority) {
+				groupTaskfor->notifyCollaboratorHasStarted();
+				bool remove = false;
+				int myChunk = groupTaskfor->getNextChunk(cpuId, &remove);
+				if (remove) {
+					_groupSlots[groupId] = nullptr;
+					groupTaskfor->removedFromScheduler();
+				}
 
-			groupTaskfor->notifyCollaboratorHasStarted();
-			bool remove = false;
-			int myChunk = groupTaskfor->getNextChunk(cpuId, &remove);
-			if (remove) {
+				Taskfor *taskfor = computePlace->getPreallocatedTaskfor();
+				// We are setting the chunk that the collaborator will execute in the preallocatedTaskfor
+				taskfor->setChunk(myChunk);
+				return groupTaskfor;
+			} else {
+				// Interrupt this taskfor for a higher priority task (may itself be
+				// a taskfor). Push the current taskfor onto the interrupted taskfor
+				// list, so it can be resumed later.
+				_interruptedTaskfors.push_back(groupTaskfor);
 				_groupSlots[groupId] = nullptr;
-				groupTaskfor->removedFromScheduler();
 			}
+		}
 
-			Taskfor *taskfor = computePlace->getPreallocatedTaskfor();
-			// We are setting the chunk that the collaborator will execute in the preallocatedTaskfor
-			taskfor->setChunk(myChunk);
-			return groupTaskfor;
+		// 2b. Try to continue an interrupted taskfor if it is same or higher priority
+		// than the current highest priority task
+		if (!_interruptedTaskfors.empty()) {
+			auto itBest = _interruptedTaskfors.end();
+			Task::priority_t best = topPriority;
+			for (auto it = _interruptedTaskfors.begin(); it != _interruptedTaskfors.end(); it++) {
+				Taskfor *taskfor = *it;
+				if (taskfor->getPriority() >= best) {
+					itBest = it;
+					best = taskfor->getPriority();
+				}
+			}
+			if (itBest != _interruptedTaskfors.end()) {
+				// Resume the interrupted taskfor
+				_groupSlots[groupId] = *itBest;
+				_interruptedTaskfors.erase(itBest);
+				goto retry;
+			}
 		}
 	}
 

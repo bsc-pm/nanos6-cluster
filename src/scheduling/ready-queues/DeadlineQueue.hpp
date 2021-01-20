@@ -116,6 +116,11 @@ public:
 		}
 		return numReady;
 	}
+
+	inline long getNextTaskPriority()
+	{
+		return 0;
+	}
 };
 
 
