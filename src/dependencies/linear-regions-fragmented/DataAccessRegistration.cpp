@@ -494,22 +494,23 @@ namespace DataAccessRegistration {
 				_triggersDataRelease = false;
 			}
 
-			_isRemovable = access->propagatedInRemoteNamespace() ||
-				(access->isTopmost()
-				&& access->readSatisfied() && access->writeSatisfied()
-				&& access->receivedReductionInfo()
-				// Read as: If this (reduction) access is part of its predecessor reduction,
-				// it needs to have received the 'ReductionSlotSet' before being removed
-				&& ((access->getType() != REDUCTION_ACCESS_TYPE)
-					|| access->allocatedReductionInfo() || access->receivedReductionSlotSet())
-				&& access->complete()
-				&& (
-					!access->isInBottomMap() || access->hasNext()
-					|| _triggersDataRelease // access->getOriginator()->isRemoteTask()
-					|| (access->getType() == NO_ACCESS_TYPE)
-					|| (access->getObjectType() == taskwait_type)
-					|| (access->getObjectType() == top_level_sink_type)
-				));
+			_isRemovable = access->isTopmost()
+				           && (access->propagatedInRemoteNamespace() ||
+				                  (access->isTopmost()
+				               	&& access->readSatisfied() && access->writeSatisfied()
+				               	&& access->receivedReductionInfo()
+				               	// Read as: If this (reduction) access is part of its predecessor reduction,
+				               	// it needs to have received the 'ReductionSlotSet' before being removed
+				               	&& ((access->getType() != REDUCTION_ACCESS_TYPE)
+				               		|| access->allocatedReductionInfo() || access->receivedReductionSlotSet())
+				               	&& access->complete()
+				               	&& (
+				                    !access->isInBottomMap() || access->hasNext()
+				                     || _triggersDataRelease // access->getOriginator()->isRemoteTask()
+				                     || (access->getType() == NO_ACCESS_TYPE)
+				                     || (access->getObjectType() == taskwait_type)
+				                     || (access->getObjectType() == top_level_sink_type)
+				               	)));
 
 			/*
 			 * If the access is a taskwait access (from createTaskwait)
