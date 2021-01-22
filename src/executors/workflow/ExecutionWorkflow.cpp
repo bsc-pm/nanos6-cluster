@@ -140,6 +140,7 @@ namespace ExecutionWorkflow {
 				 * task->getWorkflow() is actually a dangling pointer as the
 				 * workflow has already been deleted.
 				 */
+
 				assert(task->mustDelayRelease());
 				WorkerThread *currThread = WorkerThread::getCurrentWorkerThread();
 				CPU * const cpu =
@@ -153,6 +154,7 @@ namespace ExecutionWorkflow {
 				 * everything after Task::markAsBlocked returned false.
 				 */
 				task->completeDelayedRelease();
+				task->markAsUnblocked();
 				DataAccessRegistration::handleExitTaskwait(task, cpu, hpDependencyData);
 
 				/*
@@ -162,7 +164,6 @@ namespace ExecutionWorkflow {
 				 * when a child finished and called TaskFinalization::taskFinished.
 				 */
 				assert (task->hasFinished());
-
 				DataAccessRegistration::unregisterTaskDataAccessesWithCallback(
 					task,
 					cpu, /*cpu, */
@@ -175,20 +176,14 @@ namespace ExecutionWorkflow {
 					 * MessageTaskFinished messages out of order
 					 */
 					[&] {
+						TaskFinalization::taskFinished(task, cpu);
 						bool ret = task->markAsReleased();
-						Task *parent = task->getParent();
 						if (ret) {
-							// const std::string label = task->getLabel();
 							TaskFinalization::disposeTask(task);
-						}
-						if (parent) {
-							// Parent in a taskwait that finishes at this point
-							if (parent->finishChild()) {
-								Scheduler::addReadyTask(parent, cpu, UNBLOCKED_TASK_HINT);
-							}
 						}
 					},
 					targetMemoryPlace);
+
 			} else {
 				executionStep->start();
 			}

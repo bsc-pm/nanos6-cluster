@@ -52,20 +52,28 @@ void TaskFinalization::taskFinished(Task *task, ComputePlace *computePlace, bool
 						localHpDependencyData = new CPUDependencyData();
 					}
 
-					DataAccessRegistration::unregisterTaskDataAccesses(
+					DataAccessRegistration::unregisterTaskDataAccessesWithCallback(
 						task, computePlace,
 						*localHpDependencyData,
+						/* For clusters, finalize this task and send
+						 * the MessageTaskFinished BEFORE propagating
+						 * satisfiability to any other tasks. This is to
+						 * avoid potentially sending the
+						 * MessageTaskFinished messages out of order
+						 */
+						[&] {
+								// This is just to emulate a recursive call to TaskFinalization::taskFinished() again.
+								// It should not return false because at this point delayed release has happenned which means that
+								// the task has gone through a taskwait (no more children should be unfinished)
+								ready = task->finishChild();
+								assert(ready);
+								if (task->markAsReleased())
+									TaskFinalization::disposeTask(task);
+							},
 						/* memory place */ nullptr,
 						fromBusyThread
 					);
 
-					// This is just to emulate a recursive call to TaskFinalization::taskFinished() again.
-					// It should not return false because at this point delayed release has happenned which means that
-					// the task has gone through a taskwait (no more children should be unfinished)
-					ready = task->finishChild();
-					assert(ready);
-					if (task->markAsReleased())
-						TaskFinalization::disposeTask(task);
 				}
 
 				assert(!task->mustDelayRelease());
