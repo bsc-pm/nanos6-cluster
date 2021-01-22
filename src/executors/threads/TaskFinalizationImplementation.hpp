@@ -212,14 +212,6 @@ void TaskFinalization::disposeTask(Task *task)
 				task->~Task();
 			}
 
-			// Workaround bug in task deallocation by disabling the freeing of
-			// task instances. See test case namespacenewfail7 (it often fails
-			// but is timing dependent).  In the cluster namespace
-			// implementation, the reordering introduced by
-			// unregisterTaskDataAccessesWithCallback causes a use-after-poison
-			// error which is found by ASan.
-			// MemoryAllocator::free(disposableBlock, disposableBlockSize);
-
 		} else {
 			// Although collaborators cannot be disposed, they must destroy their
 			// args blocks. The destroy function free the memory of the args block

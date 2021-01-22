@@ -139,7 +139,7 @@ struct CPUDependencyData {
 		}
 	};
 
-	typedef Container::deque<UpdateOperation> delayed_operations_t;
+	typedef Container::list<UpdateOperation> delayed_operations_t;
 	typedef Container::deque<Task *> satisfied_originator_list_t;
 	typedef Container::deque<Task *> removable_task_list_t;
 	typedef Container::deque<CommutativeScoreboard::entry_t *> acquired_commutative_scoreboard_entries_t;

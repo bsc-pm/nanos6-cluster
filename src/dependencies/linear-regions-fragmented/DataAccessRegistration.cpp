@@ -1810,11 +1810,9 @@ namespace DataAccessRegistration {
 		Task *lastLocked = nullptr;
 		Task *myOffloadedTask = getOffloadedTask(task);
 
-		// Safe but slow iteration, since processUpdateOperation can append to the
-		// delayed operations.
-		size_t idx = 0;
-		while (hpDependencyData._delayedOperations.size() > idx) {
-			UpdateOperation &delayedOperation = hpDependencyData._delayedOperations[idx];
+		for (auto it = hpDependencyData._delayedOperations.begin();
+		     it != hpDependencyData._delayedOperations.end();) {
+			UpdateOperation &delayedOperation = *it;
 
 			Task *targetOffloadedTask = getOffloadedTask(delayedOperation._target._task);
 
@@ -1832,27 +1830,15 @@ namespace DataAccessRegistration {
 				lastLocked->getDataAccesses()._lock.lock();
 				// Process the delayed operation
 				processUpdateOperation(delayedOperation, hpDependencyData);
-				// Mark it to be deleted below
-				delayedOperation._target._task = nullptr;
-			}
-				
-			idx++;
-		}
 
-		// Delete all processed operations.
-		hpDependencyData._delayedOperations.erase(
-			std::remove_if(
-				hpDependencyData._delayedOperations.begin(),
-				hpDependencyData._delayedOperations.end(),
-				[&](UpdateOperation delayedOperation) {
-					if (delayedOperation._target._task == nullptr) {
-						return true;
-					} else {
-						return false;
-					}
-				}),
-			std::end(hpDependencyData._delayedOperations)
-		);
+				// Advance the iterator
+				auto oldIterator = it;
+				it++;
+				hpDependencyData._delayedOperations.erase(oldIterator);
+			} else {
+				it++;
+			}
+		}
 
 		if (lastLocked != nullptr) {
 			lastLocked->getDataAccesses()._lock.unlock();

@@ -14,12 +14,16 @@
 #include <stack>
 #include <unordered_map>
 #include <vector>
+#include <list>
 
 #include <MemoryAllocator.hpp>
 
 
 //! STL containers that leverage our memory allocators
 namespace Container {
+
+template <typename T>
+using list = std::list<T, TemplateAllocator<T>>;
 
 template <typename T>
 using deque = std::deque<T, TemplateAllocator<T>>;
