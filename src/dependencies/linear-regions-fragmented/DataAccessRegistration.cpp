@@ -164,7 +164,6 @@ namespace DataAccessRegistration {
 
 	void unfragmentOffloadedTaskAccesses(Task *task, TaskDataAccesses &accessStructures)
 	{
-		 // printTaskAccessesAndFragments("before unfragmentTaskAccesses ", task);
 		 (void)task;
 
 		DataAccess *lastAccess = nullptr;
@@ -173,21 +172,6 @@ namespace DataAccessRegistration {
 				DataAccess *access = &(*position);
 				assert(access != nullptr);
 				assert(access->getOriginator() == task);
-#if 0
-				std::cout << "FOUND access: (DataAccess *)" << access << ": "
-					<< access->getAccessRegion().getStartAddress() << ":"
-					<< access->getAccessRegion().getSize()
-					<< " status: " << access->getStatus()
-					<< " location: " << access->getLocation()
-					<< " datarelstep: " << access->getDataReleaseStep()
-					<< " datalinkstep: " << access->getDataLinkStep()
-					<< " namespacepred: " << access->getNamespacePredecessor()
-					<< " next: " << access->getNext()._task
-					<< " next: " << access->getNext()._objectType
-					<< " " << access->propagatedInRemoteNamespace()
-					<< " " << access->isTopLevel()
-					<< " " << access->isTopmost() << "\n";
-#endif
 
 				if (lastAccess != nullptr) {
 					if (access->getAccessRegion().getStartAddress() == lastAccess->getAccessRegion().getEndAddress()
@@ -201,22 +185,21 @@ namespace DataAccessRegistration {
 						&& lastAccess->getNext()._task == nullptr // no next in the namespace
 						&& access->getNext()._task == nullptr // no next in the namespace
 						&& access->getNext()._objectType == lastAccess->getNext()._objectType
-						// && !access->isInBottomMap() // not sure why needed exactly
 						){
+							/* Combine two contiguous regions into one */
 							DataAccessRegion newrel(lastAccess->getAccessRegion().getStartAddress(), access->getAccessRegion().getEndAddress());
 							lastAccess->setAccessRegion(newrel);
 							accessStructures._removalBlockers--;
 							assert(accessStructures._removalBlockers > 0);
-							// std::cout << "remove it\n";
+							/* true: erase the second region */
 							return true;
 					}
 				}
 				lastAccess = access;
+				/* false: do not erase this region */
 				return false;
 			}
 		);
-
-		 // printTaskAccessesAndFragments("after unfragmentTaskAccesses ", task);
 	}
 
 	typedef CPUDependencyData::removable_task_list_t removable_task_list_t;
@@ -423,7 +406,6 @@ namespace DataAccessRegistration {
 						// satisfiability before reductions are combined
 						&& access->satisfied();
 
-
 					_propagatesConcurrentSatisfiabilityToNext =
 						access->canPropagateConcurrentSatisfiability()
 						&& access->concurrentSatisfied()
@@ -496,8 +478,7 @@ namespace DataAccessRegistration {
 
 			_isRemovable = access->isTopmost()
 				           && (access->propagatedInRemoteNamespace() ||
-				                  (access->isTopmost()
-				               	&& access->readSatisfied() && access->writeSatisfied()
+				                  (access->readSatisfied() && access->writeSatisfied()
 				               	&& access->receivedReductionInfo()
 				               	// Read as: If this (reduction) access is part of its predecessor reduction,
 				               	// it needs to have received the 'ReductionSlotSet' before being removed
@@ -1010,7 +991,6 @@ namespace DataAccessRegistration {
 
 			ExecutionWorkflow::DataReleaseStep *step = access->getDataReleaseStep();
 			access->unsetDataReleaseStep();
-			// std::cout << "releaseRegion " << access->getAccessRegion() << " of task " << access->getOriginator()->getLabel() << "\n";
 			step->releaseRegion(access->getAccessRegion(), access->getWriteID(), access->getLocation());
 		}
 
@@ -3480,7 +3460,6 @@ namespace DataAccessRegistration {
 
 				// Unlock to avoid potential deadlock
 				if (previous._task != task) {
-					// std::cout << "me: " << task->getLabel() << " previous: " << previous._task->getLabel() << "\n";
 					accessStructures._lock.unlock();
 					previousAccessStructures._lock.lock();
 				}
@@ -4362,7 +4341,6 @@ namespace DataAccessRegistration {
 	 */
 	void handleEnterTaskwait(Task *task, ComputePlace *computePlace, CPUDependencyData &hpDependencyData, bool noflush)
 	{
-		 // printTaskAccessesAndFragments("before handleEnterTaskwait", task);
 		assert(task != nullptr);
 
 #ifndef NDEBUG
@@ -4379,10 +4357,8 @@ namespace DataAccessRegistration {
 
 			/* Create a taskwait fragment for each entry in the bottom map */
 			createTaskwait(task, accessStructures, computePlace, hpDependencyData, noflush);
-		 	// printTaskAccessesAndFragments("after createTaskwait in handleEnterTaskwait", task);
 
 			finalizeFragments(task, accessStructures, hpDependencyData);
-		 	// printTaskAccessesAndFragments("after finalizeFragments in handleEnterTaskwait", task);
 		}
 		processDelayedOperationsSatisfiedOriginatorsAndRemovableTasks(hpDependencyData, computePlace, true);
 
@@ -4392,13 +4368,11 @@ namespace DataAccessRegistration {
 			assert(hpDependencyData._inUse.compare_exchange_strong(alreadyTaken, false));
 		}
 #endif
-		 // printTaskAccessesAndFragments("after handleEnterTaskwait", task);
 	}
 
 
 	void handleExitTaskwait(Task *task, ComputePlace *, CPUDependencyData &)
 	{
-		 // printTaskAccessesAndFragments("before handleExitTaskwait", task);
 		assert(task != nullptr);
 
 		TaskDataAccesses &accessStructures = task->getDataAccesses();
@@ -4492,9 +4466,6 @@ namespace DataAccessRegistration {
 				return true;
 			});
 		assert(accessStructures._subaccessBottomMap.empty());
-
-		 // unfragmentTaskAccesses(task, accessStructures);
-		 // printTaskAccessesAndFragments("after exitHandleTaskwait ", task);
 	}
 
 	void translateReductionAddresses(
