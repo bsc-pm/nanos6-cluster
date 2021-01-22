@@ -51,14 +51,19 @@ void LeaderThread::body()
 	ConfigVariable<int> pollingFrequency("misc.polling_frequency");
 
 	while (!std::atomic_load_explicit(&_mustExit, std::memory_order_relaxed)) {
-		struct timespec delay = {0, pollingFrequency * 1000};
 
+#ifndef USE_CLUSTER
+		// In cluster mode there is a dedicated thread for the LeaderThread.
+		// It is therefore not necessary for it to sleep. Only sleep in
+		// non-cluster mode.
+		struct timespec delay = {0, pollingFrequency * 1000};
 		// The loop repeats the call with the remaining time in the event that
 		// the thread received a signal with a handler that has SA_RESTART set
 		Instrument::threadWillSuspend(getInstrumentationId());
 		while (nanosleep(&delay, &delay)) {
 		}
 		Instrument::threadHasResumed(getInstrumentationId());
+#endif
 
 		PollingAPI::handleServices();
 

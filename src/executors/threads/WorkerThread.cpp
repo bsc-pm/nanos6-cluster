@@ -121,8 +121,12 @@ void WorkerThread::body()
 			}
 			CPUManager::checkIfMustReturnCPU(this);
 		} else {
+
+#ifndef USE_CLUSTER
 			// Execute polling services
+			// Not on cluster, since there is a dedicated LeaderThread.
 			PollingAPI::handleServices();
+#endif
 
 			// If no task is available, the CPUManager may want to idle this CPU
 			CPUManager::executeCPUManagerPolicy(cpu, IDLE_CANDIDATE);
