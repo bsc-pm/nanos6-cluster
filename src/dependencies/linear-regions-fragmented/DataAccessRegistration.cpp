@@ -4069,9 +4069,7 @@ namespace DataAccessRegistration {
 		Task *parent = task->getParent();
 		if (parent && parent->isNodeNamespace()) {
 			TaskDataAccesses &parentAccessStructures = parent->getDataAccesses();
-			// TaskDataAccesses::accesses_t &parentAccesses = parentAccessStructures._accesses;
 			std::lock_guard<TaskDataAccesses::spinlock_t> guard(parentAccessStructures._lock);
-
 
 			parentAccessStructures._subaccessBottomMap.processAll(
 				[&](TaskDataAccesses::subaccess_bottom_map_t::iterator bottomMapPosition) -> bool {
@@ -4079,17 +4077,8 @@ namespace DataAccessRegistration {
 					assert(bottomMapEntry != nullptr);
 
 					if (bottomMapEntry->_link._task == task) {
-						DataAccessRegion region = bottomMapEntry->getAccessRegion();
 						parentAccessStructures._subaccessBottomMap.erase(bottomMapEntry);
 						ObjectAllocator<BottomMapEntry>::deleteObject(bottomMapEntry);
-						accessStructures._accesses.processIntersecting(
-							region,
-							[&](TaskDataAccesses::accesses_t::iterator position) -> bool {
-								DataAccess *dataAccess = &(*position);
-								dataAccess->unsetInBottomMap();
-								return true;
-							}
-						);
 					}
 
 					return true;
@@ -4117,6 +4106,10 @@ namespace DataAccessRegistration {
 					// data is located at the task
 					MemoryPlace *accessLocation = nullptr;
 
+					/* Finish work of above loop: remove from bottom map when offloaded task ends */
+					if (parent && parent->isNodeNamespace() && dataAccess->isInBottomMap()) {
+						dataAccess->unsetInBottomMap();
+					}
 					finalizeAccess(task, dataAccess, dataAccess->getAccessRegion(), 0, accessLocation, /* OUT */ hpDependencyData, isRemote, false);
 					return true;
 				});
