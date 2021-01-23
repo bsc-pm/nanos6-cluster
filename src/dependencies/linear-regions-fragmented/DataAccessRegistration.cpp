@@ -293,7 +293,7 @@ namespace DataAccessRegistration {
 
 			_isSatisfied = access->satisfied();
 			_enforcesDependency =
-				!access->isWeak() && !access->satisfied() &&
+				!access->isWeak() && !_isSatisfied &&
 				// Reduction accesses can begin as soon as they have a ReductionInfo (even without SlotSet)
 				!((access->getType() == REDUCTION_ACCESS_TYPE) && (access->receivedReductionInfo() || access->allocatedReductionInfo())) && (access->getObjectType() == access_type);
 			_hasNext = access->hasNext();
@@ -396,20 +396,20 @@ namespace DataAccessRegistration {
 						&& access->readSatisfied()
 						// Note: 'satisfied' as opposed to 'readSatisfied', because otherwise read
 						// satisfiability could be propagated before reductions are combined
-						&& access->satisfied()
+						&& _isSatisfied
 						&& ((access->getType() == READ_ACCESS_TYPE) || (access->getType() == NO_ACCESS_TYPE) || access->complete());
 					_propagatesWriteSatisfiabilityToNext =
 						access->writeSatisfied() && access->complete()
 						// Note: This is important for not propagating write
 						// satisfiability before reductions are combined
-						&& access->satisfied();
+						&& _isSatisfied;
 
 					_propagatesConcurrentSatisfiabilityToNext =
 						access->canPropagateConcurrentSatisfiability()
 						&& access->concurrentSatisfied()
 						// Note: If a reduction is to be combined, being the (reduction) access 'satisfied'
 						// and 'complete' should allow it to be done before propagating this satisfiability
-						&& access->satisfied()
+						&& _isSatisfied
 						&& ((access->getType() == CONCURRENT_ACCESS_TYPE) || access->complete());
 					_propagatesCommutativeSatisfiabilityToNext =
 						access->canPropagateCommutativeSatisfiability()
@@ -462,7 +462,7 @@ namespace DataAccessRegistration {
 			_combinesReductionToOriginal =
 				_combinesReductionToPrivateStorage
 				// Being satisfied implies all predecessors (reduction or not) have been completed
-				&& access->satisfied();
+				&& _isSatisfied;
 
 			if (access->hasDataReleaseStep()) {
 				ExecutionWorkflow::DataReleaseStep *releaseStep =
