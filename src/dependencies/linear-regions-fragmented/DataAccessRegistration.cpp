@@ -221,7 +221,6 @@ namespace DataAccessRegistration {
 		bool _propagatesReductionInfoToNext: 1 ;
 		bool _propagatesReductionSlotSetToNext: 1 ;
 		bool _makesNextTopmost: 1 ;
-		bool _propagatesTopLevel: 1 ;
 		bool _releasesCommutativeRegion: 1 ;
 
 		bool _propagatesReadSatisfiabilityToFragments: 1 ;
@@ -261,7 +260,6 @@ namespace DataAccessRegistration {
 			_propagatesReductionInfoToNext(false),
 			_propagatesReductionSlotSetToNext(false),
 			_makesNextTopmost(false),
-			_propagatesTopLevel(false),
 			_releasesCommutativeRegion(false),
 
 			_propagatesReadSatisfiabilityToFragments(false),
@@ -548,11 +546,6 @@ namespace DataAccessRegistration {
 			} else {
 				_makesNextTopmost = false;
 			}
-
-			_propagatesTopLevel =
-				access->isTopLevel()
-				&& access->hasNext()
-				&& (access->getOriginator()->getParent() == access->getNext()._task->getParent());
 
 			_releasesCommutativeRegion =
 				(access->getType() == COMMUTATIVE_ACCESS_TYPE)
@@ -882,11 +875,6 @@ namespace DataAccessRegistration {
 			if (initialStatus._makesNextTopmost != updatedStatus._makesNextTopmost) {
 				assert(!initialStatus._makesNextTopmost);
 				updateOperation._makeTopmost = true;
-			}
-
-			if (initialStatus._propagatesTopLevel != updatedStatus._propagatesTopLevel) {
-				assert(!initialStatus._propagatesTopLevel);
-				updateOperation._makeTopLevel = true;
 			}
 
 			if (!updateOperation.empty()) {
@@ -1714,11 +1702,6 @@ namespace DataAccessRegistration {
 		// Topmost
 		if (updateOperation._makeTopmost) {
 			access->setTopmost();
-		}
-
-		// Top Level
-		if (updateOperation._makeTopLevel) {
-			access->setTopLevel();
 		}
 
 		DataAccessStatusEffects updatedStatus(access);
@@ -2715,7 +2698,6 @@ namespace DataAccessRegistration {
 							targetAccess->setConcurrentSatisfied(); // ?
 							targetAccess->setCommutativeSatisfied(); // ?
 
-							targetAccess->setTopLevel();
 							targetAccess->setReceivedReductionInfo();
 
 							// Note: setting ReductionSlotSet as received is not necessary, as its not always propagated
@@ -2816,7 +2798,6 @@ namespace DataAccessRegistration {
 
 						// Note: setting ReductionSlotSet as received is not necessary, as its not always propagated
 						targetAccess->setTopmost();
-						targetAccess->setTopLevel();
 						DataAccessStatusEffects updatedStatus(targetAccess);
 
 						// TODO: We could mark in the task that there are local accesses (and remove the mark in taskwaits)
@@ -3886,7 +3867,6 @@ namespace DataAccessRegistration {
 		newLocalAccess->setReceivedReductionInfo();
 		newLocalAccess->setRegistered();
 		newLocalAccess->setTopmost();
-		newLocalAccess->setTopLevel();
 #ifndef NDEBUG
 		newLocalAccess->setReachable();
 #endif

@@ -69,7 +69,6 @@ private:
 		HAS_SUBACCESSES_BIT,
 		IN_BOTTOM_MAP_BIT,
 		TOPMOST_BIT,
-		TOP_LEVEL_BIT,
 #ifndef NDEBUG
 		IS_REACHABLE_BIT,
 		HAS_BEEN_DISCOUNTED_BIT,
@@ -493,19 +492,6 @@ public:
 		return _status[TOPMOST_BIT];
 	}
 
-	void setTopLevel()
-	{
-		assert(!isTopLevel());
-		_status[TOP_LEVEL_BIT] = true;
-	}
-	void clearTopLevel()
-	{
-		_status[TOP_LEVEL_BIT] = false;
-	}
-	bool isTopLevel() const
-	{
-		return _status[TOP_LEVEL_BIT];
-	}
 
 	void setLocation(MemoryPlace const *location)
 	{
