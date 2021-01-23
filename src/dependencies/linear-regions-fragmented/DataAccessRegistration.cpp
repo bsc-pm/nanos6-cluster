@@ -1790,8 +1790,9 @@ namespace DataAccessRegistration {
 		/* INOUT */ CPUDependencyData &hpDependencyData,
 					Task *task)
 	{
-		Task *lastLocked = nullptr;
+		Task *lastLocked = task;
 		Task *myOffloadedTask = getOffloadedTask(task);
+		assert(task->getDataAccesses()._lock.isLockedByThisThread());
 
 		for (auto it = hpDependencyData._delayedOperations.begin();
 		     it != hpDependencyData._delayedOperations.end();) {
@@ -1806,11 +1807,14 @@ namespace DataAccessRegistration {
 					|| ((myOffloadedTask != nullptr) && (targetOffloadedTask != nullptr)) );
 
 			if (myOffloadedTask == targetOffloadedTask) {
-				if (lastLocked != nullptr) {
-					lastLocked->getDataAccesses()._lock.unlock();
+
+				if (delayedOperation._target._task != lastLocked) {
+					if (lastLocked != nullptr) {
+						lastLocked->getDataAccesses()._lock.unlock();
+					}
+					lastLocked = delayedOperation._target._task;
+					lastLocked->getDataAccesses()._lock.lock();
 				}
-				lastLocked = delayedOperation._target._task;
-				lastLocked->getDataAccesses()._lock.lock();
 				// Process the delayed operation
 				processUpdateOperation(delayedOperation, hpDependencyData);
 
@@ -4087,7 +4091,7 @@ namespace DataAccessRegistration {
 		}
 
 		{
-			std::lock_guard<TaskDataAccesses::spinlock_t> guard(accessStructures._lock);
+			accessStructures._lock.lock();
 
 			if (task->isRemoteTask()) {
 				// Remote tasks require a top-level sink for all accesses to collect
@@ -4113,17 +4117,19 @@ namespace DataAccessRegistration {
 					finalizeAccess(task, dataAccess, dataAccess->getAccessRegion(), 0, accessLocation, /* OUT */ hpDependencyData, isRemote, false);
 					return true;
 				});
-		}
 
-		// Process all delayed operations that do not involve
-		// remote namespace propagation, i.e. among subtasks of the
-		// same offloaded task (or among any subtasks that are not
-		// descendents of any offloaded task). If delayed operations
-		// could update later offloaded tasks, it would be possible
-		// for the later offloaded tasks to complete and send
-		// a MessageTaskFinished before sending the MessageTaskFinished
-		// for the current task.
-		processDelayedOperationsSameTask(hpDependencyData, task);
+			// Process all delayed operations that do not involve
+			// remote namespace propagation, i.e. among subtasks of the
+			// same offloaded task (or among any subtasks that are not
+			// descendents of any offloaded task). If delayed operations
+			// could update later offloaded tasks, it would be possible
+			// for the later offloaded tasks to complete and send
+			// a MessageTaskFinished before sending the MessageTaskFinished
+			// for the current task.
+			// Enter function with lock on access structures, leave it without lock
+			processDelayedOperationsSameTask(hpDependencyData, task);
+			assert(!accessStructures._lock.isLockedByThisThread());
+		}
 	}
 
 	/*
