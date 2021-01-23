@@ -3376,13 +3376,6 @@ namespace DataAccessRegistration {
 				BottomMapEntry *bottomMapEntry = &(*bottomMapPosition);
 				assert(bottomMapEntry != nullptr);
 
-				if (!task->isRemoteTask()) {
-					// Not an offloaded task.
-					// Remote tasks require a top-level sink for all accesses to collect
-					// the release regions to send back to the offloader.
-					return true;
-				}
-
 				DataAccessLink previous = bottomMapEntry->_link;
 				DataAccessRegion region = bottomMapEntry->_region;
 				DataAccessType accessType = bottomMapEntry->_accessType;
@@ -4107,7 +4100,11 @@ namespace DataAccessRegistration {
 		{
 			std::lock_guard<TaskDataAccesses::spinlock_t> guard(accessStructures._lock);
 
-			createTopLevelSink(task, accessStructures, hpDependencyData);
+			if (task->isRemoteTask()) {
+				// Remote tasks require a top-level sink for all accesses to collect
+				// the release regions to send back to the offloader.
+				createTopLevelSink(task, accessStructures, hpDependencyData);
+			}
 
 			bool isRemote = location->getType() ==  nanos6_device_t::nanos6_cluster_device
 							&& location->getIndex() != ClusterManager::getCurrentClusterNode()->getIndex();
