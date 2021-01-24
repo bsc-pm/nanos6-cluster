@@ -37,6 +37,10 @@ namespace Instrument {
 	void enterHandleExitTaskwait();
 
 	void exitHandleExitTaskwait();
+
+	void enterUnregisterTaskDataAcessesCallback();
+
+	void enterUnregisterTaskDataAcesses2();
 }
 
 #endif //INSTRUMENT_DEPENDENCY_SUBSYTEM_ENTRY_POINTS_HPP

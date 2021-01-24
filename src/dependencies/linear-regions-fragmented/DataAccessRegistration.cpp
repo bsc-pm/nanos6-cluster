@@ -4132,6 +4132,7 @@ namespace DataAccessRegistration {
 			processDelayedOperationsSameTask(hpDependencyData, task);
 			assert(!accessStructures._lock.isLockedByThisThread());
 		}
+		Instrument::enterUnregisterTaskDataAcessesCallback();
 	}
 
 	/*
@@ -4144,6 +4145,7 @@ namespace DataAccessRegistration {
 									MemoryPlace *location,
 									bool fromBusyThread)
 	{
+		Instrument::enterUnregisterTaskDataAcesses2();
 		(void)task;
 		(void)location;
 		processDelayedOperationsSatisfiedOriginatorsAndRemovableTasks(hpDependencyData, computePlace, fromBusyThread);

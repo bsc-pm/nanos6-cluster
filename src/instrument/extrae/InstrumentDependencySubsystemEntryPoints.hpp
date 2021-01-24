@@ -73,6 +73,15 @@ namespace Instrument {
 		emitEvent(EventType::DEPENDENCIES_SUBSYSTEM, 0);
 	}
 
+	inline void enterUnregisterTaskDataAcessesCallback()
+	{
+		emitEvent(EventType::DEPENDENCIES_SUBSYSTEM, NANOS_UNREGISTERTASKDATAACCESSESCALLBACK);
+	}
+
+	inline void enterUnregisterTaskDataAcesses2()
+	{
+		emitEvent(EventType::DEPENDENCIES_SUBSYSTEM, NANOS_UNREGISTERTASKDATAACCESSES2);
+	}
 }
 
 #endif //INSTRUMENT_EXTRAE_DEPENDENCY_SUBSYTEM_ENTRY_POINTS_HPP
