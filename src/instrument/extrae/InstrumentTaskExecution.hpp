@@ -162,7 +162,7 @@ namespace Instrument {
 		}
 
 		ce.Types[0] = (extrae_type_t) EventType::RUNTIME_STATE;
-		ce.Values[0] = (extrae_value_t) NANOS_IDLE;
+		ce.Values[0] = (extrae_value_t) NANOS_RUNTIME;
 
 		ce.Types[1] = (extrae_type_t) EventType::RUNNING_CODE_LOCATION;
 		ce.Values[1] = (extrae_value_t) nullptr;

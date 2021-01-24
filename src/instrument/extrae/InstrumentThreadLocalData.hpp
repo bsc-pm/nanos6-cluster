@@ -24,11 +24,12 @@ namespace Instrument {
 		
 		thread_id_t _currentThreadId;
 		std::vector<int> _nestingLevels;
+		bool isBusyWaiting;
 		
 		InstrumentationContext _context;
 		
 		ThreadLocalData()
-			: _currentThreadId(), _nestingLevels()
+			: _currentThreadId(), _nestingLevels(), isBusyWaiting(false)
 		{
 		}
 	};

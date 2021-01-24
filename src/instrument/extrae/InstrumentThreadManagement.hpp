@@ -59,8 +59,7 @@ namespace Instrument {
 		}
 	}
 
-
-	inline void exitThreadCreation(__attribute__((unused)) thread_id_t threadId)
+	inline void recordRuntimeState(extrae_value_t value) 
 	{
 		extrae_combined_events_t ce;
 
@@ -74,7 +73,7 @@ namespace Instrument {
 		ce.Values = (extrae_value_t *) alloca (ce.nEvents * sizeof (extrae_value_t));
 
 		ce.Types[0] = (extrae_type_t) EventType::RUNTIME_STATE;
-		ce.Values[0] = (extrae_value_t) NANOS_IDLE;
+		ce.Values[0] = value;
 
 		if (_traceAsThreads) {
 			_extraeThreadCountLock.readLock();
@@ -83,6 +82,21 @@ namespace Instrument {
 		if (_traceAsThreads) {
 			_extraeThreadCountLock.readUnlock();
 		}
+	}
+
+	inline void exitThreadCreation(__attribute__((unused)) thread_id_t threadId)
+	{
+		recordRuntimeState( (extrae_value_t) NANOS_RUNTIME );
+	}
+
+	inline void enterBusyWait()
+	{
+		recordRuntimeState( (extrae_value_t) NANOS_IDLE );
+	}
+
+	inline void exitBusyWait()
+	{
+		recordRuntimeState( (extrae_value_t) NANOS_RUNTIME );
 	}
 
 	inline void createdThread(thread_id_t threadId, __attribute__((unused)) compute_place_id_t const &computePlaceId)
