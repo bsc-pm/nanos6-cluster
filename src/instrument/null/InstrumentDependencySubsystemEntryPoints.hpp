@@ -20,6 +20,21 @@ namespace Instrument {
 
 	inline void exitUnregisterTaskDataAcesses() {}
 
+	inline void enterPropagateSatisfiability() {}
+
+	inline void exitPropagateSatisfiability() {}
+
+	inline void enterReleaseAccessRegion() {}
+
+	inline void exitReleaseAccessRegion() {}
+
+	inline void enterHandleEnterTaskwait() {}
+
+	inline void exitHandleEnterTaskwait() {}
+
+	inline void enterHandleExitTaskwait() {}
+
+	inline void exitHandleExitTaskwait() {}
 }
 
 #endif //INSTRUMENT_NULL_DEPENDENCY_SUBSYTEM_ENTRY_POINTS_HPP

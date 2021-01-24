@@ -25,6 +25,7 @@
 #include "system/ompss/SpawnFunction.hpp"
 #include "lowlevel/TokenizedEnvironmentVariable.hpp"
 #include "ClusterManager.hpp"
+#include "InstrumentDependencySubsystemEntryPoints.hpp"
 
 using namespace Instrument::Extrae;
 
@@ -222,6 +223,24 @@ namespace Instrument {
 				NANOS_REDUCTION_STATE_TYPES,
 				values,
 				_reductionStateValueStr
+			);
+		}
+
+		// Register dependency subsystem states
+		{
+			extrae_value_t values[NANOS_DEPENDENCY_STATE_TYPES];
+			unsigned int i;
+
+			for (i = 0; i < NANOS_DEPENDENCY_STATE_TYPES; i++) {
+				values[i] = i;
+			}
+
+			ExtraeAPI::define_event_type(
+				(extrae_type_t) EventType::DEPENDENCIES_SUBSYSTEM,
+				"Dependency subsystem state",
+				NANOS_DEPENDENCY_STATE_TYPES,
+				values,
+				_dependencySubsystemStateValueStr
 			);
 		}
 

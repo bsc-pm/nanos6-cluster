@@ -122,7 +122,10 @@ namespace Instrument {
 				OFFLOADED_TASKS_WAITING = 9800003,
 				PENDING_DATA_TRANSFERS = 9800100,
 				PENDING_DATA_TRANSFER_BYTES = 9800101,
-				PENDING_DATA_TRANSFERS_INCOMING = 9800102
+				PENDING_DATA_TRANSFERS_INCOMING = 9800102,
+
+				// Dependencies system
+				DEPENDENCIES_SUBSYSTEM = 9900000,
 	};
 
 
@@ -139,6 +142,17 @@ namespace Instrument {
 	extern char const *_eventStateValueStr[];
 
 	typedef enum {
+		NANOS_OUTSIDE_DEPENDENCYSUBSYSTEM,
+		NANOS_REGISTERTASKDATAACCESSES,
+		NANOS_UNREGISTERTASKDATAACCESSES,
+		NANOS_PROPAGATESATISFIABILITY,
+		NANOS_RELEASEACCESSREGION,
+		NANOS_HANDLEENTERTASKWAIT,
+		NANOS_HANDLEEXITTASKWAIT,
+		NANOS_DEPENDENCY_STATE_TYPES
+	} nanos6_dependency_state_t;
+
+	typedef enum {
 		NANOS_OUTSIDE_REDUCTION, NANOS_ALLOCATE_REDUCTION_INFO,
 		NANOS_RETRIEVE_REDUCTION_STORAGE, NANOS_ALLOCATE_REDUCTION_STORAGE,
 		NANOS_INITIALIZE_REDUCTION_STORAGE, NANOS_COMBINE_REDUCTION_STORAGE,
@@ -146,6 +160,7 @@ namespace Instrument {
 	} nanos6_reduction_state_t;
 
 	extern char const *_reductionStateValueStr[];
+	extern char const *_dependencySubsystemStateValueStr[];
 
 	extern SpinLock _userFunctionMapLock;
 	extern user_fct_map_t _userFunctionMap;
@@ -197,6 +212,8 @@ namespace Instrument {
 
 		return (runA < runB);
 	}
+
+	void emitEvent(EventType type, extrae_value_t value);
 
 	unsigned int extrae_nanos6_get_num_threads();
 	unsigned int extrae_nanos6_get_num_cpus_and_external_threads();

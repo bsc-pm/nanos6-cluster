@@ -3657,6 +3657,7 @@ namespace DataAccessRegistration {
 		WriteID writeID,
 		MemoryPlace const *location
 	) {
+		Instrument::enterReleaseAccessRegion();
 		assert(task != nullptr);
 
 		//! The compute place may be none if it is released from inside a
@@ -3723,6 +3724,7 @@ namespace DataAccessRegistration {
 			assert(hpDependencyData._inUse.compare_exchange_strong(alreadyTaken, false));
 		}
 #endif
+		Instrument::exitReleaseAccessRegion();
 	}
 
 	void releaseTaskwaitFragment(
@@ -4168,6 +4170,7 @@ namespace DataAccessRegistration {
 #endif
 		MemoryPlace const *location)
 	{
+		Instrument::enterPropagateSatisfiability();
 		assert(task != nullptr);
 
 		/* At least one of read or write satisfied (maybe both) must be changing */
@@ -4228,6 +4231,7 @@ namespace DataAccessRegistration {
 				alreadyTaken, false));
 		}
 #endif
+		Instrument::exitPropagateSatisfiability();
 	}
 
 	/*
@@ -4303,6 +4307,7 @@ namespace DataAccessRegistration {
 	 */
 	void handleEnterTaskwait(Task *task, ComputePlace *computePlace, CPUDependencyData &hpDependencyData, bool noflush)
 	{
+		Instrument::enterHandleEnterTaskwait();
 		assert(task != nullptr);
 
 #ifndef NDEBUG
@@ -4330,11 +4335,13 @@ namespace DataAccessRegistration {
 			assert(hpDependencyData._inUse.compare_exchange_strong(alreadyTaken, false));
 		}
 #endif
+		Instrument::exitHandleEnterTaskwait();
 	}
 
 
 	void handleExitTaskwait(Task *task, ComputePlace *, CPUDependencyData &)
 	{
+		Instrument::enterHandleExitTaskwait();
 		assert(task != nullptr);
 
 		TaskDataAccesses &accessStructures = task->getDataAccesses();
@@ -4428,6 +4435,7 @@ namespace DataAccessRegistration {
 				return true;
 			});
 		assert(accessStructures._subaccessBottomMap.empty());
+		Instrument::exitHandleExitTaskwait();
 	}
 
 	void translateReductionAddresses(

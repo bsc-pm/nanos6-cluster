@@ -33,6 +33,21 @@ namespace Instrument {
 		tp_dependency_unregister_exit();
 	}
 
+	inline void enterPropagateSatisfiability() {}
+
+	inline void exitPropagateSatisfiability() {}
+
+	inline void enterReleaseAccessRegion() {}
+
+	inline void exitReleaseAccessRegion() {}
+
+	inline void enterHandleEnterTaskwait() {}
+
+	inline void exitHandleEnterTaskwait() {}
+
+	inline void enterHandleExitTaskwait() {}
+
+	inline void exitHandleExitTaskwait() {}
 }
 
 #endif //INSTRUMENT_CTF_DEPENDENCY_SUBSYTEM_ENTRY_POINTS_HPP
