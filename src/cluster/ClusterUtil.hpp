@@ -54,8 +54,9 @@ inline void __cluster_assert_fail(
 
 // In the verbose instrumentation there is the logMessage, but functional only when verbose
 #define clusteFprintf(STREAM, FORMAT, ...)								\
-	fprintf(STREAM, "# Node:%d " FORMAT,								\
-		ClusterManager::getCurrentClusterNode()->getIndex(),  ##__VA_ARGS__)
+	fprintf(STREAM,  "# Node:%s " FORMAT,				     	 \
+			ClusterManager::getCurrentClusterNode()->getInstrumentationName(), \
+			##__VA_ARGS__)
 
 // Print Node [Rest]
 #define clusterPrintf(FORMAT, ...) clusteFprintf(stdout, FORMAT, ##__VA_ARGS__)
@@ -65,7 +66,7 @@ inline void __cluster_assert_fail(
 	clusteFprintf(stdout, "%s:%d " FORMAT, __FILE__, __LINE__,__VA_ARGS__)
 
 #define clusterCout														\
-	std::cout << "# Node:" << ClusterManager::getCurrentClusterNode()->getIndex() << " "
+	std::cout << "# Node:" << ClusterManager::getCurrentClusterNode()->getInstrumentationName()  << " "
 
 // This function produces a stack backtrace with demangled function & method names.
 inline std::string clusterBacktrace()

@@ -28,7 +28,7 @@ std::string FatalErrorHandler::getErrorPrefix()
 #ifdef USE_CLUSTER
 	if (ClusterManager::isInitialized() && ClusterManager::inClusterMode()) {
 		std::stringstream ss;
-		ss << "Node:" << ClusterManager::getCurrentClusterNode()->getIndex() << ": ";
+		ss << "Node:" << ClusterManager::getCurrentClusterNode()->getInstrumentationName() << ": ";
 		return ss.str();
 	}
 #endif // USE_CLUSTER
