@@ -24,6 +24,7 @@ namespace Instrument {
 		
 		thread_id_t _currentThreadId;
 		std::vector<int> _nestingLevels;
+		std::vector<extrae_value_t> _dependencyNesting;
 		bool isBusyWaiting;
 		
 		InstrumentationContext _context;

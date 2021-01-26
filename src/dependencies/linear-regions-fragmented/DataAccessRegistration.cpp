@@ -3138,6 +3138,7 @@ namespace DataAccessRegistration {
 		CPUDependencyData::satisfied_taskwait_accesses_t &completedTaskwaits,
 		__attribute__((unused)) ComputePlace *computePlace)
 	{
+		Instrument::enterHandleCompletedTaskwaits();
 		for (DataAccess *taskwait : completedTaskwaits) {
 			assert(taskwait->getObjectType() == taskwait_type);
 			ExecutionWorkflow::setupTaskwaitWorkflow(
@@ -3145,6 +3146,7 @@ namespace DataAccessRegistration {
 				taskwait);
 		}
 		completedTaskwaits.clear();
+		Instrument::exitHandleCompletedTaskwaits();
 	}
 
 
@@ -4156,7 +4158,7 @@ namespace DataAccessRegistration {
 			assert(hpDependencyData._inUse.compare_exchange_strong(alreadyTaken, false));
 		}
 #endif
-		Instrument::exitUnregisterTaskDataAcesses();
+		Instrument::exitUnregisterTaskDataAcesses2();
 	}
 
 	/*

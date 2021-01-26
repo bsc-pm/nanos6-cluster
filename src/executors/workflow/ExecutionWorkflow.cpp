@@ -23,7 +23,7 @@
 #include <ExecutionWorkflowHost.hpp>
 #include <ExecutionWorkflowCluster.hpp>
 #include <ClusterManager.hpp>
-
+#include <InstrumentDependencySubsystemEntryPoints.hpp>
 
 namespace ExecutionWorkflow {
 
@@ -314,6 +314,7 @@ namespace ExecutionWorkflow {
 
 	void setupTaskwaitWorkflow(Task *task, DataAccess *taskwaitFragment)
 	{
+		Instrument::enterSetupTaskwaitWorkflow();
 		WorkerThread *currentThread = WorkerThread::getCurrentWorkerThread();
 
 		ComputePlace const *computePlace =
@@ -362,6 +363,7 @@ namespace ExecutionWorkflow {
 		if (targetLocation == nullptr) {
 			workflow->addRootStep(notificationStep);
 			workflow->start();
+			Instrument::exitSetupTaskwaitWorkflow();
 			return;
 		}
 
@@ -375,5 +377,6 @@ namespace ExecutionWorkflow {
 		workflow->addRootStep(copyStep);
 		workflow->enforceOrder(copyStep, notificationStep);
 		workflow->start();
+		Instrument::exitSetupTaskwaitWorkflow();
 	}
 };
