@@ -174,10 +174,10 @@ void nanos6_shutdown(void)
 
 	Scheduler::shutdown();
 
-	ClusterManager::shutdownPhase2();
-
 	HardwareInfo::shutdown();
 	MemoryAllocator::shutdown();
 	RuntimeInfoEssentials::shutdown();
 	TurboSettings::shutdown();
+	
+	ClusterManager::shutdownPhase2();
 }
