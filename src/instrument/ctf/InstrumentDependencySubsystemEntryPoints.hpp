@@ -62,6 +62,10 @@ namespace Instrument {
 	inline void enterSetupTaskwaitWorkflow() {}
 
 	inline void exitSetupTaskwaitWorkflow() {}
+
+	inline void enterReleaseTaskwaitFragment() {}
+
+	inline void exitReleaseTaskwaitFragment() {}
 }
 
 #endif //INSTRUMENT_CTF_DEPENDENCY_SUBSYTEM_ENTRY_POINTS_HPP

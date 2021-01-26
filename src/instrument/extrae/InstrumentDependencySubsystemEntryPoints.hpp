@@ -131,6 +131,15 @@ namespace Instrument {
 		popDependency(NANOS_SETUPTASKWAITWORKFLOW);
 	}
 
+	inline void enterReleaseTaskwaitFragment()
+	{
+		pushDependency(NANOS_RELEASETASKWAITFRAGMENT);
+	}
+
+	inline void exitReleaseTaskwaitFragment()
+	{
+		popDependency(NANOS_RELEASETASKWAITFRAGMENT);
+	}
 }
 
 #endif //INSTRUMENT_EXTRAE_DEPENDENCY_SUBSYTEM_ENTRY_POINTS_HPP

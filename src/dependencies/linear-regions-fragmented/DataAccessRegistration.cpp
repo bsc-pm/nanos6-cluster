@@ -3736,6 +3736,7 @@ namespace DataAccessRegistration {
 		CPUDependencyData &hpDependencyData)
 	{
 		assert(task != nullptr);
+		Instrument::enterReleaseTaskwaitFragment();
 
 		TaskDataAccesses &accessStructures = task->getDataAccesses();
 		assert(!accessStructures.hasBeenDeleted());
@@ -3787,6 +3788,7 @@ namespace DataAccessRegistration {
 				alreadyTaken, false));
 		}
 #endif
+		Instrument::exitReleaseTaskwaitFragment();
 	}
 
 	/*
