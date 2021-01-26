@@ -60,6 +60,20 @@ int nanos6_get_num_cluster_nodes(void)
 	return (*symbol)();
 }
 
+int nanos6_get_namespace_is_enabled(void)
+{
+	typedef int nanos6_get_namespace_is_enabled_t(void);
+
+	static nanos6_get_namespace_is_enabled_t *symbol = NULL;
+	if (__builtin_expect(symbol == NULL, 0)) {
+		symbol = (nanos6_get_namespace_is_enabled_t *) _nanos6_resolve_symbol(
+				"nanos6_get_namespace_is_enabled_t", "cluster", NULL);
+	}
+
+	return (*symbol)();
+}
+
+
 void *nanos6_dmalloc(size_t size, nanos6_data_distribution_t policy,
 		size_t num_dimensions, size_t *dimensions)
 {

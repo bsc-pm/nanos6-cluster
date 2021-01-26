@@ -53,6 +53,11 @@ int nanos6_get_cluster_node_id(void);
 //! \returns the number of cluster nodes
 int nanos6_get_num_cluster_nodes(void);
 
+//! \brief Get if namespace propagation is enables
+//!
+//! \returns namespace propagation is enables.
+int nanos6_get_namespace_is_enabled(void);
+
 //! \brief Allocate distributed memory
 //!
 //! Distributed memory is a clsuter type of memory that can only be

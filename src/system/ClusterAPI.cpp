@@ -31,6 +31,13 @@ extern "C" int nanos6_get_num_cluster_nodes(void)
 	return ClusterManager::clusterSize();
 }
 
+extern "C" int nanos6_get_namespace_is_enabled(void)
+{
+	// Invert this value.
+	return ClusterManager::getDisableRemote() == false;
+}
+
+
 extern "C" void *nanos6_dmalloc(
 	size_t size,
 	nanos6_data_distribution_t policy,
