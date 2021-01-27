@@ -63,6 +63,18 @@ public:
 		_lock.store(0, std::memory_order_release);
 #endif
 	}
+
+	// for std::lock_guard, default a write lock
+	inline void lock()
+	{
+		writeLock();
+	}
+
+	// for std::lock_guard, default a write lock
+	inline void unlock()
+	{
+		writeUnlock();
+	}
 };
 
 

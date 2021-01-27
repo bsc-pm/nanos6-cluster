@@ -60,12 +60,12 @@ namespace DataAccessRegistration {
 		assert(!accessStructures.hasBeenDeleted());
 
 		// Take lock on access structures if not already done
-#ifndef NDEBUG
-		TaskDataAccesses::spinlock_t *lock = accessStructures._lock.isLockedByThisThread() ?
-								nullptr : &accessStructures._lock;
-#else
+// #ifndef NDEBUG
+// 		TaskDataAccesses::spinlock_t *lock = accessStructures._lock.isLockedByThisThread() ?
+// 								nullptr : &accessStructures._lock;
+// #else
 		TaskDataAccesses::spinlock_t *lock = nullptr;
-#endif
+// #endif
 
 		if (lock)
 			lock->lock();
@@ -593,7 +593,7 @@ namespace DataAccessRegistration {
 		/* OUT */ CPUDependencyData &hpDependencyData
 	) {
 		/* Check lock on task's access structures already taken by caller */
-		assert(task->getDataAccesses()._lock.isLockedByThisThread());
+		// assert(task->getDataAccesses()._lock.isLockedByThisThread());
 
 		// Registration
 		if (initialStatus._isRegistered != updatedStatus._isRegistered) {
@@ -1045,7 +1045,7 @@ namespace DataAccessRegistration {
 		assert(access != nullptr);
 		assert(task != nullptr);
 		assert(access->getOriginator() == task);
-		assert(accessStructures._lock.isLockedByThisThread());
+		// assert(accessStructures._lock.isLockedByThisThread());
 		assert((access->getObjectType() == taskwait_type) || (access->getObjectType() == top_level_sink_type));
 
 		//! We are about to delete the taskwait fragment. Before doing so,
@@ -1186,6 +1186,8 @@ namespace DataAccessRegistration {
 	 * createTaskwait and createTopLevelSink, which do the same for taskwaits
 	 * and top-level sinks. They are then reachable until they are destroyed.
 	 */
+	static bool noAccessIsReachable(TaskDataAccesses &accessStructures) __attribute__((unused));
+
 	static bool noAccessIsReachable(TaskDataAccesses &accessStructures)
 	{
 		assert(!accessStructures.hasBeenDeleted());
@@ -1207,7 +1209,7 @@ namespace DataAccessRegistration {
 		}
 
 		assert(!accessStructures.hasBeenDeleted());
-		assert(accessStructures._lock.isLockedByThisThread());
+		// assert(accessStructures._lock.isLockedByThisThread());
 
 		TaskDataAccesses::subaccess_bottom_map_t::iterator position =
 			accessStructures._subaccessBottomMap.iterator_to(*bottomMapEntry);
@@ -1396,7 +1398,7 @@ namespace DataAccessRegistration {
 	{
 		assert(dataAccess != nullptr);
 		// assert(accessStructures._lock.isLockedByThisThread()); // Not necessary when fragmenting an access that is not reachable
-		assert(accessStructures._lock.isLockedByThisThread() || noAccessIsReachable(accessStructures));
+		// assert(accessStructures._lock.isLockedByThisThread() || noAccessIsReachable(accessStructures));
 		assert(&dataAccess->getOriginator()->getDataAccesses() == &accessStructures);
 		assert(!accessStructures.hasBeenDeleted());
 
@@ -1605,7 +1607,7 @@ namespace DataAccessRegistration {
 		TaskDataAccesses &accessStructures = updateOperation._target._task->getDataAccesses();
 
 		/* Check lock on access structures already taken by caller */
-		assert(accessStructures._lock.isLockedByThisThread());
+		// assert(accessStructures._lock.isLockedByThisThread());
 
 		if (updateOperation._target._objectType == access_type) {
 			// Update operation for accesses
@@ -1670,7 +1672,7 @@ namespace DataAccessRegistration {
 	{
 		Task *lastLocked = task;
 		Task *myOffloadedTask = getOffloadedTask(task);
-		assert(task->getDataAccesses()._lock.isLockedByThisThread());
+		// assert(task->getDataAccesses()._lock.isLockedByThisThread());
 
 		for (auto it = hpDependencyData._delayedOperations.begin();
 		     it != hpDependencyData._delayedOperations.end();) {
@@ -1709,6 +1711,7 @@ namespace DataAccessRegistration {
 			lastLocked->getDataAccesses()._lock.unlock();
 		}
 	}
+
 
 	/*
 	 * Process the delayed operations. These are operations that are triggered
@@ -1770,6 +1773,7 @@ namespace DataAccessRegistration {
 #endif
 
 		handleCompletedTaskwaits(hpDependencyData._completedTaskwaits, computePlace);
+
 		processSatisfiedOriginators(hpDependencyData, computePlace, fromBusyThread);
 		assert(hpDependencyData._satisfiedOriginators.empty());
 
@@ -1870,7 +1874,7 @@ namespace DataAccessRegistration {
 		assert(task != nullptr);
 
 		TaskDataAccesses &accessStructures = task->getDataAccesses();
-		assert(accessStructures._lock.isLockedByThisThread());
+		// assert(accessStructures._lock.isLockedByThisThread());
 
 		if (link._objectType == access_type) {
 			/*
@@ -2167,7 +2171,7 @@ namespace DataAccessRegistration {
 		BottomMapEntryProcessorType bottomMapEntryProcessor = [](BottomMapEntry *) {})
 	{
 		assert(!accessStructures.hasBeenDeleted());
-		assert(accessStructures._lock.isLockedByThisThread());
+		// assert(accessStructures._lock.isLockedByThisThread());
 
 		accessStructures._subaccessBottomMap.processIntersecting(
 			region,
@@ -2234,7 +2238,7 @@ namespace DataAccessRegistration {
 		BottomMapEntryProcessorType bottomMapEntryProcessor = [](BottomMapEntry *) {})
 	{
 		assert(!accessStructures.hasBeenDeleted());
-		assert(accessStructures._lock.isLockedByThisThread());
+		// assert(accessStructures._lock.isLockedByThisThread());
 
 		accessStructures._subaccessBottomMap.processAll(
 			[&](TaskDataAccesses::subaccess_bottom_map_t::iterator bottomMapPosition) -> bool {
@@ -2298,7 +2302,7 @@ namespace DataAccessRegistration {
 		assert(!operation.empty());
 		assert(!operation._region.empty());
 		assert(!accessStructures.hasBeenDeleted());
-		assert(accessStructures._lock.isLockedByThisThread());
+		// assert(accessStructures._lock.isLockedByThisThread());
 
 		assert(operation._linkBottomMapAccessesToNext);
 		foreachBottomMapMatch(
@@ -3010,7 +3014,7 @@ namespace DataAccessRegistration {
 		/* OUT */ CPUDependencyData &hpDependencyData, bool noflush)
 	{
 		assert(task != nullptr);
-		assert(accessStructures._lock.isLockedByThisThread());
+		// assert(accessStructures._lock.isLockedByThisThread());
 
 		// The last taskwait fragment will decrease the blocking count.
 		// This is necessary to force the task to wait until all taskwait fragments have finished.
@@ -3224,7 +3228,7 @@ namespace DataAccessRegistration {
 		Task *task, TaskDataAccesses &accessStructures, /* OUT */ CPUDependencyData &hpDependencyData)
 	{
 		assert(task != nullptr);
-		assert(accessStructures._lock.isLockedByThisThread());
+		// assert(accessStructures._lock.isLockedByThisThread());
 
 		// For each bottom map entry
 		accessStructures._subaccessBottomMap.processAll(
@@ -4034,7 +4038,7 @@ namespace DataAccessRegistration {
 			// for the current task.
 			// Enter function with lock on access structures, leave it without lock
 			processDelayedOperationsSameTask(hpDependencyData, task);
-			assert(!accessStructures._lock.isLockedByThisThread());
+			// assert(!accessStructures._lock.isLockedByThisThread());
 		}
 		Instrument::enterUnregisterTaskDataAcessesCallback();
 	}

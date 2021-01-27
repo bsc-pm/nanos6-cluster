@@ -18,7 +18,8 @@
 #include "TaskDataAccessLinkingArtifacts.hpp"
 #include "TaskDataAccessLinkingArtifactsImplementation.hpp"
 #include "TaskDataAccessesInfo.hpp"
-#include "lowlevel/PaddedTicketSpinLock.hpp"
+// #include "lowlevel/PaddedTicketSpinLock.hpp"
+#include "lowlevel/RWSpinLock.hpp"
 
 
 struct DataAccess;
@@ -26,7 +27,7 @@ class Task;
 
 struct TaskDataAccesses
 {
-	typedef PaddedTicketSpinLock<int> spinlock_t;
+	typedef RWSpinLock spinlock_t;
 
 	typedef IntrusiveLinearRegionMap<
 		DataAccess,
