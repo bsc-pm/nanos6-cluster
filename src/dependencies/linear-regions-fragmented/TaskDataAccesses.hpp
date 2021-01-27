@@ -52,8 +52,8 @@ struct TaskDataAccesses
 	taskwait_fragments_t _taskwaitFragments;
 	subaccess_bottom_map_t _subaccessBottomMap;
 
-	int _removalBlockers;
-	int _liveTaskwaitFragmentCount;
+	std::atomic<int> _removalBlockers;
+	std::atomic<int> _liveTaskwaitFragmentCount;
 	size_t _totalCommutativeBytes;
 
 #ifndef NDEBUG

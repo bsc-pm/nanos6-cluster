@@ -948,8 +948,8 @@ namespace DataAccessRegistration {
 		if (initialStatus._isRemovable != updatedStatus._isRemovable) {
 			assert(!initialStatus._isRemovable);
 
-			assert(accessStructures._removalBlockers > 0);
-			accessStructures._removalBlockers--;
+			int newRemovalBlockers = (accessStructures._removalBlockers.fetch_sub(1, std::memory_order_relaxed) - 1);
+			assert(newRemovalBlockers >= 0);
 
 			/*
 			 * Discounted means that it is no longer blocking the removal of
@@ -991,10 +991,10 @@ namespace DataAccessRegistration {
 				}
 
 				// The last taskwait fragment that finishes removes the blocking over the task
-				assert(accessStructures._liveTaskwaitFragmentCount > 0);
-				accessStructures._liveTaskwaitFragmentCount--;
+				int newLiveFragmentCount = (accessStructures._liveTaskwaitFragmentCount.fetch_sub(1, std::memory_order_relaxed) - 1);
+				assert(newLiveFragmentCount >= 0);
 
-				if (accessStructures._liveTaskwaitFragmentCount == 0) {
+				if (newLiveFragmentCount == 0) {
 					if (task->decreaseBlockingCount())
 						hpDependencyData._satisfiedOriginators.push_back(task);
 				}
@@ -1029,7 +1029,7 @@ namespace DataAccessRegistration {
 			 * task itself. Decrement the task's removal blocking count (of
 			 * accesses) and, if it becomes zero, list the task as removable.
 			 */
-			if (accessStructures._removalBlockers == 0) {
+			if (newRemovalBlockers == 0) {
 				if (task->decreaseRemovalBlockingCount()) {
 					hpDependencyData._removableTasks.push_back(task);
 				}
@@ -3609,7 +3609,9 @@ namespace DataAccessRegistration {
 #endif
 
 		{
-			std::lock_guard<TaskDataAccesses::spinlock_t> guard(accessStructures._lock);
+			// std::lock_guard<TaskDataAccesses::spinlock_t> guard(accessStructures._lock);
+			accessStructures._lock.readLock();
+			// accessStructures._lock.writeLock();
 			accessStructures._taskwaitFragments.processIntersecting(
 				region,
 				/* processor: called for each taskwait fragment that intersects the region */
@@ -3633,6 +3635,8 @@ namespace DataAccessRegistration {
 
 					return true;
 				});
+			accessStructures._lock.readUnlock();
+			// accessStructures._lock.writeUnlock();
 		}
 
 		processDelayedOperationsSatisfiedOriginatorsAndRemovableTasks(
