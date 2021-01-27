@@ -1087,7 +1087,6 @@ namespace DataAccessRegistration {
 				if ((access->getObjectType() == taskwait_type)
 					|| (access->getObjectType() == top_level_sink_type))
 				{
-					removeBottomMapTaskwaitOrTopLevelSink(access, accessStructures, task, hpDependencyData);
 				} else {
 					assert(access->getOriginator()->isRemoteTask()
 						|| (access->getObjectType() == access_type
@@ -4345,7 +4344,7 @@ namespace DataAccessRegistration {
 	}
 
 
-	void handleExitTaskwait(Task *task, ComputePlace *, CPUDependencyData &)
+	void handleExitTaskwait(Task *task, ComputePlace *, CPUDependencyData &hpDependencyData)
 	{
 		Instrument::enterHandleExitTaskwait();
 		assert(task != nullptr);
@@ -4354,6 +4353,22 @@ namespace DataAccessRegistration {
 		assert(!accessStructures.hasBeenDeleted());
 		std::lock_guard<TaskDataAccesses::spinlock_t> guard(accessStructures._lock);
 
+		accessStructures._taskwaitFragments.processAll(
+			/* processor: called for each task access fragment */
+			[&](TaskDataAccesses::access_fragments_t::iterator position) -> bool {
+				DataAccess *taskwaitFragment = &(*position);
+				assert(taskwaitFragment != nullptr);
+				DataAccessStatusEffects initialStatus(taskwaitFragment);
+				if (initialStatus._isRemovable) {
+					if (!taskwaitFragment->hasNext()) {
+						assert ((taskwaitFragment->getObjectType() == taskwait_type)
+							|| (taskwaitFragment->getObjectType() == top_level_sink_type));
+						removeBottomMapTaskwaitOrTopLevelSink(taskwaitFragment, accessStructures, task, hpDependencyData);
+					}
+				}
+				return true;
+			}
+		);
 
 		if (task->isRemoteTask()) {
 			// An offloaded task
