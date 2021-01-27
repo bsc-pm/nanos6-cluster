@@ -463,7 +463,28 @@ namespace DataAccessRegistration {
 		}
 	};
 
-	void unfragmentTaskAccesses(Task *task, TaskDataAccesses &accessStructures)
+	inline bool canMergeAccesses(const DataAccess *lastAccess, const DataAccess *access)
+	{
+		if (lastAccess != nullptr) {
+			if (access->getAccessRegion().getStartAddress() == lastAccess->getAccessRegion().getEndAddress()
+				&& access->getStatus() == lastAccess->getStatus()
+				&& access->isWeak() == lastAccess->isWeak()
+				&& access->getType() == lastAccess->getType()
+				&& lastAccess->getLocation()
+				&& ClusterManager::isLocalMemoryPlace(lastAccess->getLocation())
+				&& access->getLocation()
+				&& ClusterManager::isLocalMemoryPlace(access->getLocation())
+				&& access->getDataLinkStep() == lastAccess->getDataLinkStep()
+				&& lastAccess->getNext()._task == access->getNext()._task
+				&& access->getNext()._objectType == lastAccess->getNext()._objectType
+				) {
+				return true;
+			}
+		}
+		return false;
+	}
+
+	static void unfragmentTaskAccesses(Task *task, TaskDataAccesses &accessStructures)
 	{
 		 (void)task;
 
@@ -475,31 +496,48 @@ namespace DataAccessRegistration {
 				assert(access->getOriginator() == task);
 				assert(access->isRegistered());
 
-				if (lastAccess != nullptr) {
-					if (access->getAccessRegion().getStartAddress() == lastAccess->getAccessRegion().getEndAddress()
-						&& access->getStatus() == lastAccess->getStatus()
-						&& access->isWeak() == lastAccess->isWeak()
-						&& access->getType() == lastAccess->getType()
-						&& lastAccess->getLocation()
-						&& ClusterManager::isLocalMemoryPlace(lastAccess->getLocation())
-						&& access->getLocation()
-						&& ClusterManager::isLocalMemoryPlace(access->getLocation())
-						&& access->getDataLinkStep() == lastAccess->getDataLinkStep()
-						&& lastAccess->getNext()._task == access->getNext()._task
-						&& access->getNext()._objectType == lastAccess->getNext()._objectType
-						){
-							/* Combine two contiguous regions into one */
-							DataAccessRegion newrel(lastAccess->getAccessRegion().getStartAddress(), access->getAccessRegion().getEndAddress());
-							lastAccess->setAccessRegion(newrel);
+				if (canMergeAccesses(lastAccess, access)) {
+					/* Combine two contiguous regions into one */
+					DataAccessRegion newrel(lastAccess->getAccessRegion().getStartAddress(),
+											access->getAccessRegion().getEndAddress());
+					lastAccess->setAccessRegion(newrel);
 
-							DataAccessStatusEffects initialStatus(lastAccess);
-							if (!initialStatus._isRemovable) {
-								accessStructures._removalBlockers--;
-								assert(accessStructures._removalBlockers > 0);
-							}
-							/* true: erase the second region */
-							return true;
+					DataAccessStatusEffects initialStatus(lastAccess);
+					if (!initialStatus._isRemovable) {
+						accessStructures._removalBlockers--;
+						assert(accessStructures._removalBlockers > 0);
 					}
+					/* true: erase the second region */
+					return true;
+				}
+				lastAccess = access;
+				/* false: do not erase this region */
+				return false;
+			}
+		);
+	}
+
+	static void unfragmentTaskwaits(TaskDataAccesses &accessStructures)
+	{
+		DataAccess *lastAccess = nullptr;
+		accessStructures._taskwaitFragments.processAllWithErase(
+			[&](TaskDataAccesses::accesses_t::iterator position) -> bool {
+				DataAccess *access = &(*position);
+				assert(access != nullptr);
+
+				if (canMergeAccesses(lastAccess, access)) {
+					/* Combine two contiguous regions into one */
+					DataAccessRegion newrel(lastAccess->getAccessRegion().getStartAddress(), 
+					                        access->getAccessRegion().getEndAddress());
+					lastAccess->setAccessRegion(newrel);
+#ifndef NDEBUG
+					DataAccessStatusEffects initialStatus(lastAccess);
+					assert (initialStatus._isRemovable);
+#endif
+					// accessStructures._liveTaskwaitFragmentCount--;
+					// assert(accessStructures._liveTaskwaitFragmentCount > 0);
+					/* true: erase the second region */
+					return true;
 				}
 				lastAccess = access;
 				/* false: do not erase this region */
@@ -4255,6 +4293,8 @@ namespace DataAccessRegistration {
 		TaskDataAccesses &accessStructures = task->getDataAccesses();
 		assert(!accessStructures.hasBeenDeleted());
 		std::lock_guard<TaskDataAccesses::spinlock_t> guard(accessStructures._lock);
+
+		unfragmentTaskwaits(accessStructures);
 
 		accessStructures._taskwaitFragments.processAll(
 			/* processor: called for each task access fragment */
