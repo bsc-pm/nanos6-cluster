@@ -41,6 +41,8 @@ namespace ExecutionWorkflow {
 		DataAccessRegion const &region,
 		DataAccess *access
 	) {
+		Step *step;
+		Instrument::enterCreateDataCopyStep();
 		/* At the moment we do not support data copies for accesses
 			* of the following types. This essentially mean that devices,
 			* e.g. Cluster, CUDA, do not support these accesses. */
@@ -48,7 +50,9 @@ namespace ExecutionWorkflow {
 			access->getType() == COMMUTATIVE_ACCESS_TYPE ||
 			access->getType() == CONCURRENT_ACCESS_TYPE
 		) {
-			return new Step();
+			step = new Step();
+			Instrument::exitCreateDataCopyStep();
+			return step;
 		}
 
 		assert(targetMemoryPlace != nullptr);
@@ -65,12 +69,14 @@ namespace ExecutionWorkflow {
 				access->setValidNamespace( ClusterManager::getCurrentMemoryNode()->getIndex(), access->getOriginator());
 		}
 
-		return _transfersMap[sourceType][targetType](
+		step = _transfersMap[sourceType][targetType](
 			sourceMemoryPlace,
 			targetMemoryPlace,
 			region,
 			access
 		);
+		Instrument::exitCreateDataCopyStep();
+		return step;
 	}
 
 	Step *WorkflowBase::createExecutionStep(Task *task, ComputePlace *computePlace)

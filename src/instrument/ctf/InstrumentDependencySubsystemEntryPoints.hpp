@@ -66,6 +66,10 @@ namespace Instrument {
 	inline void enterReleaseTaskwaitFragment() {}
 
 	inline void exitReleaseTaskwaitFragment() {}
+
+	inline void enterCreateDataCopyStep() {}
+
+	inline void exitCreateDataCopyStep() {}
 }
 
 #endif //INSTRUMENT_CTF_DEPENDENCY_SUBSYTEM_ENTRY_POINTS_HPP

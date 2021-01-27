@@ -140,6 +140,16 @@ namespace Instrument {
 	{
 		popDependency(NANOS_RELEASETASKWAITFRAGMENT);
 	}
+
+	inline void enterCreateDataCopyStep()
+	{
+		pushDependency(NANOS_CREATEDATACOPYSTEP);
+	}
+
+	inline void exitCreateDataCopyStep()
+	{
+		popDependency(NANOS_CREATEDATACOPYSTEP);
+	}
 }
 
 #endif //INSTRUMENT_EXTRAE_DEPENDENCY_SUBSYTEM_ENTRY_POINTS_HPP
