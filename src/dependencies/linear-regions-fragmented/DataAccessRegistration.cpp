@@ -571,7 +571,7 @@ namespace DataAccessRegistration {
 	static void handleRemovableTasks(
 		/* inout */ CPUDependencyData::removable_task_list_t &removableTasks);
 	static void handleCompletedTaskwaits(
-		CPUDependencyData::satisfied_taskwait_accesses_t &completedTaskwaits,
+		CPUDependencyData &completedTaskwaits,
 		__attribute__((unused)) ComputePlace *computePlace);
 	static inline DataAccess *fragmentAccess(
 		DataAccess *dataAccess, DataAccessRegion const &region,
@@ -1772,7 +1772,12 @@ namespace DataAccessRegistration {
 		processDelayedOperations(hpDependencyData);
 #endif
 
-		handleCompletedTaskwaits(hpDependencyData._completedTaskwaits, computePlace);
+		handleCompletedTaskwaits(hpDependencyData, computePlace);
+
+#if NO_DEPENDENCY_DELAYED_OPERATIONS
+#else
+		processDelayedOperations(hpDependencyData);
+#endif
 
 		processSatisfiedOriginators(hpDependencyData, computePlace, fromBusyThread);
 		assert(hpDependencyData._satisfiedOriginators.empty());
@@ -2990,17 +2995,18 @@ namespace DataAccessRegistration {
 	}
 
 	static void handleCompletedTaskwaits(
-		CPUDependencyData::satisfied_taskwait_accesses_t &completedTaskwaits,
+		CPUDependencyData &hpDependencyData,
 		__attribute__((unused)) ComputePlace *computePlace)
 	{
 		Instrument::enterHandleCompletedTaskwaits();
-		for (DataAccess *taskwait : completedTaskwaits) {
+		for (DataAccess *taskwait : hpDependencyData._completedTaskwaits) {
 			assert(taskwait->getObjectType() == taskwait_type);
 			ExecutionWorkflow::setupTaskwaitWorkflow(
 				taskwait->getOriginator(),
-				taskwait);
+				taskwait,
+				hpDependencyData);
 		}
-		completedTaskwaits.clear();
+		hpDependencyData._completedTaskwaits.clear();
 		Instrument::exitHandleCompletedTaskwaits();
 	}
 
@@ -3592,21 +3598,14 @@ namespace DataAccessRegistration {
 		Task *task,
 		DataAccessRegion region,
 		ComputePlace *computePlace,
-		CPUDependencyData &hpDependencyData)
+		CPUDependencyData &hpDependencyData,
+		bool doDelayedOperations)
 	{
 		assert(task != nullptr);
 		Instrument::enterReleaseTaskwaitFragment();
 
 		TaskDataAccesses &accessStructures = task->getDataAccesses();
 		assert(!accessStructures.hasBeenDeleted());
-
-#ifndef NDEBUG
-		{
-			bool alreadyTaken = false;
-			assert(hpDependencyData._inUse.compare_exchange_strong(
-				alreadyTaken, true));
-		}
-#endif
 
 		{
 			// std::lock_guard<TaskDataAccesses::spinlock_t> guard(accessStructures._lock);
@@ -3639,18 +3638,13 @@ namespace DataAccessRegistration {
 			// accessStructures._lock.writeUnlock();
 		}
 
-		processDelayedOperationsSatisfiedOriginatorsAndRemovableTasks(
-			hpDependencyData,
-			computePlace,
-			true);
-
-#ifndef NDEBUG
-		{
-			bool alreadyTaken = true;
-			assert(hpDependencyData._inUse.compare_exchange_strong(
-				alreadyTaken, false));
+		if (doDelayedOperations) {
+			processDelayedOperationsSatisfiedOriginatorsAndRemovableTasks(
+				hpDependencyData,
+				computePlace,
+				true);
 		}
-#endif
+
 		Instrument::exitReleaseTaskwaitFragment();
 	}
 

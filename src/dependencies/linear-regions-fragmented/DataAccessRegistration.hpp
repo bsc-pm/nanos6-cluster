@@ -143,7 +143,8 @@ namespace DataAccessRegistration {
 		Task *task,
 		DataAccessRegion region,
 		ComputePlace *computePlace,
-		CPUDependencyData &hpDependencyData
+		CPUDependencyData &hpDependencyData,
+		bool doDelayedOperations
 	);
 
 	//! \brief Pass all data accesses from the task through a lambda

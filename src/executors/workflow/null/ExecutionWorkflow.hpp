@@ -53,7 +53,8 @@ namespace ExecutionWorkflow {
 	
 	void setupTaskwaitWorkflow(
 		Task *task,
-		DataAccess *taskwaitFragment
+		DataAccess *taskwaitFragment,
+		CPUDependencyData &hpDependencyData
 	);
 }
 

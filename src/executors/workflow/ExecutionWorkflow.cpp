@@ -320,17 +320,32 @@ namespace ExecutionWorkflow {
 		workflow->start();
 	}
 
-	void setupTaskwaitWorkflow(Task *task, DataAccess *taskwaitFragment)
+	void setupTaskwaitWorkflow(Task *task, DataAccess *taskwaitFragment, CPUDependencyData &hpDependencyData)
 	{
 		Instrument::enterSetupTaskwaitWorkflow();
 		WorkerThread *currentThread = WorkerThread::getCurrentWorkerThread();
 
-		ComputePlace const *computePlace =
+		ComputePlace *computePlace =
 			(currentThread == nullptr) ? nullptr : currentThread->getComputePlace();;
+
+		DataAccessRegion region = taskwaitFragment->getAccessRegion();
+
+		MemoryPlace const *targetLocation = taskwaitFragment->getOutputLocation();
+
+		//! No need to perform any copy for this taskwait fragment
+		if (targetLocation == nullptr) {
+			DataAccessRegistration::releaseTaskwaitFragment(
+				task,
+				region,
+				computePlace,
+				hpDependencyData,
+				false);
+			Instrument::exitSetupTaskwaitWorkflow();
+			return;
+		}
 
 		Workflow<DataAccessRegion> *workflow = createWorkflow<DataAccessRegion>();
 
-		DataAccessRegion region = taskwaitFragment->getAccessRegion();
 
 		Step *notificationStep =
 			workflow->createNotificationStep(
@@ -356,7 +371,8 @@ namespace ExecutionWorkflow {
 						task,
 						region,
 						releasingComputePlace,
-						localDependencyData
+						localDependencyData,
+						true
 					);
 
 					delete workflow;
@@ -365,15 +381,6 @@ namespace ExecutionWorkflow {
 			);
 
 		MemoryPlace const *currLocation = taskwaitFragment->getLocation();
-		MemoryPlace const *targetLocation = taskwaitFragment->getOutputLocation();
-
-		//! No need to perform any copy for this taskwait fragment
-		if (targetLocation == nullptr) {
-			workflow->addRootStep(notificationStep);
-			workflow->start();
-			Instrument::exitSetupTaskwaitWorkflow();
-			return;
-		}
 
 		Step *copyStep = workflow->createDataCopyStep(
 			currLocation,

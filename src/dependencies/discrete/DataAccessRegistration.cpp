@@ -803,7 +803,8 @@ namespace DataAccessRegistration {
 		__attribute__((unused)) Task *task,
 		__attribute__((unused)) DataAccessRegion region,
 		__attribute__((unused)) ComputePlace *computePlace,
-		__attribute__((unused)) CPUDependencyData &hpDependencyData)
+		__attribute__((unused)) CPUDependencyData &hpDependencyData,
+		bool doDelayedOperations)
 	{
 		assert(false);
 	}

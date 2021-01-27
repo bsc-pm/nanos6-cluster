@@ -12,6 +12,7 @@
 #include <vector>
 
 #include "ExecutionStep.hpp"
+#include "CPUDependencyData.hpp"
 
 class ComputePlace;
 struct DataAccess;
@@ -182,7 +183,7 @@ namespace ExecutionWorkflow {
 	//!
 	//! \param[in] task is the Task to which the taskwait fragment belongs to
 	//! \param[in] taskwaitFragment is the taskwait fragment for which we setup the workflow
-	void setupTaskwaitWorkflow(Task *task, DataAccess *taskwaitFragment);
+	void setupTaskwaitWorkflow(Task *task, DataAccess *taskwaitFragment, CPUDependencyData &hpDependencyData);
 };
 
 
