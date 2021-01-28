@@ -84,14 +84,13 @@ namespace ClusterMemoryManagement {
 		//! Register the newly allocated region with the Directory
 		//! of home nodes
 		DataAccessRegion allocatedRegion(dptr, size);
-		ClusterDirectory::registerAllocation(allocatedRegion, policy, numDimensions, dimensions);
-
-		//! Register the new 'local' access
 		WorkerThread *currentThread = WorkerThread::getCurrentWorkerThread();
 		assert(currentThread != nullptr);
-
 		Task *task = currentThread->getTask();
-		DataAccessRegistration::registerLocalAccess(task, allocatedRegion);
+		ClusterDirectory::registerAllocation(allocatedRegion, policy, numDimensions, dimensions, task);
+
+		//! Register the new 'local' access
+
 
 		//! Synchronize across all nodes
 		ClusterManager::synchronizeAll();
@@ -162,7 +161,7 @@ namespace ClusterMemoryManagement {
 		WorkerThread *currentThread = WorkerThread::getCurrentWorkerThread();
 		Task *task = currentThread->getTask();
 		DataAccessRegion allocatedRegion(lptr, size);
-		DataAccessRegistration::registerLocalAccess(task, allocatedRegion);
+		DataAccessRegistration::registerLocalAccess(task, allocatedRegion, ClusterManager::getCurrentMemoryNode());
 		return lptr;
 	}
 

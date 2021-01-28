@@ -62,7 +62,7 @@ bool MessageDmalloc::handleMessage()
 	/* Register the newly allocated region with the Directory
 	 * of home nodes */
 	DataAccessRegion allocatedRegion(dptr, size);
-	ClusterDirectory::registerAllocation(allocatedRegion, policy, nrDim, dimensions);
+	ClusterDirectory::registerAllocation(allocatedRegion, policy, nrDim, dimensions, nullptr);
 
 	ClusterManager::synchronizeAll();
 

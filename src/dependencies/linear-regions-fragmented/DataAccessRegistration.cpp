@@ -3835,7 +3835,7 @@ namespace DataAccessRegistration {
 	 * is necessary for dmallocs, because all child data accesses should
 	 * be contained within the parent data accesses (?).
 	 */
-	void registerLocalAccess(Task *task, DataAccessRegion const &region)
+	void registerLocalAccess(Task *task, DataAccessRegion const &region, const MemoryPlace *location = nullptr)
 	{
 		assert(task != nullptr);
 
@@ -3862,7 +3862,9 @@ namespace DataAccessRegistration {
 		/* Modifications to be done after the lock is taken  */
 		DataAccessStatusEffects initialStatus(newLocalAccess);
 		newLocalAccess->setNewInstrumentationId(task->getInstrumentationTaskId());
-		newLocalAccess->setReadSatisfied(Directory::getDirectoryMemoryPlace());
+
+		const MemoryPlace *loc = location ? location : Directory::getDirectoryMemoryPlace();
+		newLocalAccess->setReadSatisfied(loc);
 		newLocalAccess->setWriteSatisfied();
 		newLocalAccess->setConcurrentSatisfied();
 		newLocalAccess->setCommutativeSatisfied();

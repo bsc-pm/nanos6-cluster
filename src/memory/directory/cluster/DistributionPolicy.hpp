@@ -9,6 +9,7 @@
 
 #include <vector>
 
+#include "tasks/Task.hpp"
 #include <nanos6/cluster.h>
 
 class DataAccessRegion;
@@ -24,7 +25,8 @@ namespace ClusterDirectory {
 		DataAccessRegion const &region,
 		nanos6_data_distribution_t policy,
 		size_t nrDimensions,
-		size_t *dimensions
+		size_t *dimensions,
+		Task *task
 	);
 	
 	//! \brief Unregister a DataAccessRegion from the Directory

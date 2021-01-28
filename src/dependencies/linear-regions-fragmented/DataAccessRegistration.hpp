@@ -176,7 +176,7 @@ namespace DataAccessRegistration {
 	//!
 	//! \param[in] task is the Task that registers the access region
 	//! \param[in] region is the DataAccessRegion being registered
-	void registerLocalAccess(Task *task, DataAccessRegion const &region);
+	void registerLocalAccess(Task *task, DataAccessRegion const &region, const MemoryPlace *location);
 
 	//! \brief Unregister a local region from the accesses of the Task
 	//!

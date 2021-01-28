@@ -11,10 +11,11 @@
 
 #include <ClusterManager.hpp>
 #include <DataAccessRegion.hpp>
+#include <DataAccessRegistration.hpp>
 
 
 namespace ClusterDirectory {
-	static void registerAllocationEqupart(DataAccessRegion const &region)
+	static void registerAllocationEqupart(DataAccessRegion const &region, Task *task)
 	{
 		void *address = region.getStartAddress();
 		size_t size = region.getSize();
@@ -29,6 +30,9 @@ namespace ClusterDirectory {
 			DataAccessRegion newRegion((void *)ptr, blockSize);
 			ClusterMemoryNode *homeNode = ClusterManager::getMemoryNode(i);
 			Directory::insert(newRegion, homeNode);
+			if (task) {
+				DataAccessRegistration::registerLocalAccess(task, newRegion, homeNode);
+			}
 			ptr += blockSize;
 		}
 
@@ -40,20 +44,24 @@ namespace ClusterDirectory {
 			assert(homeNode != nullptr);
 
 			Directory::insert(newRegion, homeNode);
+			if (task) {
+				DataAccessRegistration::registerLocalAccess(task, newRegion, homeNode);
+			}
 		}
 	}
 
 	void registerAllocation(DataAccessRegion const &region,
 			nanos6_data_distribution_t policy,
 			__attribute__((unused)) size_t nrDimensions,
-			__attribute__((unused)) size_t *dimensions)
+			__attribute__((unused)) size_t *dimensions,
+			Task *task)
 	{
 		switch (policy) {
 			case nanos6_equpart_distribution:
 				assert(nrDimensions == 0);
 				assert(dimensions == nullptr);
 
-				registerAllocationEqupart(region);
+				registerAllocationEqupart(region, task);
 				break;
 			case nanos6_block_distribution:
 			case nanos6_cyclic_distribution:
