@@ -50,17 +50,23 @@ namespace Instrument {
 		bytesMessagesReceived[messageType] += msg->getSize();
 	}
 
-	void clusterDataSend(void *, size_t size, int, int, InstrumentationContext const &)
+	void clusterDataSend(void *, size_t size, int, int messageId, InstrumentationContext const &)
 	{
-		countMessagesSent[DATA_RAW] ++;
-		bytesMessagesSent[DATA_RAW] += size;
+		if (messageId >=0 ) {
+			// Only count entering data send not leaving it
+			countMessagesSent[DATA_RAW] ++;
+			bytesMessagesSent[DATA_RAW] += size;
+		}
 	}
 
 
-	void clusterDataReceived(void *, size_t size, int, int, InstrumentationContext const &)
+	void clusterDataReceived(void *, size_t size, int, int messageId, InstrumentationContext const &)
 	{
-		countMessagesReceived[DATA_RAW] ++;
-		bytesMessagesReceived[DATA_RAW] += size;
+		if (messageId >=0 ) {
+			// Only count entering data receive not leaving it
+			countMessagesReceived[DATA_RAW] ++;
+			bytesMessagesReceived[DATA_RAW] += size;
+		}
 	}
 
 	void showClusterCounters(std::ofstream &output)
