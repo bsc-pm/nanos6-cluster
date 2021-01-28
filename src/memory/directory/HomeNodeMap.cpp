@@ -15,7 +15,7 @@ void HomeNodeMap::insert(
 	DataAccessRegion const &region,
 	MemoryPlace const *homeNode
 ) {
-	std::lock_guard<spinlock_t> guard(lock);
+	lock.writeLock();
 
 	processIntersectingAndMissing(
 		region,
@@ -39,13 +39,14 @@ void HomeNodeMap::insert(
 			return true;
 		}
 	);
+	lock.writeUnlock();
 }
 
 HomeNodeMap::HomeNodesArray *HomeNodeMap::find(DataAccessRegion const &region)
 {
+	lock.readLock();
 	HomeNodesArray *ret = new HomeNodesArray();
 
-	std::lock_guard<spinlock_t> guard(lock);
 	processIntersectingAndMissing(
 		region,
 		[&] (HomeNodeMap::iterator pos) -> bool {
@@ -65,12 +66,13 @@ HomeNodeMap::HomeNodesArray *HomeNodeMap::find(DataAccessRegion const &region)
 		}
 	);
 
+	lock.readUnlock();
 	return ret;
 }
 
 void HomeNodeMap::erase(DataAccessRegion const &region)
 {
-	std::lock_guard<spinlock_t> guard(lock);
+	lock.writeLock();
 	processIntersectingAndMissing(
 		region,
 		[&] (HomeNodeMap::iterator pos) -> bool {
@@ -90,4 +92,5 @@ void HomeNodeMap::erase(DataAccessRegion const &region)
 			return true;
 		}
 	);
+	lock.writeUnlock();
 }

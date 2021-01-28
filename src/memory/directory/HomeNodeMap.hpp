@@ -13,7 +13,7 @@
 #include <IntrusiveLinearRegionMapImplementation.hpp>
 
 #include "HomeMapEntry.hpp"
-#include "lowlevel/PaddedTicketSpinLock.hpp"
+#include "lowlevel/RWSpinLock.hpp"
 
 class DataAccessRegion;
 class MemoryPlace;
@@ -26,8 +26,7 @@ class HomeNodeMap : public IntrusiveLinearRegionMap<HomeMapEntry, boost::intrusi
 	> BaseType;
 
 	//! Lock to protect accesses to the Map
-	typedef PaddedTicketSpinLock<int> spinlock_t;
-	spinlock_t lock;
+	RWSpinLock lock;
 public:
 
 	//! \brief An auxiliary type to return info to callers
