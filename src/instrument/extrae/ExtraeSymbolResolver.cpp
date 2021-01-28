@@ -19,7 +19,6 @@
 
 
 ExtraeSymbolResolverBase *ExtraeSymbolResolverBase::_singleton;
-SpinLock ExtraeSymbolResolverBase::_lock;
 
 
 ExtraeSymbolResolverBase::ExtraeSymbolResolverBase()

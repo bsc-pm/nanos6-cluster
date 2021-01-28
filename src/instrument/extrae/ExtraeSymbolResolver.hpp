@@ -26,7 +26,6 @@
 class ExtraeSymbolResolverBase {
 protected:
 	void *_handle;
-	static SpinLock _lock;
 	
 	static ExtraeSymbolResolverBase *_singleton;
 	
@@ -62,7 +61,6 @@ public:
 	
 	static RETURN_T call(PARAMETERS_T... parameters)
 	{
-		std::lock_guard<SpinLock> guard(_lock);
 		static function_t symbol = (function_t) dlsym(ExtraeSymbolResolverBase::getHandle(), *NAME);
 		assert(symbol != nullptr);
 		
