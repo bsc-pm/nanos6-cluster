@@ -68,7 +68,6 @@ private:
 
 		HAS_SUBACCESSES_BIT,
 		IN_BOTTOM_MAP_BIT,
-		TOPMOST_BIT,
 #ifndef NDEBUG
 		IS_REACHABLE_BIT,
 		HAS_BEEN_DISCOUNTED_BIT,
@@ -480,18 +479,6 @@ public:
 	{
 		return _status[IN_BOTTOM_MAP_BIT];
 	}
-
-	void setTopmost()
-	{
-		assert(!isTopmost());
-		_status[TOPMOST_BIT] = true;
-		Instrument::newDataAccessProperty(_instrumentationId, "T", "Topmost");
-	}
-	bool isTopmost() const
-	{
-		return _status[TOPMOST_BIT];
-	}
-
 
 	void setLocation(MemoryPlace const *location)
 	{

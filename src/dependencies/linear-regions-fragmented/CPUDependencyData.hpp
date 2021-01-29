@@ -47,9 +47,6 @@ struct CPUDependencyData {
 #endif
 		ExecutionWorkflow::DataReleaseStep *_releaseStep;
 
-		bool _makeTopmost;
-		bool _makeTopLevel;
-
 		bool _setReductionInfo; // Note: Both this and next field are required, as a null ReductionInfo can be propagated
 		ReductionInfo *_reductionInfo;
 		int _validNamespace;
@@ -66,7 +63,6 @@ struct CPUDependencyData {
 			_writeID(0),
 #endif
 			_releaseStep(nullptr),
-			_makeTopmost(false), _makeTopLevel(false),
 			_setReductionInfo(false), _reductionInfo(nullptr),
 			_validNamespace(-1),
 			_namespacePredecessor(nullptr)
@@ -82,7 +78,6 @@ struct CPUDependencyData {
 			_writeID(0),
 #endif
 			_releaseStep(nullptr),
-			_makeTopmost(false), _makeTopLevel(false),
 			_setReductionInfo(false), _reductionInfo(nullptr),
 			_validNamespace(-1),
 			_namespacePredecessor(nullptr)
@@ -94,7 +89,6 @@ struct CPUDependencyData {
 			return !_makeReadSatisfied && !_makeWriteSatisfied
 				&& !_makeConcurrentSatisfied && !_makeCommutativeSatisfied
 				&& (_releaseStep == nullptr)
-				&& !_makeTopmost && !_makeTopLevel
 				&& !_setReductionInfo
 				&& (_reductionSlotSet.size() == 0);
 		}

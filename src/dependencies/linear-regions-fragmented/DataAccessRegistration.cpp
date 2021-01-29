@@ -181,7 +181,6 @@ namespace DataAccessRegistration {
 		bool _propagatesCommutativeSatisfiabilityToNext: 1 ;
 		bool _propagatesReductionInfoToNext: 1 ;
 		bool _propagatesReductionSlotSetToNext: 1 ;
-		bool _makesNextTopmost: 1 ;
 		bool _releasesCommutativeRegion: 1 ;
 
 		bool _propagatesReadSatisfiabilityToFragments: 1 ;
@@ -220,7 +219,6 @@ namespace DataAccessRegistration {
 			_propagatesCommutativeSatisfiabilityToNext(false),
 			_propagatesReductionInfoToNext(false),
 			_propagatesReductionSlotSetToNext(false),
-			_makesNextTopmost(false),
 			_releasesCommutativeRegion(false),
 
 			_propagatesReadSatisfiabilityToFragments(false),
@@ -286,15 +284,16 @@ namespace DataAccessRegistration {
 			// Propagation to next
 			if (_hasNext) {
 				bool nextWrongOffloaded = false;
-				Task *nextTask = access->getNext()._task;
-				if ((nextTask->getParent() != nullptr)
-					&& nextTask->getParent()->isNodeNamespace()) {
-						if (access->hasDataReleaseStep()) {
-							Task *myReleaseTask = access->getDataReleaseStep()->_task;
-							if (nextTask != myReleaseTask) {
-								nextWrongOffloaded = true;
+
+				if (access->hasDataReleaseStep()) {
+					Task *myReleaseTask = access->getDataReleaseStep()->_task;
+					Task *nextTask = access->getNext()._task;
+					if ((nextTask->getParent() != nullptr)
+						&& nextTask->getParent()->isNodeNamespace()) {
+								if (nextTask != myReleaseTask) {
+									nextWrongOffloaded = true;
+								}
 							}
-						}
 				}
 				assert(access->getObjectType() != taskwait_type);
 
@@ -435,8 +434,7 @@ namespace DataAccessRegistration {
 				_triggersDataRelease = false;
 			}
 
-			_isRemovable = access->isTopmost()
-				           && (access->propagatedInRemoteNamespace() ||
+			_isRemovable = access->propagatedInRemoteNamespace() ||
 				                  (access->readSatisfied() && access->writeSatisfied()
 				               	&& access->receivedReductionInfo()
 				               	// Read as: If this (reduction) access is part of its predecessor reduction,
@@ -450,7 +448,7 @@ namespace DataAccessRegistration {
 				                     || (access->getType() == NO_ACCESS_TYPE)
 				                     || (access->getObjectType() == taskwait_type)
 				                     || (access->getObjectType() == top_level_sink_type)
-				               	)));
+				               	));
 
 			/*
 			 * If the access is a taskwait access (from createTaskwait)
@@ -468,45 +466,7 @@ namespace DataAccessRegistration {
 			_triggersDataLinkWrite = access->hasDataLinkStep()
 									 && access->writeSatisfied();
 
-			Task *domainParent;
-			assert(access->getOriginator() != nullptr);
-			if (access->getObjectType() == access_type) {
-				if (access->getType() == NO_ACCESS_TYPE) {
-					domainParent = access->getOriginator();
-				} else {
-					domainParent = access->getOriginator()->getParent();
-				}
-			} else {
-				assert(
-					(access->getObjectType() == fragment_type)
-					|| (access->getObjectType() == taskwait_type)
-					|| (access->getObjectType() == top_level_sink_type));
-				domainParent = access->getOriginator();
-			}
-			assert(domainParent != nullptr);
 
-			/*
-			 * Does it make the next access topmost (meaning that
-			 * the access is safe to delete because no earlier
-			 * access will reference this one).
-			 */
-			if (_isRemovable && access->hasNext()) {
-				Task *nextDomainParent;
-				if (access->getNext()._objectType == access_type) {
-					nextDomainParent = access->getNext()._task->getParent();
-				} else {
-					assert(
-						(access->getNext()._objectType == fragment_type)
-						|| (access->getNext()._objectType == taskwait_type)
-						|| (access->getNext()._objectType == top_level_sink_type));
-					nextDomainParent = access->getNext()._task;
-				}
-				assert(nextDomainParent != nullptr);
-
-				_makesNextTopmost = (domainParent == nextDomainParent);
-			} else {
-				_makesNextTopmost = false;
-			}
 
 			_releasesCommutativeRegion =
 				(access->getType() == COMMUTATIVE_ACCESS_TYPE)
@@ -875,12 +835,6 @@ namespace DataAccessRegistration {
 				assert(access->isWeak() || task->isFinal() || access->getReductionSlotSet().any());
 
 				updateOperation._reductionSlotSet = access->getReductionSlotSet();
-			}
-
-			// Make Next Topmost
-			if (initialStatus._makesNextTopmost != updatedStatus._makesNextTopmost) {
-				assert(!initialStatus._makesNextTopmost);
-				updateOperation._makeTopmost = true;
 			}
 
 			if (!updateOperation.empty()) {
@@ -1682,11 +1636,6 @@ namespace DataAccessRegistration {
 			access->setReceivedReductionSlotSet();
 		}
 
-		// Topmost
-		if (updateOperation._makeTopmost) {
-			access->setTopmost();
-		}
-
 		DataAccessStatusEffects updatedStatus(access);
 
 		handleDataAccessStatusChanges(
@@ -2138,7 +2087,6 @@ namespace DataAccessRegistration {
 						assert(previous != nullptr);
 						assert(previous->getObjectType() == fragment_type);
 
-						previous->setTopmost(); /* it's top-most: in the parent? */
 						previous->setRegistered(); /* register it immediately */
 
 						DataAccessStatusEffects updatedStatus(previous);
@@ -2225,7 +2173,6 @@ namespace DataAccessRegistration {
 						assert(previous != nullptr);
 						assert(previous->getObjectType() == fragment_type);
 
-						previous->setTopmost(); /* it's top-most: in the parent? */
 						previous->setRegistered(); /* register it immediately */
 
 						DataAccessStatusEffects updatedStatus(previous);
@@ -2340,7 +2287,7 @@ namespace DataAccessRegistration {
 			});
 	}
 
-
+#if 0
 	template <typename ProcessorType, typename BottomMapEntryProcessorType>
 	static inline void foreachBottomMapEntry(
 		TaskDataAccesses &accessStructures, Task *task,
@@ -2400,6 +2347,7 @@ namespace DataAccessRegistration {
 				return true;
 			});
 	}
+#endif
 
 
 	static inline void processBottomMapUpdate(
@@ -2688,7 +2636,6 @@ namespace DataAccessRegistration {
 							targetAccess->setReceivedReductionInfo();
 
 							// Note: setting ReductionSlotSet as received is not necessary, as its not always propagated
-							targetAccess->setTopmost();
 							DataAccessStatusEffects updatedStatusT(targetAccess);
 
 							// TODO: We could mark in the task that there are local accesses (and remove the mark in taskwaits)
@@ -2784,7 +2731,6 @@ namespace DataAccessRegistration {
 						targetAccess->setReceivedReductionInfo();
 
 						// Note: setting ReductionSlotSet as received is not necessary, as its not always propagated
-						targetAccess->setTopmost();
 						DataAccessStatusEffects updatedStatus(targetAccess);
 
 						// TODO: We could mark in the task that there are local accesses (and remove the mark in taskwaits)
@@ -3065,10 +3011,6 @@ namespace DataAccessRegistration {
 						notSat = true;
 					}
 					if (notSat) {
-						// accessOrFragment->setTopmost();
-						// if (!accessOrFragment->receivedReductionInfo()) {
-						// 	accessOrFragment->setReceivedReductionInfo();
-						// }
 						accessOrFragment->unsetDataLinkStep();
 					}
 				} else if (isRemote && !isReleaseAccess) {
@@ -3854,7 +3796,6 @@ namespace DataAccessRegistration {
 		newLocalAccess->setCommutativeSatisfied();
 		newLocalAccess->setReceivedReductionInfo();
 		newLocalAccess->setRegistered();
-		newLocalAccess->setTopmost();
 #ifndef NDEBUG
 		newLocalAccess->setReachable();
 #endif
@@ -4088,6 +4029,7 @@ namespace DataAccessRegistration {
 				// Remote tasks require a top-level sink for all accesses to collect
 				// the release regions to send back to the offloader.
 				createTopLevelSink(task, accessStructures, hpDependencyData);
+				// logTaskAccessesAndFragments("after create toplevel sink", task);
 			}
 
 			bool isRemote = location->getType() ==  nanos6_device_t::nanos6_cluster_device
@@ -4109,6 +4051,7 @@ namespace DataAccessRegistration {
 					return true;
 				});
 
+			// logTaskAccessesAndFragments("unregister1 before delayed ops", task);
 			// Process all delayed operations that do not involve
 			// remote namespace propagation, i.e. among subtasks of the
 			// same offloaded task (or among any subtasks that are not
