@@ -186,10 +186,9 @@ namespace ExecutionWorkflow {
 			}
 		}
 
-		bool checkDataRelease(DataAccess const *access, bool isRemovable) override
+		bool checkDataRelease(DataAccess const *access) override
 		{
 			Task *task = access->getOriginator();
-			(void)isRemovable;
 
 			const bool mustWait = task->mustDelayRelease() && !task->allChildrenHaveFinished();
 
@@ -212,7 +211,6 @@ namespace ExecutionWorkflow {
 				" complete:", access->complete(),
 				" has-next:", access->hasNext(),
 				" task finished:", task->hasFinished(),
-				" removable:", isRemovable,
 				" releases:", releases
 			);
 

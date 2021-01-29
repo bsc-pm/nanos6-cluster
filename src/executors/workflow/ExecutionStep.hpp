@@ -184,8 +184,7 @@ namespace ExecutionWorkflow {
 		//!		release data
 		//!
 		//! \returns true if access is ready to release data
-		virtual inline bool checkDataRelease(__attribute__((unused))DataAccess const *access,
-											 __attribute__((unused))bool isRemovable)
+		virtual inline bool checkDataRelease(__attribute__((unused))DataAccess const *access)
 		{
 			return false;
 		}

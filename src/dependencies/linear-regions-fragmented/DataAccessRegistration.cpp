@@ -429,7 +429,7 @@ namespace DataAccessRegistration {
 					access->getDataReleaseStep();
 
 				_triggersDataRelease =
-					releaseStep->checkDataRelease(access, _isRemovable);
+					releaseStep->checkDataRelease(access);
 			} else {
 				_triggersDataRelease = false;
 			}
