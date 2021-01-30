@@ -4233,13 +4233,15 @@ namespace DataAccessRegistration {
 			[&](TaskDataAccesses::access_fragments_t::iterator position) -> bool {
 				DataAccess *taskwaitFragment = &(*position);
 				assert(taskwaitFragment != nullptr);
+
+#ifndef NDEBUG
 				DataAccessStatusEffects initialStatus(taskwaitFragment);
-				if (initialStatus._isRemovable) {
-					if (!taskwaitFragment->hasNext()) {
-						assert ((taskwaitFragment->getObjectType() == taskwait_type)
-							|| (taskwaitFragment->getObjectType() == top_level_sink_type));
-						removeBottomMapTaskwaitOrTopLevelSink(taskwaitFragment, accessStructures, task, hpDependencyData);
-					}
+				assert(initialStatus._isRemovable);
+#endif
+				if (!taskwaitFragment->hasNext()) {
+					assert ((taskwaitFragment->getObjectType() == taskwait_type)
+						|| (taskwaitFragment->getObjectType() == top_level_sink_type));
+					removeBottomMapTaskwaitOrTopLevelSink(taskwaitFragment, accessStructures, task, hpDependencyData);
 				}
 				return true;
 			}
