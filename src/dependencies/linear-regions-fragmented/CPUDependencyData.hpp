@@ -45,8 +45,6 @@ struct CPUDependencyData {
 #ifdef USE_CLUSTER
 		WriteID _writeID;
 #endif
-		ExecutionWorkflow::DataReleaseStep *_releaseStep;
-
 		bool _setReductionInfo; // Note: Both this and next field are required, as a null ReductionInfo can be propagated
 		ReductionInfo *_reductionInfo;
 		int _validNamespace;
@@ -62,7 +60,6 @@ struct CPUDependencyData {
 #ifdef USE_CLUSTER
 			_writeID(0),
 #endif
-			_releaseStep(nullptr),
 			_setReductionInfo(false), _reductionInfo(nullptr),
 			_validNamespace(-1),
 			_namespacePredecessor(nullptr)
@@ -77,7 +74,6 @@ struct CPUDependencyData {
 #ifdef USE_CLUSTER
 			_writeID(0),
 #endif
-			_releaseStep(nullptr),
 			_setReductionInfo(false), _reductionInfo(nullptr),
 			_validNamespace(-1),
 			_namespacePredecessor(nullptr)
@@ -88,7 +84,6 @@ struct CPUDependencyData {
 		{
 			return !_makeReadSatisfied && !_makeWriteSatisfied
 				&& !_makeConcurrentSatisfied && !_makeCommutativeSatisfied
-				&& (_releaseStep == nullptr)
 				&& !_setReductionInfo
 				&& (_reductionSlotSet.size() == 0);
 		}

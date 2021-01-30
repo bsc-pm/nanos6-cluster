@@ -20,6 +20,7 @@
 #include "lowlevel/SpinLock.hpp"
 #include "scheduling/ReadyQueue.hpp"
 #include "system/ompss/SpawnFunction.hpp"
+#include <ExecutionStep.hpp>
 
 #include <ClusterTaskContext.hpp>
 #include <ExecutionWorkflow.hpp>
@@ -111,6 +112,9 @@ private:
 
 	//! Scheduling hint used by the scheduler
 	ReadyTaskHint _schedulingHint;
+
+	//! DataReleaseStep related with this task
+	ExecutionWorkflow::DataReleaseStep *_dataReleaseStep;
 
 protected:
 	//! The thread assigned to this task, nullptr if the task has finished (but possibly waiting its children)
@@ -954,6 +958,37 @@ public:
 		// isRemoteTask asserts the parent is non null when true
 		// This assumes
 		return isRemoteTask() && _parent->isNodeNamespace();
+	}
+
+	//! Set the DataReleaseStep of the task. The task must not
+	//! have a DataReleaseStep already
+	void setDataReleaseStep(ExecutionWorkflow::DataReleaseStep *step)
+	{
+		assert(!hasDataReleaseStep());
+		assert(step != nullptr);
+
+		_dataReleaseStep = step;
+	}
+
+	//! Unset the DataReleaseStep of the access. The access must
+	//! have a DataReleaseStep already
+	void unsetDataReleaseStep()
+	{
+		assert(hasDataReleaseStep());
+
+		_dataReleaseStep = nullptr;
+	}
+
+	//! Get the DataReleaseStep of the access.
+	ExecutionWorkflow::DataReleaseStep *getDataReleaseStep() const
+	{
+		return _dataReleaseStep;
+	}
+
+	//! Check if the access has a DataReleaseStep
+	bool hasDataReleaseStep() const
+	{
+		return (_dataReleaseStep != nullptr);
 	}
 
 };

@@ -120,9 +120,6 @@ private:
 	//! Output memory location of the access
 	MemoryPlace const *_outputLocation;
 
-	//! DataReleaseStep related with this data access
-	ExecutionWorkflow::DataReleaseStep *_dataReleaseStep;
-
 	//! DataLinkStep related with this data access
 	ExecutionWorkflow::DataLinkStep *_dataLinkStep;
 
@@ -140,7 +137,6 @@ public:
 		reduction_index_t reductionIndex,
 		MemoryPlace const *location = nullptr,
 		MemoryPlace const *outputLocation = nullptr,
-		ExecutionWorkflow::DataReleaseStep *dataReleaseStep = nullptr,
 		ExecutionWorkflow::DataLinkStep *dataLinkStep = nullptr,
 		Instrument::data_access_id_t instrumentationId = Instrument::data_access_id_t(),
 		status_t status = 0,
@@ -160,7 +156,6 @@ public:
 		_previousReductionInfo(nullptr),
 		_location(location),
 		_outputLocation(outputLocation),
-		_dataReleaseStep(dataReleaseStep),
 		_dataLinkStep(dataLinkStep),
 		_validNamespace(VALID_NAMESPACE_UNKNOWN),
 		_namespacePredecessor(nullptr),
@@ -194,7 +189,6 @@ public:
 		_reductionSlotSet(other.getReductionSlotSet()),
 		_location(other.getLocation()),
 		_outputLocation(other.getOutputLocation()),
-		_dataReleaseStep(other.getDataReleaseStep()),
 		_dataLinkStep(other.getDataLinkStep()),
 		_validNamespace(other.getValidNamespace()),
 		_namespacePredecessor(other.getNamespacePredecessor()),
@@ -505,37 +499,6 @@ public:
 	bool hasOutputLocation() const
 	{
 		return (_outputLocation != nullptr);
-	}
-
-	//! Set the DataReleaseStep of the access. The access must not
-	//! have a DataReleaseStep already
-	void setDataReleaseStep(ExecutionWorkflow::DataReleaseStep *step)
-	{
-		assert(!hasDataReleaseStep());
-		assert(step != nullptr);
-
-		_dataReleaseStep = step;
-	}
-
-	//! Unset the DataReleaseStep of the access. The access must
-	//! have a DataReleaseStep already
-	void unsetDataReleaseStep()
-	{
-		assert(hasDataReleaseStep());
-
-		_dataReleaseStep = nullptr;
-	}
-
-	//! Get the DataReleaseStep of the access.
-	ExecutionWorkflow::DataReleaseStep *getDataReleaseStep() const
-	{
-		return _dataReleaseStep;
-	}
-
-	//! Check if the access has a DataReleaseStep
-	bool hasDataReleaseStep() const
-	{
-		return (_dataReleaseStep != nullptr);
 	}
 
 	//! Set the DataLinkStep of the access. The access must not

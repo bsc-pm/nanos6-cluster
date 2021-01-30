@@ -200,8 +200,6 @@ namespace DataAccessRegistration {
 
 		bool _triggersTaskwaitWorkflow: 1 ;
 
-		bool _propagatesDataReleaseStepToNext: 1 ;
-
 		bool _triggersDataRelease: 1 ;
 		bool _triggersDataLinkRead: 1 ;
 		bool _triggersDataLinkWrite: 1 ;
@@ -237,9 +235,6 @@ namespace DataAccessRegistration {
 			_isRemovable(false),
 
 			_triggersTaskwaitWorkflow(false),
-
-			_propagatesDataReleaseStepToNext(false),
-
 			_triggersDataRelease(false),
 			_triggersDataLinkRead(false),
 			_triggersDataLinkWrite(false)
@@ -283,18 +278,7 @@ namespace DataAccessRegistration {
 
 			// Propagation to next
 			if (_hasNext) {
-				bool nextWrongOffloaded = false;
 
-				if (access->hasDataReleaseStep()) {
-					Task *myReleaseTask = access->getDataReleaseStep()->_task;
-					Task *nextTask = access->getNext()._task;
-					if ((nextTask->getParent() != nullptr)
-						&& nextTask->getParent()->isNodeNamespace()) {
-								if (nextTask != myReleaseTask) {
-									nextWrongOffloaded = true;
-								}
-							}
-				}
 				assert(access->getObjectType() != taskwait_type);
 
 				// This can happen now if a remote task has a successor in the namespace
@@ -320,7 +304,6 @@ namespace DataAccessRegistration {
 						&& ((access->getType() != WRITE_ACCESS_TYPE) && (access->getType() != READWRITE_ACCESS_TYPE));
 					_propagatesReductionSlotSetToNext = false; // ReductionSlotSet is propagated through the fragments
 					// Occasionally data release step needs to be propagated here
-					_propagatesDataReleaseStepToNext = access->hasDataReleaseStep() && !nextWrongOffloaded;
 				} else if (
 					(access->getObjectType() == fragment_type)
 					|| (access->getObjectType() == taskwait_type)
@@ -345,7 +328,6 @@ namespace DataAccessRegistration {
 						&& !access->closesReduction()
 						&& (access->allocatedReductionInfo()
 								|| access->receivedReductionSlotSet());
-					_propagatesDataReleaseStepToNext = access->hasDataReleaseStep() && !nextWrongOffloaded;
 				} else {
 					assert(access->getObjectType() == access_type);
 					assert(!access->hasSubaccesses());
@@ -388,9 +370,6 @@ namespace DataAccessRegistration {
 						&& !access->closesReduction()
 						&& (access->allocatedReductionInfo()
 							|| access->receivedReductionSlotSet());
-					_propagatesDataReleaseStepToNext =
-						access->hasDataReleaseStep() && !nextWrongOffloaded
-							&& (_propagatesReadSatisfiabilityToNext || _propagatesWriteSatisfiabilityToNext);
 				}
 			} else {
 				assert(!access->hasNext());
@@ -400,7 +379,6 @@ namespace DataAccessRegistration {
 				_propagatesCommutativeSatisfiabilityToNext = false;
 				_propagatesReductionInfoToNext = false;
 				_propagatesReductionSlotSetToNext = false;
-				_propagatesDataReleaseStepToNext = false;
 			}
 
 			_makesReductionOriginalStorageAvailable =
@@ -424,9 +402,9 @@ namespace DataAccessRegistration {
 				// Being satisfied implies all predecessors (reduction or not) have been completed
 				&& _isSatisfied;
 
-			if (access->hasDataReleaseStep()) {
+			if (access->getOriginator()->hasDataReleaseStep()) {
 				ExecutionWorkflow::DataReleaseStep *releaseStep =
-					access->getDataReleaseStep();
+					access->getOriginator()->getDataReleaseStep();
 
 				_triggersDataRelease =
 					releaseStep->checkDataRelease(access);
@@ -506,7 +484,6 @@ namespace DataAccessRegistration {
 						&& ClusterManager::isLocalMemoryPlace(lastAccess->getLocation())
 						&& access->getLocation()
 						&& ClusterManager::isLocalMemoryPlace(access->getLocation())
-						&& access->getDataReleaseStep() == lastAccess->getDataReleaseStep()
 						&& access->getDataLinkStep() == lastAccess->getDataLinkStep()
 						&& lastAccess->getNext()._task == access->getNext()._task
 						&& access->getNext()._objectType == lastAccess->getNext()._objectType
@@ -808,13 +785,6 @@ namespace DataAccessRegistration {
 					assert(!initialStatus._propagatesCommutativeSatisfiabilityToNext);
 					updateOperation._makeCommutativeSatisfied = true;
 				}
-
-				if (initialStatus._propagatesDataReleaseStepToNext != updatedStatus._propagatesDataReleaseStepToNext) {
-					assert(!initialStatus._propagatesDataReleaseStepToNext);
-
-					updateOperation._releaseStep = access->getDataReleaseStep();
-					access->unsetDataReleaseStep();
-				}
 			}
 
 			if (initialStatus._propagatesReductionInfoToNext != updatedStatus._propagatesReductionInfoToNext) {
@@ -937,8 +907,7 @@ namespace DataAccessRegistration {
 		if (initialStatus._triggersDataRelease != updatedStatus._triggersDataRelease) {
 			assert(!initialStatus._triggersDataRelease);
 
-			ExecutionWorkflow::DataReleaseStep *step = access->getDataReleaseStep();
-			access->unsetDataReleaseStep();
+			ExecutionWorkflow::DataReleaseStep *step = access->getOriginator()->getDataReleaseStep();
 			step->releaseRegion(access->getAccessRegion(), access->getWriteID(), access->getLocation());
 		}
 
@@ -1075,6 +1044,7 @@ namespace DataAccessRegistration {
 		__attribute__((unused)) Task *task,
 		/* OUT */ CPUDependencyData &hpDependencyData
 	) {
+		(void)hpDependencyData;
 		assert(access != nullptr);
 		assert(task != nullptr);
 		assert(access->getOriginator() == task);
@@ -1082,11 +1052,7 @@ namespace DataAccessRegistration {
 		assert((access->getObjectType() == taskwait_type) || (access->getObjectType() == top_level_sink_type));
 
 		//! We are about to delete the taskwait fragment. Before doing so,
-		//! move the location info and data release step back to the original access
-		ExecutionWorkflow::DataReleaseStep *dataReleaseStep = access->getDataReleaseStep();
-		if (dataReleaseStep) {
-			access->unsetDataReleaseStep();
-		}
+		//! move the location info back to the original access
 		accessStructures._accesses.processIntersecting(
 			access->getAccessRegion(),
 			[&](TaskDataAccesses::accesses_t::iterator position) -> bool {
@@ -1099,18 +1065,6 @@ namespace DataAccessRegistration {
 						access->getAccessRegion(),
 						accessStructures);
 				originalAccess->setLocation(access->getLocation());
-
-				if (dataReleaseStep) {
-
-					DataAccessStatusEffects initialStatus(originalAccess);
-					originalAccess->setDataReleaseStep(dataReleaseStep);
-					DataAccessStatusEffects updatedStatus(originalAccess);
-					handleDataAccessStatusChanges(
-						initialStatus, updatedStatus,
-						originalAccess, accessStructures, originalAccess->getOriginator(),
-						hpDependencyData
-					);
-				}
 
 				return true;
 			});
@@ -1131,7 +1085,6 @@ namespace DataAccessRegistration {
 		reduction_index_t reductionIndex = -1,
 		MemoryPlace const *location = nullptr,
 		MemoryPlace const *outputLocation = nullptr,
-		ExecutionWorkflow::DataReleaseStep *dataReleaseStep = nullptr,
 		ExecutionWorkflow::DataLinkStep *dataLinkStep = nullptr,
 		DataAccess::status_t status = 0, DataAccessLink next = DataAccessLink()
 	) {
@@ -1143,7 +1096,6 @@ namespace DataAccessRegistration {
 			reductionIndex,
 			location,
 			outputLocation,
-			dataReleaseStep,
 			dataLinkStep,
 			Instrument::data_access_id_t(),
 			status, next);
@@ -1600,9 +1552,6 @@ namespace DataAccessRegistration {
 		if (updateOperation._makeCommutativeSatisfied) {
 			access->setCommutativeSatisfied();
 		}
-		if (updateOperation._releaseStep != nullptr) {
-			access->setDataReleaseStep(updateOperation._releaseStep);
-		}
 
 		// ReductionInfo
 		if (updateOperation._setReductionInfo) {
@@ -1862,7 +1811,6 @@ namespace DataAccessRegistration {
 			dataAccess->getReductionIndex(),
 			dataAccess->getLocation(),
 			dataAccess->getOutputLocation(),
-			dataAccess->getDataReleaseStep(),
 			dataAccess->getDataLinkStep(),
 			instrumentationId);
 
@@ -1882,12 +1830,6 @@ namespace DataAccessRegistration {
 
 		// NOTE: This may in the future need to be included in the common status changes code
 		dataAccess->setHasSubaccesses();
-
-		//! The DataReleaseStep of the access will be propagated through the fragment(s).
-		//! Unset it here so we avoid needless (and possibly wrong) checks for this access.
-		if (dataAccess->hasDataReleaseStep()) {
-			dataAccess->unsetDataReleaseStep();
-		}
 
 		if (subregion != dataAccess->getAccessRegion()) {
 			dataAccess->getAccessRegion().processIntersectingFragments(

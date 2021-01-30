@@ -154,11 +154,11 @@ namespace ExecutionWorkflow {
 			_remoteTaskIdentifier(context->getRemoteIdentifier()),
 			_offloader(context->getRemoteNode())
 		{
+			task->setDataReleaseStep(this);
 		}
 
 		void addAccess(DataAccess *access)
 		{
-			access->setDataReleaseStep(this);
 			_bytesToRelease += access->getAccessRegion().getSize();
 		}
 
