@@ -17,6 +17,7 @@
 
 
 NodeNamespace *NodeNamespace::_singleton = nullptr;
+bool NodeNamespace::_bodyHasStarted = false;
 
 NodeNamespace::NodeNamespace(SpawnFunction::function_t mainCallback, void *args)
 	: _mustShutdown(false),
@@ -49,7 +50,10 @@ NodeNamespace::NodeNamespace(SpawnFunction::function_t mainCallback, void *args)
 		0 /* Num dependencies */, false /* from user code */
 	);
 	assert(_namespaceTask != nullptr);
+}
 
+void NodeNamespace::submitTask()
+{
 	AddTask::submitTask(_namespaceTask, nullptr, false);
 }
 
@@ -77,6 +81,8 @@ void NodeNamespace::bodyPrivate()
 	assert(workerThread->getTask() != nullptr);
 	assert(workerThread->getTask() == _namespaceTask);
 #endif
+
+	_bodyHasStarted = true;
 
 	while (true) {
 		_spinlock.lock();

@@ -24,6 +24,9 @@ private:
 
 	~NodeNamespace();
 
+	//! Whether the body has started executing
+	static bool _bodyHasStarted;
+
 	//! Whether the runtime is shutting down
 	std::atomic<bool> _mustShutdown;
 
@@ -49,6 +52,8 @@ private:
 	static NodeNamespace *_singleton;
 
 	void bodyPrivate();
+
+	void submitTask();
 
 	void callbackDecrementPrivate();
 
@@ -77,6 +82,13 @@ public:
 		assert(_singleton == nullptr);
 
 		_singleton = new NodeNamespace(func, args);
+
+		// Submit the NodeNamespace task after initializing _singleton in the
+		// above statement. Otherwise it is possible for the body to begin
+		// executing and for NodeNamespace::body to dereference _singleton
+		// before it is written.
+		_singleton->submitTask();
+
 		assert(_singleton != nullptr);
 	}
 
@@ -109,6 +121,15 @@ public:
 	static void deallocate()
 	{
 		assert(_singleton->_mustShutdown.load() == true);
+
+		while (!_bodyHasStarted) {
+			/* Wait until body has started, otherwise a very short program that
+			 * doesn't use this node may start shutting down before the
+			 * namespace body has started executing. When the body does start
+			 * executing it would otherwise find that _singleton is nullptr.
+			 */
+			sleep(1);
+		}
 
 		/*
 		 * TODO: the shutdown procedure on node 0 should start when both main
