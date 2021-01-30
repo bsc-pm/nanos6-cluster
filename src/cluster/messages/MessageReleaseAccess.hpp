@@ -23,12 +23,6 @@ class MessageReleaseAccess : public Message {
 		//! The region we are releasing
 		DataAccessRegion _region;
 		
-		//! The type of the access
-		DataAccessType _type;
-		
-		//! true if access is weak
-		bool _weak;
-		
 		WriteID _writeID;
 
 		//! The location on which the access is being released
@@ -40,8 +34,8 @@ class MessageReleaseAccess : public Message {
 	
 public:
 	MessageReleaseAccess(const ClusterNode *from, void *offloadedTaskId,
-			DataAccessRegion const &region, DataAccessType type,
-			bool weak, WriteID writeID, int location);
+			DataAccessRegion const &region,
+			WriteID writeID, int location);
 	
 	MessageReleaseAccess(Deliverable *dlv)
 		: Message(dlv)

@@ -160,8 +160,8 @@ namespace ExecutionWorkflow {
 		//!		associated with. The access is a non-const
 		//!		pointer, because the constructor might need to
 		//!		set the corresponding field in the DataAccess
-		//!		object.
-		DataReleaseStep(DataAccess *access);
+		//!		object
+		DataReleaseStep(Task *task);
 
 		//! Release a region
 		virtual inline void releaseRegion(DataAccessRegion const &, WriteID, MemoryPlace const *)
@@ -187,6 +187,10 @@ namespace ExecutionWorkflow {
 		virtual inline bool checkDataRelease(__attribute__((unused))DataAccess const *access)
 		{
 			return false;
+		}
+
+		virtual void addAccess(DataAccess *)
+		{
 		}
 	};
 }

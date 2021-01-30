@@ -117,13 +117,13 @@ namespace ExecutionWorkflow {
 		}
 	}
 
-	Step *WorkflowBase::createDataReleaseStep(Task const *task, DataAccess *access)
+	DataReleaseStep *WorkflowBase::createDataReleaseStep(Task *task)
 	{
 		if (task->isRemoteTask()) {
-			return new ClusterDataReleaseStep(task->getClusterContext(), access);
+			return new ClusterDataReleaseStep(task->getClusterContext(), task);
 		}
 
-		return new DataReleaseStep(access);
+		return new DataReleaseStep(task);
 	}
 
 
@@ -251,6 +251,10 @@ namespace ExecutionWorkflow {
 		/* TODO: Once we have correct management for the Task symbols here
 			* we should create the corresponding allocation steps. */
 
+		DataReleaseStep *releaseStep = workflow->createDataReleaseStep(task);
+		workflow->enforceOrder(executionStep, releaseStep);
+		workflow->enforceOrder(releaseStep, notificationStep);
+
 		DataAccessRegistration::processAllDataAccesses(
 			task,
 			[&](DataAccess *dataAccess) -> bool {
@@ -295,9 +299,7 @@ namespace ExecutionWorkflow {
 					workflow->addRootStep(dataCopyRegionStep);
 				}
 
-				Step *releaseStep = workflow->createDataReleaseStep(task, dataAccess);
-				workflow->enforceOrder(executionStep, releaseStep);
-				workflow->enforceOrder(releaseStep, notificationStep);
+				releaseStep->addAccess(dataAccess);
 
 				return true;
 			}

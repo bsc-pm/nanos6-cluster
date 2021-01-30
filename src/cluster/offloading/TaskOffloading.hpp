@@ -63,14 +63,11 @@ namespace TaskOffloading {
 	//!		node
 	//! \param[in] offloader is the cluster node that offloaded the task
 	//! \param[in] region is the DataAccessRegion that is released
-	//! \param[in] type is the DataAccessType of the associated DataAccess
-	//! \param[in] weak is true if the associated DataAccess is weak
 	//! \param[in] location is the ClusterMemoryPlace on which the access
 	//!		is released
 	void sendRemoteAccessRelease(void *offloadedTaskId,
 			ClusterNode const *offloader,
 			DataAccessRegion const &region,
-			DataAccessType type, bool weak,
 			WriteID writeID,
 			MemoryPlace const *location);
 
@@ -84,7 +81,6 @@ namespace TaskOffloading {
 	//!		is released
 	void releaseRemoteAccess(Task *task,
 		DataAccessRegion const &region,
-		DataAccessType type, bool weak,
 		WriteID writeID,
 		MemoryPlace const *location
 	);

@@ -149,13 +149,19 @@ namespace ExecutionWorkflow {
 		ClusterNode const *_offloader;
 
 	public:
-		ClusterDataReleaseStep(TaskOffloading::ClusterTaskContext *context, DataAccess *access)
-			: DataReleaseStep(access),
+		ClusterDataReleaseStep(TaskOffloading::ClusterTaskContext *context, Task *task)
+			: DataReleaseStep(task),
 			_remoteTaskIdentifier(context->getRemoteIdentifier()),
 			_offloader(context->getRemoteNode())
 		{
-			access->setDataReleaseStep(this);
 		}
+
+		void addAccess(DataAccess *access)
+		{
+			access->setDataReleaseStep(this);
+			_bytesToRelease += access->getAccessRegion().getSize();
+		}
+
 
 		void releaseRegion(
 			DataAccessRegion const &region,
@@ -176,7 +182,7 @@ namespace ExecutionWorkflow {
 				);
 
 				TaskOffloading::sendRemoteAccessRelease(
-					_remoteTaskIdentifier, _offloader, region, _type, _weak, writeID, location
+					_remoteTaskIdentifier, _offloader, region, writeID, location
 				);
 			}
 

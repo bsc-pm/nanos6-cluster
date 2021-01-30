@@ -18,12 +18,10 @@ namespace ExecutionWorkflow {
 	{
 	}
 
-	DataReleaseStep::DataReleaseStep(DataAccess *access)
+	DataReleaseStep::DataReleaseStep(Task *task)
 		: Step(),
-		_type(access->getType()),
-		_weak(access->isWeak()),
-		_bytesToRelease(access->getAccessRegion().getSize()),
-		_task(access->getOriginator())
+		_task(task)
 	{
 	}
+
 }

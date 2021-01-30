@@ -97,7 +97,7 @@ namespace ExecutionWorkflow {
 		//!
 		//! \param[in] task is the Task for which we release an access.
 		//! \param[in] access is the DataAccess that we are releasing.
-		Step *createDataReleaseStep(Task const *task, DataAccess *access);
+		DataReleaseStep *createDataReleaseStep(Task *task);
 
 		// \brief Enforces order between two steps of the Task execution.
 		//

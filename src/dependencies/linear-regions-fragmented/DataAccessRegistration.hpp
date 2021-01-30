@@ -56,7 +56,8 @@ namespace DataAccessRegistration {
 		ComputePlace *computePlace,
 		CPUDependencyData &dependencyData,
 		WriteID writeID = 0,
-		MemoryPlace const *location = nullptr
+		MemoryPlace const *location = nullptr,
+		bool specifyingDependency = true
 	);
 
 	void unregisterTaskDataAccesses1(

@@ -166,8 +166,6 @@ namespace TaskOffloading {
 		void *offloadedTaskId,
 		ClusterNode const *offloader,
 		DataAccessRegion const &region,
-		DataAccessType type,
-		bool weak,
 		WriteID writeID,
 		MemoryPlace const *location
 	) {
@@ -190,7 +188,7 @@ namespace TaskOffloading {
 		// 	offloader->getIndex());
 
 		MessageReleaseAccess *msg =
-			new MessageReleaseAccess(current, offloadedTaskId, region, type, weak, writeID, location->getIndex());
+			new MessageReleaseAccess(current, offloadedTaskId, region, writeID, location->getIndex());
 
 		ClusterManager::sendMessage(msg, offloader);
 	}
@@ -198,8 +196,6 @@ namespace TaskOffloading {
 	void releaseRemoteAccess(
 		Task *task,
 		DataAccessRegion const &region,
-		DataAccessType type,
-		bool weak,
 		WriteID writeID,
 		MemoryPlace const *location
 	) {
@@ -215,8 +211,11 @@ namespace TaskOffloading {
 			(cpu != nullptr) ? cpu->getDependencyData() : localDependencyData;
 
 		DataAccessRegistration::releaseAccessRegion(
-			task, region, type, weak, cpu,
-			hpDependencyData, writeID, location
+			task, region,
+			/* not relevant as specifyingDependency = false */ NO_ACCESS_TYPE,
+			/* not relevant as specifyingDependency = false */ false,
+			cpu,
+			hpDependencyData, writeID, location, /* specifyingDependency */ false
 		);
 	}
 

@@ -3582,7 +3582,8 @@ namespace DataAccessRegistration {
 		ComputePlace *computePlace,
 		CPUDependencyData &hpDependencyData,
 		WriteID writeID,
-		MemoryPlace const *location
+		MemoryPlace const *location,
+		bool specifyingDependency
 	) {
 		Instrument::enterReleaseAccessRegion();
 		assert(task != nullptr);
@@ -3615,11 +3616,14 @@ namespace DataAccessRegistration {
 				[&](TaskDataAccesses::accesses_t::iterator position) -> bool {
 					DataAccess *dataAccess = &(*position);
 					assert(dataAccess != nullptr);
-					assert(dataAccess->isWeak() == weak);
 
-					FatalErrorHandler::failIf(dataAccess->getType() != accessType,
-						"The 'release' construct does not currently support the type downgrade of dependencies; ",
-						"the dependency type specified at that construct must be its complete type");
+					if (specifyingDependency) {
+						assert(dataAccess->isWeak() == weak);
+
+						FatalErrorHandler::failIf(dataAccess->getType() != accessType,
+							"The 'release' construct does not currently support the type downgrade of dependencies; ",
+							"the dependency type specified at that construct must be its complete type");
+					}
 
 					if (dataAccess->getType() == REDUCTION_ACCESS_TYPE && task->isRunnable()) {
 						releaseReductionStorage(task, dataAccess, region, computePlace);
