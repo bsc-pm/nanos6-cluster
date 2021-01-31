@@ -1127,28 +1127,6 @@ namespace DataAccessRegistration {
 		assert(accessStructures._lock.isLockedByThisThread());
 		assert((access->getObjectType() == taskwait_type) || (access->getObjectType() == top_level_sink_type));
 
-		accessStructures._subaccessBottomMap.processIntersecting(
-			access->getAccessRegion(),
-			[&](TaskDataAccesses::subaccess_bottom_map_t::iterator bottomMapPosition) -> bool {
-				BottomMapEntry *bottomMapEntry = &(*bottomMapPosition);
-				assert(bottomMapEntry != nullptr);
-				assert(access->getAccessRegion().fullyContainedIn(bottomMapEntry->getAccessRegion()));
-				assert(bottomMapEntry->_link._task == task);
-				assert(bottomMapEntry->_link._objectType == access->getObjectType());
-
-				if (access->getAccessRegion() == bottomMapEntry->getAccessRegion()) {
-					accessStructures._subaccessBottomMap.erase(bottomMapEntry);
-					ObjectAllocator<BottomMapEntry>::deleteObject(bottomMapEntry);
-				} else {
-					fragmentBottomMapEntry(
-						bottomMapEntry, access->getAccessRegion(),
-						accessStructures,
-						/* remove intersection */ true);
-				}
-
-				return true;
-			});
-
 		//! We are about to delete the taskwait fragment. Before doing so,
 		//! move the location info and data release step back to the original access
 		ExecutionWorkflow::DataReleaseStep *dataReleaseStep = access->getDataReleaseStep();
