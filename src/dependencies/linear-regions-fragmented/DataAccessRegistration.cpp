@@ -590,8 +590,7 @@ namespace DataAccessRegistration {
 		DataAccessStatusEffects const &initialStatus,
 		DataAccessStatusEffects const &updatedStatus,
 		DataAccess *access, TaskDataAccesses &accessStructures, Task *task,
-		/* OUT */ CPUDependencyData &hpDependencyData,
-		bool dontPropagate = false
+		/* OUT */ CPUDependencyData &hpDependencyData
 	) {
 		/* Check lock on task's access structures already taken by caller */
 		assert(task->getDataAccesses()._lock.isLockedByThisThread());
@@ -743,48 +742,46 @@ namespace DataAccessRegistration {
 			 */
 			UpdateOperation updateOperation(access->getNext(), access->getAccessRegion());
 
-			if (!dontPropagate || access->getNext()._task == access->getOriginator()) {
-				if (initialStatus._propagatesReadSatisfiabilityToNext != updatedStatus._propagatesReadSatisfiabilityToNext) {
-					assert(!initialStatus._propagatesReadSatisfiabilityToNext);
-					updateOperation._makeReadSatisfied = true; /* make next task read satisfied */
-					assert(access->hasLocation());
+			if (initialStatus._propagatesReadSatisfiabilityToNext != updatedStatus._propagatesReadSatisfiabilityToNext) {
+				assert(!initialStatus._propagatesReadSatisfiabilityToNext);
+				updateOperation._makeReadSatisfied = true; /* make next task read satisfied */
+				assert(access->hasLocation());
 #ifdef USE_CLUSTER
-					updateOperation._writeID = access->getWriteID();
-					const MemoryPlace *location = access->getLocation();
-					if ( (location->getType() == nanos6_host_device && !Directory::isDirectoryMemoryPlace(location))
-							|| location == ClusterManager::getCurrentMemoryNode()) {
-						WriteIDManager::registerWriteIDasLocal(access->getWriteID(), access->getAccessRegion());
-					}
+				updateOperation._writeID = access->getWriteID();
+				const MemoryPlace *location = access->getLocation();
+				if ( (location->getType() == nanos6_host_device && !Directory::isDirectoryMemoryPlace(location))
+						|| location == ClusterManager::getCurrentMemoryNode()) {
+					WriteIDManager::registerWriteIDasLocal(access->getWriteID(), access->getAccessRegion());
+				}
 #endif
-					updateOperation._location = access->getLocation();
-				}
+				updateOperation._location = access->getLocation();
+			}
 
-				if (access->isWeak()) {
-					updateOperation._validNamespace = access->getValidNamespace();
-					updateOperation._namespacePredecessor = access->getOriginator();
-				} else {
-					updateOperation._validNamespace = VALID_NAMESPACE_NONE;
-					updateOperation._namespacePredecessor = nullptr;
-				}
+			if (access->isWeak()) {
+				updateOperation._validNamespace = access->getValidNamespace();
+				updateOperation._namespacePredecessor = access->getOriginator();
+			} else {
+				updateOperation._validNamespace = VALID_NAMESPACE_NONE;
+				updateOperation._namespacePredecessor = nullptr;
+			}
 
-				if (initialStatus._propagatesWriteSatisfiabilityToNext != updatedStatus._propagatesWriteSatisfiabilityToNext) {
-					assert(!initialStatus._propagatesWriteSatisfiabilityToNext);
+			if (initialStatus._propagatesWriteSatisfiabilityToNext != updatedStatus._propagatesWriteSatisfiabilityToNext) {
+				assert(!initialStatus._propagatesWriteSatisfiabilityToNext);
 
-					/*
-					 * This assertion happens occasionally. Temporarily disable it.
-					 */
-					// assert(!access->canPropagateReductionInfo() || updatedStatus._propagatesReductionInfoToNext);
-					updateOperation._makeWriteSatisfied = true;
-				}
+				/*
+				 * This assertion happens occasionally. Temporarily disable it.
+				 */
+				// assert(!access->canPropagateReductionInfo() || updatedStatus._propagatesReductionInfoToNext);
+				updateOperation._makeWriteSatisfied = true;
+			}
 
-				if (initialStatus._propagatesConcurrentSatisfiabilityToNext != updatedStatus._propagatesConcurrentSatisfiabilityToNext) {
-					assert(!initialStatus._propagatesConcurrentSatisfiabilityToNext);
-					updateOperation._makeConcurrentSatisfied = true;
-				}
-				if (initialStatus._propagatesCommutativeSatisfiabilityToNext != updatedStatus._propagatesCommutativeSatisfiabilityToNext) {
-					assert(!initialStatus._propagatesCommutativeSatisfiabilityToNext);
-					updateOperation._makeCommutativeSatisfied = true;
-				}
+			if (initialStatus._propagatesConcurrentSatisfiabilityToNext != updatedStatus._propagatesConcurrentSatisfiabilityToNext) {
+				assert(!initialStatus._propagatesConcurrentSatisfiabilityToNext);
+				updateOperation._makeConcurrentSatisfied = true;
+			}
+			if (initialStatus._propagatesCommutativeSatisfiabilityToNext != updatedStatus._propagatesCommutativeSatisfiabilityToNext) {
+				assert(!initialStatus._propagatesCommutativeSatisfiabilityToNext);
+				updateOperation._makeCommutativeSatisfied = true;
 			}
 
 			if (initialStatus._propagatesReductionInfoToNext != updatedStatus._propagatesReductionInfoToNext) {
@@ -2914,8 +2911,6 @@ namespace DataAccessRegistration {
 		assert(dataAccess->getOriginator() == finishedTask);
 		assert(!region.empty());
 
-		bool dontPropagate = isRemote && !isReleaseAccess;
-
 		// The access may already have been released through the "release" directive
 		if (dataAccess->complete()) {
 			return;
@@ -2955,25 +2950,14 @@ namespace DataAccessRegistration {
 					if (notSat) {
 						accessOrFragment->unsetDataLinkStep();
 					}
-				} else if (isRemote && !isReleaseAccess) {
-					if (!accessOrFragment->writeSatisfied()) {
-						accessOrFragment->setPropagatedInRemoteNamespace();
-					}
 				}
 
-				if (dontPropagate) {
-					const MemoryPlace *currLocation = accessOrFragment->getLocation();
-					if (currLocation == nullptr) {
-						// accessOrFragment->setLocation( (const MemoryPlace *)-1);  // TODO! if it works make a new kind of MemoryPlace
-					}
-				} else if (location != nullptr) {
+				if (location != nullptr) {
 					/* Normal non-cluster case e.g. for NUMA */
 					accessOrFragment->setLocation(location);
-				} else {
-					if (accessOrFragment->getLocation() == nullptr) {
-						// This should only happen on a weak access if no subtask has strong access ??
-						accessOrFragment->setLocation(ClusterManager::getCurrentMemoryNode());
-					}
+				} else if (accessOrFragment->getLocation() == nullptr) {
+					// This should only happen on a weak access if no subtask has strong access ??
+					accessOrFragment->setLocation(ClusterManager::getCurrentMemoryNode());
 				}
 
 				if (writeID != 0 && accessOrFragment->getAccessRegion() == region) {
@@ -2984,7 +2968,7 @@ namespace DataAccessRegistration {
 				handleDataAccessStatusChanges(
 					initialStatus, updatedStatus,
 					accessOrFragment, finishedTask->getDataAccesses(), finishedTask,
-					hpDependencyData, dontPropagate
+					hpDependencyData
 				);
 
 				return true; // Apply also to subaccesses if any
@@ -3980,22 +3964,64 @@ namespace DataAccessRegistration {
 
 			bool isRemote = location->getType() ==  nanos6_device_t::nanos6_cluster_device
 							&& location->getIndex() != ClusterManager::getCurrentClusterNode()->getIndex();
-			accesses.processAll(
-				[&](TaskDataAccesses::accesses_t::iterator position) -> bool {
-					DataAccess *dataAccess = &(*position);
-					assert(dataAccess != nullptr);
 
-					// If a task contains a taskwait noflush or has a sync clause, it is NOT true that all non-weak
-					// data is located at the task
-					MemoryPlace *accessLocation = nullptr;
+			if (isRemote) {
 
-					/* Finish work of above loop: remove from bottom map when offloaded task ends */
-					if (parent && parent->isNodeNamespace() && dataAccess->isInBottomMap()) {
-						dataAccess->unsetInBottomMap();
-					}
-					finalizeAccess(task, dataAccess, dataAccess->getAccessRegion(), 0, accessLocation, /* OUT */ hpDependencyData, isRemote, false);
-					return true;
-				});
+				/* This task was executed on another node. All non-complete
+				 * accesses that remain at this point must have been propagated
+				 * on the remote node. Otherwise they would have been set to
+				 * complete by releaseAccessRegion, which is called on receipt
+				 * of MessageReleaseAccess.  There should also be no fragments,
+				 * since the task was not executed here. All accesses can
+				 * therefore simply be removed, since they will never be
+				 * accessed again on the current node. 
+				 */
+				 assert(accessStructures._accessFragments.empty());
+				 accessStructures._accesses.processAll(
+				 	[&](TaskDataAccesses::accesses_t::iterator position) -> bool {
+						DataAccess *dataAccess = &(*position);
+						assert(dataAccess != nullptr);
+						if (!dataAccess->complete()) {
+							assert(dataAccess->hasNext()); // if propagated remotely there must be a next access
+							dataAccess->markAsDiscounted();
+							accessStructures._accesses.erase(dataAccess);
+							ObjectAllocator<DataAccess>::deleteObject(dataAccess);
+
+							assert(accessStructures._removalBlockers > 0);
+							accessStructures._removalBlockers--;
+							if (accessStructures._removalBlockers == 0) {
+								if (task->decreaseRemovalBlockingCount()) {
+									hpDependencyData._removableTasks.push_back(task);
+								}
+							}
+						} else {
+
+						}
+
+						/* Keep going for all accesses */
+						return true;
+					});
+			} else {
+
+				/* The task was executed here. Finalize all accesses.
+				 */
+				accesses.processAll(
+					[&](TaskDataAccesses::accesses_t::iterator position) -> bool {
+						DataAccess *dataAccess = &(*position);
+						assert(dataAccess != nullptr);
+
+						// If a task contains a taskwait noflush or has a sync clause, it is NOT true that all non-weak
+						// data is located at the task
+						MemoryPlace *accessLocation = nullptr;
+
+						/* Finish work of above loop: remove from bottom map when offloaded task ends */
+						if (parent && parent->isNodeNamespace() && dataAccess->isInBottomMap()) {
+							dataAccess->unsetInBottomMap();
+						}
+						finalizeAccess(task, dataAccess, dataAccess->getAccessRegion(), 0, accessLocation, /* OUT */ hpDependencyData, isRemote, false);
+						return true;
+					});
+			}
 
 			// logTaskAccessesAndFragments("unregister1 before delayed ops", task);
 			// Process all delayed operations that do not involve
