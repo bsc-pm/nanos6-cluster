@@ -162,45 +162,6 @@ namespace DataAccessRegistration {
 			lock->unlock();
 	}
 
-	void unfragmentOffloadedTaskAccesses(Task *task, TaskDataAccesses &accessStructures)
-	{
-		 (void)task;
-
-		DataAccess *lastAccess = nullptr;
-		accessStructures._accesses.processAllWithErase(
-			[&](TaskDataAccesses::accesses_t::iterator position) -> bool {
-				DataAccess *access = &(*position);
-				assert(access != nullptr);
-				assert(access->getOriginator() == task);
-
-				if (lastAccess != nullptr) {
-					if (access->getAccessRegion().getStartAddress() == lastAccess->getAccessRegion().getEndAddress()
-						&& access->getStatus() == lastAccess->getStatus()
-						&& lastAccess->getLocation()
-						&& ClusterManager::isLocalMemoryPlace(lastAccess->getLocation())
-						&& access->getLocation()
-						&& ClusterManager::isLocalMemoryPlace(access->getLocation())
-						&& access->getDataReleaseStep() == lastAccess->getDataReleaseStep() 
-						&& access->getDataLinkStep() == lastAccess->getDataLinkStep() 
-						&& lastAccess->getNext()._task == nullptr // no next in the namespace
-						&& access->getNext()._task == nullptr // no next in the namespace
-						&& access->getNext()._objectType == lastAccess->getNext()._objectType
-						){
-							/* Combine two contiguous regions into one */
-							DataAccessRegion newrel(lastAccess->getAccessRegion().getStartAddress(), access->getAccessRegion().getEndAddress());
-							lastAccess->setAccessRegion(newrel);
-							accessStructures._removalBlockers--;
-							assert(accessStructures._removalBlockers > 0);
-							/* true: erase the second region */
-							return true;
-					}
-				}
-				lastAccess = access;
-				/* false: do not erase this region */
-				return false;
-			}
-		);
-	}
 
 	typedef CPUDependencyData::removable_task_list_t removable_task_list_t;
 
@@ -564,6 +525,51 @@ namespace DataAccessRegistration {
 		}
 	};
 
+	void unfragmentTaskAccesses(Task *task, TaskDataAccesses &accessStructures)
+	{
+		 (void)task;
+
+		DataAccess *lastAccess = nullptr;
+		accessStructures._accesses.processAllWithErase(
+			[&](TaskDataAccesses::accesses_t::iterator position) -> bool {
+				DataAccess *access = &(*position);
+				assert(access != nullptr);
+				assert(access->getOriginator() == task);
+				assert(access->isRegistered());
+
+				if (lastAccess != nullptr) {
+					if (access->getAccessRegion().getStartAddress() == lastAccess->getAccessRegion().getEndAddress()
+						&& access->getStatus() == lastAccess->getStatus()
+						&& access->isWeak() == lastAccess->isWeak()
+						&& access->getType() == lastAccess->getType()
+						&& lastAccess->getLocation()
+						&& ClusterManager::isLocalMemoryPlace(lastAccess->getLocation())
+						&& access->getLocation()
+						&& ClusterManager::isLocalMemoryPlace(access->getLocation())
+						&& access->getDataReleaseStep() == lastAccess->getDataReleaseStep()
+						&& access->getDataLinkStep() == lastAccess->getDataLinkStep()
+						&& lastAccess->getNext()._task == access->getNext()._task
+						&& access->getNext()._objectType == lastAccess->getNext()._objectType
+						){
+							/* Combine two contiguous regions into one */
+							DataAccessRegion newrel(lastAccess->getAccessRegion().getStartAddress(), access->getAccessRegion().getEndAddress());
+							lastAccess->setAccessRegion(newrel);
+
+							DataAccessStatusEffects initialStatus(lastAccess);
+							if (!initialStatus._isRemovable) {
+								accessStructures._removalBlockers--;
+								assert(accessStructures._removalBlockers > 0);
+							}
+							/* true: erase the second region */
+							return true;
+					}
+				}
+				lastAccess = access;
+				/* false: do not erase this region */
+				return false;
+			}
+		);
+	}
 
 	struct BottomMapUpdateOperation {
 		DataAccessRegion _region;
@@ -4372,11 +4378,7 @@ namespace DataAccessRegistration {
 			}
 		);
 
-		if (task->isRemoteTask()) {
-			// An offloaded task
-			 unfragmentOffloadedTaskAccesses(task, accessStructures);
-		}
-
+		unfragmentTaskAccesses(task, accessStructures);
 
 		if (!accessStructures._accesses.empty()) {
 			// Mark all accesses as not having subaccesses (meaning fragments,
