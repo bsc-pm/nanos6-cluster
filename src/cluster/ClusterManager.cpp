@@ -6,6 +6,8 @@
 
 #include "ClusterManager.hpp"
 #include "messages/MessageSysFinish.hpp"
+#include "messages/MessageDataFetch.hpp"
+
 #include "messenger/Messenger.hpp"
 #include "polling-services/ClusterServicesPolling.hpp"
 #include "polling-services/ClusterServicesTask.hpp"
@@ -73,6 +75,9 @@ ClusterManager::ClusterManager(std::string const &commType)
 		ConfigVariable<bool> disableRemote("cluster.disable_remote");
 		_disableRemote = disableRemote.getValue();
 	}
+
+	ConfigVariable<size_t> messageMaxSize("cluster.message_max_size");
+	_messageMaxSize = messageMaxSize.getValue();
 }
 
 ClusterManager::~ClusterManager()
@@ -209,15 +214,22 @@ void ClusterManager::fetchData(
 	//! nodes, so the region we are fetching, on the remote node is
 	//! the same as the local one
 	MessageDataFetch *msg = new MessageDataFetch(_singleton->_thisNode, region);
-	int messageId = msg->getId();
+	MessageDataFetch::DataFetchMessageContent *content = msg->getContent();
 
 	msg->addCompletionCallback(
-		[region, from, postcallback, messageId, block](){
-			DataTransfer *dt = fetchDataRaw(region, from, messageId, block);
+		[content, from, postcallback, block](){
+			for (size_t i = 0; i < content->_nregions; ++i) {
 
-			dt->addCompletionCallback(postcallback);
+				DataTransfer *dt = fetchDataRaw(
+					content->_remoteRegionInfo[i]._remoteRegion,
+					from,
+					content->_remoteRegionInfo[i]._id,
+					block);
 
-			ClusterPollingServices::PendingQueue<DataTransfer>::addPending(dt);
+				dt->addCompletionCallback(postcallback);
+
+				ClusterPollingServices::PendingQueue<DataTransfer>::addPending(dt);
+			}
 		});
 
 	_singleton->_msn->sendMessage(msg, remoteNode);

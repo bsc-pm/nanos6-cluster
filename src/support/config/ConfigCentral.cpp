@@ -9,6 +9,7 @@
 
 #include "ConfigCentral.hpp"
 #include "hardware/HardwareInfo.hpp"
+#include <limits>
 
 
 void ConfigCentral::initialize()
@@ -22,6 +23,9 @@ void ConfigCentral::initialize()
 	registerOption<integer_t>("cluster.va_start", 0);
 	registerOption<bool_t>("cluster.use_namespace", false);
 	registerOption<bool_t>("cluster.disable_remote", false);
+
+	registerOption<size_t>("cluster.message_max_size", std::numeric_limits<int>::max());
+
 
 	// CPU manager
 	registerOption<string_t>("cpumanager.policy", "default");

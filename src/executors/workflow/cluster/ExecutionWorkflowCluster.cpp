@@ -251,20 +251,24 @@ namespace ExecutionWorkflow {
 				" to Node:", _targetMemoryPlace->getIndex()
 			);
 
+			_nFragments = MessageDataFetch::getMPIFragments(_region);
+
 			ClusterManager::fetchData(
 				_region,
 				_sourceMemoryPlace,
 				[&]() {
-					//! If this data copy is performed for a taskwait we
-					//! don't need to update the location here.
-					DataAccessRegistration::updateTaskDataAccessLocation(
-						_task,
-						_region,
-						_targetMemoryPlace,
-						_isTaskwait
-					);
-					this->releaseSuccessors();
-					delete this;
+					if (--_nFragments == 0) {
+						//! If this data copy is performed for a taskwait we don't need to update
+						//! the location here.
+						DataAccessRegistration::updateTaskDataAccessLocation(
+							_task,
+							_region,
+							_targetMemoryPlace,
+							_isTaskwait
+						);
+						this->releaseSuccessors();
+						delete this;
+					}
 				},
 				false
 			);

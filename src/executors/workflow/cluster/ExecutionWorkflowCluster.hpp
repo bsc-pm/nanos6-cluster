@@ -117,6 +117,9 @@ namespace ExecutionWorkflow {
 		//! An actual data transfer is required
 		bool _needsTransfer;
 
+		//! Number of fragments messages
+		size_t _nFragments;
+
 	public:
 		ClusterDataCopyStep(
 			MemoryPlace const *sourceMemoryPlace,
@@ -133,7 +136,8 @@ namespace ExecutionWorkflow {
 			_task(task),
 			_writeID(writeID),
 			_isTaskwait(isTaskwait),
-			_needsTransfer(needsTransfer)
+			_needsTransfer(needsTransfer),
+			_nFragments(0)
 		{
 		}
 

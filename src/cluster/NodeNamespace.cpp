@@ -60,7 +60,6 @@ void NodeNamespace::submitTask()
 NodeNamespace::~NodeNamespace()
 {
 	// We need to wait until the callback is executed.
-	clusterPrintf("Called %s\n", __func__);
 	assert(_callback.getCounterValue() == 0);
 }
 

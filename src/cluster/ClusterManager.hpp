@@ -50,6 +50,8 @@ private:
 
 	bool _disableRemote;
 
+	size_t _messageMaxSize;
+
 	//! The ShutdownCallback for this ClusterNode.
 	//! At the moment this is an atomic variable, because we might have
 	//! to poll for this, until it's set from external code. For example,
@@ -379,6 +381,12 @@ public:
 	{
 		assert(_singleton != nullptr);
 		return _singleton->_disableRemote;
+	}
+
+	static size_t getMessageMaxSize()
+	{
+		assert(_singleton != nullptr);
+		return _singleton->_messageMaxSize;
 	}
 };
 
