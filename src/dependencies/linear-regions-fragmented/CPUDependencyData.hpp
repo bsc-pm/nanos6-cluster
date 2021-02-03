@@ -41,6 +41,7 @@ struct CPUDependencyData {
 		bool _makeWriteSatisfied;
 		bool _makeConcurrentSatisfied;
 		bool _makeCommutativeSatisfied;
+		bool _propagateSatisfiability;
 		MemoryPlace const *_location;
 #ifdef USE_CLUSTER
 		WriteID _writeID;
@@ -56,6 +57,7 @@ struct CPUDependencyData {
 			: _target(), _region(),
 			_makeReadSatisfied(false), _makeWriteSatisfied(false),
 			_makeConcurrentSatisfied(false), _makeCommutativeSatisfied(false),
+			 _propagateSatisfiability(false),
 			_location(nullptr),
 #ifdef USE_CLUSTER
 			_writeID(0),
@@ -70,6 +72,7 @@ struct CPUDependencyData {
 			: _target(target), _region(region),
 			_makeReadSatisfied(false), _makeWriteSatisfied(false),
 			_makeConcurrentSatisfied(false), _makeCommutativeSatisfied(false),
+			 _propagateSatisfiability(false),
 			_location(nullptr),
 #ifdef USE_CLUSTER
 			_writeID(0),

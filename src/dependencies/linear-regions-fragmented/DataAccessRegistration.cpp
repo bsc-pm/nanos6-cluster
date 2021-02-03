@@ -332,9 +332,37 @@ namespace DataAccessRegistration {
 					assert(access->getObjectType() == access_type);
 					assert(!access->hasSubaccesses());
 
+					/* For offloaded tasks, don't propagate read satisfiability
+					 * to next (in the namespace) until the data is here or the
+					 * task completes. This is important to avoid duplicate
+					 * data copies for in dependencies. Otherwise every
+					 * offloaded weak task will (almost simultaneously) fetch
+					 * the same data.  This approach works well because the
+					 * cluster workflow currently copies all data in to the
+					 * task, even for weak dependencies. The below logic
+					 * ensures that read satisfiability is not propagated until
+					 * after the task has been scheduled and the data has been
+					 * transferred in.
+					 */
+					Task *task = access->getOriginator();
+					bool disableReadPropagationToNext = false;
+					if (task->getParent() && task->getParent()->isNodeNamespace()) {
+						/* Next is in the namespace */
+						if (access->readSatisfied()) {
+							if (access->hasLocation() && !ClusterManager::isLocalMemoryPlace(access->getLocation())) {
+								/* Read satisfied, but not present locally */
+								if (!access->complete()) {
+									/* And not complete */
+									disableReadPropagationToNext = true;
+								}
+							}
+						}
+					}
+
 					// A regular access without subaccesses but with a next
 					_propagatesReadSatisfiabilityToNext =
-						access->canPropagateReadSatisfiability()
+						!disableReadPropagationToNext
+						&& access->canPropagateReadSatisfiability()
 						&& access->readSatisfied()
 						// Note: 'satisfied' as opposed to 'readSatisfied', because otherwise read
 						// satisfiability could be propagated before reductions are combined
@@ -1537,38 +1565,42 @@ namespace DataAccessRegistration {
 
 		if (updateOperation._makeReadSatisfied) {
 
-			if (access->readSatisfied()) {
-				/*
-				 * If two tasks A and B are offloaded to the same namespace,
-				 * and A has an in dependency, then at the remote side, read
-				 * satisfiability is propagated from A to B both via the
-				 * offloader's dependency system and via remote propagation in
-				 * the remote namespace (this is the normal optimization from a
-				 * namespace). So task B receives read satisfiability twice.
-				 * This is harmless.  TODO: It would be good to add an
-				 * assertion to make sure that read satisfiability arrives
-				 * twice only in the circumstance described here, but we can no
-				 * longer check what type of dependency the access of task A
-				 * had (in fact the access may already have been deleted). This
-				 * info would have to be added to the UpdateOperation.
-				 */
-				assert(access->getOriginator()->isRemoteTask());
+			if (access->getPropagateFromNamespace() && updateOperation._propagateSatisfiability) {
 			} else {
-				access->setReadSatisfied(updateOperation._location);
-			}
 
-			WriteID id = 0;
-			// Take previous write ID if reading exactly the same region
-			// (note it will be zero if it's reading a subregion)
-			if (access->getType() == READ_ACCESS_TYPE &&
-				access->getAccessRegion() == updateOperation._region) {
-				id = updateOperation._writeID;
+				if (access->readSatisfied()) {
+					/*
+					 * If two tasks A and B are offloaded to the same namespace,
+					 * and A has an in dependency, then at the remote side, read
+					 * satisfiability is propagated from A to B both via the
+					 * offloader's dependency system and via remote propagation in
+					 * the remote namespace (this is the normal optimization from a
+					 * namespace). So task B receives read satisfiability twice.
+					 * This is harmless.  TODO: It would be good to add an
+					 * assertion to make sure that read satisfiability arrives
+					 * twice only in the circumstance described here, but we can no
+					 * longer check what type of dependency the access of task A
+					 * had (in fact the access may already have been deleted). This
+					 * info would have to be added to the UpdateOperation.
+					 */
+					assert(access->getOriginator()->isRemoteTask());
+				} else {
+					access->setReadSatisfied(updateOperation._location);
+				}
+
+				WriteID id = 0;
+				// Take previous write ID if reading exactly the same region
+				// (note it will be zero if it's reading a subregion)
+				if (access->getType() == READ_ACCESS_TYPE &&
+					access->getAccessRegion() == updateOperation._region) {
+					id = updateOperation._writeID;
+				}
+				// Create a new write ID if currently zero
+				if (id == 0) {
+					id = WriteIDManager::createRandomWriteID();
+				}
+				access->setWriteID(id);
 			}
-			// Create a new write ID if currently zero
-			if (id == 0) {
-				id = WriteIDManager::createRandomWriteID();
-			}
-			access->setWriteID(id);
 		}
 		if (updateOperation._makeWriteSatisfied) {
 			/*
@@ -2642,6 +2674,12 @@ namespace DataAccessRegistration {
 					// Normal propagation: set the new access to be the next access after the
 					// access that was in the bottom map.
 					previous->setNext(next);
+
+					if (dataAccess->getAccessRegion().fullyContainedIn(previous->getAccessRegion())) {
+						if (parent->isNodeNamespace()) {
+							dataAccess->setPropagateFromNamespace();
+						}
+					}
 				}
 				previous->unsetInBottomMap();  /* only unsets the status bit, doesn't actually remove it */
 
@@ -3701,8 +3739,11 @@ namespace DataAccessRegistration {
 		TaskDataAccesses &accessStructures = task->getDataAccesses();
 		assert(!accessStructures.hasBeenDeleted());
 
+		CPUDependencyData hpDependencyData;
+
 		// Take the lock on the task data accesses (all locking in
 		// DataAccessRegistration is done on the task data accesses).
+		{
 		std::lock_guard<TaskDataAccesses::spinlock_t> guard(accessStructures._lock);
 
 		auto &accesses = (isTaskwait) ? accessStructures._taskwaitFragments : accessStructures._accesses;
@@ -3719,11 +3760,23 @@ namespace DataAccessRegistration {
 
 				/* fragment the access (if not fully contained inside the region) */
 				access = fragmentAccess(access, region, accessStructures);
+				DataAccessStatusEffects initialStatus(access);
 				access->setLocation(location);
+				DataAccessStatusEffects updatedStatus(access);
+
+				/* Setting the location may cause read satisfiability to be
+				 * propagated to the next task in the namespace (for in
+				 * dependencies).
+				 */
+				handleDataAccessStatusChanges(initialStatus,
+					updatedStatus, access, accessStructures,
+					task, hpDependencyData);
 
 				/* always continue with remaining accesses: don't stop here */
 				return true;
 			});
+		}
+		processDelayedOperationsSatisfiedOriginatorsAndRemovableTasks(hpDependencyData, nullptr, false);
 	}
 
 	/*
@@ -4136,6 +4189,7 @@ namespace DataAccessRegistration {
 
 		updateOperation._writeID = writeID;
 		updateOperation._location = location;
+		updateOperation._propagateSatisfiability = true;
 
 		TaskDataAccesses &accessStructures = task->getDataAccesses();
 		assert(!accessStructures.hasBeenDeleted());

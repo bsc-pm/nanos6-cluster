@@ -73,6 +73,7 @@ private:
 		HAS_BEEN_DISCOUNTED_BIT,
 #endif
 		PROPAGATED_IN_REMOTE_NAMESPACE,
+		PROPAGATE_FROM_NAMESPACE_BIT,
 		TOTAL_STATUS_BITS
 	};
 
@@ -757,6 +758,15 @@ public:
 		_namespaceSuccessor = namespaceSuccessor;
 	}
 
+	bool getPropagateFromNamespace() const
+	{
+		return _status[PROPAGATE_FROM_NAMESPACE_BIT];
+	}
+
+	void setPropagateFromNamespace()
+	{
+		_status[PROPAGATE_FROM_NAMESPACE_BIT] = true;
+	}
 };
 
 
