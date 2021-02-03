@@ -374,6 +374,10 @@ namespace ExecutionWorkflow {
 			target = current;
 		}
 
+		if (source == target) {
+			return nullCopy(source, target, region, access);
+		}
+
 		if (target == current) {
 			return clusterFetchData(source, target, region, access);
 		}

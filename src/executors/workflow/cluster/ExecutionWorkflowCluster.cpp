@@ -162,13 +162,7 @@ namespace ExecutionWorkflow {
 		assert(ClusterManager::getCurrentMemoryNode() == _targetMemoryPlace);
 		assert(_sourceMemoryPlace->getType() == nanos6_cluster_device);
 		assert(_targetMemoryPlace->getType() == nanos6_cluster_device);
-
-		//! No data transfer needed, data is already here.
-		if (_sourceMemoryPlace == _targetMemoryPlace) {
-			releaseSuccessors();
-			delete this;
-			return;
-		}
+		assert(_sourceMemoryPlace != _targetMemoryPlace);
 
 		if (!_needsTransfer && !_isTaskwait) {
 			//! Perform the data access registration but not the data
