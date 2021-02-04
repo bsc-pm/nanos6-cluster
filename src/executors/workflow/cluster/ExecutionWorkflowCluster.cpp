@@ -224,7 +224,7 @@ namespace ExecutionWorkflow {
 		assert(_sourceMemoryPlace != _targetMemoryPlace);
 		// TODO: If this condition never trigers then the _writeID member can be removed. from this
 		// class.
-		assert(!WriteIDManager::checkWriteIDLocal(_writeID, _fullRegion));
+		// assert(!WriteIDManager::checkWriteIDLocal(_writeID, _fullRegion));
 
 		if (!_needsTransfer && !_isTaskwait) {
 			//! Perform the data access registration but not the data fetch.
