@@ -10,7 +10,9 @@
 #include <cstddef>
 #include <cstdint>
 #include <utility>
-#include <random>
+#include <atomic>
+#include <vector>
+#include <iostream>
 
 #include "DataAccessRegion.hpp"
 
@@ -106,12 +108,12 @@ typedef size_t WriteID;
 class WriteIDManager
 {
 private:
+	static const int logMaxNodes = 8;
 	static WriteIDManager *_singleton;
 	static CacheSet<HashID, DataAccessRegion, void *, size_t> _localWriteIDs;
 
-	/* Random number generator */
-	std::random_device _rd;
-	std::mt19937_64 _eng;
+	/* Counter */
+	static std::atomic<WriteID> _counter;
 
 	static HashID hash(WriteID id, const DataAccessRegion &region)
 	{
@@ -122,16 +124,21 @@ private:
 
 public:
 
-	WriteIDManager() : _eng(_rd())
+	WriteIDManager(size_t initCounter)
 	{
+		_counter = initCounter;
 	}
 
-	static void initialize()
+	static void initialize(int nodeIndex, __attribute__((unused)) int clusterSize)
 	{
 		// The probability of collision is too high if a write ID has less than 64 bits
 		assert(sizeof(WriteID) >= 8);
 
-		_singleton = new WriteIDManager;
+		assert(clusterSize < (1 << logMaxNodes));
+		size_t initCounter = ((size_t)nodeIndex) << (64 - logMaxNodes);
+
+		_singleton = new WriteIDManager(initCounter);
+		std::cout << "construct WriteIDManager " << nodeIndex << " with counter: " << initCounter << "\n";
 	}
 
 	// Register a write ID as being present locally
@@ -165,14 +172,12 @@ public:
 		return *regionLocal == region;
 	}
 
-	static WriteID createRandomWriteID()
+	static inline WriteID createWriteID()
 	{
-		assert(_singleton);
-		WriteID id =  _singleton->_eng();
-		// std::cout << "Returned random write ID " << std::hex << id << std::dec << "\n";
+		/* This happens for every access, so it should be fast */
+		WriteID id =  _counter++;
 		return id;
 	}
-
 };
 
 #endif // WRITEID_HPP

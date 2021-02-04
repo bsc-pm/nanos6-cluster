@@ -55,6 +55,7 @@ ClusterManager::ClusterManager(std::string const &commType)
 	const int masterIndex = _msn->getMasterIndex();
 
 	MessageId::initialize(nodeIndex, clusterSize);
+	WriteIDManager::initialize(nodeIndex, clusterSize);
 
 	_clusterNodes.resize(clusterSize);
 
@@ -97,7 +98,6 @@ ClusterManager::~ClusterManager()
 // Cluster is initialized before the memory allocator.
 void ClusterManager::initialize()
 {
-	WriteIDManager::initialize();
 
 	assert(_singleton == nullptr);
 	ConfigVariable<std::string> commType("cluster.communication");

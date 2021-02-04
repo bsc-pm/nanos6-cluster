@@ -1597,7 +1597,7 @@ namespace DataAccessRegistration {
 				}
 				// Create a new write ID if currently zero
 				if (id == 0) {
-					id = WriteIDManager::createRandomWriteID();
+					id = WriteIDManager::createWriteID();
 				}
 				access->setWriteID(id);
 			}
