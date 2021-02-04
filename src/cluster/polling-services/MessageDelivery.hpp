@@ -54,7 +54,18 @@ namespace ClusterPollingServices {
 			_singleton._eventTypeBytes = eventTypeBytes;
 		}
 
-		static void addPending(T *dt)
+		static void addPendingVector(std::vector<T *> vdt)
+		{
+			std::lock_guard<PaddedSpinLock<>> guard(_singleton._incomingLock);
+			_singleton._incomingPendings.insert(
+				_singleton._incomingPendings.end(), vdt.begin(), vdt.end());
+
+			if (_singleton._eventTypeIncoming) {
+				Instrument::emitClusterEvent(_singleton._eventTypeIncoming, _singleton._incomingPendings.size());
+			}
+		}
+
+		static void addPending(T * dt)
 		{
 			std::lock_guard<PaddedSpinLock<>> guard(_singleton._incomingLock);
 			_singleton._incomingPendings.push_back(dt);

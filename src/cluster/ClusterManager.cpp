@@ -259,38 +259,37 @@ void ClusterManager::fetchVector(
 
 	MessageDataFetch::DataFetchMessageContent *content = msg->getContent();
 
-	msg->addCompletionCallback(
-		[content, copySteps, from, nFragments](){
-			size_t index = 0;
+	size_t index = 0;
 
-			for (ClusterDataCopyStep const *step : copySteps) {
+	std::vector<DataTransfer *> temporal(nFragments, nullptr);
 
-				const std::vector<DataAccessRegion> &fragments = step->getFragments();
+	for (ClusterDataCopyStep const *step : copySteps) {
 
-				for (DataAccessRegion const &region : fragments) {
-					assert(index < nFragments);
-					assert(content->_remoteRegionInfo[index]._remoteRegion == region);
-					//_content->_remoteRegionInfo[index] = region;
-					//_content->_remoteRegionInfo[index]._id
-					//	= (index == 0 ? getId() : MessageId::nextMessageId());
+		const std::vector<DataAccessRegion> &fragments = step->getFragments();
+
+		for (DataAccessRegion const &region : fragments) {
+			assert(index < nFragments);
+			assert(content->_remoteRegionInfo[index]._remoteRegion == region);
+			//_content->_remoteRegionInfo[index] = region;
+			//_content->_remoteRegionInfo[index]._id
+			//	= (index == 0 ? getId() : MessageId::nextMessageId());
 
 
-					DataTransfer *dt = fetchDataRaw(
-						content->_remoteRegionInfo[index]._remoteRegion,
-						from,
-						content->_remoteRegionInfo[index]._id,
-						false);  // block
+			temporal[index] = fetchDataRaw(
+				content->_remoteRegionInfo[index]._remoteRegion,
+				from,
+				content->_remoteRegionInfo[index]._id,
+				false);  // block
 
-					dt->addCompletionCallback(step->getPostCallback());
+			temporal[index]->addCompletionCallback(step->getPostCallback());
 
-					ClusterPollingServices::PendingQueue<DataTransfer>::addPending(dt);
+			++index;
+		}
+	}
 
-					++index;
-				}
-			}
+	assert(index == nFragments);
 
-			assert(index == nFragments);
-		});
+	ClusterPollingServices::PendingQueue<DataTransfer>::addPendingVector(temporal);
 
 	_singleton->_msn->sendMessage(msg, remoteNode);
 }
