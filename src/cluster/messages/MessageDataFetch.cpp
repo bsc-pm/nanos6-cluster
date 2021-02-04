@@ -9,12 +9,14 @@
 #include <ClusterManager.hpp>
 #include <MessageDelivery.hpp>
 
+#include "executors/workflow/cluster/ExecutionWorkflowCluster.hpp"
+
 MessageDataFetch::MessageDataFetch(const ClusterNode *from, DataAccessRegion const &remoteRegion)
 	: Message(DATA_FETCH, getMessageContentSizeFromRegion(remoteRegion), from)
 {
 	_content = reinterpret_cast<DataFetchMessageContent *>(_deliverable->payload);
 
-	const size_t nFragments = getMPIFragments(remoteRegion);
+	const size_t nFragments = ClusterManager::getMPIFragments(remoteRegion);
 	_content->_nregions = nFragments;
 
 	char *start = (char *)remoteRegion.getStartAddress();
@@ -35,6 +37,36 @@ MessageDataFetch::MessageDataFetch(const ClusterNode *from, DataAccessRegion con
 
 		start = tmp;
 	}
+}
+
+
+MessageDataFetch::MessageDataFetch(
+	const ClusterNode *from,
+	size_t numFragments,
+	std::vector<ExecutionWorkflow::ClusterDataCopyStep *> const &copySteps
+)
+	: Message(DATA_FETCH, sizeof(size_t) + numFragments * sizeof(DataAccessRegionInfo), from)
+{
+	_content = reinterpret_cast<DataFetchMessageContent *>(_deliverable->payload);
+
+	_content->_nregions = numFragments;
+	size_t index = 0;
+
+	for (ClusterDataCopyStep const *step : copySteps) {
+
+		const std::vector<DataAccessRegion> fragments = step->getFragments();
+
+		for (DataAccessRegion const &region : fragments) {
+			assert(index < numFragments);
+			_content->_remoteRegionInfo[index]._remoteRegion = region;
+			_content->_remoteRegionInfo[index]._id
+				= (index == 0 ? getId() : MessageId::nextMessageId());
+
+			++index;
+		}
+	}
+
+	assert(index == numFragments);
 }
 
 bool MessageDataFetch::handleMessage()
@@ -60,14 +92,12 @@ bool MessageDataFetch::handleMessage()
 }
 
 
-size_t MessageDataFetch::getMPIFragments(DataAccessRegion const &remoteRegion)
+size_t MessageDataFetch::getMessageContentSizeFromRegion(DataAccessRegion const &remoteRegion)
 {
-	const size_t totalSize = remoteRegion.getSize();
-	assert(totalSize > 0);
+	const size_t nFragments = ClusterManager::getMPIFragments(remoteRegion);
+	assert(nFragments > 0);
 
-	const size_t maxRegionSize = ClusterManager::getMessageMaxSize();
-
-	return (totalSize + maxRegionSize - 1) / maxRegionSize;
+	return sizeof(size_t) + (nFragments * sizeof(DataAccessRegionInfo));
 }
 
 

@@ -104,7 +104,8 @@ namespace ExecutionWorkflow {
 		MemoryPlace const *_targetMemoryPlace;
 
 		//! A mapping of the address range in the source node to the target node.
-		DataAccessRegion const _region;
+		DataAccessRegion const _fullRegion;
+		std::vector<DataAccessRegion> _regionsFragments;
 
 		//! The task on behalf of which we perform the data copy
 		Task *_task;
@@ -120,6 +121,8 @@ namespace ExecutionWorkflow {
 		//! Number of fragments messages
 		size_t _nFragments;
 
+		DataTransfer::data_transfer_callback_t _postcallback;
+
 	public:
 		ClusterDataCopyStep(
 			MemoryPlace const *sourceMemoryPlace,
@@ -129,20 +132,39 @@ namespace ExecutionWorkflow {
 			WriteID writeID,
 			bool isTaskwait,
 			bool needsTransfer
-		) : Step(),
-			_sourceMemoryPlace(sourceMemoryPlace),
-			_targetMemoryPlace(targetMemoryPlace),
-			_region(region),
-			_task(task),
-			_writeID(writeID),
-			_isTaskwait(isTaskwait),
-			_needsTransfer(needsTransfer),
-			_nFragments(0)
-		{
-		}
+		);
 
 		//! Start the execution of the Step
-		void start() override;
+		void start() override
+		{
+		};
+
+		bool requiresDataFetch();
+
+		MemoryPlace const *getSourceMemoryPlace() const
+		{
+			return _sourceMemoryPlace ;
+		}
+
+		MemoryPlace const *getTargetMemoryPlace() const
+		{
+			return _targetMemoryPlace ;
+		}
+
+		size_t getNumFragments() const
+		{
+			return _nFragments;
+		}
+
+		const std::vector<DataAccessRegion> &getFragments() const
+		{
+			return _regionsFragments;
+		}
+
+		DataTransfer::data_transfer_callback_t getPostCallback() const
+		{
+			return _postcallback;
+		}
 	};
 
 	class ClusterDataReleaseStep : public DataReleaseStep {
@@ -292,18 +314,25 @@ namespace ExecutionWorkflow {
 			"that has not been initialized yet!"
 		);
 
-		//! The source device is a host MemoryPlace of the current
-		//! ClusterNode. We do not really need to perform a
-		//! DataTransfer
-		if ((sourceType == nanos6_host_device)) {
-			return new Step();
-		}
-
 		assert(source->getType() == nanos6_cluster_device);
 		DataAccessObjectType objectType = access->getObjectType();
 		DataAccessType type = access->getType();
 		DataAccessRegion region = access->getAccessRegion();
 		bool isDistributedRegion = VirtualMemoryManagement::isDistributedRegion(region);
+
+		//! The source device is a host MemoryPlace of the current
+		//! ClusterNode. We do not really need to perform a
+		//! DataTransfer
+		//! || The source and the destination is the same
+		//! || I already have the data.
+		if (sourceType == nanos6_host_device
+			|| source == target
+			|| WriteIDManager::checkWriteIDLocal(access->getWriteID(), region)) {
+
+			// NULL copy (do nothing, just release succesor and delete itself.)
+			return new Step();
+		}
+
 
 		bool needsTransfer =
 			(
@@ -359,7 +388,9 @@ namespace ExecutionWorkflow {
 
 		ClusterMemoryNode *current = ClusterManager::getCurrentMemoryNode();
 
-		if (source != nullptr && (source->getType() != nanos6_cluster_device)) {
+		if (source != nullptr
+			&& source->getType() != nanos6_cluster_device) {
+
 			assert(source->getType() == nanos6_host_device);
 			if (!Directory::isDirectoryMemoryPlace(source)) {
 				source = current;
@@ -372,10 +403,6 @@ namespace ExecutionWorkflow {
 			assert(target->getType() == nanos6_host_device);
 			assert(!Directory::isDirectoryMemoryPlace(target));
 			target = current;
-		}
-
-		if (source == target) {
-			return nullCopy(source, target, region, access);
 		}
 
 		if (target == current) {

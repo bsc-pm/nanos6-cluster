@@ -131,12 +131,7 @@ namespace ExecutionWorkflow {
 		//! Whether the execution of the workflow has been completed when this
 		//! method returns, depends on the nature of the steps from which the
 		//! workflow consists of.
-		void start()
-		{
-			for (Step *step : _rootSteps) {
-				step->start();
-			}
-		}
+		void start();
 
 	};
 

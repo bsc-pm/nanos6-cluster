@@ -8,11 +8,17 @@
 #define MESSAGE_DATA_FETCH_HPP
 
 #include <sstream>
+#include <vector>
 
 #include "Message.hpp"
 #include "MessageId.hpp"
 
 #include <DataAccessRegion.hpp>
+
+namespace ExecutionWorkflow
+{
+	class ClusterDataCopyStep;
+}
 
 class MessageDataFetch : public Message {
 public:
@@ -32,7 +38,13 @@ private:
 	DataFetchMessageContent *_content;
 
 public:
-	MessageDataFetch(const ClusterNode *from, DataAccessRegion const &remoteRegion);
+	MessageDataFetch(
+		const ClusterNode *from,
+		size_t numFragments,
+		std::vector<ExecutionWorkflow::ClusterDataCopyStep *> const &copySteps
+	);
+
+	MessageDataFetch(const ClusterNode *from, DataAccessRegion const &region);
 
 	MessageDataFetch(Deliverable *dlv) : Message(dlv)
 	{
@@ -60,15 +72,8 @@ public:
 		return _content;
 	}
 
-	static size_t getMPIFragments(DataAccessRegion const &remoteRegion);
+	static size_t getMessageContentSizeFromRegion(DataAccessRegion const &remoteRegion);
 
-	static size_t getMessageContentSizeFromRegion(DataAccessRegion const &remoteRegion)
-	{
-		const size_t nFragments = getMPIFragments(remoteRegion);
-		assert(nFragments > 0);
-
-		return sizeof(size_t) + (nFragments * sizeof(DataAccessRegionInfo));
-	}
 };
 
 #endif /* MESSAGE_DATA_FETCH_HPP */

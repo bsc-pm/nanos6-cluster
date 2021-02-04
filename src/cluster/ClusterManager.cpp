@@ -20,6 +20,9 @@
 #include "WriteID.hpp"
 #include "MessageId.hpp"
 
+#include "executors/workflow/cluster/ExecutionWorkflowCluster.hpp"
+
+
 TaskOffloading::RemoteTasksInfoMap *TaskOffloading::RemoteTasksInfoMap::_singleton = nullptr;
 ClusterManager *ClusterManager::_singleton = nullptr;
 
@@ -230,6 +233,63 @@ void ClusterManager::fetchData(
 
 				ClusterPollingServices::PendingQueue<DataTransfer>::addPending(dt);
 			}
+		});
+
+	_singleton->_msn->sendMessage(msg, remoteNode);
+}
+
+void ClusterManager::fetchVector(
+	size_t nFragments,
+	std::vector<ExecutionWorkflow::ClusterDataCopyStep *> const &copySteps,
+	MemoryPlace const *from
+) {
+	assert(_singleton->_msn != nullptr);
+	assert(from != nullptr);
+	assert(from->getType() == nanos6_cluster_device);
+	assert((size_t)from->getIndex() < _singleton->_clusterNodes.size());
+
+	ClusterNode const *remoteNode = getClusterNode(from->getIndex());
+
+	assert(remoteNode != _singleton->_thisNode);
+
+	//! At the moment we do not translate addresses on remote
+	//! nodes, so the region we are fetching, on the remote node is
+	//! the same as the local one
+	MessageDataFetch *msg = new MessageDataFetch(_singleton->_thisNode, nFragments, copySteps);
+
+	MessageDataFetch::DataFetchMessageContent *content = msg->getContent();
+
+	msg->addCompletionCallback(
+		[content, copySteps, from, nFragments](){
+			size_t index = 0;
+
+			for (ClusterDataCopyStep const *step : copySteps) {
+
+				const std::vector<DataAccessRegion> &fragments = step->getFragments();
+
+				for (DataAccessRegion const &region : fragments) {
+					assert(index < nFragments);
+					assert(content->_remoteRegionInfo[index]._remoteRegion == region);
+					//_content->_remoteRegionInfo[index] = region;
+					//_content->_remoteRegionInfo[index]._id
+					//	= (index == 0 ? getId() : MessageId::nextMessageId());
+
+
+					DataTransfer *dt = fetchDataRaw(
+						content->_remoteRegionInfo[index]._remoteRegion,
+						from,
+						content->_remoteRegionInfo[index]._id,
+						false);  // block
+
+					dt->addCompletionCallback(step->getPostCallback());
+
+					ClusterPollingServices::PendingQueue<DataTransfer>::addPending(dt);
+
+					++index;
+				}
+			}
+
+			assert(index == nFragments);
 		});
 
 	_singleton->_msn->sendMessage(msg, remoteNode);

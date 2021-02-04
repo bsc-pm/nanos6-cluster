@@ -157,33 +157,84 @@ namespace ExecutionWorkflow {
 		}
 	}
 
-	void ClusterDataCopyStep::start()
+	ClusterDataCopyStep::ClusterDataCopyStep(
+		MemoryPlace const *sourceMemoryPlace,
+		MemoryPlace const *targetMemoryPlace,
+		DataAccessRegion const &region,
+		Task *task,
+		WriteID writeID,
+		bool isTaskwait,
+		bool needsTransfer
+	) : Step(),
+		_sourceMemoryPlace(sourceMemoryPlace),
+		_targetMemoryPlace(targetMemoryPlace),
+		_fullRegion(region),
+		_regionsFragments(),
+		_task(task),
+		_writeID(writeID),
+		_isTaskwait(isTaskwait),
+		_needsTransfer(needsTransfer)
+	{
+		// We fragment the transfers here.
+		// TODO: If this affects performance, we can do the fragmentation on demand.
+		// So only when the fragmentation is goinf to take place.
+		_nFragments = ClusterManager::getMPIFragments(region);
+
+		char *start = (char *)region.getStartAddress();
+
+		for (size_t i = 0; start < region.getEndAddress(); ++i) {
+
+			assert(i < _nFragments);
+			char *end = (char *) region.getEndAddress();
+
+			char *tmp = start + ClusterManager::getMessageMaxSize();
+			if (tmp < end) {
+				end = tmp;
+			}
+
+			_regionsFragments.push_back(DataAccessRegion(start, end));
+
+			start = tmp;
+		}
+
+		_postcallback = [&]() {
+			if (--_nFragments == 0) {
+				//! If this data copy is performed for a taskwait we don't need to update the
+				//! location here.
+				DataAccessRegistration::updateTaskDataAccessLocation(
+					_task,
+					_fullRegion,
+					_targetMemoryPlace,
+					_isTaskwait
+				);
+				this->releaseSuccessors();
+				delete this;
+			}
+		};
+	}
+
+
+	bool ClusterDataCopyStep::requiresDataFetch()
 	{
 		assert(ClusterManager::getCurrentMemoryNode() == _targetMemoryPlace);
 		assert(_sourceMemoryPlace->getType() == nanos6_cluster_device);
 		assert(_targetMemoryPlace->getType() == nanos6_cluster_device);
 		assert(_sourceMemoryPlace != _targetMemoryPlace);
+		// TODO: If this condition never trigers then the _writeID member can be removed. from this
+		// class.
+		assert(!WriteIDManager::checkWriteIDLocal(_writeID, _fullRegion));
 
 		if (!_needsTransfer && !_isTaskwait) {
-			//! Perform the data access registration but not the data
-			//! fetch.
+			//! Perform the data access registration but not the data fetch.
 			DataAccessRegistration::updateTaskDataAccessLocation(
 				_task,
-				_region,
+				_fullRegion,
 				_targetMemoryPlace,
 				_isTaskwait
 			);
 			releaseSuccessors();
 			delete this;
-			return;
-		}
-
-		bool haveRegion = WriteIDManager::checkWriteIDLocal(_writeID, _region);
-		if (haveRegion) {
-			// std::cerr << "I have the region already: " << _region << "\n";
-			releaseSuccessors();
-			delete this;
-			return;
+			return false;
 		}
 
 		// Now check pending data transfers because the same data transfer
@@ -209,7 +260,7 @@ namespace ExecutionWorkflow {
 				assert(pendingTarget->getType() == nanos6_cluster_device);
 
 				if (pendingTarget->getIndex() == _targetMemoryPlace->getIndex()
-					&& _region.fullyContainedIn(pendingRegion)) {
+					&& _fullRegion.fullyContainedIn(pendingRegion)) {
 
 					// Yes, the pending data transfer contains this region: so add a callback
 					// for this task
@@ -219,7 +270,7 @@ namespace ExecutionWorkflow {
 							//! don't need to update the location here.
 							DataAccessRegistration::updateTaskDataAccessLocation(
 								_task,
-								_region,
+								_fullRegion,
 								_targetMemoryPlace,
 								_isTaskwait
 							);
@@ -235,39 +286,9 @@ namespace ExecutionWorkflow {
 			}
 		);
 
-		if (!handled) {
-			/* No pending data transfer, so make a new one */
-
-			Instrument::logMessage(
-				Instrument::ThreadInstrumentationContext::getCurrent(),
-				"ClusterDataCopyStep for:", _region,
-				" from Node:", _sourceMemoryPlace->getIndex(),
-				" to Node:", _targetMemoryPlace->getIndex()
-			);
-
-			_nFragments = MessageDataFetch::getMPIFragments(_region);
-
-			ClusterManager::fetchData(
-				_region,
-				_sourceMemoryPlace,
-				[&]() {
-					if (--_nFragments == 0) {
-						//! If this data copy is performed for a taskwait we don't need to update
-						//! the location here.
-						DataAccessRegistration::updateTaskDataAccessLocation(
-							_task,
-							_region,
-							_targetMemoryPlace,
-							_isTaskwait
-						);
-						this->releaseSuccessors();
-						delete this;
-					}
-				},
-				false
-			);
-		}
+		return (handled == false);
 	}
+
 
 	ClusterExecutionStep::ClusterExecutionStep(Task *task, ComputePlace *computePlace)
 		: Step(),

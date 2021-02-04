@@ -64,9 +64,10 @@ namespace ExecutionWorkflow {
 		const nanos6_device_t targetType = targetMemoryPlace->getType();
 
 		/* Starting workflow for a task on the host: not in a namespace */
-		if (targetType == nanos6_host_device ||
-			targetMemoryPlace == ClusterManager::getCurrentMemoryNode()) {
-				access->setValidNamespace( ClusterManager::getCurrentMemoryNode()->getIndex(), access->getOriginator());
+		if (targetType == nanos6_host_device
+			|| targetMemoryPlace == ClusterManager::getCurrentMemoryNode()) {
+
+			access->setValidNamespace( ClusterManager::getCurrentMemoryNode()->getIndex(), access->getOriginator());
 		}
 
 		step = _transfersMap[sourceType][targetType](
@@ -125,6 +126,52 @@ namespace ExecutionWorkflow {
 
 		return new DataReleaseStep(task);
 	}
+
+
+	void WorkflowBase::start()
+	{
+		std::map<MemoryPlace const*, size_t> fragments;
+		std::map<MemoryPlace const*, std::vector<ClusterDataCopyStep *>> groups;
+
+		// Iterate over all the rootSteps. There will be null copies
+		for (Step *step : _rootSteps) {
+
+			ClusterDataCopyStep *clusterCopy = dynamic_cast<ClusterDataCopyStep *>(step);
+
+			// It is a null copy or some other type.
+			if (!clusterCopy) {
+				step->start();
+				continue;
+			}
+
+			// It is a copy step, so group them respect to destination
+			// requiresDataFetch will inmediately release successors when
+			// (!_needsTransfer && !_isTaskwait)
+			if (clusterCopy->requiresDataFetch()) {
+				assert(clusterCopy->getTargetMemoryPlace()
+					== ClusterManager::getCurrentMemoryNode());
+
+				MemoryPlace const* source = clusterCopy->getSourceMemoryPlace();
+
+				fragments[source] += clusterCopy->getNumFragments();
+				groups[source].push_back(clusterCopy);
+			}
+		}
+
+		for (auto const& it : groups) {
+			MemoryPlace const* source = it.first;
+
+			// Instrument::logMessage(
+			// 	Instrument::ThreadInstrumentationContext::getCurrent(),
+			// 	"ClusterDataCopyStep for:", _region,
+			// 	" from Node:", source,
+			// 	" to Node:", ClusterManager::getCurrentMemoryNode()
+			// );
+
+			ClusterManager::fetchVector(fragments[source], it.second, source);
+		}
+	}
+
 
 
 	void executeTask(Task *task, ComputePlace *targetComputePlace, MemoryPlace *targetMemoryPlace)
@@ -394,4 +441,5 @@ namespace ExecutionWorkflow {
 		workflow->start();
 		Instrument::exitSetupTaskwaitWorkflow();
 	}
+
 };

@@ -20,6 +20,10 @@
 #include <MessageDataSend.hpp>
 #include <ClusterShutdownCallback.hpp>
 
+namespace ExecutionWorkflow
+{
+	class ClusterDataCopyStep;
+}
 
 class ClusterMemoryNode;
 
@@ -309,6 +313,12 @@ public:
 		bool block
 	);
 
+	static void fetchVector(
+		size_t nFragments,
+		std::vector<ExecutionWorkflow::ClusterDataCopyStep *> const &copySteps,
+		MemoryPlace const *from
+	);
+
 	//! \brief Initiate a data send operation
 	//!
 	//! \param[in] region is the local region we send to the remote node
@@ -388,6 +398,17 @@ public:
 		assert(_singleton != nullptr);
 		return _singleton->_messageMaxSize;
 	}
+
+	static size_t getMPIFragments(DataAccessRegion const &remoteRegion)
+	{
+		const size_t totalSize = remoteRegion.getSize();
+		assert(totalSize > 0);
+
+		const size_t maxRegionSize = ClusterManager::getMessageMaxSize();
+
+		return (totalSize + maxRegionSize - 1) / maxRegionSize;
+	}
+
 };
 
 
