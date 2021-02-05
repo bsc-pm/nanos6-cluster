@@ -115,6 +115,9 @@ namespace ExecutionWorkflow {
 		//! The data copy is for a taskwait
 		bool _isTaskwait;
 
+		//! The access is weak
+		bool _isWeak;
+
 		//! An actual data transfer is required
 		bool _needsTransfer;
 
@@ -131,6 +134,7 @@ namespace ExecutionWorkflow {
 			Task *task,
 			WriteID writeID,
 			bool isTaskwait,
+			bool isWeak,
 			bool needsTransfer
 		);
 
@@ -372,6 +376,7 @@ namespace ExecutionWorkflow {
 			access->getOriginator(),
 			access->getWriteID(),
 			(objectType == taskwait_type),
+			access->isWeak(),
 			needsTransfer
 		);
 

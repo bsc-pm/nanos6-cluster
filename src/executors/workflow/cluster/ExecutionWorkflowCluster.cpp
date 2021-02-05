@@ -164,6 +164,7 @@ namespace ExecutionWorkflow {
 		Task *task,
 		WriteID writeID,
 		bool isTaskwait,
+		bool isWeak,
 		bool needsTransfer
 	) : Step(),
 		_sourceMemoryPlace(sourceMemoryPlace),
@@ -173,6 +174,7 @@ namespace ExecutionWorkflow {
 		_task(task),
 		_writeID(writeID),
 		_isTaskwait(isTaskwait),
+		_isWeak(isWeak),
 		_needsTransfer(needsTransfer)
 	{
 		// We fragment the transfers here.
@@ -226,12 +228,14 @@ namespace ExecutionWorkflow {
 
 		if (!_needsTransfer && !_isTaskwait) {
 			//! Perform the data access registration but not the data fetch.
-			DataAccessRegistration::updateTaskDataAccessLocation(
-				_task,
-				_fullRegion,
-				_targetMemoryPlace,
-				_isTaskwait
-			);
+			if (!_isWeak) {
+				DataAccessRegistration::updateTaskDataAccessLocation(
+					_task,
+					_fullRegion,
+					_targetMemoryPlace,
+					_isTaskwait
+				);
+			}
 			releaseSuccessors();
 			delete this;
 			return false;
