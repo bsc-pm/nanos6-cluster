@@ -224,7 +224,6 @@ namespace ExecutionWorkflow {
 		assert(_sourceMemoryPlace != _targetMemoryPlace);
 		// TODO: If this condition never trigers then the _writeID member can be removed. from this
 		// class.
-		// assert(!WriteIDManager::checkWriteIDLocal(_writeID, _fullRegion));
 
 		if (!_needsTransfer) {
 			//! This access doesn't need a transfer.
@@ -238,6 +237,12 @@ namespace ExecutionWorkflow {
 					_isTaskwait
 				);
 			}
+			releaseSuccessors();
+			delete this;
+			return false;
+		}
+
+		if (WriteIDManager::checkWriteIDLocal(_writeID, _fullRegion)) {
 			releaseSuccessors();
 			delete this;
 			return false;

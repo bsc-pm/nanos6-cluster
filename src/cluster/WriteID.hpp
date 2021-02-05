@@ -53,15 +53,20 @@ typedef size_t WriteID;
 //
 //    get(key): Return a pointer to the value for a given key, or nullptr
 //              if the key is not present
-template<class K,class V, typename...Ts> class CacheSet
+template<class K, class V>
+class CacheSet
 {
 private:
-	static const int cacheSize = 256;
-	std::vector<K> keys;
-	std::vector<V> values;
+	struct keypair {
+		K key;
+		V value;
+	};
+
+	static constexpr int cacheSize = 256;
+	std::vector<keypair> _buffer;
 
 public:
-	CacheSet() : keys(cacheSize), values(cacheSize)
+	CacheSet() : _buffer(cacheSize)
 	{
 	}
 
@@ -71,12 +76,10 @@ public:
 	}
 
 	// Put non-zero val in the cache set
-	inline void emplace(const K key, Ts&&... args)
+	inline void emplace(const K key, const V &value)
 	{
 		if (key) {
-			size_t hashkey = hash(key);
-			keys[hashkey] = key;
-			new (&values[hashkey]) V(std::forward<Ts>(args)...);
+			_buffer[hash(key)] = {key, value};
 		}
 	}
 
@@ -84,21 +87,21 @@ public:
 	inline void remove(const K key)
 	{
 		if (key) {
-			keys[hash(key)] = 0;
+			_buffer[hash(key)].key = 0;
 		}
 	}
 
 	inline const V *get(const K key) const
 	{
-		if (!key) {
-			return nullptr;
+		if (key) {
+			const size_t hashkey = hash(key);
+			const keypair &pair = _buffer[hashkey];
+
+			if (pair.key == key) {
+				return &pair.value;
+			}
 		}
-		size_t hashkey = hash(key);
-		if (keys[hashkey] == key) {
-			return &values[hashkey];
-		} else {
-			return nullptr;
-		}	
+		return nullptr;
 	}
 };
 
@@ -108,12 +111,12 @@ typedef size_t WriteID;
 class WriteIDManager
 {
 private:
-	static const int logMaxNodes = 8;
+	static constexpr int logMaxNodes = 8;
 	static WriteIDManager *_singleton;
-	static CacheSet<HashID, DataAccessRegion, void *, size_t> _localWriteIDs;
 
 	/* Counter */
-	static std::atomic<WriteID> _counter;
+	std::atomic<WriteID> _counter;
+	CacheSet<HashID, DataAccessRegion> _localWriteIDs;
 
 	static HashID hash(WriteID id, const DataAccessRegion &region)
 	{
@@ -124,30 +127,36 @@ private:
 
 public:
 
-	WriteIDManager(size_t initCounter)
+	WriteIDManager(size_t initCounter) : _counter(initCounter), _localWriteIDs()
 	{
-		_counter = initCounter;
 	}
 
 	static void initialize(int nodeIndex, __attribute__((unused)) int clusterSize)
 	{
 		// The probability of collision is too high if a write ID has less than 64 bits
-		assert(sizeof(WriteID) >= 8);
-
+		static_assert(sizeof(WriteID) >= 8);
 		assert(clusterSize < (1 << logMaxNodes));
+		assert(_singleton == nullptr);
+
 		size_t initCounter = ((size_t)nodeIndex) << (64 - logMaxNodes);
 
 		_singleton = new WriteIDManager(initCounter);
 		std::cout << "construct WriteIDManager " << nodeIndex << " with counter: " << initCounter << "\n";
 	}
 
+	static void finalize()
+	{
+		assert(_singleton != nullptr);
+		delete _singleton;
+		_singleton = nullptr;
+	}
+
 	// Register a write ID as being present locally
 	static void registerWriteIDasLocal(WriteID id, const DataAccessRegion &region)
 	{
-		if (id) { 
-			_localWriteIDs.emplace(hash(id,region),
-								   region.getStartAddress(),
-								   region.getSize());
+		if (id) {
+			assert(_singleton != nullptr);
+			_singleton->_localWriteIDs.emplace(hash(id, region), region);
 		}
 	}
 
@@ -156,27 +165,26 @@ public:
 	// implemented yet).
 	static void unregisterWriteIDnotLocal(WriteID id, const DataAccessRegion &region)
 	{
-		_localWriteIDs.remove(hash(id,region));
+		assert(_singleton != nullptr);
+		_singleton->_localWriteIDs.remove(hash(id,region));
 	}
 
 	// Check whether a write ID is definitely present locally.
 	static bool checkWriteIDLocal(WriteID id, const DataAccessRegion &region)
 	{
-		if (!id) {
-			return false;
+		if (id) {
+			assert(_singleton != nullptr);
+			const DataAccessRegion *regionLocal = _singleton->_localWriteIDs.get(hash(id, region));
+			return (regionLocal != nullptr && *regionLocal == region);
 		}
-		const DataAccessRegion *regionLocal = _localWriteIDs.get(hash(id, region));
-		if (!regionLocal) {
-			return false;
-		}
-		return *regionLocal == region;
+		return false;
 	}
 
 	static inline WriteID createWriteID()
 	{
+		assert(_singleton != nullptr);
 		/* This happens for every access, so it should be fast */
-		WriteID id =  _counter++;
-		return id;
+		return _singleton->_counter.fetch_add(1);
 	}
 };
 
