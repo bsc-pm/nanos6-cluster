@@ -79,7 +79,7 @@ public:
 	inline void emplace(const K key, const V &value)
 	{
 		if (key) {
-			_buffer[hash(key)] = {key, value};
+			_buffer.at(hash(key)) = {key, value};
 		}
 	}
 
@@ -87,7 +87,7 @@ public:
 	inline void remove(const K key)
 	{
 		if (key) {
-			_buffer[hash(key)].key = 0;
+			_buffer.at(hash(key)).key = 0;
 		}
 	}
 
@@ -95,7 +95,7 @@ public:
 	{
 		if (key) {
 			const size_t hashkey = hash(key);
-			const keypair &pair = _buffer[hashkey];
+			const keypair &pair = _buffer.at(hashkey);
 
 			if (pair.key == key) {
 				return &pair.value;
@@ -127,8 +127,9 @@ private:
 
 public:
 
-	WriteIDManager(size_t initCounter) : _counter(initCounter), _localWriteIDs()
+	WriteIDManager(WriteID initCounter) : _localWriteIDs()
 	{
+		_counter.store(initCounter);
 	}
 
 	static void initialize(int nodeIndex, __attribute__((unused)) int clusterSize)
@@ -138,7 +139,7 @@ public:
 		assert(clusterSize < (1 << logMaxNodes));
 		assert(_singleton == nullptr);
 
-		size_t initCounter = ((size_t)nodeIndex) << (64 - logMaxNodes);
+		WriteID initCounter = ((size_t)nodeIndex) << (64 - logMaxNodes);
 
 		_singleton = new WriteIDManager(initCounter);
 		std::cout << "construct WriteIDManager " << nodeIndex << " with counter: " << initCounter << "\n";
