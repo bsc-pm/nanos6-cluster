@@ -3032,6 +3032,9 @@ namespace DataAccessRegistration {
 						accessOrFragment->setWriteSatisfied();
 						notSat = true;
 					}
+					if (!accessOrFragment->receivedReductionInfo()) {
+						accessOrFragment->setReceivedReductionInfo();
+					}
 					if (notSat) {
 						accessOrFragment->unsetDataLinkStep();
 					}
