@@ -253,7 +253,7 @@ namespace ExecutionWorkflow {
 
 		// int numSymbols = task->getSymbolNum();
 		Workflow<TaskExecutionWorkflowData> *workflow =
-			createWorkflow<TaskExecutionWorkflowData>(0 /* numSymbols */);
+			new Workflow<TaskExecutionWorkflowData>(0 /* numSymbols */);
 
 		Step *executionStep = workflow->createExecutionStep(task, targetComputePlace);
 
@@ -391,7 +391,7 @@ namespace ExecutionWorkflow {
 			return;
 		}
 
-		Workflow<DataAccessRegion> *workflow = createWorkflow<DataAccessRegion>();
+		Workflow<DataAccessRegion> *workflow = new Workflow<DataAccessRegion>();
 
 
 		Step *notificationStep =

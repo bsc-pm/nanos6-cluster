@@ -146,15 +146,6 @@ namespace ExecutionWorkflow {
 		}
 	};
 
-	//! \brief Creates a new workflow object that inherits
-	//! from CONTENTS_T and is constructed with the argsPack
-	//! parameters.
-	template <typename CONTENTS_T, typename... TS>
-	inline Workflow<CONTENTS_T> *createWorkflow(TS &&... argsPack)
-	{
-		return new Workflow<CONTENTS_T>(std::forward<TS>(argsPack)...);
-	}
-
 	struct TaskExecutionWorkflowData {
 		std::vector<DataAccessRegion> _symbolRegions;
 
