@@ -88,7 +88,8 @@ struct CPUDependencyData {
 			return !_makeReadSatisfied && !_makeWriteSatisfied
 				&& !_makeConcurrentSatisfied && !_makeCommutativeSatisfied
 				&& !_setReductionInfo
-				&& (_reductionSlotSet.size() == 0);
+				&& (_reductionSlotSet.size() == 0)
+				&& !_namespacePredecessor;
 		}
 	};
 

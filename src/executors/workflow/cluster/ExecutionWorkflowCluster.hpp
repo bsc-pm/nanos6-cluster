@@ -21,6 +21,7 @@
 #include <VirtualMemoryManagement.hpp>
 #include <tasks/Task.hpp>
 #include <ClusterUtil.hpp>
+#include <DataAccessRegistration.hpp>
 
 class ComputePlace;
 class MemoryPlace;
@@ -81,7 +82,8 @@ namespace ExecutionWorkflow {
 					_namespacePredecessor = nullptr;
 				}
 			}
-			access->setValidNamespace(targetNamespace, access->getOriginator());
+
+			DataAccessRegistration::setNamespace(access, targetNamespace);
 		}
 
 		void linkRegion(

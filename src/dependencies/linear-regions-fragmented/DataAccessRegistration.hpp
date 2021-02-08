@@ -199,6 +199,8 @@ namespace DataAccessRegistration {
 	//! \param[in] totalSymbols is the number of rows in the translation table
 	void translateReductionAddresses(Task *task, ComputePlace *computePlace,
 		nanos6_address_translation_entry_t * translationTable, int totalSymbols);
+
+	void setNamespace(DataAccess *access, int targetNamespace);
 } // namespace DataAccessRegistration
 
 

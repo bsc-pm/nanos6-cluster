@@ -74,6 +74,7 @@ private:
 #endif
 		PROPAGATED_IN_REMOTE_NAMESPACE,
 		PROPAGATE_FROM_NAMESPACE_BIT,
+		PROPAGATED_NAMESPACE_INFO_BIT,
 		TOTAL_STATUS_BITS
 	};
 
@@ -756,6 +757,16 @@ public:
 	void setNamespaceSuccessor(Task *namespaceSuccessor)
 	{
 		_namespaceSuccessor = namespaceSuccessor;
+	}
+
+	bool getPropagatedNamespaceInfo() const
+	{
+		return _status[PROPAGATED_NAMESPACE_INFO_BIT];
+	}
+
+	void setPropagatedNamespaceInfo()
+	{
+		_status[PROPAGATED_NAMESPACE_INFO_BIT] = true;
 	}
 
 	bool getPropagateFromNamespace() const

@@ -204,6 +204,8 @@ namespace DataAccessRegistration {
 		bool _triggersDataLinkRead: 1 ;
 		bool _triggersDataLinkWrite: 1 ;
 
+		bool _allowNamespacePropagation : 1;
+
 	public:
 		DataAccessStatusEffects() :
 			_isRegistered(false),
@@ -237,7 +239,8 @@ namespace DataAccessRegistration {
 			_triggersTaskwaitWorkflow(false),
 			_triggersDataRelease(false),
 			_triggersDataLinkRead(false),
-			_triggersDataLinkWrite(false)
+			_triggersDataLinkWrite(false),
+			_allowNamespacePropagation(true)
 		{
 		}
 
@@ -482,6 +485,10 @@ namespace DataAccessRegistration {
 			// NOTE: Calculate inhibition from initial status
 			_linksBottomMapAccessesToNextAndInhibitsPropagation =
 				access->hasNext() && access->complete() && access->hasSubaccesses();
+
+			// By default allow propagation of the namespace information to the
+			// next access
+			_allowNamespacePropagation = true;
 		}
 
 		void setEnforcesDependency()
@@ -823,8 +830,15 @@ namespace DataAccessRegistration {
 				updateOperation._location = access->getLocation();
 			}
 
-			updateOperation._validNamespace = access->getValidNamespace();
-			updateOperation._namespacePredecessor = access->getOriginator();
+			if (updatedStatus._allowNamespacePropagation
+				&& !access->hasSubaccesses()
+				&& !access->getPropagatedNamespaceInfo()
+				&& (access->getValidNamespace() >= 0)) {
+				updateOperation._validNamespace = access->getValidNamespace();
+				updateOperation._namespacePredecessor = access->getOriginator();
+				access->setPropagatedNamespaceInfo();
+			}
+
 
 			if (initialStatus._propagatesWriteSatisfiabilityToNext != updatedStatus._propagatesWriteSatisfiabilityToNext) {
 				assert(!initialStatus._propagatesWriteSatisfiabilityToNext);
@@ -1330,6 +1344,7 @@ namespace DataAccessRegistration {
 			fragment->setUpNewFragment(originalDataAccess->getInstrumentationId());
 			fragment->setRegistered();
 			DataAccessStatusEffects updatedStatus(fragment);
+			updatedStatus._allowNamespacePropagation = false;
 
 			handleDataAccessStatusChanges(
 				initialStatus, updatedStatus,
@@ -4557,6 +4572,28 @@ namespace DataAccessRegistration {
 			});
 
 		accessStruct._lock.unlock();
+	}
+
+	void setNamespace(DataAccess *access, int targetNamespace)
+	{
+		// This is called with the lock on the task accesses already taken
+		Task *task = access->getOriginator();
+		TaskDataAccesses &accessStructures = task->getDataAccesses();
+		CPUDependencyData hpDependencyData;
+		assert(!accessStructures.hasBeenDeleted());
+
+		DataAccessStatusEffects initialStatus(access);
+		access->setValidNamespace(targetNamespace, access->getOriginator());
+		DataAccessStatusEffects updatedStatus(access);
+
+		handleDataAccessStatusChanges(
+			initialStatus, updatedStatus,
+			access, accessStructures, access->getOriginator(),
+			hpDependencyData);
+
+		accessStructures._lock.unlock();
+		processDelayedOperations(hpDependencyData);
+		accessStructures._lock.lock();
 	}
 }; // namespace DataAccessRegistration
 
