@@ -823,13 +823,8 @@ namespace DataAccessRegistration {
 				updateOperation._location = access->getLocation();
 			}
 
-			if (access->isWeak()) {
-				updateOperation._validNamespace = access->getValidNamespace();
-				updateOperation._namespacePredecessor = access->getOriginator();
-			} else {
-				updateOperation._validNamespace = VALID_NAMESPACE_NONE;
-				updateOperation._namespacePredecessor = nullptr;
-			}
+			updateOperation._validNamespace = access->getValidNamespace();
+			updateOperation._namespacePredecessor = access->getOriginator();
 
 			if (initialStatus._propagatesWriteSatisfiabilityToNext != updatedStatus._propagatesWriteSatisfiabilityToNext) {
 				assert(!initialStatus._propagatesWriteSatisfiabilityToNext);
