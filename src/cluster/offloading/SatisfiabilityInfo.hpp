@@ -37,16 +37,21 @@ namespace TaskOffloading {
 		//! b) When used in a satisfiability message it will be the task id (access originator)
 		OffloadedTaskId _id;
 
+		//! Namespace reader num, to ensure propagation among concurrent readers respects
+		//! program's sequential order
+		int _namespaceReaderNum;
+
 		// 0, or eager weak send tag
 		int _eagerSendTag;
+
 
 		SatisfiabilityInfo(
 			DataAccessRegion const &region, int src,
 			bool read, bool write,
-			WriteID writeID, OffloadedTaskId id, int eagerSendTag
+			WriteID writeID, OffloadedTaskId id, int namespaceReaderNum, int eagerSendTag
 		) : _region(region), _src(src),
 			_readSat(read), _writeSat(write),
-			_writeID(writeID), _id(id), _eagerSendTag(eagerSendTag)
+			_writeID(writeID), _id(id), _namespaceReaderNum(namespaceReaderNum), _eagerSendTag(eagerSendTag)
 		{
 			// std::cout << "construct SatisfiabilityInfo with nrp = " << namespacePredecessor << "\n";
 		}

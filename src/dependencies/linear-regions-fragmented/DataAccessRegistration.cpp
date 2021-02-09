@@ -856,19 +856,42 @@ namespace DataAccessRegistration {
 			//     will fail (since only the first fragment would be in the list).
 			if (updatedStatus._allowNamespacePropagation
 				&& !access->getPropagatedNamespaceInfo()
-				&& (access->getNext()._objectType == access_type)
-				&& (access->getValidNamespaceSelf() != VALID_NAMESPACE_UNKNOWN)) {
+				&& (access->getNext()._objectType == access_type)) {
 
-				// Do not propagate in the namespace from a concurrent or commutative
-				// access, as the synchronization is done at the offloader's side.
 				if (access->getType() == CONCURRENT_ACCESS_TYPE
 					|| access->getType() == COMMUTATIVE_ACCESS_TYPE) {
+					// Do not propagate in the namespace from a concurrent or commutative
+					// access, as the synchronization is done at the offloader's side.
 					updateOperation._validNamespace = VALID_NAMESPACE_NONE;
-				} else {
+					updateOperation._namespacePredecessor = access->getOriginator()->getOffloadedTaskId();
+					updateOperation._namespaceAccessType = NO_ACCESS_TYPE;
+					updateOperation._namespaceReaderNum = 0;
+					access->setPropagatedNamespaceInfo();
+				} else if (access->getObjectType() == access_type
+					&& access->getType() == READ_ACCESS_TYPE
+						&& access->getValidNamespacePrevious() != VALID_NAMESPACE_UNKNOWN) {
+					// Read access: we allow multiple concurrent readers propagating
+					// in different namespaces. To do this, pass the same namespace previous
+					// to the next access, so all concurrent reads get the same namespace
+					// predecessor. We also need a count (readerNum) to keep track of the
+					// original sequential order and make sure all remote namespaces connect
+					// the accesses in the correct order.
+					updateOperation._validNamespace = access->getValidNamespacePrevious();
+					updateOperation._namespacePredecessor = access->getNamespacePredecessor();
+					updateOperation._namespaceAccessType = READ_ACCESS_TYPE;
+					updateOperation._namespaceReaderNum = access->getNamespaceReaderNum() + 1;
+					access->setPropagatedNamespaceInfo();
+				} else if ((access->getObjectType() != access_type
+					|| access->getType() != READ_ACCESS_TYPE)
+					&& access->getValidNamespaceSelf() != VALID_NAMESPACE_UNKNOWN) {
+					// Other object types or non-read accesses: propagate own namespace info
+					// to allow remote namespace propagation from this access to the next.
 					updateOperation._validNamespace = access->getValidNamespaceSelf();
+					updateOperation._namespacePredecessor = access->getOriginator()->getOffloadedTaskId();
+					updateOperation._namespaceAccessType = access->getType();
+					updateOperation._namespaceReaderNum = 0;
+					access->setPropagatedNamespaceInfo();
 				}
-				updateOperation._namespacePredecessor = access->getOriginator()->getOffloadedTaskId();
-				access->setPropagatedNamespaceInfo();
 			}
 
 
@@ -1308,7 +1331,7 @@ namespace DataAccessRegistration {
 				newLocalAccess->setConcurrentSatisfied();
 				newLocalAccess->setCommutativeSatisfied();
 				newLocalAccess->setReceivedReductionInfo();
-				newLocalAccess->setValidNamespacePrevious(VALID_NAMESPACE_NONE, InvalidOffloadedTaskId);
+				newLocalAccess->setValidNamespacePrevious(VALID_NAMESPACE_NONE, InvalidOffloadedTaskId, 0);
 				newLocalAccess->setValidNamespaceSelf(VALID_NAMESPACE_NONE);
 				newLocalAccess->setRegistered();
 		#ifndef NDEBUG
@@ -1769,7 +1792,7 @@ namespace DataAccessRegistration {
 		if (updateOperation._validNamespace != VALID_NAMESPACE_UNKNOWN) {
 			// Must not receive namespace information more than once. Propagating it
 			// more than once may result in a use-after-free.
-			assert(access->getValidNamespacePrevious() == VALID_NAMESPACE_UNKNOWN);
+			// assert(access->getValidNamespacePrevious() == VALID_NAMESPACE_UNKNOWN);
 			if (access->getType() == CONCURRENT_ACCESS_TYPE
 				|| access->getType() == COMMUTATIVE_ACCESS_TYPE) {
 				// Do not support namespace propagation into a concurrent or commutative access
@@ -1778,12 +1801,22 @@ namespace DataAccessRegistration {
 				// propagation of these accesses could work. We have a similar condition to
 				// disable namespace propagation out of these accesses (in the calculation
 				// of updateOperation._validNamespace).
-				access->setValidNamespacePrevious(VALID_NAMESPACE_NONE, InvalidOffloadedTaskId);
+				access->setValidNamespacePrevious(VALID_NAMESPACE_NONE, InvalidOffloadedTaskId, 0);
 			} else {
-				access->setValidNamespacePrevious(
-					updateOperation._validNamespace,
-					updateOperation._namespacePredecessor
-				);
+				// Can only propagate in to in or non-in to non-in
+				// NO_ACCESS_TYPE is used by propagateSatisfiability to reproduce the namespace
+				// previous on the remote node (which is OK as it was OK on the offloader node).
+				if (updateOperation._namespaceAccessType == NO_ACCESS_TYPE
+					|| ((updateOperation._namespaceAccessType == READ_ACCESS_TYPE)
+							== (access->getType() == READ_ACCESS_TYPE))) {
+					access->setValidNamespacePrevious(
+						updateOperation._validNamespace,
+						updateOperation._namespacePredecessor,
+						updateOperation._namespaceReaderNum
+					);
+				} else {
+					access->setValidNamespacePrevious(VALID_NAMESPACE_NONE, access->getOriginator()->getOffloadedTaskId(), 0);
+				}
 			}
 		}
 
@@ -2961,21 +2994,22 @@ namespace DataAccessRegistration {
 					if (previous->getDataReleased()) {
 						Instrument::namespacePropagation(Instrument::NamespacePredecessorFinished, dataAccess->getAccessRegion());
 					} else if (previous->getNamespaceSuccessor() == dataAccess->getOriginator()) {
-						if ((previous->getType() == READ_ACCESS_TYPE) != (dataAccess->getType() == READ_ACCESS_TYPE)) {
-							// When the access type of an offloaded task is READ_ACCESS_TYPE, then write satisfiability
-							// means pseudowrite satisfiability. We cannot propagate in the namespace from pseudowrite
-							// to true write or vice versa.
-							// Pseudowrite to true write is invalid at the remote side, because the remote node does not know
-							// whether all concurrent reads on other nodes have finished, so it cannot treat pseudowrite
-							// satisfied as true write satisfied. Write to pseudowrite is invalid because when the remote
-							// node has pseudowrite, the offloader has to also propagate true write satisfiability at its
-							// end. But namespace propagation from true write to pseudowrite would mean that the
-							// offloader never receives the true write satisfiability from the previous offloaded task.
-							Instrument::namespacePropagation(Instrument::NamespaceWrongPredecessor, dataAccess->getAccessRegion());
-						} else {
-							canPropagateInNamespace = true;
-							Instrument::namespacePropagation(Instrument::NamespaceSuccessful, dataAccess->getAccessRegion());
-						}
+
+						// When the access type of an offloaded task is READ_ACCESS_TYPE, then write satisfiability
+						// means pseudowrite satisfiability. We cannot propagate in the namespace from pseudowrite
+						// to true write or vice versa.
+						// Pseudowrite to true write is invalid at the remote side, because the remote node does not know
+						// whether all concurrent reads on other nodes have finished, so it cannot treat pseudowrite
+						// satisfied as true write satisfied. Write to pseudowrite is invalid because when the remote
+						// node has pseudowrite, the offloader has to also propagate true write satisfiability at its
+						// end. But namespace propagation from true write to pseudowrite would mean that the
+						// offloader never receives the true write satisfiability from the previous offloaded task.
+						// This is now checked in applyUpdateOperationOnAccess
+						assert ((previous->getType() == READ_ACCESS_TYPE) == (dataAccess->getType() == READ_ACCESS_TYPE));
+
+						canPropagateInNamespace = true;
+						Instrument::namespacePropagation(Instrument::NamespaceSuccessful, dataAccess->getAccessRegion());
+
 					} else if (previous->getNamespaceSuccessor() != nullptr) {
 						Instrument::namespacePropagation(Instrument::NamespaceWrongPredecessor, dataAccess->getAccessRegion());
 					} else {
@@ -3015,7 +3049,7 @@ namespace DataAccessRegistration {
 
 							DataAccessStatusEffects initialStatusT(targetAccess);
 
-							targetAccess->setValidNamespacePrevious(VALID_NAMESPACE_NONE, InvalidOffloadedTaskId);
+							targetAccess->setValidNamespacePrevious(VALID_NAMESPACE_NONE, InvalidOffloadedTaskId, 0);
 
 							targetAccess->setReceivedReductionInfo();
 
@@ -3147,7 +3181,7 @@ namespace DataAccessRegistration {
 						}
 
 						targetAccess->setReceivedReductionInfo();
-						targetAccess->setValidNamespacePrevious(VALID_NAMESPACE_NONE, InvalidOffloadedTaskId);
+						targetAccess->setValidNamespacePrevious(VALID_NAMESPACE_NONE, InvalidOffloadedTaskId, 0);
 
 						// Note: setting ReductionSlotSet as received is not necessary, as its not always propagated
 						DataAccessStatusEffects updatedStatus(targetAccess);
@@ -4606,7 +4640,7 @@ namespace DataAccessRegistration {
 			newLocalAccess->setConcurrentSatisfied();
 			newLocalAccess->setCommutativeSatisfied();
 			newLocalAccess->setReceivedReductionInfo();
-			newLocalAccess->setValidNamespacePrevious(VALID_NAMESPACE_NONE, InvalidOffloadedTaskId);
+			newLocalAccess->setValidNamespacePrevious(VALID_NAMESPACE_NONE, InvalidOffloadedTaskId, 0);
 			newLocalAccess->setValidNamespaceSelf(VALID_NAMESPACE_NONE);
 			newLocalAccess->setRegistered();
 	#ifndef NDEBUG
@@ -5112,13 +5146,15 @@ namespace DataAccessRegistration {
 		bool readSatisfied,    /* Change in read satisfiability (not new value) */
 		bool writeSatisfied,   /* Change in write satisfiability (not new value) */
 		WriteID writeID,
-		MemoryPlace const *location)
+		MemoryPlace const *location,
+		OffloadedTaskId namespacePredecessor,
+		int namespaceReaderNum)
 	{
 		Instrument::enterPropagateSatisfiability();
 		assert(task != nullptr);
 
 		/* At least one of read or write satisfied (maybe both) must be changing */
-		assert(readSatisfied || writeSatisfied);
+		assert(readSatisfied || writeSatisfied || (namespacePredecessor != InvalidOffloadedTaskId));
 
 		/*
 		 * Create an update operation with the satisfiability information.
@@ -5135,6 +5171,12 @@ namespace DataAccessRegistration {
 		updateOperation._location = location;
 		updateOperation._writeID = writeID;
 		updateOperation._propagateSatisfiability = true;
+		if (namespacePredecessor != InvalidOffloadedTaskId) {
+			updateOperation._validNamespace = ClusterManager::getCurrentClusterNode()->getIndex();
+			updateOperation._namespacePredecessor = namespacePredecessor;
+			updateOperation._namespaceAccessType = NO_ACCESS_TYPE; // actually means any access type (in was checked at offloader side)
+			updateOperation._namespaceReaderNum = namespaceReaderNum;
+		}
 
 		TaskDataAccesses &accessStructures = task->getDataAccesses();
 		assert(!accessStructures.hasBeenDeleted());
@@ -5217,10 +5259,12 @@ namespace DataAccessRegistration {
 		Task *parent,
 		DataAccessRegion region,
 		__attribute((unused)) ClusterNode *remoteNode,
-		OffloadedTaskId namespacePredecessor
+		OffloadedTaskId namespacePredecessor,
+		int namespaceReaderNum
 	) {
 		assert(parent != nullptr);
 		assert(parent->isNodeNamespace());
+		assert(namespaceReaderNum >= 0);
 
 #ifndef INSTRUMENT_STATS_CLUSTER_HPP
 		if (namespacePredecessor == InvalidOffloadedTaskId) {
@@ -5243,15 +5287,38 @@ namespace DataAccessRegistration {
 				Task *previousTask = access->getOriginator();
 				assert(previousTask->isRemoteTask());
 
-				/* Does the previous task match the offloading task and remote ID? */
-				if (previousTask->getOffloadedTaskId() == namespacePredecessor) {
-					// Match, so set the namespace successor
-					// Namespace propagation from a concurrent or commutative access is
-					// not allowed. Check this.
-					assert(access->getType() != CONCURRENT_ACCESS_TYPE
-							&& access->getType() != COMMUTATIVE_ACCESS_TYPE);
-					access->setNamespaceSuccessor(task);
-					found = true;
+				/* We can connect in the namespace if either
+				 *
+				 * (1) The previous task is exactly the indicated namespace predecessor.
+				 *
+				 * (2) The previous task has a read access to the same namespace
+				 *     predecessor (being the task that wrote the data). In this case
+				 *     we must also make sure that the accesses respect the sequential
+				 *     order of the original program. The reader numbers may not be
+				 *     consecutive, because we can skip some read accesses, presumably
+				 *     other reads offloaded to other nodes and running concurrently.
+				 *     But we cannot connect them backwards. Otherwise when we receive
+				 *     satisfiability to the first access in sequential order we will
+				 *     never propagate satisfiability to the next access in sequential
+				 *     order. It is not worth checking whether the access is already
+				 *     read and write satisfied, and allowing "backwards" connections
+				 *     if it is, because (1) if the data is already satisfied there is
+				 *     less benefit from remote namespace propagation and (2) it seems
+				 *     like a dangerous optimization that will one day backfire.
+				 */
+				if (previousTask->getOffloadedTaskId() == namespacePredecessor
+					|| (access->getNamespacePredecessor() == namespacePredecessor
+						&& access->getType() == READ_ACCESS_TYPE
+						&& access->getNamespaceReaderNum() < namespaceReaderNum)) {
+
+					// Cannot connect from concurrent or commutative access
+					if (access->getType() != CONCURRENT_ACCESS_TYPE
+							&& access->getType() != COMMUTATIVE_ACCESS_TYPE) {
+						access->setNamespaceSuccessor(task);
+						found = true;
+					} else {
+						foundWrong = true;
+					}
 				} else {
 					foundWrong = true;
 				}

@@ -138,6 +138,7 @@ private:
 
 	int _validNamespacePrevious;
 	int _validNamespaceSelf;
+	int _namespaceReaderNum;
 	OffloadedTaskId _namespacePredecessor;
 	Task *_namespaceSuccessor;
 
@@ -172,6 +173,7 @@ public:
 		_dataLinkStep(dataLinkStep),
 		_validNamespacePrevious(VALID_NAMESPACE_UNKNOWN),
 		_validNamespaceSelf(VALID_NAMESPACE_UNKNOWN),
+		_namespaceReaderNum(0),
 		_namespacePredecessor(InvalidOffloadedTaskId),
 		_namespaceSuccessor(nullptr)
 	{
@@ -205,6 +207,7 @@ public:
 		_dataLinkStep(other.getDataLinkStep()),
 		_validNamespacePrevious(other.getValidNamespacePrevious()),
 		_validNamespaceSelf(other.getValidNamespaceSelf()),
+		_namespaceReaderNum(other.getNamespaceReaderNum()),
 		_namespacePredecessor(other.getNamespacePredecessor()),
 		_namespaceSuccessor(other.getNamespaceSuccessor())
 	{}
@@ -625,7 +628,7 @@ public:
 		}
 		setWriteID(other->getWriteID());
 		setValidNamespaceSelf(other->getValidNamespaceSelf());
-		setValidNamespacePrevious(VALID_NAMESPACE_NONE, InvalidOffloadedTaskId);
+		setValidNamespacePrevious(VALID_NAMESPACE_NONE, InvalidOffloadedTaskId, 0);
 	}
 
 	DataAccessRegion const &getAccessRegion() const
@@ -781,13 +784,20 @@ public:
 		return _namespacePredecessor;
 	}
 
+	int getNamespaceReaderNum() const
+	{
+		return _namespaceReaderNum;
+	}
+
 	// Set the namespace nodeId and predecessor task for the previous access.
 	// validNamespace: nodeId where task was last offloaded
 	// namespacePredecessor: last task offloaded to that node
-	void setValidNamespacePrevious(int validNamespacePrevious, OffloadedTaskId namespacePredecessor)
+	void setValidNamespacePrevious(int validNamespacePrevious, OffloadedTaskId namespacePredecessor, int namespaceReaderNum)
 	{
 		_validNamespacePrevious = validNamespacePrevious;
 		_namespacePredecessor = namespacePredecessor;
+		assert(namespaceReaderNum >= 0);
+		_namespaceReaderNum = namespaceReaderNum;
 	}
 
 	// Set the namespace node id for this access itself. It is the node

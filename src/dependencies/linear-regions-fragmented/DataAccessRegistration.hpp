@@ -130,7 +130,9 @@ namespace DataAccessRegistration {
 		bool readSatisfied,
 		bool writeSatisfied,
 		WriteID writeID,
-		MemoryPlace const *location
+		MemoryPlace const *location,
+		OffloadedTaskId namespacePredecessor,
+		int namespaceReaderCount
 	);
 
 	void setNamespacePredecessor(
@@ -138,7 +140,8 @@ namespace DataAccessRegistration {
 		Task *parentTask,
 		DataAccessRegion region,
 		ClusterNode *remoteNode,
-		OffloadedTaskId namespacePredecessor
+		OffloadedTaskId namespacePredecessor,
+		int namespaceReaderCount
 	);
 #endif // USE_CLUSTER
 

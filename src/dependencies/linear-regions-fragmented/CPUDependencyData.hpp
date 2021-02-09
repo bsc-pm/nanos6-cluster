@@ -17,6 +17,7 @@
 #include "CommutativeScoreboard.hpp"
 #include "DataAccessLink.hpp"
 #include "DataAccessRegion.hpp"
+#include "dependencies/DataAccessType.hpp"
 #include "support/Containers.hpp"
 
 #include <ExecutionStep.hpp>
@@ -50,6 +51,8 @@ struct CPUDependencyData {
 		ReductionInfo *_reductionInfo;
 		int _validNamespace;
 		OffloadedTaskId _namespacePredecessor;
+		DataAccessType _namespaceAccessType;
+		int _namespaceReaderNum;
 
 		boost::dynamic_bitset<> _reductionSlotSet;
 		bool _previousIsCommutative;
@@ -65,6 +68,7 @@ struct CPUDependencyData {
 			_setReductionInfo(false), _reductionInfo(nullptr),
 			_validNamespace(-1),
 			_namespacePredecessor(InvalidOffloadedTaskId),
+			_namespaceAccessType(NO_ACCESS_TYPE),
 			_previousIsCommutative(false)
 		{
 		}
@@ -80,6 +84,7 @@ struct CPUDependencyData {
 			_setReductionInfo(false), _reductionInfo(nullptr),
 			_validNamespace(-1),
 			_namespacePredecessor(InvalidOffloadedTaskId),
+			_namespaceAccessType(NO_ACCESS_TYPE),
 			_previousIsCommutative(false)
 		{
 		}

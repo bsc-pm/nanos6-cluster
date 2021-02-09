@@ -55,6 +55,8 @@ namespace TaskOffloading {
 		Task *localTask,
 		SatisfiabilityInfo const &satInfo,
 		CPU * const cpu,
+		OffloadedTaskId namespacePredecessor,
+		int namespaceReaderNum,
 		CPUDependencyData &hpDependencyData
 	) {
 		assert(localTask != nullptr);
@@ -70,7 +72,7 @@ namespace TaskOffloading {
 		DataAccessRegistration::propagateSatisfiability(
 			localTask, satInfo._region, cpu,
 			hpDependencyData,
-			satInfo._readSat, satInfo._writeSat, satInfo._writeID, loc
+			satInfo._readSat, satInfo._writeSat, satInfo._writeID, loc, namespacePredecessor, namespaceReaderNum
 		);
 	}
 
@@ -179,7 +181,7 @@ namespace TaskOffloading {
 				// We *HAVE* to leave the lock now, because propagating satisfiability might lead to
 				// unregistering the remote task.
 				taskInfo._lock.unlock();
-				propagateSatisfiability(taskInfo._localTask, satInfo, cpu, hpDependencyData);
+				propagateSatisfiability(taskInfo._localTask, satInfo, cpu, InvalidOffloadedTaskId, 0, hpDependencyData);
 			}
 		}
 
@@ -299,7 +301,8 @@ namespace TaskOffloading {
 				parent,
 				satInfo[i]._region,
 				remoteNode,
-				satInfo[i]._id);
+				satInfo[i]._id,
+				satInfo[i]._namespaceReaderNum);
 		}
 
 		void *argsBlockPtr = task->getArgsBlock();
@@ -374,14 +377,14 @@ namespace TaskOffloading {
 
 				// Propagate satisfiability embedded in the Message
 				for (size_t i = 0; i < numSatInfo; ++i) {
-					if (satInfo[i]._readSat || satInfo[i]._writeSat) {
-						propagateSatisfiability(task, satInfo[i], cpu, hpDependencyData);
+					if (satInfo[i]._readSat || satInfo[i]._writeSat || (satInfo[i]._id != InvalidOffloadedTaskId)) {
+						propagateSatisfiability(task, satInfo[i], cpu, satInfo[i]._id, satInfo[i]._namespaceReaderNum, hpDependencyData);
 					}
 				}
 
 				// Propagate also any satisfiability that has already arrived
 				for (SatisfiabilityInfo const &sat : remoteTaskInfo._satInfo) {
-					propagateSatisfiability(task, sat, cpu, hpDependencyData);
+					propagateSatisfiability(task, sat, cpu, InvalidOffloadedTaskId, 0, hpDependencyData);
 				}
 				remoteTaskInfo._satInfo.clear();
 

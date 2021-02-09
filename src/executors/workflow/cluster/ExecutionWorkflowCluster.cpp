@@ -90,7 +90,7 @@ namespace ExecutionWorkflow {
 			ClusterNode *destNode = _task->getClusterContext()->getRemoteNode();
 
 			int eagerSendTag = 0;
-			if (_allowEagerSend && read && !_namespacePredecessor && !access->getDisableEagerSend()) {
+			if (_allowEagerSend && read && !access->getDisableEagerSend() && _namespacePredecessorNode != _targetMemoryPlace->getIndex()) {      // and not propagated in remote namespace
 				TaskOffloading::DataSendRegionInfo dataSendRegionInfo = handleEagerSend(region, location, _targetMemoryPlace);
 				eagerSendTag = dataSendRegionInfo._id;
 				if (eagerSendTag && location != ClusterManager::getCurrentMemoryNode()) {
@@ -105,7 +105,7 @@ namespace ExecutionWorkflow {
 				TaskOffloading::SatisfiabilityInfo(
 					region, locationIndex,
 					read, write,
-					writeID, offloadedTaskId, eagerSendTag)
+					writeID, offloadedTaskId, -1, eagerSendTag)
 			);
 
 			size_t linkedBytes = region.getSize();
@@ -178,7 +178,7 @@ namespace ExecutionWorkflow {
 			// Commindex from there with getCommIndex.
 			// assert(_sourceMemoryPlace->getIndex() == _sourceMemoryPlace->getCommIndex());
 			int eagerSendTag = 0;
-			if (_allowEagerSend && _read && !_namespacePredecessor) {
+			if (_allowEagerSend && _read && _namespacePredecessorNode != _targetMemoryPlace->getIndex()) {
 				TaskOffloading::DataSendRegionInfo dataSendRegionInfo = handleEagerSend(_region, _sourceMemoryPlace, _targetMemoryPlace);
 				eagerSendTag = dataSendRegionInfo._id;
 				if (eagerSendTag && _sourceMemoryPlace != ClusterManager::getCurrentMemoryNode()) {
@@ -199,6 +199,7 @@ namespace ExecutionWorkflow {
 				_writeID,
 				_read, _write,
 				_namespacePredecessor,
+				_namespaceReaderNum,
 				eagerSendTag
 			);
 
