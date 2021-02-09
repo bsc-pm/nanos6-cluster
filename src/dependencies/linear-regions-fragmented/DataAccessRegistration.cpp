@@ -284,10 +284,38 @@ namespace DataAccessRegistration {
 				// This can happen now if a remote task has a successor in the namespace
 				// assert(access->getObjectType() != top_level_sink_type);
 
+				/* For offloaded tasks, don't propagate read satisfiability
+				 * to next (in the namespace) until the data is here or the
+				 * task completes. This is important to avoid duplicate
+				 * data copies for in dependencies. Otherwise every
+				 * offloaded weak task will (almost simultaneously) fetch
+				 * the same data.  This approach works well because the
+				 * cluster workflow currently copies all data in to the
+				 * task, even for weak dependencies. The below logic
+				 * ensures that read satisfiability is not propagated until
+				 * after the task has been scheduled and the data has been
+				 * transferred in.
+				 */
+				Task *task = access->getOriginator();
+				bool disableReadPropagationToNext = false;
+				if (task->getParent() && task->getParent()->isNodeNamespace()) {
+					/* Next is in the namespace */
+					if (access->readSatisfied()) {
+						if (access->hasLocation() && !ClusterManager::isLocalMemoryPlace(access->getLocation())) {
+							/* Read satisfied, but not present locally */
+							if (!access->complete()) {
+								/* And not complete */
+								disableReadPropagationToNext = true;
+							}
+						}
+					}
+				}
+
 				if (access->hasSubaccesses()) {
 					assert(access->getObjectType() == access_type);
 					_propagatesReadSatisfiabilityToNext =
-						access->canPropagateReadSatisfiability() && access->readSatisfied()
+						!disableReadPropagationToNext
+						&& access->canPropagateReadSatisfiability() && access->readSatisfied()
 						&& ((access->getType() == READ_ACCESS_TYPE) || (access->getType() == NO_ACCESS_TYPE));
 					_propagatesWriteSatisfiabilityToNext = false; // Write satisfiability is propagated through the fragments
 					_propagatesConcurrentSatisfiabilityToNext =
@@ -331,33 +359,6 @@ namespace DataAccessRegistration {
 				} else {
 					assert(access->getObjectType() == access_type);
 					assert(!access->hasSubaccesses());
-
-					/* For offloaded tasks, don't propagate read satisfiability
-					 * to next (in the namespace) until the data is here or the
-					 * task completes. This is important to avoid duplicate
-					 * data copies for in dependencies. Otherwise every
-					 * offloaded weak task will (almost simultaneously) fetch
-					 * the same data.  This approach works well because the
-					 * cluster workflow currently copies all data in to the
-					 * task, even for weak dependencies. The below logic
-					 * ensures that read satisfiability is not propagated until
-					 * after the task has been scheduled and the data has been
-					 * transferred in.
-					 */
-					Task *task = access->getOriginator();
-					bool disableReadPropagationToNext = false;
-					if (task->getParent() && task->getParent()->isNodeNamespace()) {
-						/* Next is in the namespace */
-						if (access->readSatisfied()) {
-							if (access->hasLocation() && !ClusterManager::isLocalMemoryPlace(access->getLocation())) {
-								/* Read satisfied, but not present locally */
-								if (!access->complete()) {
-									/* And not complete */
-									disableReadPropagationToNext = true;
-								}
-							}
-						}
-					}
 
 					// A regular access without subaccesses but with a next
 					_propagatesReadSatisfiabilityToNext =
