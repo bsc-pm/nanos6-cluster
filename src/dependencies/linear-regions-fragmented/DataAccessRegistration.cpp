@@ -1127,7 +1127,30 @@ namespace DataAccessRegistration {
 					fragmentAccess(originalAccess,
 						access->getAccessRegion(),
 						accessStructures);
-				originalAccess->setLocation(access->getLocation());
+
+				if (ClusterManager::isLocalMemoryPlace(originalAccess->getLocation())
+					|| !ClusterManager::isLocalMemoryPlace(access->getLocation())) {
+					// Either the original access was already local or the new location
+					// is non-local. In either case, we only need to update the location
+					// of the original access.
+					originalAccess->setLocation(access->getLocation());
+				} else {
+					// Updating the location of the original access from a non-local to
+					// a local location may cause read satisfiability to be propagated to
+					// the next access. This is the logic in disableReadPropagationToNext
+					// which reduces unnecessary data fetches that would otherwise happen
+					// from the old location. Note: it is important that the fragments
+					// have already been removed, since when there are fragments the
+					// logic to propagate satisfiability does not take account of
+					// disableReadPropagationToNext.
+					DataAccessStatusEffects initialStatus(originalAccess);
+					originalAccess->setLocation(access->getLocation());
+					DataAccessStatusEffects updatedStatus(originalAccess);
+					handleDataAccessStatusChanges(
+						initialStatus, updatedStatus,
+						originalAccess, accessStructures, originalAccess->getOriginator(),
+						hpDependencyData);
+				}
 
 				return true;
 			});
@@ -4342,7 +4365,7 @@ namespace DataAccessRegistration {
 	}
 
 
-	void handleExitTaskwait(Task *task, ComputePlace *, CPUDependencyData &hpDependencyData)
+	void handleExitTaskwait(Task *task, ComputePlace *computePlace, CPUDependencyData &hpDependencyData)
 	{
 		Instrument::enterHandleExitTaskwait();
 		assert(task != nullptr);
@@ -4351,29 +4374,7 @@ namespace DataAccessRegistration {
 		assert(!accessStructures.hasBeenDeleted());
 		std::lock_guard<TaskDataAccesses::spinlock_t> guard(accessStructures._lock);
 
-		unfragmentTaskwaits(accessStructures);
-
-		accessStructures._taskwaitFragments.processAll(
-			/* processor: called for each task access fragment */
-			[&](TaskDataAccesses::access_fragments_t::iterator position) -> bool {
-				DataAccess *taskwaitFragment = &(*position);
-				assert(taskwaitFragment != nullptr);
-
-#ifndef NDEBUG
-				DataAccessStatusEffects initialStatus(taskwaitFragment);
-				assert(initialStatus._isRemovable);
-#endif
-				if (!taskwaitFragment->hasNext()) {
-					assert ((taskwaitFragment->getObjectType() == taskwait_type)
-						|| (taskwaitFragment->getObjectType() == top_level_sink_type));
-					removeBottomMapTaskwaitOrTopLevelSink(taskwaitFragment, accessStructures, task, hpDependencyData);
-				}
-				return true;
-			}
-		);
-
 		unfragmentTaskAccesses(task, accessStructures);
-
 		if (!accessStructures._accesses.empty()) {
 			// Mark all accesses as not having subaccesses (meaning fragments,
 			// as they will all be deleted below
@@ -4414,27 +4415,57 @@ namespace DataAccessRegistration {
 					return true;
 				});
 			accessStructures._accessFragments.clear();
+		}
 
-			// Delete all taskwait fragments
-			accessStructures._taskwaitFragments.processAll(
-				[&](TaskDataAccesses::taskwait_fragments_t::iterator position) -> bool {
-					DataAccess *dataAccess = &(*position);
-					assert(dataAccess != nullptr);
+		unfragmentTaskwaits(accessStructures);
+		accessStructures._taskwaitFragments.processAll(
+			/* processor: called for each task access fragment */
+			[&](TaskDataAccesses::access_fragments_t::iterator position) -> bool {
+				DataAccess *taskwaitFragment = &(*position);
+				assert(taskwaitFragment != nullptr);
 
 #ifndef NDEBUG
-					DataAccessStatusEffects currentStatus(dataAccess);
-					assert(currentStatus._isRemovable);
+				DataAccessStatusEffects initialStatus(taskwaitFragment);
+				assert(initialStatus._isRemovable);
+#endif
+				if (!taskwaitFragment->hasNext()) {
+					assert ((taskwaitFragment->getObjectType() == taskwait_type)
+						|| (taskwaitFragment->getObjectType() == top_level_sink_type));
+					removeBottomMapTaskwaitOrTopLevelSink(taskwaitFragment, accessStructures, task, hpDependencyData);
+				}
+				return true;
+			}
+		);
+
+		// If removing the bottom map taskwait / top level sink set the
+		// location of an access from non-local to local, we may need to
+		// propagate read satisfiability to the next task (which may also
+		// make it ready). Do it now.
+		if (!hpDependencyData.empty()) {
+			accessStructures._lock.unlock();
+			processDelayedOperationsSatisfiedOriginatorsAndRemovableTasks(hpDependencyData, computePlace, true);
+			accessStructures._lock.lock();
+		}
+
+		// Delete all taskwait fragments
+		accessStructures._taskwaitFragments.processAll(
+			[&](TaskDataAccesses::taskwait_fragments_t::iterator position) -> bool {
+				DataAccess *dataAccess = &(*position);
+				assert(dataAccess != nullptr);
+
+#ifndef NDEBUG
+				DataAccessStatusEffects currentStatus(dataAccess);
+				assert(currentStatus._isRemovable);
 #endif
 
-					Instrument::removedDataAccess(dataAccess->getInstrumentationId());
-					accessStructures._taskwaitFragments.erase(dataAccess);
-					ObjectAllocator<DataAccess>::deleteObject(dataAccess);
+				Instrument::removedDataAccess(dataAccess->getInstrumentationId());
+				accessStructures._taskwaitFragments.erase(dataAccess);
+				ObjectAllocator<DataAccess>::deleteObject(dataAccess);
 
-					/* continue, to process all taskwait fragments */
-					return true;
-				});
-			accessStructures._taskwaitFragments.clear();
-		}
+				/* continue, to process all taskwait fragments */
+				return true;
+			});
+		accessStructures._taskwaitFragments.clear();
 
 		// Clean up the bottom map
 		accessStructures._subaccessBottomMap.processAll(
