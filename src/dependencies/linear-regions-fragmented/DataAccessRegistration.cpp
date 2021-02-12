@@ -284,17 +284,16 @@ namespace DataAccessRegistration {
 				// This can happen now if a remote task has a successor in the namespace
 				// assert(access->getObjectType() != top_level_sink_type);
 
-				/* For offloaded tasks, don't propagate read satisfiability
-				 * to next (in the namespace) until the data is here or the
-				 * task completes. This is important to avoid duplicate
-				 * data copies for in dependencies. Otherwise every
-				 * offloaded weak task will (almost simultaneously) fetch
-				 * the same data.  This approach works well because the
-				 * cluster workflow currently copies all data in to the
-				 * task, even for weak dependencies. The below logic
-				 * ensures that read satisfiability is not propagated until
-				 * after the task has been scheduled and the data has been
-				 * transferred in.
+				/* For offloaded tasks, don't propagate read satisfiability to
+				 * next (in the namespace) until the data is here or the task
+				 * completes. This is important to avoid duplicate data copies
+				 * for in dependencies. Otherwise every offloaded weak task
+				 * will (almost simultaneously) fetch the same data.  The below
+				 * logic ensures that read satisfiability is not propagated
+				 * until after the task has been scheduled and the data has
+				 * been transferred in. When the data arrives, even if fetched
+				 * for a subtask, updateTaskDataAccessLocation will update
+				 * the location at all parents including this task.
 				 */
 				Task *task = access->getOriginator();
 				bool disableReadPropagationToNext = false;
@@ -3756,53 +3755,60 @@ namespace DataAccessRegistration {
 	 * region, fragmenting them if necessary. For clusters this is done when
 	 * a data copy completes.
 	 */
-	void updateTaskDataAccessLocation(Task *task,
+	void updateTaskDataAccessLocation(Task *origTask,
 		DataAccessRegion const &region,
 		MemoryPlace const *location,
 		bool isTaskwait)
 	{
-		assert(task != nullptr);
-
-		TaskDataAccesses &accessStructures = task->getDataAccesses();
-		assert(!accessStructures.hasBeenDeleted());
+		assert(origTask != nullptr);
 
 		CPUDependencyData hpDependencyData;
 
 		// Take the lock on the task data accesses (all locking in
 		// DataAccessRegistration is done on the task data accesses).
-		{
-		std::lock_guard<TaskDataAccesses::spinlock_t> guard(accessStructures._lock);
+		Task *task = origTask;
+		while (task->getParent() != nullptr && !task->isNodeNamespace()) {
 
-		auto &accesses = (isTaskwait) ? accessStructures._taskwaitFragments : accessStructures._accesses;
+			TaskDataAccesses &accessStructures = task->getDataAccesses();
+			assert(!accessStructures.hasBeenDeleted());
+			std::lock_guard<TaskDataAccesses::spinlock_t> guard(accessStructures._lock);
 
-		// At this point the region must be included in DataAccesses of the task
-		assert(accesses.contains(region));
+			auto &accesses = (isTaskwait) ? accessStructures._taskwaitFragments : accessStructures._accesses;
+			// At this point the region must be included in DataAccesses of the task
+			if (task == origTask) {
+				assert(accesses.contains(region));
+			}
 
-		accesses.processIntersecting(region,
-			/* processor: lambda called for every task data access that intersects
-			   the region */
-			[&](TaskDataAccesses::accesses_t::iterator accessPosition) -> bool {
-				DataAccess *access = &(*accessPosition);
-				assert(access != nullptr);
+			accesses.processIntersecting(region,
+				/* processor: lambda called for every task data access that intersects
+				   the region */
+				[&](TaskDataAccesses::accesses_t::iterator accessPosition) -> bool {
+					DataAccess *access = &(*accessPosition);
+					assert(access != nullptr);
+					if (!access->complete()) {
 
-				/* fragment the access (if not fully contained inside the region) */
-				access = fragmentAccess(access, region, accessStructures);
-				DataAccessStatusEffects initialStatus(access);
-				access->setLocation(location);
-				DataAccessStatusEffects updatedStatus(access);
+						/* fragment the access (if not fully contained inside the region) */
+						access = fragmentAccess(access, region, accessStructures);
+						DataAccessStatusEffects initialStatus(access);
+						access->setLocation(location);
+						DataAccessStatusEffects updatedStatus(access);
 
-				/* Setting the location may cause read satisfiability to be
-				 * propagated to the next task in the namespace (for in
-				 * dependencies).
-				 */
-				handleDataAccessStatusChanges(initialStatus,
-					updatedStatus, access, accessStructures,
-					task, hpDependencyData);
+						/* Setting the location may cause read satisfiability to be
+						 * propagated to the next task in the namespace (for in
+						 * dependencies).
+						 */
+						handleDataAccessStatusChanges(initialStatus,
+							updatedStatus, access, accessStructures,
+							task, hpDependencyData);
+					}
 
-				/* always continue with remaining accesses: don't stop here */
-				return true;
+					/* always continue with remaining accesses: don't stop here */
+					return true;
 			});
+			task = task->getParent();
+			isTaskwait = false;
 		}
+
 		processDelayedOperationsSatisfiedOriginatorsAndRemovableTasks(hpDependencyData, nullptr, false);
 	}
 
