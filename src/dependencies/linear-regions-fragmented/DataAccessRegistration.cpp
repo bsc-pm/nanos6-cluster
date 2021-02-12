@@ -2651,11 +2651,11 @@ namespace DataAccessRegistration {
 				 */
 				if (parent->isNodeNamespace()) {
 					if (previous->getNamespaceSuccessor() == dataAccess->getOriginator()) {
-						Instrument::namespacePropagation(Instrument::NamespaceSuccessful, dataAccess);
+						Instrument::namespacePropagation(Instrument::NamespaceSuccessful, dataAccess->getAccessRegion());
 					} else if (previous->getNamespaceSuccessor() != nullptr) {
-						Instrument::namespacePropagation(Instrument::NamespaceUnsuccessful, dataAccess);
+						Instrument::namespacePropagation(Instrument::NamespaceWrongPredecessor, dataAccess->getAccessRegion());
 					} else {
-						Instrument::namespacePropagation(Instrument::NamespaceNotHinted, dataAccess);
+						Instrument::namespacePropagation(Instrument::NamespaceNotHintedWithAncestor, dataAccess->getAccessRegion());
 					}
 				}
 				if (parent->isNodeNamespace() && previous->getNamespaceSuccessor() != dataAccess->getOriginator()) {
@@ -2756,10 +2756,6 @@ namespace DataAccessRegistration {
 				first = false;
 				lastWasLocal = local;
 #endif
-
-				if (parent->isNodeNamespace()) {
-					Instrument::namespacePropagation(Instrument::NamespaceMissing, dataAccess);
-				}	
 
 				// NOTE: holes in the parent bottom map that are not in the parent accesses become fully satisfied
 				accessStructures._accesses.processIntersecting(
@@ -4328,9 +4324,16 @@ namespace DataAccessRegistration {
 		assert(parent != nullptr);
 		assert(parent->isNodeNamespace());
 
+#ifndef INSTRUMENT_STATS_CLUSTER_HPP
+		if (namespacePredecessor == nullptr) {
+			return;
+		}
+#endif
+
 		TaskDataAccesses &parentAccessStructures = parent->getDataAccesses();
 		assert(!parentAccessStructures.hasBeenDeleted());
 		std::lock_guard<TaskDataAccesses::spinlock_t> parentGuard(parentAccessStructures._lock);
+		bool found = false;
 		foreachBottomMapMatch(
 			region,
 			parentAccessStructures, parent,
@@ -4348,11 +4351,18 @@ namespace DataAccessRegistration {
 				if (offloader == remoteNode && prevRemoteTaskIdentifier == namespacePredecessor) {
 					// Match, so set the namespace successor
 					access->setNamespaceSuccessor(task);
+					found = true;
 				}
-
 			},
 			[] (BottomMapEntry *) {}
 		);
+		if (!found) {
+			if (namespacePredecessor) {
+				Instrument::namespacePropagation(Instrument::NamespacePredecessorFinished, region);
+			} else {
+				Instrument::namespacePropagation(Instrument::NamespaceNotHintedNoPredecessor, region);
+			}
+		}
 	}
 
 

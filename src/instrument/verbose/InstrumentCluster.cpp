@@ -152,7 +152,7 @@ namespace Instrument {
 	{
 	}
 
-	void namespacePropagation(NamespacePropagation prop, DataAccess *access, InstrumentationContext const &)
+	void namespacePropagation(NamespacePropagation prop, DataAccessRegion region, InstrumentationContext const &)
 	{
 		// This can generate lots of output so normally disable it
 		if (true) { // (!_verboseClusterMessages) {
@@ -166,19 +166,22 @@ namespace Instrument {
 
 		logEntry->appendLocation(context);
 
-		logEntry->_contents << " Namespace propagation of " << access->getAccessRegion() << " was ";
+		logEntry->_contents << " Namespace propagation of " << region << ": ";
 		switch(prop) {
 			case NamespaceSuccessful:
 				logEntry->_contents << " Successful";
 				break;
-			case NamespaceUnsuccessful:
-				logEntry->_contents << " Wrong predecessor";
+			case NamespaceWrongPredecessor:
+				logEntry->_contents << " Wrong predecessor at remote node";
 				break;
-			case NamespaceNotHinted:
-				logEntry->_contents << " Not hinted";
+			case NamespacePredecessorFinished:
+				logEntry->_contents << " Predecessor already finished at remote node";
 				break;
-			case NamespaceMissing:
-				logEntry->_contents << " Missing region";
+			case NamespaceNotHintedWithAncestor:
+				logEntry->_contents << " Not hinted (ancestor present at remote node)";
+				break;
+			case NamespaceNotHintedNoPredecessor:
+				logEntry->_contents << " Not hinted (no predecessor at remote node)";
 				break;
 			default:
 				assert(false);

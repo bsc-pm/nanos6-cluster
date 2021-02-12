@@ -9,17 +9,18 @@
 
 #include <InstrumentInstrumentationContext.hpp>
 #include <InstrumentThreadInstrumentationContext.hpp>
+#include <DataAccessRegion.hpp>
 
 class Message;
-class DataAccess;
 
 namespace Instrument {
 
 	enum NamespacePropagation {
-		NamespaceSuccessful = 0,   // successful namespace propagation
-		NamespaceUnsuccessful,     // wrong predecessor in namespace
-		NamespaceNotHinted,        // offloader hinted as not possible
-		NamespaceMissing,          // missing region in namespace
+		NamespaceSuccessful = 0,           // Huccessful namespace propagation
+		NamespaceWrongPredecessor,         // Hinted, but wrong predecessor in namespace
+		NamespacePredecessorFinished,      // Hinted, but no predecessor in namespace (must have finished)
+		NamespaceNotHintedWithAncestor,    // Not hinted with an ancestor present
+		NamespaceNotHintedNoPredecessor,   // Not hinted, no predecessor present
 		MaxNamespacePropagation
 	};
 
@@ -81,7 +82,7 @@ namespace Instrument {
 
 	void offloadedTaskCompletes(task_id_t taskId, InstrumentationContext const &context = ThreadInstrumentationContext::getCurrent());
 
-	void namespacePropagation(NamespacePropagation, DataAccess *, InstrumentationContext const &context = ThreadInstrumentationContext::getCurrent());
+	void namespacePropagation(NamespacePropagation, DataAccessRegion region, InstrumentationContext const &context = ThreadInstrumentationContext::getCurrent());
 }
 
 #endif //! INSTRUMENT_CLUSTER_HPP

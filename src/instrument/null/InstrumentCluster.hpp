@@ -44,11 +44,7 @@ namespace Instrument {
 	{
 	}
 
-	inline void namespacePropagation(InstrumentationContext const &)
-	{
-	}
-
-	inline void namespacePropagation(NamespacePropagation, DataAccess *, InstrumentationContext const &)
+	inline void namespacePropagation(NamespacePropagation, DataAccessRegion, InstrumentationContext const &)
 	{
 	}
 }
