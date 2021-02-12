@@ -2634,6 +2634,15 @@ namespace DataAccessRegistration {
 				/*
 				 * Link the dataAccess and unset
 				 */
+				if (parent->isNodeNamespace()) {
+					if (previous->getNamespaceSuccessor() == dataAccess->getOriginator()) {
+						Instrument::namespacePropagation(Instrument::NamespaceSuccessful, dataAccess);
+					} else if (previous->getNamespaceSuccessor() != nullptr) {
+						Instrument::namespacePropagation(Instrument::NamespaceUnsuccessful, dataAccess);
+					} else {
+						Instrument::namespacePropagation(Instrument::NamespaceNotHinted, dataAccess);
+					}
+				}
 				if (parent->isNodeNamespace() && previous->getNamespaceSuccessor() != dataAccess->getOriginator()) {
 
 					// No namespace propagation. Need to set Topmost and set up reduction info in a similar way
@@ -2732,6 +2741,10 @@ namespace DataAccessRegistration {
 				first = false;
 				lastWasLocal = local;
 #endif
+
+				if (parent->isNodeNamespace()) {
+					Instrument::namespacePropagation(Instrument::NamespaceMissing, dataAccess);
+				}	
 
 				// NOTE: holes in the parent bottom map that are not in the parent accesses become fully satisfied
 				accessStructures._accesses.processIntersecting(

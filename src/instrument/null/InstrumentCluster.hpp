@@ -43,6 +43,14 @@ namespace Instrument {
 	inline void offloadedTaskCompletes(task_id_t, InstrumentationContext const &)
 	{
 	}
+
+	inline void namespacePropagation(InstrumentationContext const &)
+	{
+	}
+
+	inline void namespacePropagation(NamespacePropagation, DataAccess *, InstrumentationContext const &)
+	{
+	}
 }
 
 #endif //! INSTRUMENT_NULL_CLUSTER_HPP

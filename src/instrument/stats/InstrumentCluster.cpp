@@ -17,7 +17,11 @@ namespace Instrument {
 	std::atomic<size_t> countMessagesReceived[TOTAL_MESSAGE_TYPES];
 	std::atomic<size_t> bytesMessagesSent[TOTAL_MESSAGE_TYPES];
 	std::atomic<size_t> bytesMessagesReceived[TOTAL_MESSAGE_TYPES];
+	std::atomic<size_t> namespaceCounter[MaxNamespacePropagation];
 
+	// Must match definition of enum NamespacePropagation
+	const char *namespaceNames[MaxNamespacePropagation] = {"Successful", "Wrong predecessor", "Not hinted", "No predecessor"};
+	
 	void initClusterCounters()
 	{
 		for(int j=0; j<TOTAL_MESSAGE_TYPES; j++) {
@@ -82,5 +86,25 @@ namespace Instrument {
 					<< "\trcvd bytes:\t" << bytesMessagesReceived[type] << std::endl;
 			}
 		}
+		int namespaceCounterSum = 0;
+		output << "Namespace propagation by access: ";
+		for(int i=0; i< MaxNamespacePropagation; i++) {
+			output << namespaceNames[i] << ": " << namespaceCounter[i] << " ";
+			namespaceCounterSum += namespaceCounter[i];
+		}
+		output << std::endl;
+		if (namespaceCounterSum > 0) {
+			for(int i=0; i< MaxNamespacePropagation; i++) {
+				output << namespaceNames[i] << ": " << std::fixed << std::setprecision(2)
+				       << (100.0 * namespaceCounter[i] / namespaceCounterSum) << "\% ";
+			}
+		}
+		output << std::endl;
+	}
+
+	void namespacePropagation(NamespacePropagation prop, DataAccess *, InstrumentationContext const &)
+	{
+		assert(prop < MaxNamespacePropagation);
+		namespaceCounter[prop] += 1;
 	}
 }

@@ -24,6 +24,9 @@ namespace Instrument {
 	}
 #endif
 
+	inline void namespacePropagation(NamespacePropagation, DataAccess *, InstrumentationContext const &)
+	{
+	}
 }
 
 #endif //! INSTRUMENT_EXTRAE_CLUSTER_HPP

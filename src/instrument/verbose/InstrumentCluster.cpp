@@ -8,6 +8,7 @@
 #include "InstrumentVerbose.hpp"
 
 #include <Message.hpp>
+#include <DataAccess.hpp>
 
 using namespace Instrument::Verbose;
 
@@ -149,5 +150,40 @@ namespace Instrument {
 
 	void offloadedTaskCompletes(task_id_t, InstrumentationContext const &)
 	{
+	}
+
+	void namespacePropagation(NamespacePropagation prop, DataAccess *access, InstrumentationContext const &)
+	{
+		// This can generate lots of output so normally disable it
+		if (true) { // (!_verboseClusterMessages) {
+			return;
+		}
+
+		InstrumentationContext const &context = ThreadInstrumentationContext::getCurrent();
+
+		LogEntry *logEntry = getLogEntry(context);
+		assert(logEntry != nullptr);
+
+		logEntry->appendLocation(context);
+
+		logEntry->_contents << " Namespace propagation of " << access->getAccessRegion() << " was ";
+		switch(prop) {
+			case NamespaceSuccessful:
+				logEntry->_contents << " Successful";
+				break;
+			case NamespaceUnsuccessful:
+				logEntry->_contents << " Wrong predecessor";
+				break;
+			case NamespaceNotHinted:
+				logEntry->_contents << " Not hinted";
+				break;
+			case NamespaceMissing:
+				logEntry->_contents << " Missing region";
+				break;
+			default:
+				assert(false);
+		}
+
+		addLogEntry(logEntry);
 	}
 }

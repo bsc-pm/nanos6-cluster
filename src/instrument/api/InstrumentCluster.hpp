@@ -11,8 +11,17 @@
 #include <InstrumentThreadInstrumentationContext.hpp>
 
 class Message;
+class DataAccess;
 
 namespace Instrument {
+
+	enum NamespacePropagation {
+		NamespaceSuccessful = 0,   // successful namespace propagation
+		NamespaceUnsuccessful,     // wrong predecessor in namespace
+		NamespaceNotHinted,        // offloader hinted as not possible
+		NamespaceMissing,          // missing region in namespace
+		MaxNamespacePropagation
+	};
 
 	/* NOTE: this must match the order of the clusterEventType array */
 	enum ClusterEventType {
@@ -71,6 +80,8 @@ namespace Instrument {
 	void emitClusterEvent(ClusterEventType clusterEventType, int value, InstrumentationContext const & = ThreadInstrumentationContext::getCurrent());
 
 	void offloadedTaskCompletes(task_id_t taskId, InstrumentationContext const &context = ThreadInstrumentationContext::getCurrent());
+
+	void namespacePropagation(NamespacePropagation, DataAccess *, InstrumentationContext const &context = ThreadInstrumentationContext::getCurrent());
 }
 
 #endif //! INSTRUMENT_CLUSTER_HPP
