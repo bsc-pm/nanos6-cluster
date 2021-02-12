@@ -226,9 +226,11 @@ namespace ExecutionWorkflow {
 		// class.
 		// assert(!WriteIDManager::checkWriteIDLocal(_writeID, _fullRegion));
 
-		if (!_needsTransfer && !_isTaskwait) {
-			//! Perform the data access registration but not the data fetch.
-			if (!_isWeak) {
+		if (!_needsTransfer) {
+			//! This access doesn't need a transfer.
+			//! We need to perform the data access registration if it is
+			//! a non-weak output access. Otherwise there is nothing to do.
+			if (!_isTaskwait && !_isWeak) {
 				DataAccessRegistration::updateTaskDataAccessLocation(
 					_task,
 					_fullRegion,
