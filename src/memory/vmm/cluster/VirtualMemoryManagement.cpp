@@ -4,11 +4,10 @@
 	Copyright (C) 2015-2020 Barcelona Supercomputing Center (BSC)
 */
 
-#include <string>
-#include <cstdint>
-#include <cstdio>
-#include <cstring>
 #include <sys/mman.h>
+#include <iostream>
+#include <string>
+#include <regex>
 
 #include "VirtualMemoryManagement.hpp"
 #include "cluster/ClusterManager.hpp"
@@ -38,44 +37,46 @@ VirtualMemoryArea *VirtualMemoryManagement::_genericVMA;
 static std::vector<DataAccessRegion> findMappedRegions()
 {
 	std::vector<DataAccessRegion> maps;
-	const char *mappingsFile = "/proc/self/maps";
-	size_t len = 0;
-	char *line = NULL;
 
-	FILE *fp = fopen(mappingsFile, "r");
-	assert(fp != NULL);
+	const std::regex line_regex(
+		"([[:xdigit:]]+)-([[:xdigit:]]+) [rwpx-]{4} [[:xdigit:]]+ [[:xdigit:]]{2}:[[:xdigit:]]{2} [0-9]+ +(.*)");
 
-	ssize_t ret = getline(&line, &len, fp);
-	FatalErrorHandler::failIf(ret == -1, "Could not find virtual memory mappings");
+	std::ifstream mapfile("/proc/self/maps");
 
-	while (ret != -1) {
-		// First, we take the range which appears first to the line
-		// separated by a space with everything that follows
-		char *token = strtok(line, " ");
-		assert(token != NULL);
+	std::string line;
 
-		// Then we need to split the range which is two hexadecimals
-		// separated by a '-'
-		token = strtok(token, "-");
-		void *startAddress = (void *)strtoll(token, NULL, 16);
-		token = strtok(NULL, "-");
-		void *endAddress = (void *)strtoll(token, NULL, 16);
+	if (mapfile.is_open()) {
+		while (getline(mapfile, line)) {
 
-		// The lower-end of the canonical virtual addresses finish
-		// at the 2^47 limit. The upper-end of the canonical addresses
-		// are normally used by the linux kernel. So we don't want to
-		// look there.
-		if ((size_t)endAddress >= (1UL << 47)) {
-			break;
+			std::smatch submatch;
+			if (std::regex_match(line, submatch, line_regex)) {
+				assert(submatch.ready());
+				size_t startAddress = std::stoull(submatch[1].str(), NULL, 16);
+				size_t endAddress = std::stoull(submatch[2].str(), NULL, 16);
+
+				// The lower-end of the canonical virtual addresses finish
+				// at the 2^47 limit. The upper-end of the canonical addresses
+				// are normally used by the linux kernel. So we don't want to
+				// look there.
+				if (endAddress >= (1UL << 47)) {
+					break;
+				}
+
+				// Add an extra padding to the end of the heap.
+				// This avoids the nasty memory error we had long time ago.
+				if (submatch[3].str() == "[heap]") {
+					endAddress += HardwareInfo::getPhysicalMemorySize();
+				}
+
+				maps.emplace_back((void *)startAddress, (void *)endAddress);
+			}
 		}
 
-		maps.emplace_back(startAddress, endAddress);
-
-		// Read next line
-		ret = getline(&line, &len, fp);
+		FatalErrorHandler::failIf(mapfile.fail(), "Could not read virtual memory mappings");
+		mapfile.close();
+	} else {
+		FatalErrorHandler::failIf(true, "Could not open memory mappings file");
 	}
-
-	fclose(fp);
 
 	return maps;
 }
