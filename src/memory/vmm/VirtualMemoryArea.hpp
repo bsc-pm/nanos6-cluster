@@ -17,46 +17,45 @@
 
 class VirtualMemoryArea {
 	//! start address of the area
-	char *_start;
-	
+	const void *_start;
+
 	//! size of the area
-	size_t _size;
-	
+	const size_t _size;
+
 	//! first address not belonging in the area
-	char *_end;
-	
+	const void *_end;
+
 	//! next free pointer in the area
 	char *_nextFree;
-	
+
 	//! amount of available memory
 	size_t _available;
-	
+
 public:
-	VirtualMemoryArea(void *address, size_t size)
-		: _start((char *)address), _size(size),
-		_end(_start + _size), _nextFree(_start),
-		_available(size)
+	VirtualMemoryArea(const void *address, size_t size)
+		: _start(address), _size(size), _end((char *)_start + _size),
+		_nextFree((char *)_start), _available(size)
 	{
 	}
-	
+
 	//! Virtual addresses should be unique, so can't copy this
 	VirtualMemoryArea(VirtualMemoryArea const &) = delete;
 	VirtualMemoryArea operator=(VirtualMemoryArea const &) = delete;
-	
+
 	~VirtualMemoryArea()
 	{
 	}
-	
-	inline void *getAddress() const
+
+	inline const void *getAddress() const
 	{
 		return _start;
 	}
-	
+
 	inline size_t getSize() const
 	{
 		return _size;
 	}
-	
+
 	/** Returns a block of virtual address from the virtual memory area.
 	 *
 	 * This method is not thread-safe. Synchronization needs to be handled
@@ -69,26 +68,25 @@ public:
 		if (size > _available) {
 			return nullptr;
 		}
-		
+
 		void *ret = (void *)_nextFree;
-		
+
 		_available -= size;
-		_nextFree = _nextFree + size;
-		
+		_nextFree += size;
+
 		return ret;
 	}
-	
-	inline bool includesRange(void *address, size_t size)
+
+	inline bool includesRange(const void *address, size_t size) const
 	{
-		char *startAddress = (char *)address;
-		char *endAddress = startAddress + size;
-		
-		return (startAddress >= _start) && (endAddress < _end);
+		const char *endAddress = (char *)address + size;
+
+		return (address >= _start) && (endAddress < _end);
 	}
-	
-	inline bool includesAddress(void *address)
+
+	inline bool includesAddress(const void *address) const
 	{
-		return ((char *)address >= _start) && ((char *)address < _end);
+		return (address >= _start) && (address < _end);
 	}
 };
 

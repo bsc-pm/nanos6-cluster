@@ -147,8 +147,7 @@ static DataAccessRegion findSuitableMemoryRegion()
 		}
 	} else {
 		DataAccessRegion buffer(&gap, sizeof(gap));
-		ClusterNode *master = ClusterManager::getMasterNode();
-		MemoryPlace *masterMemory = master->getMemoryNode();
+		MemoryPlace *masterMemory = ClusterManager::getMasterNode()->getMemoryNode();
 
 		// First send my local gap to master node
 		ClusterManager::sendDataRaw(buffer, masterMemory, 0, /* block */ true, /* instrument */ false);
@@ -216,23 +215,22 @@ void VirtualMemoryManagement::shutdown()
 
 void VirtualMemoryManagement::setupMemoryLayout(void *address, size_t distribSize, size_t localSize)
 {
-	ClusterNode *current = ClusterManager::getCurrentClusterNode();
-	const int nodeIndex = current->getIndex();
-	const int clusterSize = ClusterManager::clusterSize();
+	const ClusterNode *current = ClusterManager::getCurrentClusterNode();
+	const std::vector<ClusterNode *> &nodesList = ClusterManager::getClusterNodes();
 
-	void *distribAddress = (void *)((char *)address + clusterSize * localSize);
+	const void *distribAddress = (void *)((char *)address + localSize * nodesList.size());
 	_genericVMA = new VirtualMemoryArea(distribAddress, distribSize);
-	void *localAddress = (void *)((char *)address + nodeIndex * localSize);
+	const char *localAddress = (char *)address + localSize * current->getIndex();
 
 	// Register local addresses with the Directory
-	for (int i = 0; i < clusterSize; ++i) {
-		if (i == nodeIndex) {
+	for (ClusterNode *node : nodesList) {
+		if (node == current) {
 			continue;
 		}
 
-		void *ptr = (void *)((char *)address + i * localSize);
+		void *ptr = (void *)((char *)address + localSize * node->getIndex());
 		DataAccessRegion localRegion(ptr, localSize);
-		Directory::insert(localRegion, ClusterManager::getMemoryNode(i));
+		Directory::insert(localRegion, node->getMemoryNode());
 	}
 
 	// We have one VMA per NUMA node. At the moment we divide the local
@@ -261,7 +259,7 @@ void VirtualMemoryManagement::setupMemoryLayout(void *address, size_t distribSiz
 		_localNUMAVMA[i] = new VirtualMemoryArea(ptr, numaSize);
 
 		// Register the region with the Directory
-		DataAccessRegion numaRegion(ptr, numaSize);
+		const DataAccessRegion numaRegion(ptr, numaSize);
 		Directory::insert(numaRegion, HardwareInfo::getMemoryPlace(nanos6_host_device, i));
 
 		ptr += numaSize;
