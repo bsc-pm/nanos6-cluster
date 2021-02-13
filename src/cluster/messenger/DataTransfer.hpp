@@ -34,6 +34,9 @@ public:
 	//! rank of MPI source for instrumenting the transferred region (non-blocking case)
 	int _MPISource;
 
+	//! Is it a data fetch
+	bool _isFetch;
+
 	typedef std::function<void ()> data_transfer_callback_t;
 
 private:
@@ -53,8 +56,9 @@ public:
 		MemoryPlace const *target,
 		void *messengerData,
 		int MPISource,
-		int id
-	) : _region(region), _source(source), _target(target), _id(id), _MPISource(MPISource),
+		int id,
+		bool isFetch
+	) : _region(region), _source(source), _target(target), _id(id), _MPISource(MPISource), _isFetch(isFetch),
 		_callbacks(), _completed(false), _messengerData(messengerData)
 	{
 	}
@@ -103,7 +107,10 @@ public:
 	//! be invoked
 	inline void markAsCompleted()
 	{
-		Instrument::clusterDataReceived(_region.getStartAddress(), _region.getSize(), _MPISource, _id);
+		assert(!_completed);
+		if (_isFetch) {
+			Instrument::clusterDataReceived(_region.getStartAddress(), _region.getSize(), _MPISource, _id);
+		}
 
 		for(data_transfer_callback_t callback : _callbacks) {
 			callback();
@@ -111,7 +118,9 @@ public:
 
 		_completed = true;
 
-		Instrument::clusterDataReceived(NULL, 0, _MPISource, -1);
+		if (_isFetch) {
+			Instrument::clusterDataReceived(_region.getStartAddress(), _region.getSize(), _MPISource, -1);
+		}
 
 	}
 

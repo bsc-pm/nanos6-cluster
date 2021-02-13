@@ -163,7 +163,7 @@ DataTransfer *MPIMessenger::sendData(
 	}
 
 	return new MPIDataTransfer(region, ClusterManager::getCurrentMemoryNode(),
-		to->getMemoryNode(), request, mpiDst, messageId);
+		to->getMemoryNode(), request, mpiDst, messageId, /* isFetch */ false);
 }
 
 DataTransfer *MPIMessenger::fetchData(
@@ -202,7 +202,7 @@ DataTransfer *MPIMessenger::fetchData(
 	MPIErrorHandler::handle(ret, INTRA_COMM_DATA_RAW);
 
 	return new MPIDataTransfer(region, from->getMemoryNode(),
-		ClusterManager::getCurrentMemoryNode(), request, mpiSrc, messageId);
+		ClusterManager::getCurrentMemoryNode(), request, mpiSrc, messageId, /* isFetch */ true);
 }
 
 void MPIMessenger::synchronizeAll(void)

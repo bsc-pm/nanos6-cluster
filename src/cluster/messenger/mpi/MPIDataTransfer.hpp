@@ -22,8 +22,9 @@ public:
 		MemoryPlace const *target,
 		MPI_Request *request,
 		int MPISource,
-		int transferId
-	) : DataTransfer(region, source, target, request, MPISource, transferId)
+		int transferId,
+		bool isFetch
+	) : DataTransfer(region, source, target, request, MPISource, transferId, isFetch)
 	{
 	}
 
