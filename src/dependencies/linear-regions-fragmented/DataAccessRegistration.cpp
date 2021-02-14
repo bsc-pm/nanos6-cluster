@@ -827,6 +827,8 @@ namespace DataAccessRegistration {
 			}
 
 			if (updatedStatus._allowNamespacePropagation
+				&& (access->getObjectType() == access_type)
+				&& (access->getNext()._objectType == access_type)
 				&& !access->hasSubaccesses()
 				&& !access->getPropagatedNamespaceInfo()
 				&& (access->getValidNamespace() >= 0)) {
