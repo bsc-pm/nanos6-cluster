@@ -3786,7 +3786,7 @@ namespace DataAccessRegistration {
 		// Take the lock on the task data accesses (all locking in
 		// DataAccessRegistration is done on the task data accesses).
 		Task *task = origTask;
-		while (task->getParent() != nullptr && !task->isNodeNamespace()) {
+		while (task != nullptr && !task->isNodeNamespace()) {
 
 			TaskDataAccesses &accessStructures = task->getDataAccesses();
 			assert(!accessStructures.hasBeenDeleted());
