@@ -1028,7 +1028,9 @@ namespace DataAccessRegistration {
 			 * Discounted means that it is no longer blocking the removal of
 			 * the task (?)
 			 */
-			access->markAsDiscounted();
+			if (access->getObjectType() != taskwait_type) {
+				access->markAsDiscounted();
+			}
 
 			if (access->getObjectType() == taskwait_type) {
 				// Update parent data access ReductionSlotSet with information from its subaccesses
@@ -4469,6 +4471,7 @@ namespace DataAccessRegistration {
 				if (!taskwaitFragment->hasNext()) {
 					assert ((taskwaitFragment->getObjectType() == taskwait_type)
 						|| (taskwaitFragment->getObjectType() == top_level_sink_type));
+					taskwaitFragment->markAsDiscounted();
 					removeBottomMapTaskwaitOrTopLevelSink(taskwaitFragment, accessStructures, task, hpDependencyData);
 				}
 				return true;
