@@ -44,6 +44,7 @@ inline Task::Task(
 	_priority(0),
 	_deadline(0),
 	_schedulingHint(NO_HINT),
+	_dataReleaseStep(nullptr),
 	_thread(nullptr),
 	_dataAccesses(taskAccessInfo),
 	_flags(flags),
@@ -97,6 +98,7 @@ inline void Task::reinitialize(
 	_priority = 0;
 	_deadline = 0;
 	_schedulingHint = NO_HINT;
+	_dataReleaseStep = nullptr;
 	_thread = nullptr;
 	_flags = flags;
 	_predecessorCount = 0;
