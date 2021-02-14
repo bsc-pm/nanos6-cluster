@@ -565,6 +565,8 @@ namespace DataAccessRegistration {
 					DataAccessStatusEffects initialStatus(lastAccess);
 					assert (initialStatus._isRemovable);
 #endif
+					accessStructures._removalBlockers--;
+					assert(accessStructures._removalBlockers > 0);
 					// accessStructures._liveTaskwaitFragmentCount--;
 					// assert(accessStructures._liveTaskwaitFragmentCount > 0);
 					/* true: erase the second region */
@@ -1021,8 +1023,7 @@ namespace DataAccessRegistration {
 		if (initialStatus._isRemovable != updatedStatus._isRemovable) {
 			assert(!initialStatus._isRemovable);
 
-			int newRemovalBlockers = (accessStructures._removalBlockers.fetch_sub(1, std::memory_order_relaxed) - 1);
-			assert(newRemovalBlockers >= 0);
+			int newRemovalBlockers;
 
 			/*
 			 * Discounted means that it is no longer blocking the removal of
@@ -1030,6 +1031,10 @@ namespace DataAccessRegistration {
 			 */
 			if (access->getObjectType() != taskwait_type) {
 				access->markAsDiscounted();
+				newRemovalBlockers = (accessStructures._removalBlockers.fetch_sub(1, std::memory_order_relaxed) - 1);
+				assert(newRemovalBlockers >= 0);
+			} else {
+				newRemovalBlockers = accessStructures._removalBlockers;
 			}
 
 			if (access->getObjectType() == taskwait_type) {
@@ -4473,6 +4478,12 @@ namespace DataAccessRegistration {
 						|| (taskwaitFragment->getObjectType() == top_level_sink_type));
 					taskwaitFragment->markAsDiscounted();
 					removeBottomMapTaskwaitOrTopLevelSink(taskwaitFragment, accessStructures, task, hpDependencyData);
+					accessStructures._removalBlockers--;
+					if (accessStructures._removalBlockers == 0) {
+						if (task->decreaseRemovalBlockingCount()) {
+							hpDependencyData._removableTasks.push_back(task);
+						}
+					}
 				}
 				return true;
 			}
