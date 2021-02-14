@@ -298,17 +298,13 @@ namespace DataAccessRegistration {
 				 * for a subtask, updateTaskDataAccessLocation will update
 				 * the location at all parents including this task.
 				 */
-				Task *task = access->getOriginator();
 				bool disableReadPropagationToNext = false;
-				if (task->getParent() && task->getParent()->isNodeNamespace()) {
-					/* Next is in the namespace */
-					if (access->readSatisfied()) {
-						if (access->hasLocation() && !ClusterManager::isLocalMemoryPlace(access->getLocation())) {
-							/* Read satisfied, but not present locally */
-							if (!access->complete()) {
-								/* And not complete */
-								disableReadPropagationToNext = true;
-							}
+				if (access->readSatisfied()) {
+					if (access->hasLocation() && !ClusterManager::isLocalMemoryPlace(access->getLocation())) {
+						/* Read satisfied, but not present locally */
+						if (!access->complete()) {
+							/* And not complete */
+							disableReadPropagationToNext = true;
 						}
 					}
 				}
