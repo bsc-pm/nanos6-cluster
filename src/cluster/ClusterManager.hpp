@@ -306,13 +306,6 @@ public:
 	//!		object which can be used to track the completion of the
 	//!		data transfer. In blocking mode this always returns
 	//!		nullptr
-	static void fetchData(
-		DataAccessRegion const &region,
-		MemoryPlace const *from,
-		DataTransfer::data_transfer_callback_t postcallback,
-		bool block
-	);
-
 	static void fetchVector(
 		size_t nFragments,
 		std::vector<ExecutionWorkflow::ClusterDataCopyStep *> const &copySteps,

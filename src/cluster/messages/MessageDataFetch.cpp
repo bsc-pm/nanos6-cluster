@@ -11,35 +11,6 @@
 
 #include "executors/workflow/cluster/ExecutionWorkflowCluster.hpp"
 
-MessageDataFetch::MessageDataFetch(const ClusterNode *from, DataAccessRegion const &remoteRegion)
-	: Message(DATA_FETCH, getMessageContentSizeFromRegion(remoteRegion), from)
-{
-	_content = reinterpret_cast<DataFetchMessageContent *>(_deliverable->payload);
-
-	const size_t nFragments = ClusterManager::getMPIFragments(remoteRegion);
-	_content->_nregions = nFragments;
-
-	char *start = (char *)remoteRegion.getStartAddress();
-
-	// if we fragmented the region then more regions are required
-	for (size_t i = 0; start < remoteRegion.getEndAddress(); ++i) {
-
-		assert(i < nFragments);
-		char *end = (char *) remoteRegion.getEndAddress();
-
-		char *tmp = start + ClusterManager::getMessageMaxSize();
-		if (tmp < end) {
-			end = tmp;
-		}
-
-		_content->_remoteRegionInfo[i]._id = (i == 0 ? getId() : MessageId::nextMessageId());
-		_content->_remoteRegionInfo[i]._remoteRegion = DataAccessRegion(start, end);
-
-		start = tmp;
-	}
-}
-
-
 MessageDataFetch::MessageDataFetch(
 	const ClusterNode *from,
 	size_t numFragments,

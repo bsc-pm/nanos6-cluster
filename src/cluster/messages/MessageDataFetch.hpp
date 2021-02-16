@@ -44,8 +44,6 @@ public:
 		std::vector<ExecutionWorkflow::ClusterDataCopyStep *> const &copySteps
 	);
 
-	MessageDataFetch(const ClusterNode *from, DataAccessRegion const &region);
-
 	MessageDataFetch(Deliverable *dlv) : Message(dlv)
 	{
 		_content = reinterpret_cast<DataFetchMessageContent *>(_deliverable->payload);
