@@ -37,17 +37,17 @@ class CPUObjectCache {
 	 *
 	 * These pools are not thread safe, i.e. they are meant to be accessed
 	 * only by the thread that runs on the current CPU. */
-	std::deque<pool_t> _available;
+	std::vector<pool_t> _available;
 
 	CPUObjectCache () =  delete;
 
 public:
 	CPUObjectCache(NUMAObjectCache<T> *pool, size_t numaId, size_t numaNodeCount)
 		: _NUMAObjectCache(pool), _NUMANodeId(numaId),
-		_numaNodeCount(numaNodeCount), _allocationSize (1)
+		_numaNodeCount(numaNodeCount), _allocationSize(1), _available(numaNodeCount + 1)
 	{
+		assert(!_available.empty());
 		assert(numaId <= numaNodeCount);
-		_available.resize(numaNodeCount + 1);
 	}
 
 	~CPUObjectCache()
@@ -58,6 +58,7 @@ public:
 	template <typename... TS>
 	T *newObject(TS &&... args)
 	{
+		assert(_NUMANodeId < _available.size());
 		pool_t &local = _available.at(_NUMANodeId);
 
 		if (local.empty()) {
@@ -110,7 +111,7 @@ public:
 			if (_available[nodeId].size() >= 64) {
 				_NUMAObjectCache->returnObjects(nodeId, _available[nodeId]);
 			}
-		} else if (_available[nodeId].size() >= _allocationSize + 64*2) {
+		} else if (_available[nodeId].size() >= _allocationSize + 64 * 2) {
 			// Return surplus free objects in local pool, keeping
 			// _allocationSize+64 to reduce number of doublings of _allocationSize.
 			_NUMAObjectCache->returnObjects(nodeId, _available[nodeId], 64);
