@@ -63,7 +63,7 @@ bool MemoryAllocator::getPool(size_t size, bool useCPUPool, MemoryPool *&pool)
 	const size_t cacheLineSize = _singleton->_cacheLineSize;
 	const size_t roundedSize = (size + _cacheLineSize - 1) & ~(_cacheLineSize - 1);
 	const size_t cacheLines = roundedSize / cacheLineSize;
-	bool isExternal;
+	bool isExternal = false;
 
 	assert (roundedSize > 0);
 	if (useCPUPool) {
@@ -151,7 +151,7 @@ void *MemoryAllocator::alloc(size_t size, bool useCPUPool)
 {
 	assert(init == true);
 	assert(_singleton != nullptr);
-	MemoryPool *pool;
+	MemoryPool *pool =  nullptr;
 	bool isExternal = _singleton->getPool(size, useCPUPool, pool);
 
 	assert(pool != nullptr);

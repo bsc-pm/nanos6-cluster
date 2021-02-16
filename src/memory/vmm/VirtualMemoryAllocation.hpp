@@ -38,9 +38,9 @@ public:
 			flags |= MAP_FIXED;
 		}
 		void *ret = mmap(_address, _size, prot, flags, -1, 0);
-		FatalErrorHandler::failIf(ret == MAP_FAILED, "mapping virtual address space failed");
 
-		_address = ret;
+		FatalErrorHandler::failIf(ret == MAP_FAILED, "mapping virtual address space failed");
+		FatalErrorHandler::failIf(ret != _address, "mapping virtual address space couldn't use hint");
 	}
 
 	~VirtualMemoryAllocation()
