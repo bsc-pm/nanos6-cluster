@@ -15,7 +15,7 @@
 class ClusterSchedulerInterface : public SchedulerInterface {
 protected:
 	//! Current cluster node
-	ClusterNode *_thisNode;
+	ClusterNode * const _thisNode;
 	ClusterNode *_lastScheduledNode;
 
 	//! Number of cluster nodes

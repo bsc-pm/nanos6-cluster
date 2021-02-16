@@ -17,69 +17,36 @@
 
 #include <ClusterManager.hpp>
 
-class ClusterScheduler : public SchedulerInterface {
-	SchedulerInterface *_clusterSchedulerImplementation;
+class ClusterScheduler {
 
 public:
-	ClusterScheduler()
+	static SchedulerInterface *generate(const std::string &name)
 	{
 		if (ClusterManager::inClusterMode()) {
 			ConfigVariable<std::string> clusterSchedulerName("cluster.scheduling_policy");
 
-			if (clusterSchedulerName.getValue() == "random") {
-				_clusterSchedulerImplementation = new ClusterRandomScheduler();
-			} else if (clusterSchedulerName.getValue() == "locality") {
-				_clusterSchedulerImplementation = new ClusterLocalityScheduler();
-			} else {
-				// This is the default.
-				_clusterSchedulerImplementation = new ClusterLocalityScheduler();
-
-				assert(_clusterSchedulerImplementation != nullptr);
-
-				FatalErrorHandler::warnIf(true,
-					"Unknown cluster scheduler:", clusterSchedulerName.getValue(),
-					". Using default: ", _clusterSchedulerImplementation->getName()
-				);
+			if (name == "random") {
+				return new ClusterRandomScheduler();
 			}
+
+			if (name == "locality") {
+				return new ClusterLocalityScheduler();
+			}
+
+			SchedulerInterface *ret = new ClusterLocalityScheduler();
+			// This is the default.
+			FatalErrorHandler::warnIf(true,
+				"Unknown cluster scheduler:", clusterSchedulerName.getValue(),
+				". Using default: ", ret->getName()
+			);
+
+			return ret;
+
 		} else {
-			_clusterSchedulerImplementation = new LocalScheduler();
+			return new LocalScheduler();
 		}
 	}
 
-	~ClusterScheduler()
-	{
-		delete _clusterSchedulerImplementation;
-	}
-
-	inline void addReadyTask(Task *task, ComputePlace *computePlace, ReadyTaskHint hint = NO_HINT)
-	{
-		_clusterSchedulerImplementation->addReadyTask(task, computePlace, hint);
-	}
-
-	inline void addReadyTasks(
-		nanos6_device_t taskType,
-		Task *tasks[],
-		const size_t numTasks,
-		ComputePlace *computePlace,
-		ReadyTaskHint hint)
-	{
-		_clusterSchedulerImplementation->addReadyTasks(taskType, tasks, numTasks, computePlace, hint);
-	}
-
-	inline Task *getReadyTask(ComputePlace *computePlace)
-	{
-		return _clusterSchedulerImplementation->getReadyTask(computePlace);
-	}
-
-	inline bool isServingTasks() const
-	{
-		return _clusterSchedulerImplementation->isServingTasks();
-	}
-
-	inline std::string getName() const
-	{
-		return _clusterSchedulerImplementation->getName();
-	}
 };
 
 #endif // CLUSTER_SCHEDULER_HPP

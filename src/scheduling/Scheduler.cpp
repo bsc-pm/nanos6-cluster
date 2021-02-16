@@ -9,18 +9,22 @@
 
 #ifdef USE_CLUSTER
 #include "ClusterScheduler.hpp"
-typedef ClusterScheduler instanceScheduler;
 #else
 #include "LocalScheduler.hpp"
-typedef LocalScheduler instanceScheduler;
 #endif
 
 
-SchedulerInterface *Scheduler::_instance;
+SchedulerInterface *Scheduler::_instance = nullptr;
 
 void Scheduler::initialize()
 {
-	_instance = new instanceScheduler();
+#ifdef USE_CLUSTER
+	ConfigVariable<std::string> clusterSchedulerName("cluster.scheduling_policy");
+
+	_instance = ClusterScheduler::generate(clusterSchedulerName.getValue());
+#else
+	_instance = new LocalScheduler();
+#endif
 
 	assert(_instance != nullptr);
 	RuntimeInfo::addEntry("scheduler", "Scheduler", _instance->getName());
@@ -29,4 +33,5 @@ void Scheduler::initialize()
 void Scheduler::shutdown()
 {
 	delete _instance;
+	_instance = nullptr;
 }
