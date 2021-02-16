@@ -26,7 +26,7 @@
 
 MPIMessenger::MPIMessenger()
 {
-	int support, ret;
+	int support, ret, ubIsSetFlag;
 
 	ret = MPI_Init_thread(NULL, NULL, MPI_THREAD_MULTIPLE, &support);
 	MPIErrorHandler::handle(ret, MPI_COMM_WORLD);
@@ -63,6 +63,11 @@ MPIMessenger::MPIMessenger()
 	ret = MPI_Comm_size(INTRA_COMM, &_wsize);
 	MPIErrorHandler::handle(ret, INTRA_COMM);
 	assert(_wsize > 0);
+
+	//! Get the upper-bound tag supported by current MPI implementation
+	ret = MPI_Comm_get_attr(INTRA_COMM, MPI_TAG_UB, &_mpi_ub_tag, &ubIsSetFlag);
+	MPIErrorHandler::handle(ret, INTRA_COMM);
+	assert(ubIsSetFlag != 0);
 }
 
 MPIMessenger::~MPIMessenger()
@@ -86,7 +91,8 @@ void MPIMessenger::sendMessage(Message *msg, ClusterNode const *toNode, bool blo
 
 	//! At the moment we use the Message id and the Message type to create
 	//! the MPI tag of the communication
-	int tag = (delv->header.id << 8) | delv->header.type;
+	int mask = *(int *)_mpi_ub_tag;
+	int tag =  mask & ((delv->header.id << 8) | delv->header.type);
 
 	assert(mpiDst < _wsize && mpiDst != _wrank);
 	assert(delv->header.size != 0);
@@ -135,7 +141,8 @@ DataTransfer *MPIMessenger::sendData(
 		Instrument::clusterDataSend(address, size, mpiDst, messageId);
 	}
 
-	int tag = (messageId << 8) | DATA_RAW;
+	int mask = *(int *)_mpi_ub_tag;
+	int tag = mask & ((messageId << 8) | DATA_RAW);
 
 	if (block) {
 		ret = MPI_Send(address, size, MPI_BYTE, mpiDst, tag, INTRA_COMM_DATA_RAW);
@@ -173,7 +180,8 @@ DataTransfer *MPIMessenger::fetchData(
 
 	assert(mpiSrc < _wsize && mpiSrc != _wrank);
 
-	int tag = (messageId << 8) | DATA_RAW;
+	int mask = *(int *)_mpi_ub_tag;
+	int tag = mask & ((messageId << 8) | DATA_RAW);
 
 	if (block) {
 		ret = MPI_Recv(address, size, MPI_BYTE, mpiSrc, tag, INTRA_COMM_DATA_RAW, MPI_STATUS_IGNORE);

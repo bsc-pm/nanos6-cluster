@@ -26,6 +26,11 @@ private:
 	int _wrank = -1, _wsize = -1;
 	MPI_Comm INTRA_COMM, INTRA_COMM_DATA_RAW, PARENT_COMM;
 
+	// Upper bound MPI tag supported by current implementation,
+	// used for masking MPI tags to prevent out-of-range MPI 
+	// tags when sending/receiving large number of messages.
+	void *_mpi_ub_tag;
+
 	template<typename T>
 	void testCompletionInternal(std::vector<T *> &pending);
 public:
