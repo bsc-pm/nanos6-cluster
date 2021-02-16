@@ -67,7 +67,7 @@ namespace Instrument {
 		addLogEntry(logEntry);
 	}
 
-    void clusterDataSend(void *, size_t dataSize, int dest, int, InstrumentationContext const &)
+	void clusterDataSend(void *, size_t dataSize, int dest, int messageId, InstrumentationContext const &)
 	{
 		if(!_verboseClusterMessages) {
 			return;
@@ -81,14 +81,18 @@ namespace Instrument {
 
 		logEntry->appendLocation(context);
 
-		logEntry->_contents << " --> SendingRawData size:"
+		if(messageId >= 0) {
+			logEntry->_contents << " --> SendingRawData size:"
 				<< dataSize
 				<< " targetNode:" << dest;
+		} else {
+			logEntry->_contents << " <-- SendingRawData id:" <<  messageId;
+		}
 
 		addLogEntry(logEntry);
 	}
 
-	void clusterDataReceived(void *, size_t dataSize, int source, int, InstrumentationContext const &)
+	void clusterDataReceived(void *, size_t dataSize, int source, int messageId, InstrumentationContext const &)
 	{
 		if(!_verboseClusterMessages) {
 			return;
@@ -102,9 +106,13 @@ namespace Instrument {
 
 		logEntry->appendLocation(context);
 
-		logEntry->_contents << " <-- ReceivingRawData size:"
+		if(messageId >= 0) {
+			logEntry->_contents << " <-- ReceivingRawData size:"
 				<< dataSize
 				<< " sourceNode:" << source;
+		} else {
+			logEntry->_contents << " <-- ReceivingRawData id:" <<  messageId;
+		}
 
 		addLogEntry(logEntry);
 	}	
