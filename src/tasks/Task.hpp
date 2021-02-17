@@ -68,6 +68,7 @@ public:
 		remote_wrapper_flag,
 		remote_flag,
 		polling_flag,
+		nonlocal_wait_flag,
 		total_flags
 	};
 
@@ -639,6 +640,28 @@ public:
 		assert(_flags[wait_flag]);
 		_flags[wait_flag] = false;
 	}
+
+	//! \brief Set delayed release of only the non-locally propagated
+	//! accesses; i.e. those that will require a release access message
+	//! rather than those that are propagated in the namespace. Delayed
+	//! release is beneficial as it may unfragment accesses to combine
+	//! messages.
+	inline void setDelayedNonLocalRelease()
+	{
+		_flags[nonlocal_wait_flag] = true;
+		//! Non-local wait is implemented as a variant of the wait clause,
+		//! so also set the normal wait flag.
+		_flags[wait_flag] = true;
+	}
+
+	//! \brief Check whether delayed release is only for non-locally
+	//! propagated accesses.
+	inline bool delayedReleaseNonLocalOnly() const
+	{
+		assert(_flags[wait_flag]);
+		return _flags[nonlocal_wait_flag];
+	}
+
 
 	inline bool hasPreallocatedArgsBlock() const
 	{

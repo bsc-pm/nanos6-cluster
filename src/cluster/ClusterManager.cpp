@@ -33,14 +33,14 @@ ClusterManager::ClusterManager()
 	: _clusterNodes(1),
 	_thisNode(new ClusterNode(0, 0)),
 	_masterNode(_thisNode),
-	_msn(nullptr), _usingNamespace(false), _disableRemote(false),
+	_msn(nullptr), _usingNamespace(false), _disableRemote(false), _disableAutowait(false),
 	_callback(nullptr)
 {
 	_clusterNodes[0] = _thisNode;
 }
 
 ClusterManager::ClusterManager(std::string const &commType)
-	:_msn(nullptr), _disableRemote(false), _callback(nullptr)
+	:_msn(nullptr), _disableRemote(false), _disableAutowait(false), _callback(nullptr)
 {
 	TaskOffloading::RemoteTasksInfoMap::init();
 
@@ -79,6 +79,9 @@ ClusterManager::ClusterManager(std::string const &commType)
 		ConfigVariable<bool> disableRemote("cluster.disable_remote");
 		_disableRemote = disableRemote.getValue();
 	}
+
+	ConfigVariable<bool> disableAutowait("cluster.disable_autowait");
+	_disableAutowait = disableAutowait.getValue();
 
 	ConfigVariable<size_t> messageMaxSize("cluster.message_max_size");
 	_messageMaxSize = messageMaxSize.getValue();

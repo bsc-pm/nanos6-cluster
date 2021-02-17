@@ -305,6 +305,17 @@ namespace TaskOffloading {
 		// Submit the task
 		AddTask::submitTask(task, parent, true);
 
+		// If the task does not have the wait flag then, unless
+		// cluster.disable_autowait=false, set the "autowait" flag, which will
+		// enable early release for accesses ("locally") propagated in the namespace
+		// and use delayed release for the ("non-local") accesses that require a
+		// message back to the offloader.
+		if (!task->mustDelayRelease()) {
+			if (!ClusterManager::getDisableAutowait()) {
+				task->setDelayedNonLocalRelease();
+			}
+		}
+
 		// Propagate satisfiability embedded in the Message
 		for (size_t i = 0; i < numSatInfo; ++i) {
 			if (satInfo[i]._readSat || satInfo[i]._writeSat) {

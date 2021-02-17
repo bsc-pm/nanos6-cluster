@@ -54,6 +54,8 @@ private:
 
 	bool _disableRemote;
 
+	bool _disableAutowait;
+
 	size_t _messageMaxSize;
 
 	//! The ShutdownCallback for this ClusterNode.
@@ -384,6 +386,12 @@ public:
 	{
 		assert(_singleton != nullptr);
 		return _singleton->_disableRemote;
+	}
+
+	static bool getDisableAutowait()
+	{
+		assert(_singleton != nullptr);
+		return _singleton->_disableAutowait;
 	}
 
 	static size_t getMessageMaxSize()
