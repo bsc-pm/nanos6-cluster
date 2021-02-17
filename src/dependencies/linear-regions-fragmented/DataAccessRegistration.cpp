@@ -3138,6 +3138,116 @@ namespace DataAccessRegistration {
 
 
 	/*
+	 * Create a single taskwait fragment (called by createTaskwait).
+	 * Starts and finishes with the lock on task.
+	 */
+	static inline void createTaskwaitFragment(
+		Task *task,
+		BottomMapEntry *bottomMapEntry,
+		ComputePlace *computePlace,
+		bool noflush,
+		DataAccessRegion region,
+		TaskDataAccesses &accessStructures,
+		CPUDependencyData &hpDependencyData)
+	{
+		DataAccessLink previous = bottomMapEntry->_link;
+		DataAccessType accessType = bottomMapEntry->_accessType;
+		reduction_type_and_operator_index_t reductionTypeAndOperatorIndex =
+		bottomMapEntry->_reductionTypeAndOperatorIndex;
+		{
+			DataAccess *taskwaitFragment = createAccess(
+				task,
+				taskwait_type,
+				accessType, /* not weak */ false, region,
+				reductionTypeAndOperatorIndex);
+
+			// No need for symbols in a taskwait
+
+			DataAccessStatusEffects initialStatus(taskwaitFragment);
+			taskwaitFragment->setNewInstrumentationId(task->getInstrumentationTaskId());
+			taskwaitFragment->setInBottomMap();
+			taskwaitFragment->setRegistered();
+			if (computePlace != nullptr && !noflush) {
+				taskwaitFragment->setOutputLocation(computePlace->getMemoryPlace(0));
+			}
+			// taskwaitFragment->setComplete();
+
+		// NOTE: For now we create it as completed, but we could actually link
+		// that part of the status to any other actions that needed to be carried
+		// out. For instance, data transfers.
+		// taskwaitFragment->setComplete();
+#ifndef NDEBUG
+			taskwaitFragment->setReachable();
+#endif
+			accessStructures._taskwaitFragments.insert(*taskwaitFragment);
+
+			// Update the bottom map entry to now be of taskwait type
+			bottomMapEntry->_link._objectType = taskwait_type;
+			bottomMapEntry->_link._task = task;
+
+			DataAccessStatusEffects updatedStatus(taskwaitFragment);
+
+			handleDataAccessStatusChanges(
+				initialStatus, updatedStatus,
+				taskwaitFragment, accessStructures, task,
+				hpDependencyData);
+		}
+
+		/*
+		 * Previous task (that was previously in the bottom map)
+		 */
+		TaskDataAccesses &previousAccessStructures = previous._task->getDataAccesses();
+
+		// Unlock parent task to avoid potential deadlock
+		if (previous._task != task) {
+			accessStructures._lock.unlock();
+			previousAccessStructures._lock.lock();
+		}
+
+		followLink(
+			previous, region,
+			[&](DataAccess *previousAccess) -> bool {
+				DataAccessStatusEffects initialStatus(previousAccess);
+				// Mark end of reduction
+				if ((previousAccess->getType() == REDUCTION_ACCESS_TYPE)
+					&& (previousAccess->getReductionTypeAndOperatorIndex()
+						!= reductionTypeAndOperatorIndex)) {
+					// When a reduction access is to be linked with a taskwait, we want to mark the
+					// reduction access so that it is the last access of its reduction chain
+					//
+					// Note: This should only be done when the reductionType of the parent access
+					// (obtained by 'reductionTypeAndOperatorIndex')
+					// is different from the reduction access reductionType.
+					// Ie. The reduction in which the subaccess participates is different from its
+					// parent's reduction, and thus it should be closed by the nested taskwait
+					previousAccess->setClosesReduction();
+				}
+
+				/*
+				 * Link to the taskwait and unset flag indicating that it was in bottom map.
+				 */
+
+				previousAccess->setNext(DataAccessLink(task, taskwait_type));
+				previousAccess->unsetInBottomMap();
+				DataAccessStatusEffects updatedStatus(previousAccess);
+
+				handleDataAccessStatusChanges(
+					initialStatus, updatedStatus,
+					previousAccess, previousAccessStructures, previous._task,
+					hpDependencyData
+				);
+
+				return true;
+			});
+
+		// Relock to exit with the lock still on task
+		if (previous._task != task) {
+			previousAccessStructures._lock.unlock();
+			accessStructures._lock.lock();
+		}
+	}
+
+	/*
 	 * Create a taskwait. The lock should already be taken on the task's
 	 * access structures.
 	 */
@@ -3237,111 +3347,121 @@ namespace DataAccessRegistration {
 			[&](TaskDataAccesses::subaccess_bottom_map_t::iterator bottomMapPosition) -> bool {
 				BottomMapEntry *bottomMapEntry = &(*bottomMapPosition);
 				assert(bottomMapEntry != nullptr);
-
-				DataAccessLink previous = bottomMapEntry->_link;
 				DataAccessRegion region = bottomMapEntry->_region;
-				DataAccessType accessType = bottomMapEntry->_accessType;
-				reduction_type_and_operator_index_t reductionTypeAndOperatorIndex =
-					bottomMapEntry->_reductionTypeAndOperatorIndex;
 
 				// Create the taskwait fragment
-				{
-					DataAccess *taskwaitFragment = createAccess(
-						task,
-						taskwait_type,
-						accessType, /* not weak */ false, region,
-						reductionTypeAndOperatorIndex);
-
-					// No need for symbols in a taskwait
-
-					DataAccessStatusEffects initialStatus(taskwaitFragment);
-					taskwaitFragment->setNewInstrumentationId(task->getInstrumentationTaskId());
-					taskwaitFragment->setInBottomMap();
-					taskwaitFragment->setRegistered();
-					if (computePlace != nullptr && !noflush) {
-						taskwaitFragment->setOutputLocation(computePlace->getMemoryPlace(0));
-					}
-					// taskwaitFragment->setComplete();
-
-				// NOTE: For now we create it as completed, but we could actually link
-				// that part of the status to any other actions that needed to be carried
-				// out. For instance, data transfers.
-				// taskwaitFragment->setComplete();
-#ifndef NDEBUG
-					taskwaitFragment->setReachable();
-#endif
-					accessStructures._taskwaitFragments.insert(*taskwaitFragment);
-
-					// Update the bottom map entry to now be of taskwait type
-					bottomMapEntry->_link._objectType = taskwait_type;
-					bottomMapEntry->_link._task = task;
-
-					DataAccessStatusEffects updatedStatus(taskwaitFragment);
-
-					handleDataAccessStatusChanges(
-						initialStatus, updatedStatus,
-						taskwaitFragment, accessStructures, task,
-						hpDependencyData);
-				}
-
-				/*
-				 * Previous task (that was previously in the bottom map)
-				 */
-				TaskDataAccesses &previousAccessStructures = previous._task->getDataAccesses();
-
-				// Unlock parent task to avoid potential deadlock
-				if (previous._task != task) {
-					accessStructures._lock.unlock();
-					previousAccessStructures._lock.lock();
-				}
-
-				followLink(
-					previous, region,
-					[&](DataAccess *previousAccess) -> bool {
-						DataAccessStatusEffects initialStatus(previousAccess);
-						// Mark end of reduction
-						if ((previousAccess->getType() == REDUCTION_ACCESS_TYPE)
-							&& (previousAccess->getReductionTypeAndOperatorIndex()
-								!= reductionTypeAndOperatorIndex)) {
-							// When a reduction access is to be linked with a taskwait, we want to mark the
-							// reduction access so that it is the last access of its reduction chain
-							//
-							// Note: This should only be done when the reductionType of the parent access
-							// (obtained by 'reductionTypeAndOperatorIndex')
-							// is different from the reduction access reductionType.
-							// Ie. The reduction in which the subaccess participates is different from its
-							// parent's reduction, and thus it should be closed by the nested taskwait
-							previousAccess->setClosesReduction();
-						}
-
-						/*
-						 * Link to the taskwait and unset flag indicating that it was in bottom map.
-						 */
-
-						previousAccess->setNext(DataAccessLink(task, taskwait_type));
-						previousAccess->unsetInBottomMap();
-						DataAccessStatusEffects updatedStatus(previousAccess);
-
-						handleDataAccessStatusChanges(
-							initialStatus, updatedStatus,
-							previousAccess, previousAccessStructures, previous._task,
-							hpDependencyData
-						);
-
-						return true;
-					});
-
-				// Relock to advance the iterator
-				if (previous._task != task) {
-					previousAccessStructures._lock.unlock();
-					accessStructures._lock.lock();
-				}
+				createTaskwaitFragment(task, bottomMapEntry, computePlace, noflush, region, accessStructures, hpDependencyData);
 
 				/* Always continue with the rest of the bottom map */
 				return true;
 			});
 		if (mustWait) {
 			task->increaseBlockingCount();
+		}
+	}
+
+	/*
+	 * createTopLevelSinkFragment (called by createTopLevelSink).
+	 * Starts and finishes with the lock on task.
+	 */
+	static inline void createTopLevelSinkFragment(
+		Task *task,
+		BottomMapEntry *bottomMapEntry,
+		DataAccessRegion region,
+		TaskDataAccesses &accessStructures,
+		CPUDependencyData &hpDependencyData)
+	{
+		DataAccessLink previous = bottomMapEntry->_link;
+		DataAccessType accessType = bottomMapEntry->_accessType;
+		assert(bottomMapEntry->_reductionTypeAndOperatorIndex == no_reduction_type_and_operator);
+		{
+			DataAccess *topLevelSinkFragment = createAccess(
+				task,
+				top_level_sink_type,
+				accessType, /* not weak */ false, region);
+
+			// TODO, top level sink fragment, what to do with the symbols?
+
+			DataAccessStatusEffects initialStatus(topLevelSinkFragment);
+			topLevelSinkFragment->setNewInstrumentationId(task->getInstrumentationTaskId());
+			topLevelSinkFragment->setInBottomMap();
+			topLevelSinkFragment->setRegistered();
+
+			// NOTE: For now we create it as completed, but we could actually link
+			// that part of the status to any other actions that needed to be carried
+			// out. For instance, data transfers.
+			topLevelSinkFragment->setComplete();
+#ifndef NDEBUG
+			topLevelSinkFragment->setReachable();
+#endif
+			accessStructures._taskwaitFragments.insert(*topLevelSinkFragment);
+
+			// Update the bottom map entry
+			bottomMapEntry->_link._objectType = top_level_sink_type;
+			bottomMapEntry->_link._task = task;
+
+			DataAccessStatusEffects updatedStatus(topLevelSinkFragment);
+
+			handleDataAccessStatusChanges(
+				initialStatus, updatedStatus,
+				topLevelSinkFragment, accessStructures, task,
+				hpDependencyData);
+		}
+
+		TaskDataAccesses &previousAccessStructures = previous._task->getDataAccesses();
+
+		// Unlock to avoid potential deadlock
+		if (previous._task != task) {
+			accessStructures._lock.unlock();
+			previousAccessStructures._lock.lock();
+		}
+
+		/*
+		 * Process every access of the previous task (that was in the
+		 * bottom map) that intersects the current region, as its next
+		 * access will be the new top-level sink taskwait fragment.
+		 * Since previous is a DataAccessLink, followLink will apply
+		 * the lambda function to the right kind of accesses (access,
+		 * fragment or taskwait).
+		 */
+		followLink(
+			previous,    /* previous task was in bottom map */
+			region,
+			/* processor: called for every intersecting access of the previous task */
+			[&](DataAccess *previousAccess) -> bool
+			{
+				DataAccessStatusEffects initialStatus(previousAccess);
+				// Mark end of reduction
+				if (previousAccess->getType() == REDUCTION_ACCESS_TYPE) {
+					// When a reduction access is to be linked with a top-level sink, we want to mark the
+					// reduction access so that it is the last access of its reduction chain
+					//
+					// Note: This is different from the taskwait above in that a top-level sink will
+					// _always_ mean the reduction is to be closed
+					previousAccess->setClosesReduction();
+				}
+
+				/*
+				 * Link to the top-level sink and unset flag indicating that it was in bottom map.
+				 */
+				previousAccess->setNext(DataAccessLink(task, taskwait_type));
+				previousAccess->unsetInBottomMap();
+				DataAccessStatusEffects updatedStatus(previousAccess);
+
+				/* Handle the consequences */
+				handleDataAccessStatusChanges(
+					initialStatus, updatedStatus,
+					previousAccess, previousAccessStructures, previous._task,
+					hpDependencyData);
+
+				/* Continue with all intersecting accesses of previous task */
+				return true;
+			});
+
+		// Relock to exit with the lock still on task
+		if (previous._task != task) {
+			previousAccessStructures._lock.unlock();
+			accessStructures._lock.lock();
 		}
 	}
 
@@ -3368,102 +3488,10 @@ namespace DataAccessRegistration {
 			[&](TaskDataAccesses::subaccess_bottom_map_t::iterator bottomMapPosition) -> bool {
 				BottomMapEntry *bottomMapEntry = &(*bottomMapPosition);
 				assert(bottomMapEntry != nullptr);
-
-				DataAccessLink previous = bottomMapEntry->_link;
 				DataAccessRegion region = bottomMapEntry->_region;
-				DataAccessType accessType = bottomMapEntry->_accessType;
-				assert(bottomMapEntry->_reductionTypeAndOperatorIndex == no_reduction_type_and_operator);
 
 				// Create the top level sink fragment
-				{
-					DataAccess *topLevelSinkFragment = createAccess(
-						task,
-						top_level_sink_type,
-						accessType, /* not weak */ false, region);
-
-					// TODO, top level sink fragment, what to do with the symbols?
-
-					DataAccessStatusEffects initialStatus(topLevelSinkFragment);
-					topLevelSinkFragment->setNewInstrumentationId(task->getInstrumentationTaskId());
-					topLevelSinkFragment->setInBottomMap();
-					topLevelSinkFragment->setRegistered();
-
-					// NOTE: For now we create it as completed, but we could actually link
-					// that part of the status to any other actions that needed to be carried
-					// out. For instance, data transfers.
-					topLevelSinkFragment->setComplete();
-#ifndef NDEBUG
-					topLevelSinkFragment->setReachable();
-#endif
-					accessStructures._taskwaitFragments.insert(*topLevelSinkFragment);
-
-					// Update the bottom map entry
-					bottomMapEntry->_link._objectType = top_level_sink_type;
-					bottomMapEntry->_link._task = task;
-
-					DataAccessStatusEffects updatedStatus(topLevelSinkFragment);
-
-					handleDataAccessStatusChanges(
-						initialStatus, updatedStatus,
-						topLevelSinkFragment, accessStructures, task,
-						hpDependencyData);
-				}
-
-				TaskDataAccesses &previousAccessStructures = previous._task->getDataAccesses();
-
-				// Unlock to avoid potential deadlock
-				if (previous._task != task) {
-					accessStructures._lock.unlock();
-					previousAccessStructures._lock.lock();
-				}
-
-				/*
-				 * Process every access of the previous task (that was in the
-				 * bottom map) that intersects the current region, as its next
-				 * access will be the new top-level sink taskwait fragment.
-				 * Since previous is a DataAccessLink, followLink will apply
-				 * the lambda function to the right kind of accesses (access,
-				 * fragment or taskwait).
-				 */
-				followLink(
-					previous,    /* previous task was in bottom map */
-					region,
-					/* processor: called for every intersecting access of the previous task */
-					[&](DataAccess *previousAccess) -> bool
-					{
-						DataAccessStatusEffects initialStatus(previousAccess);
-						// Mark end of reduction
-						if (previousAccess->getType() == REDUCTION_ACCESS_TYPE) {
-							// When a reduction access is to be linked with a top-level sink, we want to mark the
-							// reduction access so that it is the last access of its reduction chain
-							//
-							// Note: This is different from the taskwait above in that a top-level sink will
-							// _always_ mean the reduction is to be closed
-							previousAccess->setClosesReduction();
-						}
-
-						/*
-						 * Link to the top-level sink and unset flag indicating that it was in bottom map.
-						 */
-						previousAccess->setNext(DataAccessLink(task, taskwait_type));
-						previousAccess->unsetInBottomMap();
-						DataAccessStatusEffects updatedStatus(previousAccess);
-
-						/* Handle the consequences */
-						handleDataAccessStatusChanges(
-							initialStatus, updatedStatus,
-							previousAccess, previousAccessStructures, previous._task,
-							hpDependencyData);
-
-						/* Continue with all intersecting accesses of previous task */
-						return true;
-					});
-
-				// Relock to advance the iterator
-				if (previous._task != task) {
-					previousAccessStructures._lock.unlock();
-					accessStructures._lock.lock();
-				}
+				createTopLevelSinkFragment(task, bottomMapEntry, region, accessStructures, hpDependencyData);
 
 				/* Always continue with the rest of the bottom map */
 				return true;
