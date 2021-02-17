@@ -61,6 +61,21 @@ public:
 	Message() = delete;
 	Message(MessageType type, size_t size, const ClusterNode *from);
 
+	template<typename T>
+	static bool RegisterMSGClass(int id)
+	{
+		static_assert(std::is_base_of<Message, T>::value);
+
+		return GenericFactory<int, Message*, Message::Deliverable*>::getInstance().emplace(
+			id,
+			[](Message::Deliverable *dlv) -> Message* {
+				return new T(dlv);
+			}
+		);
+	}
+
+
+
 	//! Construct a message from a received(?) Deliverable structure
 	Message(Deliverable *dlv)
 		: _callbacks(), _messengerData(nullptr), _completed(false),
@@ -163,7 +178,5 @@ public:
 	}
 };
 
-#define REGISTER_MSG_CLASS(NAME, CREATEFN) \
-	GenericFactory<int, Message*, Message::Deliverable*>::getInstance().emplace(NAME, CREATEFN)
 
 #endif /* MESSAGE_HPP */

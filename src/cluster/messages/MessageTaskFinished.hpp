@@ -17,26 +17,26 @@ class MessageTaskFinished : public Message {
 		//! offloaded task
 		void *_offloadedTaskId;
 	};
-	
+
 	//! pointer to message payload
 	TaskFinishedMessageContent *_content;
-	
+
 public:
 	MessageTaskFinished(const ClusterNode *from, void *offloadedTaskId);
-	
+
 	MessageTaskFinished(Deliverable *dlv)
 		: Message(dlv)
 	{
 		_content = reinterpret_cast<TaskFinishedMessageContent *>(_deliverable->payload);
 	}
-	
+
 	bool handleMessage();
-	
+
 	inline std::string toString() const
 	{
 		std::stringstream ss;
 		ss << "[offloadedTaskId:" << _content->_offloadedTaskId << "]";
-		
+
 		return ss.str();
 	}
 };

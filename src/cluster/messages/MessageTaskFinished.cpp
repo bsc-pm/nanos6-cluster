@@ -32,11 +32,5 @@ bool MessageTaskFinished::handleMessage()
 	return true;
 }
 
-//! Register the Message type to the Object factory
-static Message *createTaskFinishedMessage(Message::Deliverable *dlv)
-{
-	return new MessageTaskFinished(dlv);
-}
-
 static const bool __attribute__((unused))_registered_taskfinished =
-	REGISTER_MSG_CLASS(TASK_FINISHED, createTaskFinishedMessage);
+	Message::RegisterMSGClass<MessageTaskFinished>(TASK_FINISHED);

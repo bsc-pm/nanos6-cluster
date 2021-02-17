@@ -79,11 +79,5 @@ bool MessageTaskNew::handleMessage()
 	return false;
 }
 
-//! Register the Message type to the Object factory
-static Message *createTaskNewMessage(Message::Deliverable *dlv)
-{
-	return new MessageTaskNew(dlv);
-}
-
 static const bool __attribute__((unused))_registered_tasknew =
-	REGISTER_MSG_CLASS(TASK_NEW, createTaskNewMessage);
+	Message::RegisterMSGClass<MessageTaskNew>(TASK_NEW);

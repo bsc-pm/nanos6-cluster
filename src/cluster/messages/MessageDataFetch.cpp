@@ -72,10 +72,5 @@ size_t MessageDataFetch::getMessageContentSizeFromRegion(DataAccessRegion const 
 }
 
 
-static Message *createDataFetchMessage(Message::Deliverable *dlv)
-{
-	return new MessageDataFetch(dlv);
-}
-
 static const bool __attribute__((unused))_registered_dfetch =
-	REGISTER_MSG_CLASS(DATA_FETCH, createDataFetchMessage);
+	Message::RegisterMSGClass<MessageDataFetch>(DATA_FETCH);

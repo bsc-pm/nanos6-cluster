@@ -28,14 +28,7 @@ public:
 };
 
 //! Register the Message type to the Object factory
-namespace {
-	Message *createSysFinishMessage(Message::Deliverable *dlv)
-	{
-		return new MessageSysFinish(dlv);
-	}
-
-	const bool __attribute__((unused))_registered_sys_finish =
-		REGISTER_MSG_CLASS(SYS_FINISH, createSysFinishMessage);
-}
+const bool __attribute__((unused))_registered_sys_finish =
+	Message::RegisterMSGClass<MessageSysFinish>(SYS_FINISH);
 
 #endif /* MESSAGE_SYS_FINISH_HPP */

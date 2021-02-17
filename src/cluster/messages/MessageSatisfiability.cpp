@@ -32,11 +32,6 @@ bool MessageSatisfiability::handleMessage()
 	return true;
 }
 
-//! Register the Message type to the Object factory
-static Message *createSatisfiabilityMessage(Message::Deliverable *dlv)
-{
-	return new MessageSatisfiability(dlv);
-}
 
 static const bool __attribute__((unused))_registered_satisfiability =
-	REGISTER_MSG_CLASS(SATISFIABILITY, createSatisfiabilityMessage);
+	Message::RegisterMSGClass<MessageSatisfiability>(SATISFIABILITY);

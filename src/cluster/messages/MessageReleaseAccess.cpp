@@ -33,11 +33,5 @@ bool MessageReleaseAccess::handleMessage()
 	return true;
 }
 
-//! Register the Message type to the Object factory
-static Message *createReleaseAccessMessage(Message::Deliverable *dlv)
-{
-	return new MessageReleaseAccess(dlv);
-}
-
 static const bool __attribute__((unused))_registered_release_access =
-	REGISTER_MSG_CLASS(RELEASE_ACCESS, createReleaseAccessMessage);
+	Message::RegisterMSGClass<MessageReleaseAccess>(RELEASE_ACCESS);

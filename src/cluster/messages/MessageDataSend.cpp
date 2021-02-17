@@ -27,10 +27,5 @@ bool MessageDataSend::handleMessage()
 	return true;
 }
 
-static Message *createDataSendMessage(Message::Deliverable *dlv)
-{
-	return new MessageDataSend(dlv);
-}
-
 static const bool __attribute__((unused))_registered_dsend =
-	REGISTER_MSG_CLASS(DATA_SEND, createDataSendMessage);
+	Message::RegisterMSGClass<MessageDataSend>(DATA_SEND);

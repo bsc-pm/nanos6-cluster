@@ -69,11 +69,5 @@ bool MessageDmalloc::handleMessage()
 	return true;
 }
 
-//! Register the Message type to the Object factory
-static Message *createDmallocMessage(Message::Deliverable *dlv)
-{
-	return new MessageDmalloc(dlv);
-}
-
 static const bool __attribute__((unused))_registered_dmalloc =
-	REGISTER_MSG_CLASS(DMALLOC, createDmallocMessage);
+	Message::RegisterMSGClass<MessageDmalloc>(DMALLOC);
