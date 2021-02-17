@@ -75,6 +75,7 @@ private:
 		PROPAGATED_IN_REMOTE_NAMESPACE,
 		PROPAGATE_FROM_NAMESPACE_BIT,
 		PROPAGATED_NAMESPACE_INFO_BIT,
+		EARLY_RELEASE_IN_NAMESPACE_BIT,
 		TOTAL_STATUS_BITS
 	};
 
@@ -777,6 +778,16 @@ public:
 	void setPropagateFromNamespace()
 	{
 		_status[PROPAGATE_FROM_NAMESPACE_BIT] = true;
+	}
+
+	bool getEarlyReleaseInNamespace() const
+	{
+		return _status[EARLY_RELEASE_IN_NAMESPACE_BIT];
+	}
+
+	void setEarlyReleaseInNamespace()
+	{
+		_status[EARLY_RELEASE_IN_NAMESPACE_BIT] = true;
 	}
 };
 

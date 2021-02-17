@@ -3345,58 +3345,84 @@ namespace DataAccessRegistration {
 		 * map.  Iterate through the bottom map and for each subaccess in the
 		 * bottom map, create a new taskwait fragment that depends on it.
 		 */
-		accessStructures._subaccessBottomMap.processAll(
-			[&](TaskDataAccesses::subaccess_bottom_map_t::iterator bottomMapPosition) -> bool {
-				BottomMapEntry *bottomMapEntry = &(*bottomMapPosition);
-				assert(bottomMapEntry != nullptr);
-				DataAccessRegion region = bottomMapEntry->_region;
- 
-				/* With autowait, only create taskwait fragments for bottom map entries that are
-				 * not already covered by complete accesses (these will have already been
-				 * handled by unregisterNamespaceTaskDataAccesses).
-				 */
-				bool done = false; // use "done" flag since DataAccessRegion cannot be of zero size
-				if (nonLocalOnly) {
-					assert(task->isRemoteTaskInNamespace());
-					accessStructures._accesses.processIntersecting(
-						region,
-						[&](TaskDataAccesses::accesses_t::iterator position) -> bool {
-							DataAccess *dataAccess = &(*position);
-							assert(dataAccess != nullptr);
-							if (dataAccess->complete()) {
-								// Cut the region and do the part before this complete data access
-								// Note: this is carefully written to still create taskwait fragments
-								// if the bottom map entry goes outside the task's data accesses.
-								// This avoids hanging for incorrect programs
-								if (dataAccess->getAccessRegion().getStartAddress() > region.getStartAddress()) {
-									// There is a part of the region before this complete access
-									DataAccessRegion subregion(region.getStartAddress(),
-															   std::min<void*>(dataAccess->getAccessRegion().getStartAddress(),
-																			  region.getEndAddress()));
-									createTaskwaitFragment(task, bottomMapEntry, computePlace, noflush, subregion, accessStructures, hpDependencyData);
-									mustWait = true;
+		if (!nonLocalOnly) {
+			// Normal case: make a taskwait fragment for each entry on the bottom map
+		  	accessStructures._subaccessBottomMap.processAll(
+				   [&](TaskDataAccesses::subaccess_bottom_map_t::iterator bottomMapPosition) -> bool {
+						BottomMapEntry *bottomMapEntry = &(*bottomMapPosition);
+						assert(bottomMapEntry != nullptr);
+						DataAccessRegion region = bottomMapEntry->_region;
+						createTaskwaitFragment(task, bottomMapEntry, computePlace, noflush, region, accessStructures, hpDependencyData);
+						mustWait = true;
+						return true;
+					});
+		} else {
+			/* With autowait, only create taskwait fragments for bottom map
+			 * entries that have not already been early released in the
+			 * namespace (by unregisterNamespaceTaskDataAccesses). We have to
+			 * ensure that bottom map entries not covered by any access still
+			 * get a taskwait fragment, since otherwise there would be a hang
+			 * on incorrect programs where the parent pragmas don't cover all
+			 * the subtask accesses. We also have to use the "WithRestart"
+			 * method to iterate over the accesses, since
+			 * createTaskwaitFragment releases the lock on the access
+			 * structures to set the next link of the access in the bottom map;
+			 * this means that another thread may fragment the accesses while
+			 * we are iterating over them.
+			 */
+			accessStructures._subaccessBottomMap.processAll(
+				   [&](TaskDataAccesses::subaccess_bottom_map_t::iterator bottomMapPosition) -> bool {
+						BottomMapEntry *bottomMapEntry = &(*bottomMapPosition);
+						assert(bottomMapEntry != nullptr);
+						DataAccessRegion region = bottomMapEntry->_region;
+						void *addr = nullptr;
+						bool done = false;
+						accessStructures._accesses.processIntersectingWithRestart(
+							region,
+							[&](TaskDataAccesses::accesses_t::iterator position) -> bool {
+								bool continueWithoutRestart = true;
+								DataAccess *dataAccess = &(*position);
+								assert(dataAccess != nullptr);
+								DataAccessRegion accessRegion = dataAccess->getAccessRegion();
+								if (done || accessRegion.getEndAddress() <= addr) {
+									// Restart revisits the same access a second time; skip the second
+									// time a region is visited
+									return true;
 								}
-								if (dataAccess->getAccessRegion().getEndAddress() < region.getEndAddress()) {
-									// There is a part of the region after this complete access, so keep going
-									region = DataAccessRegion(dataAccess->getAccessRegion().getEndAddress(), region.getEndAddress());
-								} else {
-									// Otherwise stop
-									done = true;
-									return false;
+								addr = accessRegion.getEndAddress();
+								if (dataAccess->getEarlyReleaseInNamespace()) {
+									// This access has early release in the namespace
+									if (dataAccess->getAccessRegion().getStartAddress() > region.getStartAddress()) {
+										// There is a bit before this complete access
+										DataAccessRegion subregion(region.getStartAddress(),
+																	std::min<void*>(dataAccess->getAccessRegion().getStartAddress(),
+																	region.getEndAddress()));
+										// Non early-released access that needs a taskwait fragment
+										bottomMapEntry = fragmentBottomMapEntry(bottomMapEntry, subregion, accessStructures);
+										createTaskwaitFragment(task, bottomMapEntry, computePlace, noflush, subregion, accessStructures, hpDependencyData);
+										mustWait = true;
+										continueWithoutRestart = false;
+										bottomMapEntry = &(*(++bottomMapPosition));
+									}
+									if (dataAccess->getAccessRegion().getEndAddress() < region.getEndAddress()) {
+										// There is a part of the region after this complete access, so keep going
+										region = DataAccessRegion(dataAccess->getAccessRegion().getEndAddress(), region.getEndAddress());
+									} else {
+										// Otherwise stop
+									    done = true;
+									}
 								}
+								return continueWithoutRestart;
+							});
+							if (!done) {
+								bottomMapEntry = fragmentBottomMapEntry(bottomMapEntry, region, accessStructures);
+								createTaskwaitFragment(task, bottomMapEntry, computePlace, noflush, region, accessStructures, hpDependencyData);
+								mustWait = true;
 							}
-							return true;
+						/* Always continue with the rest of the accesses */
+						return true;
 						});
-				}
-				if (!done) {
-					// Create the taskwait fragment (non-autowait case, or final fragment with autowait)
-					createTaskwaitFragment(task, bottomMapEntry, computePlace, noflush, region, accessStructures, hpDependencyData);
-					mustWait = true;
-				}
-
-				/* Always continue with the rest of the bottom map */
-				return true;
-			});
+		}
 		if (mustWait) {
 			task->increaseBlockingCount();
 		}
@@ -3522,66 +3548,57 @@ namespace DataAccessRegistration {
 		Task *task, TaskDataAccesses &accessStructures, /* OUT */ CPUDependencyData &hpDependencyData)
 	{
 		assert(task != nullptr);
-		// assert(accessStructures._lock.isLockedByThisThread());
 
-		// For each bottom map entry
 		accessStructures._subaccessBottomMap.processAll(
-			/* processor: called for each bottom map entry */
-			[&](TaskDataAccesses::subaccess_bottom_map_t::iterator bottomMapPosition) -> bool {
-				BottomMapEntry *bottomMapEntry = &(*bottomMapPosition);
-				assert(bottomMapEntry != nullptr);
-				DataAccessRegion region = bottomMapEntry->_region;
-
-				/* For autowait, only create taskwait fragments for bottom map entries that are
-				 * not already covered by complete accesses (these will have already been
-				 * handled by unregisterNamespaceTaskDataAccesses).
-				 */
-				bool done = false; // need this extra flag as DataAccessRegion cannot be of zero size
-				accessStructures._accesses.processIntersecting(
-					region,
-					[&](TaskDataAccesses::accesses_t::iterator position) -> bool {
-						DataAccess *dataAccess = &(*position);
-						assert(dataAccess != nullptr);
-						if (dataAccess->complete()) {
-							// Cut the region and do the part before this complete data access
-							// Note: this is carefully written to still create taskwait fragments
-							// if the bottom map entry goes outside the task's data accesses.
-							// This avoids hanging for incorrect programs
-							if (dataAccess->getAccessRegion().getStartAddress() > region.getStartAddress()) {
-								// There is a bit before this complete access
-								DataAccessRegion subregion(region.getStartAddress(),
-														   std::min<void*>(dataAccess->getAccessRegion().getStartAddress(),
-																		  region.getEndAddress()));
-								 createTopLevelSinkFragment(task,
-													bottomMapEntry,
-													subregion,
-												   accessStructures,
-												   hpDependencyData);
+			   [&](TaskDataAccesses::subaccess_bottom_map_t::iterator bottomMapPosition) -> bool {
+					BottomMapEntry *bottomMapEntry = &(*bottomMapPosition);
+					assert(bottomMapEntry != nullptr);
+					DataAccessRegion region = bottomMapEntry->_region;
+					void *addr = nullptr;
+					bool done = false;
+					accessStructures._accesses.processIntersectingWithRestart(
+						region,
+						[&](TaskDataAccesses::accesses_t::iterator position) -> bool {
+							bool continueWithoutRestart = true;
+							DataAccess *dataAccess = &(*position);
+							assert(dataAccess != nullptr);
+							DataAccessRegion accessRegion = dataAccess->getAccessRegion();
+							if (done || accessRegion.getEndAddress() <= addr) {
+								// Restart revisits the same access a second time; skip the second
+								// time a region is visited
+								return true;
 							}
-							if (dataAccess->getAccessRegion().getEndAddress() < region.getEndAddress()) {
-								// There is a part of the region after this complete access, so keep going
-								region = DataAccessRegion(dataAccess->getAccessRegion().getEndAddress(), region.getEndAddress());
-							} else {
-								// Otherwise stop
-								done = true;
-								return false;
+							addr = accessRegion.getEndAddress();
+							if (dataAccess->getEarlyReleaseInNamespace()) {
+								// This access has early release in the namespace
+								if (dataAccess->getAccessRegion().getStartAddress() > region.getStartAddress()) {
+									// There is a bit before this complete access
+									DataAccessRegion subregion(region.getStartAddress(),
+																std::min<void*>(dataAccess->getAccessRegion().getStartAddress(),
+																region.getEndAddress()));
+									// Non early-released access that needs a taskwait fragment
+									bottomMapEntry = fragmentBottomMapEntry(bottomMapEntry, subregion, accessStructures);
+									createTopLevelSinkFragment(task, bottomMapEntry, region, accessStructures, hpDependencyData);
+									continueWithoutRestart = false;
+									bottomMapEntry = &(*(++bottomMapPosition));
+								}
+								if (dataAccess->getAccessRegion().getEndAddress() < region.getEndAddress()) {
+									// There is a part of the region after this complete access, so keep going
+									region = DataAccessRegion(dataAccess->getAccessRegion().getEndAddress(), region.getEndAddress());
+								} else {
+									// Otherwise stop
+									done = true;
+								}
 							}
+							return continueWithoutRestart;
+						});
+						if (!done) {
+							bottomMapEntry = fragmentBottomMapEntry(bottomMapEntry, region, accessStructures);
+							createTopLevelSinkFragment(task, bottomMapEntry, region, accessStructures, hpDependencyData);
 						}
-						return true;
+					/* Always continue with the rest of the accesses */
+					return true;
 					});
-
-				// Create the top level sink fragment (non-autowait case, or final fragment with autowait)
-				if (!done) {
-					 createTopLevelSinkFragment(task,
-										bottomMapEntry,
-										region,
-									   accessStructures,
-									   hpDependencyData);
-				}
-
-				/* Always continue with the rest of the bottom map */
-				return true;
-			});
 	}
 
 
@@ -4181,6 +4198,7 @@ namespace DataAccessRegistration {
 
 					if (finalizeIt) {
 						assert(!dataAccess->isInBottomMap());
+						dataAccess->setEarlyReleaseInNamespace();
 						finalizeAccess(task, dataAccess, dataAccess->getAccessRegion(), 0, nullptr, /* OUT */ hpDependencyData, false, true);
 					} else {
 						didAll = false;
