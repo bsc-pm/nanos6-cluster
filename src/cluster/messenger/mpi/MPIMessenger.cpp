@@ -65,9 +65,14 @@ MPIMessenger::MPIMessenger()
 	assert(_wsize > 0);
 
 	//! Get the upper-bound tag supported by current MPI implementation
-	ret = MPI_Comm_get_attr(INTRA_COMM, MPI_TAG_UB, &_mpi_ub_tag, &ubIsSetFlag);
+	int *mpi_ub_tag = nullptr;
+	ret = MPI_Comm_get_attr(INTRA_COMM, MPI_TAG_UB, &mpi_ub_tag, &ubIsSetFlag);
 	MPIErrorHandler::handle(ret, INTRA_COMM);
+	assert(mpi_ub_tag != nullptr);
 	assert(ubIsSetFlag != 0);
+
+	_mpi_ub_tag = *mpi_ub_tag;
+	assert(_mpi_ub_tag > 0);
 }
 
 MPIMessenger::~MPIMessenger()
@@ -91,7 +96,7 @@ void MPIMessenger::sendMessage(Message *msg, ClusterNode const *toNode, bool blo
 
 	//! At the moment we use the Message id and the Message type to create
 	//! the MPI tag of the communication
-	int mask = *(int *)_mpi_ub_tag;
+	const int mask = _mpi_ub_tag;
 	int tag =  mask & ((delv->header.id << 8) | delv->header.type);
 
 	assert(mpiDst < _wsize && mpiDst != _wrank);
@@ -141,7 +146,7 @@ DataTransfer *MPIMessenger::sendData(
 		Instrument::clusterDataSend(address, size, mpiDst, messageId);
 	}
 
-	int mask = *(int *)_mpi_ub_tag;
+	const int mask = _mpi_ub_tag;
 	int tag = mask & ((messageId << 8) | DATA_RAW);
 
 	if (block) {
@@ -180,7 +185,7 @@ DataTransfer *MPIMessenger::fetchData(
 
 	assert(mpiSrc < _wsize && mpiSrc != _wrank);
 
-	int mask = *(int *)_mpi_ub_tag;
+	const int mask = _mpi_ub_tag;
 	int tag = mask & ((messageId << 8) | DATA_RAW);
 
 	if (block) {
@@ -214,9 +219,8 @@ void MPIMessenger::synchronizeAll(void)
 
 Message *MPIMessenger::checkMail(void)
 {
-	int ret, flag, count, type;
+	int ret, flag, count;
 	MPI_Status status;
-	Message::Deliverable *msg;
 
 	ret = MPI_Iprobe(MPI_ANY_SOURCE, MPI_ANY_TAG, INTRA_COMM, &flag, &status);
 	MPIErrorHandler::handle(ret, INTRA_COMM);
@@ -227,7 +231,7 @@ Message *MPIMessenger::checkMail(void)
 
 	//! DATA_RAW type of messages will be received by matching 'fetchData'
 	//! methods
-	type = status.MPI_TAG & 0xff;
+	const int type = status.MPI_TAG & 0xff;
 	if (type == DATA_RAW) {
 		std::cout << "give up checkMail for DATA_RAW\n";
 		return nullptr;
@@ -236,8 +240,8 @@ Message *MPIMessenger::checkMail(void)
 	ret = MPI_Get_count(&status, MPI_BYTE, &count);
 	MPIErrorHandler::handle(ret, INTRA_COMM);
 
-	msg = (Message::Deliverable *)malloc(count);
-	if (!msg) {
+	Message::Deliverable *msg = (Message::Deliverable *) malloc(count);
+	if (msg == nullptr) {
 		perror("malloc for message");
 		MPI_Abort(INTRA_COMM, 1);
 	}

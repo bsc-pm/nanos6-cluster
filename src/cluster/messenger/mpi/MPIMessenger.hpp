@@ -27,50 +27,64 @@ private:
 	MPI_Comm INTRA_COMM, INTRA_COMM_DATA_RAW, PARENT_COMM;
 
 	// Upper bound MPI tag supported by current implementation,
-	// used for masking MPI tags to prevent out-of-range MPI 
+	// used for masking MPI tags to prevent out-of-range MPI
 	// tags when sending/receiving large number of messages.
-	void *_mpi_ub_tag;
+	int _mpi_ub_tag = 0;
 
 	template<typename T>
 	void testCompletionInternal(std::vector<T *> &pending);
 public:
+
 	MPIMessenger();
 	~MPIMessenger();
 
-	void sendMessage(Message *msg, ClusterNode const *toNode, bool block = false);
-	void synchronizeAll(void);
-	DataTransfer *sendData(const DataAccessRegion &region, const ClusterNode *toNode, int messageId, bool block, bool instrument);
-	DataTransfer *fetchData(const DataAccessRegion &region, const ClusterNode *fromNode, int messageId, bool block, bool instrument);
-	Message *checkMail();
+	void sendMessage(Message *msg, ClusterNode const *toNode, bool block = false) override;
 
-	inline void testCompletion(std::vector<Message *> &pending)
+	void synchronizeAll(void) override;
+
+	DataTransfer *sendData(
+		const DataAccessRegion &region,
+		const ClusterNode *toNode,
+		int messageId, bool block,
+		bool instrument) override;
+
+	DataTransfer *fetchData(
+		const DataAccessRegion &region,
+		const ClusterNode *fromNode,
+		int messageId,
+		bool block,
+		bool instrument) override;
+
+	Message *checkMail() override;
+
+	inline void testCompletion(std::vector<Message *> &pending) override
 	{
 		testCompletionInternal<Message>(pending);
 	}
 
-	inline void testCompletion(std::vector<DataTransfer *> &pending)
+	inline void testCompletion(std::vector<DataTransfer *> &pending) override
 	{
 		testCompletionInternal<DataTransfer>(pending);
 	}
 
-	inline int getNodeIndex() const
+	inline int getNodeIndex() const override
 	{
 		assert(_wrank >= 0);
 		return _wrank;
 	}
 
-	inline int getMasterIndex() const
+	inline int getMasterIndex() const override
 	{
 		return 0;
 	}
 
-	inline int getClusterSize() const
+	inline int getClusterSize() const override
 	{
 		assert(_wsize > 0);
 		return _wsize;
 	}
 
-	inline bool isMasterNode() const
+	inline bool isMasterNode() const override
 	{
 		assert(_wrank >= 0);
 		return _wrank == 0;
@@ -80,10 +94,8 @@ public:
 //! Register MPIMessenger with the object factory
 namespace
 {
-	Messenger *createMPImsn() { return new MPIMessenger; }
-
 	const bool __attribute__((unused))_registered_MPI_msn =
-		REGISTER_MSN_CLASS("mpi-2sided", createMPImsn);
+		Messenger::RegisterMSNClass<MPIMessenger>("mpi-2sided");
 }
 
 #endif /* MPI_MESSENGER_HPP */

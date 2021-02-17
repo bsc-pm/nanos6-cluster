@@ -10,6 +10,9 @@
 #include <deque>
 #include <string>
 #include <vector>
+#include <type_traits>
+#include <functional>
+
 
 #include <DataAccessRegion.hpp>
 #include <support/GenericFactory.hpp>
@@ -26,6 +29,18 @@ public:
 
 	virtual ~Messenger()
 	{
+	}
+
+	template<typename T>
+	static bool RegisterMSNClass(const std::string &name)
+	{
+		static_assert(std::is_base_of<Messenger, T>::value);
+		return GenericFactory<std::string, Messenger*>::getInstance().emplace(
+			name,
+			[]() -> Messenger* {
+				return new T();
+			}
+		);
 	}
 
 	//! \brief Send a message to a remote node
@@ -112,8 +127,5 @@ public:
 	virtual void testCompletion(std::vector<DataTransfer *> &pendings) = 0;
 
 };
-
-#define REGISTER_MSN_CLASS(NAME, CREATEFN) \
-	GenericFactory<std::string, Messenger*>::getInstance().emplace(NAME, CREATEFN)
 
 #endif /* MESSENGER_HPP */
