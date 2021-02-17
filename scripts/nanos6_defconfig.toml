@@ -254,6 +254,11 @@ __require_CLUSTER
 	# Indicate the virtual address space start. If set to 0x00000000, the runtime will find a
 	# suitable address. Default is 0x00000000
 	va_start = 0x00000000
+
+	[mpi]
+		# Decide if mpi messenger must use a different
+		# communicator for data_raws messages. Default is true
+		comm_data_raw = true
 __!require_CLUSTER
 
 [memory]

@@ -18,10 +18,11 @@
 
 class ClusterPlace;
 class DataTransfer;
-class Message;
 
 class MPIMessenger : public Messenger {
 private:
+	bool _mpi_comm_data_raw = 0;
+
 	// Default value useful for asserts
 	int _wrank = -1, _wsize = -1;
 	MPI_Comm INTRA_COMM, INTRA_COMM_DATA_RAW, PARENT_COMM;
@@ -30,6 +31,16 @@ private:
 	// used for masking MPI tags to prevent out-of-range MPI
 	// tags when sending/receiving large number of messages.
 	int _mpi_ub_tag = 0;
+
+	int createTag(const Message::Deliverable *delv) const
+	{
+		return _mpi_ub_tag & ((delv->header.id << 8) | delv->header.type);
+	}
+
+	int getTag(int messageId) const
+	{
+		return _mpi_ub_tag & ((messageId << 8) | DATA_RAW);
+	}
 
 	template<typename T>
 	void testCompletionInternal(std::vector<T *> &pending);

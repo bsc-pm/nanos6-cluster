@@ -13,13 +13,12 @@
 #include <type_traits>
 #include <functional>
 
-
+#include <Message.hpp>
 #include <DataAccessRegion.hpp>
 #include <support/GenericFactory.hpp>
 
 class ClusterNode;
 class DataTransfer;
-class Message;
 
 class Messenger {
 public:

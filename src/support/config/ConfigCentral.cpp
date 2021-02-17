@@ -24,6 +24,8 @@ void ConfigCentral::initialize()
 	registerOption<bool_t>("cluster.use_namespace", false);
 	registerOption<bool_t>("cluster.disable_remote", false);
 
+	registerOption<bool_t>("cluster.mpi.comm_data_raw", true);
+
 	registerOption<size_t>("cluster.message_max_size", std::numeric_limits<int>::max());
 
 

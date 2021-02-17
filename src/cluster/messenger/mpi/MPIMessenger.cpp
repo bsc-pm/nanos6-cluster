@@ -45,16 +45,21 @@ MPIMessenger::MPIMessenger()
 
 	//! Create a new communicator
 	ret = MPI_Comm_dup(MPI_COMM_WORLD, &INTRA_COMM);
-#if 1
-	ret = MPI_Comm_dup(MPI_COMM_WORLD, &INTRA_COMM_DATA_RAW);
-#else
-	INTRA_COMM_DATA_RAW = INTRA_COMM;
-#endif
 	MPIErrorHandler::handle(ret, MPI_COMM_WORLD);
 
 	//! make sure the new communicator returns errors
 	ret = MPI_Comm_set_errhandler(INTRA_COMM, MPI_ERRORS_RETURN);
 	MPIErrorHandler::handle(ret, INTRA_COMM);
+
+	ConfigVariable<bool> mpi_comm_data_raw("cluster.mpi.comm_data_raw");
+	_mpi_comm_data_raw = mpi_comm_data_raw.getValue();
+
+	if (_mpi_comm_data_raw) {
+		ret = MPI_Comm_dup(INTRA_COMM, &INTRA_COMM_DATA_RAW);
+		MPIErrorHandler::handle(ret, MPI_COMM_WORLD);
+	} else {
+		INTRA_COMM_DATA_RAW = INTRA_COMM;
+	}
 
 	ret = MPI_Comm_rank(INTRA_COMM, &_wrank);
 	MPIErrorHandler::handle(ret, INTRA_COMM);
@@ -79,9 +84,22 @@ MPIMessenger::~MPIMessenger()
 {
 	int ret;
 
+	if (_mpi_comm_data_raw ==  true) {
+#ifndef NDEBUG
+		int compare = 0;
+		ret = MPI_Comm_compare(INTRA_COMM_DATA_RAW, INTRA_COMM, &compare);
+		MPIErrorHandler::handle(ret, MPI_COMM_WORLD);
+		assert(compare !=  MPI_IDENT);
+#endif // NDEBUG
+
+		//! Release the INTRA_COMM_DATA_RAW
+		ret = MPI_Comm_free(&INTRA_COMM_DATA_RAW);
+		MPIErrorHandler::handle(ret, MPI_COMM_WORLD);
+	}
+
 	//! Release the intra-communicator
 	ret = MPI_Comm_free(&INTRA_COMM);
-	MPIErrorHandler::handle(ret, INTRA_COMM);
+	MPIErrorHandler::handle(ret, MPI_COMM_WORLD);
 
 	ret = MPI_Finalize();
 	MPIErrorHandler::handle(ret, MPI_COMM_WORLD);
@@ -96,8 +114,7 @@ void MPIMessenger::sendMessage(Message *msg, ClusterNode const *toNode, bool blo
 
 	//! At the moment we use the Message id and the Message type to create
 	//! the MPI tag of the communication
-	const int mask = _mpi_ub_tag;
-	int tag =  mask & ((delv->header.id << 8) | delv->header.type);
+	int tag = createTag(delv);
 
 	assert(mpiDst < _wsize && mpiDst != _wrank);
 	assert(delv->header.size != 0);
@@ -146,8 +163,7 @@ DataTransfer *MPIMessenger::sendData(
 		Instrument::clusterDataSend(address, size, mpiDst, messageId);
 	}
 
-	const int mask = _mpi_ub_tag;
-	int tag = mask & ((messageId << 8) | DATA_RAW);
+	int tag = getTag(messageId);
 
 	if (block) {
 		ret = MPI_Send(address, size, MPI_BYTE, mpiDst, tag, INTRA_COMM_DATA_RAW);
@@ -185,8 +201,7 @@ DataTransfer *MPIMessenger::fetchData(
 
 	assert(mpiSrc < _wsize && mpiSrc != _wrank);
 
-	const int mask = _mpi_ub_tag;
-	int tag = mask & ((messageId << 8) | DATA_RAW);
+	int tag = getTag(messageId);
 
 	if (block) {
 		ret = MPI_Recv(address, size, MPI_BYTE, mpiSrc, tag, INTRA_COMM_DATA_RAW, MPI_STATUS_IGNORE);
