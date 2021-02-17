@@ -1626,7 +1626,8 @@ namespace DataAccessRegistration {
 					 * had (in fact the access may already have been deleted). This
 					 * info would have to be added to the UpdateOperation.
 					 */
-					assert(access->getOriginator()->isRemoteTask());
+					// Actually there are other circumstances when this happens (TBD)
+					// assert(access->getOriginator()->isRemoteTask());
 				} else {
 					access->setReadSatisfied(updateOperation._location);
 				}
