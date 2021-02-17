@@ -268,6 +268,16 @@ namespace ExecutionWorkflow {
 				CPUDependencyData &hpDependencyData =
 					(cpu == nullptr) ? localDependencyData : cpu->getDependencyData();
 
+				/*
+				 * For offloaded tasks with cluster.disable_autowait=false, handle
+				 * the early release of dependencies propagated in the namespace. All
+				 * other dependencies will be handled using the normal "wait" mechanism.
+				 */
+				DataAccessRegistration::unregisterLocallyPropagatedTaskDataAccesses(
+					task,
+					cpu,
+					hpDependencyData);
+
 				if (task->markAsFinished(cpu/* cpu */)) {
 						DataAccessRegistration::unregisterTaskDataAccessesWithCallback(
 							task,

@@ -60,6 +60,12 @@ namespace DataAccessRegistration {
 		bool specifyingDependency = true
 	);
 
+	void unregisterLocallyPropagatedTaskDataAccesses(
+		Task *task,
+		ComputePlace *computePlace,
+		CPUDependencyData &dependencyData
+	);
+
 	void unregisterTaskDataAccesses1(
 		Task *task,
 		ComputePlace *computePlace,
@@ -129,7 +135,7 @@ namespace DataAccessRegistration {
 
 	void setNamespacePredecessor(Task *task, Task *parentTask, DataAccessRegion region, ClusterNode *remoteNode, void *namespacePredecessor);
 
-	void handleEnterTaskwait(Task *task, ComputePlace *computePlace, CPUDependencyData &dependencyData, bool noflush=false);
+	void handleEnterTaskwait(Task *task, ComputePlace *computePlace, CPUDependencyData &dependencyData, bool noflush=false, bool nonLocalOnly=false);
 
 	void handleExitTaskwait(Task *task, ComputePlace *computePlace, CPUDependencyData &dependencyData);
 
