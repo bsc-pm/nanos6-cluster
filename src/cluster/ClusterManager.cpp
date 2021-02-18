@@ -230,7 +230,7 @@ void ClusterManager::fetchVector(
 
 		const std::vector<DataAccessRegion> &fragments = step->getFragments();
 
-		for (DataAccessRegion const &region : fragments) {
+		for (__attribute__((unused)) DataAccessRegion const &region : fragments) {
 			assert(index < nFragments);
 			assert(content->_remoteRegionInfo[index]._remoteRegion == region);
 			//_content->_remoteRegionInfo[index] = region;
