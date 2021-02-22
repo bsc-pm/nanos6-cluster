@@ -15,12 +15,18 @@
 #pragma GCC visibility pop
 
 #include "../Messenger.hpp"
+#include "lowlevel/PaddedTicketSpinLock.hpp"
 
 class ClusterPlace;
 class DataTransfer;
 
 class MPIMessenger : public Messenger {
 private:
+
+#ifdef EXTRAE_ENABLED
+	PaddedTicketSpinLock<int> _lockExtrae;
+#endif
+
 	bool _mpi_comm_data_raw = 0;
 
 	// Default value useful for asserts
@@ -35,6 +41,20 @@ private:
 	int createTag(const Message::Deliverable *delv) const
 	{
 		return _mpi_ub_tag & ((delv->header.id << 8) | delv->header.type);
+	}
+
+	void ExtraeLock()
+	{
+#ifdef EXTRAE_ENABLED
+		_lockExtrae.lock();
+#endif
+	}
+
+	void ExtraeUnlock()
+	{
+#ifdef EXTRAE_ENABLED
+		_lockExtrae.unlock();
+#endif
 	}
 
 	int getTag(int messageId) const
