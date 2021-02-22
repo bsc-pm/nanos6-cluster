@@ -21,6 +21,8 @@ bool ClusterSchedulerInterface::handleClusterSchedulerConstrains(
 		|| task->isRemoteTask()       // Already offloaded don't re-offload
 		|| task->isIf0()
 		|| task->isPolling()          // Polling tasks
+		|| task->isTaskloop()         // for now don't offload task{loop,for}
+		|| task->isTaskfor()
 		|| task->getWorkflow() != nullptr) {
 		addLocalReadyTask(task, computePlace, hint);
 		return true;
