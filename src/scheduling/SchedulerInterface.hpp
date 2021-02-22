@@ -26,7 +26,7 @@ class SchedulerInterface {
 	static ConfigVariable<bool> _enablePriority;
 
 #ifdef EXTRAE_ENABLED
-	std::atomic<Task *> _mainTask;
+	std::atomic<Task *> _mainTask{nullptr};
 	bool _mainFirstRunCompleted = false;
 #endif
 
