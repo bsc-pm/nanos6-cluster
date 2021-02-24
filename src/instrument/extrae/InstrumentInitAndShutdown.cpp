@@ -31,16 +31,17 @@ using namespace Instrument::Extrae;
 
 namespace Instrument {
 
+	static unsigned int numtasks;
+	static unsigned int task_id;
+
 	static unsigned int extrae_nanos6_get_numtasks()
 	{
-		unsigned int ret = ClusterManager::clusterSize();
-		return ret;
+		return numtasks;
 	}
 
 	static unsigned int extrae_nanos6_get_task_id()
 	{
-		unsigned int ret = ClusterManager::getCurrentClusterNode()->getIndex();
-		return ret;
+		return task_id;
 	}
 
 	static unsigned int extrae_nanos6_get_thread_id()
@@ -118,21 +119,22 @@ namespace Instrument {
 		// that the Extrae backend is initialized with the right number of tasks
 		// for clusters.
 		// Thread information callbacks
+		if (ClusterManager::inClusterMode()) {
+			// Note: Extrae may call these functions after the ClusterManager
+			// has been shutdown, so take a copy of these values now.
+			numtasks = ClusterManager::clusterSize();
+			task_id = ClusterManager::getCurrentClusterNode()->getIndex();
+			ExtraeAPI::set_taskid_function(extrae_nanos6_get_task_id);
+			ExtraeAPI::set_numtasks_function(extrae_nanos6_get_numtasks);
+		}
+
 		if (_traceAsThreads) {
 			ExtraeAPI::set_threadid_function(extrae_nanos6_get_thread_id);
-			if (ClusterManager::inClusterMode()) {
-				ExtraeAPI::set_taskid_function(extrae_nanos6_get_task_id);
-				ExtraeAPI::set_numtasks_function(extrae_nanos6_get_numtasks);
-			}
 			ExtraeAPI::set_numthreads_function(extrae_nanos6_get_num_threads);
 			ExtraeAPI::change_num_threads(extrae_nanos6_get_num_threads());
 			RuntimeInfo::addEntry("extrae_tracing_target", "Extrae Tracing Target", "thread");
 		} else {
 			ExtraeAPI::set_threadid_function(extrae_nanos6_get_virtual_cpu_or_external_thread_id);
-			if (ClusterManager::inClusterMode()) {
-				ExtraeAPI::set_taskid_function(extrae_nanos6_get_task_id);
-				ExtraeAPI::set_numtasks_function(extrae_nanos6_get_numtasks);
-			}
 			ExtraeAPI::set_numthreads_function(extrae_nanos6_get_num_cpus_and_external_threads);
 			ExtraeAPI::change_num_threads(extrae_nanos6_get_num_cpus_and_external_threads());
 			RuntimeInfo::addEntry("extrae_tracing_target", "Extrae Tracing Target", "cpu");
