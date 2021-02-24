@@ -13,6 +13,7 @@
 #include <ClusterMemoryNode.hpp>
 #include <ClusterNode.hpp>
 #include "DataAccessRegion.hpp"
+#include "WriteID.hpp"
 
 class Message;
 class DataTransfer;
@@ -28,6 +29,7 @@ public:
 
 	static inline void initialize()
 	{
+		WriteIDManager::initialize(0, 1);
 	}
 
 	static inline void postinitialize()

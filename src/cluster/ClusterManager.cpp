@@ -37,6 +37,7 @@ ClusterManager::ClusterManager()
 	_callback(nullptr)
 {
 	_clusterNodes[0] = _thisNode;
+	WriteIDManager::initialize(0,1);
 }
 
 ClusterManager::ClusterManager(std::string const &commType)
