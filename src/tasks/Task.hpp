@@ -43,7 +43,6 @@ class TasktypeData;
 
 // TODO: Mercurium defines this value hard coded, we must use a better approach
 // and update it here and there in case of change.
-#define DEFAULT_NODE_VALUE 0xFFFF
 
 using namespace ExecutionWorkflow;
 
@@ -848,14 +847,14 @@ public:
 	}
 
 	//! \brief Get the task's stream
-	inline size_t getNode() const
+	inline int getNode() const
 	{
 		if (hasConstrains()) {
 			nanos6_task_constraints_t constraints;
 			_taskInfo->implementations->get_constraints(_argsBlock, &constraints);
 			return constraints.node;
 		}
-		return DEFAULT_NODE_VALUE;
+		return nanos6_cluster_no_hint;
 	}
 
 	//! \brief Get the task's statistics

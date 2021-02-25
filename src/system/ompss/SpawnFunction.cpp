@@ -36,7 +36,11 @@ struct SpawnedFunctionArgsBlock {
 	void *_args = nullptr;
 	SpawnFunction::function_t _completionCallback = nullptr;
 	void *_completionArgs = nullptr;
-	nanos6_task_constraints_t _constraints = { .cost = 0, .stream = 0, .node = DEFAULT_NODE_VALUE};
+	nanos6_task_constraints_t _constraints = {
+		.cost = 0,
+		.stream = 0,
+		.node = (int) nanos6_cluster_no_hint
+	};
 
 	void set(
 		SpawnFunction::function_t function,

@@ -23,7 +23,6 @@ public:
 	static SchedulerInterface *generate(const std::string &name)
 	{
 		if (ClusterManager::inClusterMode()) {
-			ConfigVariable<std::string> clusterSchedulerName("cluster.scheduling_policy");
 
 			if (name == "random") {
 				return new ClusterRandomScheduler();
@@ -35,9 +34,8 @@ public:
 
 			SchedulerInterface *ret = new ClusterLocalityScheduler();
 			// This is the default.
-			FatalErrorHandler::warnIf(true,
-				"Unknown cluster scheduler:", clusterSchedulerName.getValue(),
-				". Using default: ", ret->getName()
+			FatalErrorHandler::warn(
+				"Unknown cluster scheduler:", name, ". Using default: ", ret->getName()
 			);
 
 			return ret;

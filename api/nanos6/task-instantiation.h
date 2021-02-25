@@ -34,11 +34,22 @@ enum nanos6_task_execution_api_t { nanos6_task_execution_api = 1 };
 enum nanos6_task_constraints_api_t { nanos6_task_constraints_api = 3 };
 
 
+// All the elements in this enum must be negative.
+typedef enum
+{
+	nanos6_cluster_min_hint = -5,   // Keep this one always the first as a protector.
+	nanos6_cluster_random = -4,
+	nanos6_cluster_locality = -3,
+	nanos6_cluster_no_offload = -2,
+	nanos6_cluster_no_hint = -1,    // Keep this one always the last
+} nanos6_cluster_scheduler_t;
+
+
 typedef struct
 {
 	size_t cost;
 	size_t stream;
-	size_t node;
+	int node;
 } nanos6_task_constraints_t;
 
 

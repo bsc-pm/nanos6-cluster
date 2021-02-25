@@ -29,13 +29,13 @@ bool ClusterSchedulerInterface::handleClusterSchedulerConstrains(
 	}
 
 	if (task->hasConstrains()) {
-		const size_t nodeId = task->getNode();
+		const int nodeId = task->getNode();
 		FatalErrorHandler::failIf(
-			(int)nodeId >= ClusterManager::clusterSize(),
+			nodeId >= ClusterManager::clusterSize(),
 			"node in node() constraint out of range"
 		);
 
-		if (nodeId != DEFAULT_NODE_VALUE) {
+		if (nodeId != nanos6_cluster_no_offload) {
 			addReadyLocalOrExecuteRemote(nodeId, task, computePlace, hint);
 			return true;
 		}
