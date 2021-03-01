@@ -11,10 +11,11 @@
 
 #include <ClusterManager.hpp>
 
-ClusterSchedulerInterface::ClusterSchedulerInterface()
+ClusterSchedulerInterface::ClusterSchedulerInterface(nanos6_cluster_scheduler_t id)
 	: _thisNode(ClusterManager::getCurrentClusterNode()),
-	  _lastScheduledNode(nullptr),
-	  _defaultScheduler(new ClusterLocalityScheduler(this))
+	_lastScheduledNode(nullptr),
+	_schedulerMap(),
+	_defaultScheduler(getOrCreateScheduler(id))
 {
 	assert(_defaultScheduler != nullptr);
 	RuntimeInfo::addEntry("cluster-scheduler", "Cluster Scheduler", _defaultScheduler->getName());

@@ -40,4 +40,8 @@ public:
 	) override;
 };
 
+static const bool __attribute__((unused))_registered_random_sched =
+	ClusterSchedulerInterface::RegisterClusterSchedulerPolicy<ClusterRandomScheduler>(nanos6_cluster_random);
+
+
 #endif // CLUSTER_RANDOM_SCHEDULER_HPP

@@ -25,21 +25,20 @@ public:
 		if (ClusterManager::inClusterMode()) {
 
 			if (name == "random") {
-				return new ClusterSchedulerInterface();
+				return new ClusterSchedulerInterface(nanos6_cluster_random);
 			}
 
 			if (name == "locality") {
-				return new ClusterSchedulerInterface();
+				return new ClusterSchedulerInterface(nanos6_cluster_locality);
 			}
 
-			SchedulerInterface *ret = new ClusterSchedulerInterface();
+			SchedulerInterface *ret = new ClusterSchedulerInterface(nanos6_cluster_locality);
 			// This is the default.
 			FatalErrorHandler::warn(
 				"Unknown cluster scheduler:", name, ". Using default: ", ret->getName()
 			);
 
 			return ret;
-
 		} else {
 			return new LocalScheduler();
 		}

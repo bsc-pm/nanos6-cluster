@@ -39,17 +39,52 @@ public:
 			ReadyTaskHint hint = NO_HINT) = 0;
 	};
 
+	typedef std::map<nanos6_cluster_scheduler_t, ClusterSchedulerPolicy*> scheduler_map_t;
 protected:
 
 	//! Current cluster node
 	ClusterNode * const _thisNode;
 	ClusterNode *_lastScheduledNode;
 
-	ClusterSchedulerPolicy *_defaultScheduler;
+	scheduler_map_t _schedulerMap;
 
-	//! Function to pass the task to the local scheduler or call the execute function in workflow
-	//! when the task is remote.
+	ClusterSchedulerPolicy * const _defaultScheduler;
 public:
+
+	template<typename T>
+	static bool RegisterClusterSchedulerPolicy(nanos6_cluster_scheduler_t id)
+	{
+		static_assert(std::is_base_of<ClusterSchedulerPolicy, T>::value);
+
+		return GenericFactory<
+			nanos6_cluster_scheduler_t,
+			ClusterSchedulerPolicy *,
+			ClusterSchedulerInterface *>::getInstance().emplace(
+				id,
+				[](ClusterSchedulerInterface *interface) -> ClusterSchedulerPolicy* {
+					return new T(interface);
+				}
+			);
+	}
+
+
+	ClusterSchedulerPolicy *getOrCreateScheduler(nanos6_cluster_scheduler_t id)
+	{
+		scheduler_map_t::iterator it = _schedulerMap.lower_bound(id);
+
+		if (it != _schedulerMap.end() && it->first == id) {
+			return it->second;
+		}
+
+		ClusterSchedulerPolicy *ret = GenericFactory<
+			nanos6_cluster_scheduler_t,
+			ClusterSchedulerPolicy *,
+			ClusterSchedulerInterface *>::getInstance().create(id, this);
+
+		_schedulerMap[id] = ret;
+
+		return ret;
+	}
 
 	void addReadyLocalOrExecuteRemote(
 		int nodeId,
@@ -91,7 +126,7 @@ public:
 		return nanos6_cluster_no_hint;
 	}
 
-	ClusterSchedulerInterface();
+	ClusterSchedulerInterface(nanos6_cluster_scheduler_t it);
 
 	virtual ~ClusterSchedulerInterface()
 	{

@@ -40,4 +40,7 @@ public:
 	) override;
 };
 
+static const bool __attribute__((unused))_registered_local_sched =
+	ClusterSchedulerInterface::RegisterClusterSchedulerPolicy<ClusterLocalityScheduler>(nanos6_cluster_locality);
+
 #endif // CLUSTER_LOCALITY_SCHEDULER_HPP
