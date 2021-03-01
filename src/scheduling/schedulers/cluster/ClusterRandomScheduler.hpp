@@ -33,7 +33,11 @@ public:
 	{
 	}
 
-	int addReadyTask(Task *task, ComputePlace *computePlace, ReadyTaskHint hint = NO_HINT) override;
+	int getScheduledNode(
+		Task *task,
+		ComputePlace *computePlace,
+		ReadyTaskHint hint = NO_HINT
+	) override;
 };
 
 #endif // CLUSTER_RANDOM_SCHEDULER_HPP

@@ -33,7 +33,7 @@ public:
 		{
 		}
 
-		virtual int addReadyTask(
+		virtual int getScheduledNode(
 			Task *task,
 			ComputePlace *computePlace,
 			ReadyTaskHint hint = NO_HINT) = 0;
@@ -118,7 +118,7 @@ public:
 		int clusterhint = handleClusterSchedulerConstrains(task, computePlace, hint);
 
 		if (clusterhint == nanos6_cluster_no_hint) {
-			clusterhint = _defaultScheduler->addReadyTask(task, computePlace, hint);
+			clusterhint = _defaultScheduler->getScheduledNode(task, computePlace, hint);
 		}
 
 		addReadyLocalOrExecuteRemote(clusterhint, task, computePlace, hint);

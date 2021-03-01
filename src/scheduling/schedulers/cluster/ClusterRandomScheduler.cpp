@@ -11,7 +11,7 @@
 #include <ExecutionWorkflow.hpp>
 #include <VirtualMemoryManagement.hpp>
 
-int ClusterRandomScheduler::addReadyTask(
+int ClusterRandomScheduler::getScheduledNode(
 	Task *task,
 	ComputePlace *computePlace,
 	ReadyTaskHint hint
