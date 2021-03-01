@@ -52,19 +52,45 @@ protected:
 public:
 
 	void addReadyLocalOrExecuteRemote(
-		size_t nodeId,
+		int nodeId,
 		Task *task,
 		ComputePlace *computePlace,
 		ReadyTaskHint hint);
 
 	//! Handle constrains for cluster. Must return true only if some constrains where found and used
 	//! properly.
-	bool handleClusterSchedulerConstrains(Task *task, ComputePlace *computePlace, ReadyTaskHint hint);
+	int handleClusterSchedulerConstrains(Task *task, ComputePlace *computePlace, ReadyTaskHint hint
+	) {
+		//! We do not offload spawned functions, if0 tasks, remote task
+		//! and tasks that already have an ExecutionWorkflow created for
+		//! them
+		if (task->isSpawned()             // Don't offload spawned tasks.
+			|| task->isRemoteWrapper()    // This will save the day when we want offload spawned tasks
+			|| task->isRemoteTask()       // Already offloaded don't re-offload
+			|| task->isIf0()
+			|| task->isPolling()          // Polling tasks
+			|| task->isTaskloop()         // for now don't offload task{loop,for}
+			|| task->isTaskfor()
+			|| task->getWorkflow() != nullptr) {
 
-	void addLocalReadyTask(Task *task, ComputePlace *computePlace, ReadyTaskHint hint = NO_HINT)
-	{
-		_lastScheduledNode = _thisNode;
-		SchedulerInterface::addReadyTask(task, computePlace, hint);
+			addReadyLocalOrExecuteRemote(nanos6_cluster_no_offload, task, computePlace, hint);
+			return true;
+		}
+
+		if (task->hasConstrains()) {
+			const int nodeId = task->getNode();
+			FatalErrorHandler::failIf(
+				nodeId >= ClusterManager::clusterSize(),
+				"node in node() constraint out of range"
+			);
+
+			if (nodeId != nanos6_cluster_no_offload) {
+				addReadyLocalOrExecuteRemote(nodeId, task, computePlace, hint);
+				return true;
+			}
+		}
+
+		return false;
 	}
 
 	ClusterSchedulerInterface();

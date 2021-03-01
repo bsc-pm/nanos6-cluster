@@ -65,7 +65,13 @@ void ClusterLocalityScheduler::addReadyTask(
 	);
 
 	if (!canBeOffloaded) {
-		_interface->addLocalReadyTask(task, computePlace, hint);
+		_interface->addReadyLocalOrExecuteRemote(
+			nanos6_cluster_no_offload,
+			task,
+			computePlace,
+			hint
+		);
+
 		return;
 	}
 
