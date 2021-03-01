@@ -16,7 +16,7 @@
 #include <ExecutionWorkflow.hpp>
 #include <VirtualMemoryManagement.hpp>
 
-void ClusterLocalityScheduler::addReadyTask(
+int ClusterLocalityScheduler::addReadyTask(
 	Task *task,
 	ComputePlace *computePlace,
 	ReadyTaskHint hint
@@ -65,19 +65,12 @@ void ClusterLocalityScheduler::addReadyTask(
 	);
 
 	if (!canBeOffloaded) {
-		_interface->addReadyLocalOrExecuteRemote(
-			nanos6_cluster_no_offload,
-			task,
-			computePlace,
-			hint
-		);
-
-		return;
+		return nanos6_cluster_no_offload;
 	}
 
 	assert(!bytes.empty());
 	std::vector<size_t>::iterator it = bytes.begin();
 	const size_t nodeId = std::distance(it, std::max_element(it, it + clusterSize));
 
-	_interface->addReadyLocalOrExecuteRemote(nodeId, task, computePlace, hint);
+	return nodeId;
 }

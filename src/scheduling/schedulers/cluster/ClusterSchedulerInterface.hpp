@@ -33,7 +33,7 @@ public:
 		{
 		}
 
-		virtual void addReadyTask(
+		virtual int addReadyTask(
 			Task *task,
 			ComputePlace *computePlace,
 			ReadyTaskHint hint = NO_HINT) = 0;
@@ -117,12 +117,12 @@ public:
 
 		int clusterhint = handleClusterSchedulerConstrains(task, computePlace, hint);
 
-		if (clusterhint != nanos6_cluster_no_hint) {
-			addReadyLocalOrExecuteRemote(clusterhint, task, computePlace, hint);
-			return;
+		if (clusterhint == nanos6_cluster_no_hint) {
+			clusterhint = _defaultScheduler->addReadyTask(task, computePlace, hint);
 		}
 
-		_defaultScheduler->addReadyTask(task, computePlace, hint);
+		addReadyLocalOrExecuteRemote(clusterhint, task, computePlace, hint);
+
 	};
 
 };

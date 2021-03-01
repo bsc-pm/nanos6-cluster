@@ -11,7 +11,7 @@
 #include <ExecutionWorkflow.hpp>
 #include <VirtualMemoryManagement.hpp>
 
-void ClusterRandomScheduler::addReadyTask(
+int ClusterRandomScheduler::addReadyTask(
 	Task *task,
 	ComputePlace *computePlace,
 	ReadyTaskHint hint
@@ -30,14 +30,8 @@ void ClusterRandomScheduler::addReadyTask(
 	);
 
 	if (!canBeOffloaded) {
-		_interface->addReadyLocalOrExecuteRemote(
-			nanos6_cluster_no_offload,
-			task,
-			computePlace,
-			hint
-		);
-		return;
+		return nanos6_cluster_no_offload;
 	}
 
-	_interface->addReadyLocalOrExecuteRemote(distr(eng), task, computePlace, hint);
+	return distr(eng);
 }

@@ -33,7 +33,7 @@ public:
 	{
 	}
 
-	void addReadyTask(Task *task, ComputePlace *computePlace, ReadyTaskHint hint = NO_HINT) override;
+	int addReadyTask(Task *task, ComputePlace *computePlace, ReadyTaskHint hint = NO_HINT) override;
 };
 
 #endif // CLUSTER_LOCALITY_SCHEDULER_HPP
