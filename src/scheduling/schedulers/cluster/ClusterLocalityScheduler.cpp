@@ -21,11 +21,13 @@ void ClusterLocalityScheduler::addReadyTask(
 	ComputePlace *computePlace,
 	ReadyTaskHint hint
 ) {
-	if (ClusterSchedulerInterface::handleClusterSchedulerConstrains(task, computePlace, hint)) {
+	if (_interface->handleClusterSchedulerConstrains(task, computePlace, hint)) {
 		return;
 	}
 
-	std::vector<size_t> bytes(_clusterSize, 0);
+	const size_t clusterSize = ClusterManager::clusterSize();
+
+	std::vector<size_t> bytes(clusterSize, 0);
 	bool canBeOffloaded = true;
 
 	DataAccessRegistration::processAllDataAccesses(
@@ -67,13 +69,13 @@ void ClusterLocalityScheduler::addReadyTask(
 	);
 
 	if (!canBeOffloaded) {
-		addLocalReadyTask(task, computePlace, hint);
+		_interface->addLocalReadyTask(task, computePlace, hint);
 		return;
 	}
 
 	assert(!bytes.empty());
 	std::vector<size_t>::iterator it = bytes.begin();
-	const size_t nodeId = std::distance(it, std::max_element(it, it + _clusterSize));
+	const size_t nodeId = std::distance(it, std::max_element(it, it + clusterSize));
 
-	addReadyLocalOrExecuteRemote(nodeId, task, computePlace, hint);
+	_interface->addReadyLocalOrExecuteRemote(nodeId, task, computePlace, hint);
 }

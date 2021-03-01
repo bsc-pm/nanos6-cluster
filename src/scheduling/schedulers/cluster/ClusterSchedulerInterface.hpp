@@ -13,19 +13,41 @@
 #include <ClusterManager.hpp>
 
 class ClusterSchedulerInterface : public SchedulerInterface {
+
+public:
+	class ClusterSchedulerPolicy {
+	protected:
+		const std::string _name;
+		ClusterSchedulerInterface * const _interface;
+
+	public:
+		const std::string &getName() const { return _name; }
+
+		ClusterSchedulerPolicy(const std::string &name, ClusterSchedulerInterface * const interface)
+			: _name(name), _interface(interface)
+		{
+			assert(_interface != nullptr);
+		}
+
+		virtual ~ClusterSchedulerPolicy()
+		{
+		}
+
+		virtual void addReadyTask(Task *task, ComputePlace *computePlace, ReadyTaskHint hint = NO_HINT);
+	};
+
 protected:
+
 	//! Current cluster node
 	ClusterNode * const _thisNode;
 	ClusterNode *_lastScheduledNode;
 
-	//! Number of cluster nodes
-	int _clusterSize;
-
-	//! Scheduler name
-	const std::string _name;
+	ClusterSchedulerPolicy *_defaultScheduler;
 
 	//! Function to pass the task to the local scheduler or call the execute function in workflow
 	//! when the task is remote.
+public:
+
 	void addReadyLocalOrExecuteRemote(
 		size_t nodeId,
 		Task *task,
@@ -42,26 +64,31 @@ protected:
 		SchedulerInterface::addReadyTask(task, computePlace, hint);
 	}
 
-public:
-	ClusterSchedulerInterface(const std::string &name)
-		: _thisNode(ClusterManager::getCurrentClusterNode()),
-		_lastScheduledNode(nullptr),
-		_clusterSize(ClusterManager::clusterSize()),
-		_name(name)
-	{
-		RuntimeInfo::addEntry("cluster-scheduler", "Cluster Scheduler", _name);
-	}
+	ClusterSchedulerInterface();
 
 	virtual ~ClusterSchedulerInterface()
 	{
+		delete _defaultScheduler;
 	}
 
 	inline std::string getName() const
 	{
-		return _name;
+		return _defaultScheduler->getName();
 	}
 
-	virtual void addReadyTask(Task *task, ComputePlace *computePlace, ReadyTaskHint hint = NO_HINT) = 0;
+	inline ClusterNode *getThisNode() const
+	{
+		return _thisNode;
+	}
+
+
+	void addReadyTask(
+		Task *task,
+		ComputePlace *computePlace,
+		ReadyTaskHint hint = NO_HINT
+	) override {
+		_defaultScheduler->addReadyTask(task, computePlace, hint);
+	};
 
 };
 

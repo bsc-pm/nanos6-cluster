@@ -12,19 +12,20 @@
 
 #include <ClusterManager.hpp>
 
-class ClusterLocalityScheduler : public ClusterSchedulerInterface {
+class ClusterLocalityScheduler : public ClusterSchedulerInterface::ClusterSchedulerPolicy {
 private:
 	inline size_t getNodeIdForLocation(MemoryPlace const *location) const
 	{
 		if (location->getType() == nanos6_host_device) {
-			return _thisNode->getIndex();
+			return _interface->getThisNode()->getIndex();
 		}
 
 		return location->getIndex();
 	}
 
 public:
-	ClusterLocalityScheduler() : ClusterSchedulerInterface("ClusterLocalityScheduler")
+	ClusterLocalityScheduler(ClusterSchedulerInterface * const interface)
+		: ClusterSchedulerInterface::ClusterSchedulerPolicy("ClusterLocalityScheduler", interface)
 	{
 	}
 
@@ -32,7 +33,7 @@ public:
 	{
 	}
 
-	void addReadyTask(Task *task, ComputePlace *computePlace, ReadyTaskHint hint = NO_HINT);
+	void addReadyTask(Task *task, ComputePlace *computePlace, ReadyTaskHint hint = NO_HINT) override;
 };
 
 #endif // CLUSTER_LOCALITY_SCHEDULER_HPP

@@ -25,14 +25,14 @@ public:
 		if (ClusterManager::inClusterMode()) {
 
 			if (name == "random") {
-				return new ClusterRandomScheduler();
+				return new ClusterSchedulerInterface();
 			}
 
 			if (name == "locality") {
-				return new ClusterLocalityScheduler();
+				return new ClusterSchedulerInterface();
 			}
 
-			SchedulerInterface *ret = new ClusterLocalityScheduler();
+			SchedulerInterface *ret = new ClusterSchedulerInterface();
 			// This is the default.
 			FatalErrorHandler::warn(
 				"Unknown cluster scheduler:", name, ". Using default: ", ret->getName()

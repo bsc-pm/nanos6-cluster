@@ -182,6 +182,7 @@ public:
 	//! \returns the number of cluster nodes
 	static inline int clusterSize()
 	{
+		assert(_singleton != nullptr);
 		assert(!_singleton->_clusterNodes.empty());
 		return _singleton->_clusterNodes.size();
 	}

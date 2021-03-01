@@ -14,17 +14,18 @@
 
 #include <ClusterManager.hpp>
 
-class ClusterRandomScheduler : public ClusterSchedulerInterface {
+class ClusterRandomScheduler : public ClusterSchedulerInterface::ClusterSchedulerPolicy {
+
 private:
 	std::random_device rd;
 	std::mt19937 eng;
 	std::uniform_int_distribution<> distr;
 
 public:
-	ClusterRandomScheduler() :
-		ClusterSchedulerInterface("ClusterRandomScheduler"),
+	ClusterRandomScheduler(ClusterSchedulerInterface * const interface)
+		: ClusterSchedulerInterface::ClusterSchedulerPolicy("ClusterRandomScheduler", interface),
 		eng(rd()),
-		distr(0, _clusterSize - 1)
+		distr(0, ClusterManager::clusterSize() - 1)
 	{
 	}
 
@@ -32,7 +33,7 @@ public:
 	{
 	}
 
-	void addReadyTask(Task *task, ComputePlace *computePlace, ReadyTaskHint hint = NO_HINT);
+	void addReadyTask(Task *task, ComputePlace *computePlace, ReadyTaskHint hint = NO_HINT) override;
 };
 
 #endif // CLUSTER_RANDOM_SCHEDULER_HPP

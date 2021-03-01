@@ -16,7 +16,7 @@ void ClusterRandomScheduler::addReadyTask(
 	ComputePlace *computePlace,
 	ReadyTaskHint hint
 ) {
-	if (ClusterSchedulerInterface::handleClusterSchedulerConstrains(task, computePlace, hint)) {
+	if (_interface->handleClusterSchedulerConstrains(task, computePlace, hint)) {
 		return;
 	}
 
@@ -33,9 +33,9 @@ void ClusterRandomScheduler::addReadyTask(
 	);
 
 	if (!canBeOffloaded) {
-		addLocalReadyTask(task, computePlace, hint);
+		_interface->addLocalReadyTask(task, computePlace, hint);
 		return;
 	}
 
-	addReadyLocalOrExecuteRemote(distr(eng), task, computePlace, hint);
+	_interface->addReadyLocalOrExecuteRemote(distr(eng), task, computePlace, hint);
 }

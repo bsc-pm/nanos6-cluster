@@ -6,7 +6,20 @@
 
 #include "ClusterSchedulerInterface.hpp"
 
+#include "ClusterLocalityScheduler.hpp"
+#include "ClusterRandomScheduler.hpp"
+
 #include <ClusterManager.hpp>
+
+ClusterSchedulerInterface::ClusterSchedulerInterface()
+	: _thisNode(ClusterManager::getCurrentClusterNode()),
+	  _lastScheduledNode(nullptr),
+	  _defaultScheduler(new ClusterLocalityScheduler(this))
+{
+	assert(_defaultScheduler != nullptr);
+	RuntimeInfo::addEntry("cluster-scheduler", "Cluster Scheduler", _defaultScheduler->getName());
+}
+
 
 bool ClusterSchedulerInterface::handleClusterSchedulerConstrains(
 	Task *task,
