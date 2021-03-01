@@ -59,8 +59,8 @@ public:
 
 	//! Handle constrains for cluster. Must return true only if some constrains where found and used
 	//! properly.
-	int handleClusterSchedulerConstrains(Task *task, ComputePlace *computePlace, ReadyTaskHint hint
-	) {
+	int handleClusterSchedulerConstrains(Task *task, ComputePlace *, ReadyTaskHint)
+	{
 		//! We do not offload spawned functions, if0 tasks, remote task
 		//! and tasks that already have an ExecutionWorkflow created for
 		//! them
@@ -73,8 +73,7 @@ public:
 			|| task->isTaskfor()
 			|| task->getWorkflow() != nullptr) {
 
-			addReadyLocalOrExecuteRemote(nanos6_cluster_no_offload, task, computePlace, hint);
-			return true;
+			return nanos6_cluster_no_offload;
 		}
 
 		if (task->hasConstrains()) {
@@ -85,12 +84,11 @@ public:
 			);
 
 			if (nodeId != nanos6_cluster_no_offload) {
-				addReadyLocalOrExecuteRemote(nodeId, task, computePlace, hint);
-				return true;
+				return nodeId;
 			}
 		}
 
-		return false;
+		return nanos6_cluster_no_hint;
 	}
 
 	ClusterSchedulerInterface();
@@ -117,7 +115,10 @@ public:
 		ReadyTaskHint hint = NO_HINT
 	) override {
 
-		if (handleClusterSchedulerConstrains(task, computePlace, hint)) {
+		int clusterhint = handleClusterSchedulerConstrains(task, computePlace, hint);
+
+		if (clusterhint != nanos6_cluster_no_hint) {
+			addReadyLocalOrExecuteRemote(clusterhint, task, computePlace, hint);
 			return;
 		}
 

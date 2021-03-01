@@ -26,6 +26,8 @@ void ClusterSchedulerInterface::addReadyLocalOrExecuteRemote(
 	ComputePlace *computePlace,
 	ReadyTaskHint hint
 ) {
+	assert(nodeId >= 0 || nodeId == nanos6_cluster_no_offload);
+
 	ClusterNode * const targetNode =
 		(nodeId == nanos6_cluster_no_offload) ?
 		_thisNode :
