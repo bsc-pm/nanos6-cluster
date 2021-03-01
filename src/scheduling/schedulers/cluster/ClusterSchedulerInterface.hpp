@@ -33,7 +33,10 @@ public:
 		{
 		}
 
-		virtual void addReadyTask(Task *task, ComputePlace *computePlace, ReadyTaskHint hint = NO_HINT);
+		virtual void addReadyTask(
+			Task *task,
+			ComputePlace *computePlace,
+			ReadyTaskHint hint = NO_HINT) = 0;
 	};
 
 protected:
@@ -87,6 +90,11 @@ public:
 		ComputePlace *computePlace,
 		ReadyTaskHint hint = NO_HINT
 	) override {
+
+		if (handleClusterSchedulerConstrains(task, computePlace, hint)) {
+			return;
+		}
+
 		_defaultScheduler->addReadyTask(task, computePlace, hint);
 	};
 

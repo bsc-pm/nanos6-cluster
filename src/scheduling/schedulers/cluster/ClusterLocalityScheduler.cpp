@@ -21,10 +21,6 @@ void ClusterLocalityScheduler::addReadyTask(
 	ComputePlace *computePlace,
 	ReadyTaskHint hint
 ) {
-	if (_interface->handleClusterSchedulerConstrains(task, computePlace, hint)) {
-		return;
-	}
-
 	const size_t clusterSize = ClusterManager::clusterSize();
 
 	std::vector<size_t> bytes(clusterSize, 0);

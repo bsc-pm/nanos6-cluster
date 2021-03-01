@@ -16,9 +16,6 @@ void ClusterRandomScheduler::addReadyTask(
 	ComputePlace *computePlace,
 	ReadyTaskHint hint
 ) {
-	if (_interface->handleClusterSchedulerConstrains(task, computePlace, hint)) {
-		return;
-	}
 
 	bool canBeOffloaded = true;
 	DataAccessRegistration::processAllDataAccesses(task,
