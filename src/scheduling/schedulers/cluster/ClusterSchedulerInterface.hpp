@@ -106,6 +106,7 @@ public:
 			|| task->isPolling()          // Polling tasks
 			|| task->isTaskloop()         // for now don't offload task{loop,for}
 			|| task->isTaskfor()
+			|| (task->getNode() == nanos6_cluster_no_offload)
 			|| task->getWorkflow() != nullptr) {
 
 			return nanos6_cluster_no_offload;
@@ -113,14 +114,22 @@ public:
 
 		if (task->hasConstrains()) {
 			const int nodeId = task->getNode();
-			FatalErrorHandler::failIf(
-				nodeId >= ClusterManager::clusterSize(),
-				"node in node() constraint out of range"
-			);
 
-			if (nodeId != nanos6_cluster_no_offload) {
+			if (nodeId >= 0) {                       // Id is a node number.
+				FatalErrorHandler::failIf(
+					nodeId >= ClusterManager::clusterSize(),
+					"node in node() constraint out of range"
+				);
+
 				return nodeId;
 			}
+
+			if (nodeId == nanos6_cluster_no_hint) {  // Explicitly not hint set.
+				return nodeId;
+			}
+
+			FatalErrorHandler::fail("Invalid nodeId value or unmanaged value.");
+
 		}
 
 		return nanos6_cluster_no_hint;

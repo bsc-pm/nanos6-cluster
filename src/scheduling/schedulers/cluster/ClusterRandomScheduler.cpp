@@ -13,8 +13,8 @@
 
 int ClusterRandomScheduler::getScheduledNode(
 	Task *task,
-	ComputePlace *computePlace,
-	ReadyTaskHint hint
+	ComputePlace *computePlace __attribute__((unused)),
+	ReadyTaskHint hint __attribute__((unused))
 ) {
 
 	bool canBeOffloaded = true;

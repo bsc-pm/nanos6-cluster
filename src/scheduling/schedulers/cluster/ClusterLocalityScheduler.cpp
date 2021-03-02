@@ -18,8 +18,8 @@
 
 int ClusterLocalityScheduler::getScheduledNode(
 	Task *task,
-	ComputePlace *computePlace,
-	ReadyTaskHint hint
+	ComputePlace *computePlace  __attribute__((unused)),
+	ReadyTaskHint hint  __attribute__((unused))
 ) {
 	const size_t clusterSize = ClusterManager::clusterSize();
 

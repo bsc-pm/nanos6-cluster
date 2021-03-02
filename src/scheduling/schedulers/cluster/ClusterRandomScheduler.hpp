@@ -36,7 +36,7 @@ public:
 	int getScheduledNode(
 		Task *task,
 		ComputePlace *computePlace,
-		ReadyTaskHint hint = NO_HINT
+		ReadyTaskHint hint
 	) override;
 };
 
