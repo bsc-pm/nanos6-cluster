@@ -132,6 +132,17 @@ public:
 
 	{
 	}
+
+	//! \brief Get the apprank number
+	//!
+	//! \returns the apprank number
+	static int getApprankNum() = 0;
+
+	//! \brief Get the external rank
+	//!
+	//! \returns the external rank (in MPI_COMM_WORLD)
+	static int getExternalRank() = 0;
+
 };
 
 #endif /* CLUSTER_MANAGER_HPP */

@@ -417,6 +417,47 @@ public:
 
 	static void setEarlyRelease(nanos6_early_release_t early_release);
 
+	//! \brief Get the apprank number
+	//!
+	//! \returns the apprank number
+	static inline int getApprankNum()
+	{
+		assert(_singleton);
+		assert(_singleton->_msn != nullptr);
+		return _singleton->_msn->getApprankNum();
+	}
+
+	static inline int getNodeNum()
+	{
+		assert(_singleton);
+		assert(_singleton->_msn != nullptr);
+		return _singleton->_msn->getNodeNum();
+	}
+
+	//! \brief Get the external rank
+	//!
+	//! \returns the external rank (in MPI_COMM_WORLD)
+	static inline int getExternalRank()
+	{
+		assert(_singleton);
+		assert(_singleton->_msn != nullptr);
+		return _singleton->_msn->getExternalRank();
+	}
+
+	static inline int getNumExternalRanks()
+	{
+		assert(_singleton);
+		assert(_singleton->_msn != nullptr);
+		return _singleton->_msn->getNumExternalRanks();
+	}
+
+	//! Get the index number of the instances on this node
+	static inline int getIndexThisNode()
+	{
+		assert(_singleton);
+		assert(_singleton->_msn != nullptr);
+		return _singleton->_msn->getIndexThisNode();
+	}
 };
 
 
