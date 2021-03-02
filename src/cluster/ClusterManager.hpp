@@ -468,6 +468,57 @@ public:
 		return _singleton->_numMessageHandlerWorkers;
 	}
 
+	//! \brief Get the apprank number
+	//!
+	//! \returns the apprank number
+	static inline int getApprankNum()
+	{
+		assert(_singleton);
+		assert(_singleton->_msn != nullptr);
+		return _singleton->_msn->getApprankNum();
+	}
+
+	//! \brief Get the physical node number
+	//!
+	//! \returns the physical node number (within the job)
+	static inline int getPhysicalNodeNum()
+	{
+		assert(_singleton);
+		assert(_singleton->_msn != nullptr);
+		return _singleton->_msn->getPhysicalNodeNum();
+	}
+
+	//! \brief Get the external rank
+	//!
+	//! \returns the external rank (in MPI_COMM_WORLD)
+	static inline int getExternalRank()
+	{
+		assert(_singleton);
+		assert(_singleton->_msn != nullptr);
+		return _singleton->_msn->getExternalRank();
+	}
+
+	//! \brief Get the number of external ranks
+	//!
+	//! \returns the number of external ranks (in MPI_COMM_WORLD)
+	static inline int getNumExternalRanks()
+	{
+		assert(_singleton);
+		assert(_singleton->_msn != nullptr);
+		return _singleton->_msn->getNumExternalRanks();
+	}
+
+	//! \brief Get the index number of the instance on the
+	//! current physical node
+	//!
+	//! \returns The index number of this instance on the
+	//! physical node.
+	static inline int getIndexThisPhysicalNode()
+	{
+		assert(_singleton);
+		assert(_singleton->_msn != nullptr);
+		return _singleton->_msn->getIndexThisPhysicalNode();
+	}
 };
 
 
