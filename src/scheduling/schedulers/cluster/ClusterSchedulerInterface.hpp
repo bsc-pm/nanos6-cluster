@@ -125,11 +125,12 @@ public:
 			}
 
 			if (nodeId == nanos6_cluster_no_hint) {  // Explicitly not hint set.
-				return nodeId;
+				return nanos6_cluster_no_hint;
 			}
 
-			FatalErrorHandler::fail("Invalid nodeId value or unmanaged value.");
-
+			ClusterSchedulerPolicy * policy = getOrCreateScheduler(id);
+			assert(policy != nullptr);
+			return policy->getScheduledNode(task, computePlace, hint);
 		}
 
 		return nanos6_cluster_no_hint;

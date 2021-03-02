@@ -44,7 +44,7 @@ public:
 		try {
 			return _callbacks.at(id)(input...);
 		} catch (const std::out_of_range &oor) {
-			FatalErrorHandler::failIf(true, "Not registered object");
+			FatalErrorHandler::fail("Not registered object");
 		}
 
 		/* Should never reach here anyway. This is just to silence the
