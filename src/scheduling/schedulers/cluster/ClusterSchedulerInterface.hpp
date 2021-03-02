@@ -94,7 +94,7 @@ public:
 
 	//! Handle constrains for cluster. Must return true only if some constrains where found and used
 	//! properly.
-	int handleClusterSchedulerConstrains(Task *task, ComputePlace *, ReadyTaskHint)
+	int handleClusterSchedulerConstrains(Task *task, ComputePlace *computePlace, ReadyTaskHint hint)
 	{
 		//! We do not offload spawned functions, if0 tasks, remote task
 		//! and tasks that already have an ExecutionWorkflow created for
@@ -124,13 +124,23 @@ public:
 				return nodeId;
 			}
 
-			if (nodeId == nanos6_cluster_no_hint) {  // Explicitly not hint set.
+			const nanos6_cluster_scheduler_t schedulerId
+				= static_cast<nanos6_cluster_scheduler_t>(nodeId);
+
+			if (schedulerId == nanos6_cluster_no_hint) {  // Explicitly not hint set.
 				return nanos6_cluster_no_hint;
 			}
 
-			ClusterSchedulerPolicy * policy = getOrCreateScheduler(id);
-			assert(policy != nullptr);
-			return policy->getScheduledNode(task, computePlace, hint);
+			// The cluster() value is a scheduler hint.
+			if (schedulerId > nanos6_cluster_min_hint
+				&& schedulerId < nanos6_cluster_no_offload) {
+
+				ClusterSchedulerPolicy * policy = getOrCreateScheduler(schedulerId);
+				assert(policy != nullptr);
+				return policy->getScheduledNode(task, computePlace, hint);
+			}
+
+			FatalErrorHandler::fail("hint value in node() constraint is out of range");
 		}
 
 		return nanos6_cluster_no_hint;
@@ -140,7 +150,10 @@ public:
 
 	virtual ~ClusterSchedulerInterface()
 	{
-		delete _defaultScheduler;
+		for (auto it : _schedulerMap) {
+			delete it.second;
+			it.second = nullptr;
+		}
 	}
 
 	inline std::string getName() const
