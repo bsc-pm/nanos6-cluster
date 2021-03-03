@@ -142,7 +142,7 @@ public:
 		WriteID initCounter = ((size_t)nodeIndex) << (64 - logMaxNodes);
 
 		_singleton = new WriteIDManager(initCounter);
-		std::cout << "construct WriteIDManager " << nodeIndex << " with counter: " << initCounter << "\n";
+		//std::cout << "construct WriteIDManager " << nodeIndex << " with counter: " << initCounter << "\n";
 	}
 
 	static void finalize()
