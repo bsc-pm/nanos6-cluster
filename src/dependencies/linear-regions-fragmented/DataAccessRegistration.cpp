@@ -3074,6 +3074,14 @@ namespace DataAccessRegistration {
 
 				DataAccessStatusEffects initialStatus(accessOrFragment);
 
+				// If the access is early released in the namespace (autowait
+				// feature), then set early release in the fragments too.
+				if (dataAccess->getEarlyReleaseInNamespace()) {
+					if (accessOrFragment != dataAccess) {
+						accessOrFragment->setEarlyReleaseInNamespace();
+					}
+				}
+
 				// the access will already be complete only if it is a task with a wait clause
 				if (accessOrFragment->complete()) {
 					return true;
@@ -3365,7 +3373,7 @@ namespace DataAccessRegistration {
 		} else {
 			/* With autowait, only create taskwait fragments for bottom map
 			 * entries that have not already been early released in the
-			 * namespace (by unregisterNamespaceTaskDataAccesses). We have to
+			 * namespace (by unregisterLocallyPropagatedTaskDataAccesses). We have to
 			 * ensure that bottom map entries not covered by any access still
 			 * get a taskwait fragment, since otherwise there would be a hang
 			 * on incorrect programs where the parent pragmas don't cover all
@@ -4629,8 +4637,10 @@ namespace DataAccessRegistration {
 					// for a task with a wait clause, then the access may be discounted
 					// assert(!dataAccess->hasBeenDiscounted());
 
-					if (dataAccess->hasSubaccesses()) {
-						dataAccess->unsetHasSubaccesses();
+					if (!dataAccess->getEarlyReleaseInNamespace()) {
+						if (dataAccess->hasSubaccesses()) {
+							dataAccess->unsetHasSubaccesses();
+						}
 					}
 
 					/* continue, to process all accesses */
@@ -4647,15 +4657,15 @@ namespace DataAccessRegistration {
 				[&](TaskDataAccesses::access_fragments_t::iterator position) -> bool {
 					DataAccess *dataAccess = &(*position);
 					assert(dataAccess != nullptr);
-
-					Instrument::removedDataAccess(dataAccess->getInstrumentationId());
-					accessStructures._accessFragments.erase(dataAccess);
-					ObjectAllocator<DataAccess>::deleteObject(dataAccess);
+					if (!dataAccess->getEarlyReleaseInNamespace()) {
+						Instrument::removedDataAccess(dataAccess->getInstrumentationId());
+						accessStructures._accessFragments.erase(dataAccess);
+						ObjectAllocator<DataAccess>::deleteObject(dataAccess);
+					}
 
 					/* continue, to process all access fragments */
 					return true;
 				});
-			accessStructures._accessFragments.clear();
 		}
 
 		unfragmentTaskwaits(accessStructures);
