@@ -126,7 +126,8 @@ private:
 	//! DataLinkStep related with this data access
 	ExecutionWorkflow::DataLinkStep *_dataLinkStep;
 
-	int _validNamespace;
+	int _validNamespacePrevious;
+	int _validNamespaceSelf;
 	Task *_namespacePredecessor;
 	Task *_namespaceSuccessor;
 
@@ -160,7 +161,8 @@ public:
 		_location(location),
 		_outputLocation(outputLocation),
 		_dataLinkStep(dataLinkStep),
-		_validNamespace(VALID_NAMESPACE_UNKNOWN),
+		_validNamespacePrevious(VALID_NAMESPACE_UNKNOWN),
+		_validNamespaceSelf(VALID_NAMESPACE_UNKNOWN),
 		_namespacePredecessor(nullptr),
 		_namespaceSuccessor(nullptr)
 	{
@@ -193,7 +195,8 @@ public:
 		_location(other.getLocation()),
 		_outputLocation(other.getOutputLocation()),
 		_dataLinkStep(other.getDataLinkStep()),
-		_validNamespace(other.getValidNamespace()),
+		_validNamespacePrevious(other.getValidNamespacePrevious()),
+		_validNamespaceSelf(other.getValidNamespaceSelf()),
 		_namespacePredecessor(other.getNamespacePredecessor()),
 		_namespaceSuccessor(other.getNamespaceSuccessor())
 	{}
@@ -732,9 +735,19 @@ public:
 		return _symbols;
 	}
 
-	int getValidNamespace() const
+	// Get the namespace node id for the previous access.
+	// This is needed in order to send the correct hint to the remote node.
+	int getValidNamespacePrevious() const
 	{
-		return _validNamespace;
+		return _validNamespacePrevious;
+	}
+
+	// Get the namespace node id for this access itself. It is the node
+	// on which the task is executed. Consider putting this information
+	// in the Task rather than the DataAccess.
+	int getValidNamespaceSelf() const
+	{
+		return _validNamespaceSelf;
 	}
 
 	Task *getNamespacePredecessor() const
@@ -742,12 +755,22 @@ public:
 		return _namespacePredecessor;
 	}
 
+	// Set the namespace nodeId and predecessor task for the previous access.
 	// validNamespace: nodeId where task was last offloaded
 	// namespacePredecessor: last task offloaded to that node
-	void setValidNamespace(int validNamespace, Task *namespacePredecessor)
+	void setValidNamespacePrevious(int validNamespacePrevious, Task *namespacePredecessor)
 	{
-		_validNamespace = validNamespace;
+		_validNamespacePrevious = validNamespacePrevious;
 		_namespacePredecessor = namespacePredecessor;
+	}
+
+	// Set the namespace node id for this access itself. It is the node
+	// on which the task is executed, and it will be passed through the
+	// dependency system to the successor. Consider putting this information
+	// in the Task rather than the DataAccess.
+	void setValidNamespaceSelf(int validNamespaceSelf)
+	{
+		_validNamespaceSelf = validNamespaceSelf;
 	}
 
 	Task *getNamespaceSuccessor() const

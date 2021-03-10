@@ -76,14 +76,14 @@ namespace ExecutionWorkflow {
 			if (ClusterManager::getDisableRemote()) {
 				_namespacePredecessor = nullptr;
 			} else {
-				if (access->getValidNamespace() == targetNamespace) {
+				if (access->getValidNamespacePrevious() == targetNamespace) {
 					_namespacePredecessor = access->getNamespacePredecessor(); // remote propagation valid if predecessor task and offloading node matches
 				} else {
 					_namespacePredecessor = nullptr;
 				}
 			}
 
-			DataAccessRegistration::setNamespace(access, targetNamespace);
+			DataAccessRegistration::setNamespaceSelf(access, targetNamespace);
 		}
 
 		void linkRegion(

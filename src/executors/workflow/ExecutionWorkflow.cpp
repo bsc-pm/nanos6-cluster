@@ -67,7 +67,7 @@ namespace ExecutionWorkflow {
 		if (targetType == nanos6_host_device
 			|| targetMemoryPlace == ClusterManager::getCurrentMemoryNode()) {
 
-			access->setValidNamespace( ClusterManager::getCurrentMemoryNode()->getIndex(), access->getOriginator());
+			access->setValidNamespaceSelf( ClusterManager::getCurrentMemoryNode()->getIndex());
 		}
 
 		step = _transfersMap[sourceType][targetType](

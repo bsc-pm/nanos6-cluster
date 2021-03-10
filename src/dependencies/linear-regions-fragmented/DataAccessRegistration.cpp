@@ -834,8 +834,9 @@ namespace DataAccessRegistration {
 				&& (access->getNext()._objectType == access_type)
 				&& !access->hasSubaccesses()
 				&& !access->getPropagatedNamespaceInfo()
-				&& (access->getValidNamespace() >= 0)) {
-				updateOperation._validNamespace = access->getValidNamespace();
+				&& (access->getValidNamespaceSelf() >= 0)) {
+
+				updateOperation._validNamespace = access->getValidNamespaceSelf();
 				updateOperation._namespacePredecessor = access->getOriginator();
 				access->setPropagatedNamespaceInfo();
 			}
@@ -1604,7 +1605,7 @@ namespace DataAccessRegistration {
 		DataAccessStatusEffects initialStatus(access);
 
 		// Calculate the valid namespace.
-		access->setValidNamespace(updateOperation._validNamespace, updateOperation._namespacePredecessor);
+		access->setValidNamespacePrevious(updateOperation._validNamespace, updateOperation._namespacePredecessor);
 
 		if (updateOperation._makeReadSatisfied) {
 
@@ -4785,7 +4786,7 @@ namespace DataAccessRegistration {
 		accessStruct._lock.unlock();
 	}
 
-	void setNamespace(DataAccess *access, int targetNamespace)
+	void setNamespaceSelf(DataAccess *access, int targetNamespace)
 	{
 		// This is called with the lock on the task accesses already taken
 		Task *task = access->getOriginator();
@@ -4794,7 +4795,7 @@ namespace DataAccessRegistration {
 		assert(!accessStructures.hasBeenDeleted());
 
 		DataAccessStatusEffects initialStatus(access);
-		access->setValidNamespace(targetNamespace, access->getOriginator());
+		access->setValidNamespaceSelf(targetNamespace);
 		DataAccessStatusEffects updatedStatus(access);
 
 		handleDataAccessStatusChanges(
