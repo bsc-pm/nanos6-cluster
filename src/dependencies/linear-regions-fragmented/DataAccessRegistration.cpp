@@ -455,6 +455,9 @@ namespace DataAccessRegistration {
 				                     || (access->getObjectType() == taskwait_type)
 				                     || (access->getObjectType() == top_level_sink_type)
 				               	));
+			/* Also must have already received the namespace information from previous access */
+			_isRemovable = _isRemovable && ((access->getObjectType() == fragment_type)
+											|| (access->getValidNamespacePrevious() != VALID_NAMESPACE_UNKNOWN));
 
 			/*
 			 * If the access is a taskwait access (from createTaskwait)
@@ -830,11 +833,9 @@ namespace DataAccessRegistration {
 			}
 
 			if (updatedStatus._allowNamespacePropagation
-				&& (access->getObjectType() == access_type)
-				&& (access->getNext()._objectType == access_type)
 				&& !access->hasSubaccesses()
 				&& !access->getPropagatedNamespaceInfo()
-				&& (access->getValidNamespaceSelf() >= 0)) {
+				&& (access->getValidNamespaceSelf() != VALID_NAMESPACE_UNKNOWN)) {
 
 				updateOperation._validNamespace = access->getValidNamespaceSelf();
 				updateOperation._namespacePredecessor = access->getOriginator();
@@ -1605,7 +1606,9 @@ namespace DataAccessRegistration {
 		DataAccessStatusEffects initialStatus(access);
 
 		// Calculate the valid namespace.
-		access->setValidNamespacePrevious(updateOperation._validNamespace, updateOperation._namespacePredecessor);
+		if (updateOperation._validNamespace != VALID_NAMESPACE_UNKNOWN) {
+			access->setValidNamespacePrevious(updateOperation._validNamespace, updateOperation._namespacePredecessor);
+		}
 
 		if (updateOperation._makeReadSatisfied) {
 
@@ -2704,6 +2707,7 @@ namespace DataAccessRegistration {
 
 							targetAccess->setConcurrentSatisfied(); // ?
 							targetAccess->setCommutativeSatisfied(); // ?
+							targetAccess->setValidNamespacePrevious(VALID_NAMESPACE_NONE, nullptr);
 
 							targetAccess->setReceivedReductionInfo();
 
@@ -2807,6 +2811,7 @@ namespace DataAccessRegistration {
 						targetAccess->setCommutativeSatisfied();
 
 						targetAccess->setReceivedReductionInfo();
+						targetAccess->setValidNamespacePrevious(VALID_NAMESPACE_NONE, nullptr);
 
 						// Note: setting ReductionSlotSet as received is not necessary, as its not always propagated
 						DataAccessStatusEffects updatedStatus(targetAccess);
@@ -4007,6 +4012,8 @@ namespace DataAccessRegistration {
 		newLocalAccess->setConcurrentSatisfied();
 		newLocalAccess->setCommutativeSatisfied();
 		newLocalAccess->setReceivedReductionInfo();
+		newLocalAccess->setValidNamespacePrevious(VALID_NAMESPACE_NONE, nullptr);
+		newLocalAccess->setValidNamespaceSelf(VALID_NAMESPACE_NONE);
 		newLocalAccess->setRegistered();
 #ifndef NDEBUG
 		newLocalAccess->setReachable();

@@ -600,6 +600,8 @@ public:
 		if (other->complete()) {
 			setComplete();
 		}
+		setValidNamespaceSelf(other->getValidNamespaceSelf());
+		setValidNamespacePrevious(VALID_NAMESPACE_NONE, nullptr);
 	}
 
 	DataAccessRegion const &getAccessRegion() const
