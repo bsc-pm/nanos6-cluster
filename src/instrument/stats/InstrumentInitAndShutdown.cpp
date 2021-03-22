@@ -195,6 +195,8 @@ if (0) {
 		showClusterCounters(output);
 #endif
 
+		show_dependency_state_stats(output);
+
 		output.close();
 	}
 

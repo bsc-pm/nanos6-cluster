@@ -67,9 +67,9 @@ namespace Instrument {
 
 	inline void exitReleaseTaskwaitFragment() {}
 
-	inline void enterCreateDataCopyStep() {}
+	inline void enterCreateDataCopyStep(__attribute__((unused)) bool isTaskwait) {}
 
-	inline void exitCreateDataCopyStep() {}
+	inline void exitCreateDataCopyStep(__attribute__((unused)) bool isTaskwait) {}
 }
 
 #endif //INSTRUMENT_CTF_DEPENDENCY_SUBSYTEM_ENTRY_POINTS_HPP

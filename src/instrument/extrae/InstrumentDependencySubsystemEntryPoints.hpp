@@ -141,14 +141,22 @@ namespace Instrument {
 		popDependency(NANOS_RELEASETASKWAITFRAGMENT);
 	}
 
-	inline void enterCreateDataCopyStep()
+	inline void enterCreateDataCopyStep(bool isTaskwait)
 	{
-		pushDependency(NANOS_CREATEDATACOPYSTEP);
+		if (isTaskwait) {
+			pushDependency(NANOS_CREATEDATACOPYSTEP_TASKWAIT);
+		} else {
+			pushDependency(NANOS_CREATEDATACOPYSTEP_TASK);
+		}
 	}
 
-	inline void exitCreateDataCopyStep()
+	inline void exitCreateDataCopyStep(bool isTaskwait)
 	{
-		popDependency(NANOS_CREATEDATACOPYSTEP);
+		if (isTaskwait) {
+			popDependency(NANOS_CREATEDATACOPYSTEP_TASKWAIT);
+		} else {
+			popDependency(NANOS_CREATEDATACOPYSTEP_TASK);
+		}
 	}
 }
 

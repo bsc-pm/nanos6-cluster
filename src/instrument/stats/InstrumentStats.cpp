@@ -17,5 +17,26 @@ namespace Instrument {
 		std::list<ThreadInfo *> _threadInfoList;
 
 		Timer _totalTime(true);
+
+		std::array<std::atomic<size_t>, NANOS_DEPENDENCY_STATE_TYPES>
+			nanos6_dependency_state_stats = {};
+
+		void show_dependency_state_stats(std::ofstream &output)
+		{
+			std::array<std::string, NANOS_DEPENDENCY_STATE_TYPES> dependency_state_names =
+				{
+					#define HELPER(arg) #arg,
+					NANOS6_DEPENDENCY_STATE_MACRO
+					#undef HELPER
+				};
+
+			for (size_t type = 0; type < NANOS_DEPENDENCY_STATE_TYPES; ++type) {
+				output << "STATE\t"
+					<< std::left << std::setw(48) << dependency_state_names[type]
+					<< std::setw(0) << std::right << "\t" << nanos6_dependency_state_stats[type]
+					<< std::endl;
+			}
+		}
+
 	}
 }

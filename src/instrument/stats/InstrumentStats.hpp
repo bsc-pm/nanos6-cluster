@@ -17,12 +17,39 @@
 #include "lowlevel/RWTicketSpinLock.hpp"
 #include "lowlevel/SpinLock.hpp"
 
+#define NANOS6_DEPENDENCY_STATE_MACRO					\
+	HELPER(NANOS_OUTSIDE_DEPENDENCYSUBSYSTEM)			\
+	HELPER(NANOS_REGISTERTASKDATAACCESSES)				\
+	HELPER(NANOS_UNREGISTERTASKDATAACCESSES)			\
+	HELPER(NANOS_PROPAGATESATISFIABILITY)				\
+	HELPER(NANOS_RELEASEACCESSREGION)					\
+	HELPER(NANOS_HANDLEENTERTASKWAIT)					\
+	HELPER(NANOS_HANDLEEXITTASKWAIT)					\
+	HELPER(NANOS_UNREGISTERTASKDATAACCESSESCALLBACK)	\
+	HELPER(NANOS_UNREGISTERTASKDATAACCESSES2)			\
+	HELPER(NANOS_HANDLECOMPLETEDTASKWAITS)				\
+	HELPER(NANOS_SETUPTASKWAITWORKFLOW)					\
+	HELPER(NANOS_RELEASETASKWAITFRAGMENT)				\
+	HELPER(NANOS_CREATEDATACOPYSTEP_TASK)				\
+	HELPER(NANOS_CREATEDATACOPYSTEP_TASKWAIT)
+
 
 namespace Instrument {
 	namespace Stats {
 		extern RWTicketSpinLock _phasesSpinLock;
 		extern int _currentPhase;
 		extern std::vector<Timer> _phaseTimes;
+
+		typedef enum {
+#define HELPER(arg) arg,
+			NANOS6_DEPENDENCY_STATE_MACRO
+			NANOS_DEPENDENCY_STATE_TYPES
+#undef HELPER
+		} nanos6_dependency_state_t;
+
+		extern std::array<std::atomic<size_t>, NANOS_DEPENDENCY_STATE_TYPES> nanos6_dependency_state_stats;
+
+		void show_dependency_state_stats(std::ofstream &output);
 
 		struct TaskTimes {
 			Timer _instantiationTime;

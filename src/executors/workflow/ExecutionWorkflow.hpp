@@ -64,7 +64,8 @@ namespace ExecutionWorkflow {
 			MemoryPlace const *sourceMemoryPlace,
 			MemoryPlace const *targetMemoryPlace,
 			DataAccessRegion const &region,
-			DataAccess *access
+			DataAccess *access,
+			bool isTaskwait
 		);
 
 		//! \brief Creates an ExecutionStep.

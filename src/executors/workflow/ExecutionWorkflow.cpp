@@ -39,10 +39,12 @@ namespace ExecutionWorkflow {
 		MemoryPlace const *sourceMemoryPlace,
 		MemoryPlace const *targetMemoryPlace,
 		DataAccessRegion const &region,
-		DataAccess *access
+		DataAccess *access,
+		bool isTaskwait
 	) {
 		Step *step;
-		Instrument::enterCreateDataCopyStep();
+		Instrument::enterCreateDataCopyStep(isTaskwait);
+
 		/* At the moment we do not support data copies for accesses
 			* of the following types. This essentially mean that devices,
 			* e.g. Cluster, CUDA, do not support these accesses. */
@@ -51,7 +53,7 @@ namespace ExecutionWorkflow {
 			access->getType() == CONCURRENT_ACCESS_TYPE
 		) {
 			step = new Step();
-			Instrument::exitCreateDataCopyStep();
+			Instrument::exitCreateDataCopyStep(isTaskwait);
 			return step;
 		}
 
@@ -76,7 +78,7 @@ namespace ExecutionWorkflow {
 			region,
 			access
 		);
-		Instrument::exitCreateDataCopyStep();
+		Instrument::exitCreateDataCopyStep(isTaskwait);
 		return step;
 	}
 
@@ -334,7 +336,8 @@ namespace ExecutionWorkflow {
 							entryLocation,
 							targetMemoryPlace,
 							subregion,
-							dataAccess
+							dataAccess,
+							false
 						);
 
 						workflow->enforceOrder(dataCopySubregionStep, executionStep);
@@ -349,7 +352,8 @@ namespace ExecutionWorkflow {
 						currLocation,
 						targetMemoryPlace,
 						region,
-						dataAccess
+						dataAccess,
+						false
 					);
 
 					workflow->enforceOrder(dataCopyRegionStep, executionStep);
@@ -443,7 +447,8 @@ namespace ExecutionWorkflow {
 			currLocation,
 			targetLocation,
 			region,
-			taskwaitFragment
+			taskwaitFragment,
+			true
 		);
 
 		workflow->addRootStep(copyStep);
