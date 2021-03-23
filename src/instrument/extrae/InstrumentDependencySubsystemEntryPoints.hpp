@@ -158,6 +158,12 @@ namespace Instrument {
 			popDependency(NANOS_CREATEDATACOPYSTEP_TASK);
 		}
 	}
+
+	inline void emitDependencyUserEvent(size_t eventValue = 0)
+	{
+		emitEvent(EventType::DEPENDENCIES_USER_EVENT, (extrae_value_t) eventValue);
+	}
+
 }
 
 #endif //INSTRUMENT_EXTRAE_DEPENDENCY_SUBSYTEM_ENTRY_POINTS_HPP

@@ -103,6 +103,9 @@ namespace Instrument {
 	}
 
 	inline void exitCreateDataCopyStep(__attribute__((unused)) bool isTaskwait) {}
+
+	inline void emitDependencyUserEvent(__attribute__((unused)) size_t eventValue = 0) {}
+
 }
 
 #endif //INSTRUMENT_NULL_DEPENDENCY_SUBSYTEM_ENTRY_POINTS_HPP

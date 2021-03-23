@@ -244,6 +244,15 @@ namespace Instrument {
 				values,
 				_dependencySubsystemStateValueStr
 			);
+
+			ExtraeAPI::define_event_type(
+				(extrae_type_t) EventType::DEPENDENCIES_USER_EVENT,
+				"Dependency user event",
+				0,
+				nullptr,
+				nullptr
+			);
+
 		}
 
 

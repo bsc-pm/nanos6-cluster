@@ -7,6 +7,7 @@
 #ifndef INSTRUMENT_DEPENDENCY_SUBSYTEM_ENTRY_POINTS_HPP
 #define INSTRUMENT_DEPENDENCY_SUBSYTEM_ENTRY_POINTS_HPP
 
+#include <cstdlib>
 
 namespace Instrument {
 
@@ -59,6 +60,9 @@ namespace Instrument {
 	void enterCreateDataCopyStep(bool isTaskwait);
 
 	void exitCreateDataCopyStep(bool isTaskwait);
+
+	void emitDependencyUserEvent(size_t eventValue);
+
 }
 
 #endif //INSTRUMENT_DEPENDENCY_SUBSYTEM_ENTRY_POINTS_HPP

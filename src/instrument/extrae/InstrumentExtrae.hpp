@@ -126,6 +126,8 @@ namespace Instrument {
 
 				// Dependencies system
 				DEPENDENCIES_SUBSYSTEM = 9900000,
+
+				DEPENDENCIES_USER_EVENT = 9910000,
 	};
 
 
