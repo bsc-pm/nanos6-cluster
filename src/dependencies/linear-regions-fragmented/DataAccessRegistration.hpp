@@ -7,6 +7,8 @@
 #ifndef DATA_ACCESS_REGISTRATION_HPP
 #define DATA_ACCESS_REGISTRATION_HPP
 
+#include <functional>
+
 #include <api/nanos6/task-instantiation.h>
 #include <DataAccessRegion.hpp>
 
@@ -93,12 +95,11 @@ namespace DataAccessRegistration {
 		unregisterTaskDataAccesses2(task, computePlace, dependencyData, location, fromBusyThread);
 	}
 
-	template <typename CallbackType>
 	inline void unregisterTaskDataAccessesWithCallback(
 		Task *task,
 		ComputePlace *computePlace,
 		CPUDependencyData &dependencyData,
-		CallbackType callback,
+		std::function<void()> callback,
 		MemoryPlace *location = nullptr,
 		bool fromBusyThread = false
 	) {
