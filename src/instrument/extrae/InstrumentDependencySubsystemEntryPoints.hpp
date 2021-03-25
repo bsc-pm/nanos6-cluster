@@ -16,21 +16,29 @@ namespace Instrument {
 
 	inline void pushDependency(extrae_value_t value)
 	{
+		if (!_extraeInstrumentDependencies) {
+			return;
+		}
 		ThreadLocalData &threadLocal = getThreadLocalData();
 		threadLocal._dependencyNesting.push_back(value);
-		emitEvent(EventType::DEPENDENCIES_SUBSYSTEM, value);
+
+		ExtraeAPI::event((extrae_type_t) EventType::DEPENDENCIES_SUBSYSTEM, value);
 	}
 
 	inline void popDependency(__attribute__((unused)) extrae_value_t value)
 	{
+		if (!_extraeInstrumentDependencies) {
+			return;
+		}
+
 		ThreadLocalData &threadLocal = getThreadLocalData();
 		assert(!threadLocal._dependencyNesting.empty());
 		assert(threadLocal._dependencyNesting.back() == value);
 		threadLocal._dependencyNesting.pop_back();
 		if (threadLocal._dependencyNesting.empty()) {
-			emitEvent(EventType::DEPENDENCIES_SUBSYSTEM, 0);
+			ExtraeAPI::event((extrae_type_t) EventType::DEPENDENCIES_SUBSYSTEM, 0);
 		} else {
-			emitEvent(EventType::DEPENDENCIES_SUBSYSTEM, threadLocal._dependencyNesting.back());
+			ExtraeAPI::event((extrae_type_t) EventType::DEPENDENCIES_SUBSYSTEM, threadLocal._dependencyNesting.back());
 		}
 	}
 
@@ -158,12 +166,6 @@ namespace Instrument {
 			popDependency(NANOS_CREATEDATACOPYSTEP_TASK);
 		}
 	}
-
-	inline void emitDependencyUserEvent(size_t eventValue = 0)
-	{
-		emitEvent(EventType::DEPENDENCIES_USER_EVENT, (extrae_value_t) eventValue);
-	}
-
 }
 
 #endif //INSTRUMENT_EXTRAE_DEPENDENCY_SUBSYTEM_ENTRY_POINTS_HPP

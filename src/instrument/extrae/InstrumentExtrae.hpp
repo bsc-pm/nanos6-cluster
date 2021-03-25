@@ -80,6 +80,7 @@ namespace Instrument {
 	extern const ConfigVariable<bool> _traceAsThreads;
 	extern const ConfigVariable<unsigned int> _detailLevel;
 	extern const ConfigVariable<bool> _extraeInstrumentCluster;
+	extern const ConfigVariable<bool> _extraeInstrumentDependencies;
 
 	enum struct EventType {
 		// OmpSs common
@@ -221,8 +222,6 @@ namespace Instrument {
 
 		return (runA < runB);
 	}
-
-	void emitEvent(EventType type, extrae_value_t value);
 
 	unsigned int extrae_nanos6_get_num_threads();
 	unsigned int extrae_nanos6_get_num_cpus_and_external_threads();

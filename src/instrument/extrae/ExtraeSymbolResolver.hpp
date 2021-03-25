@@ -26,15 +26,15 @@
 class ExtraeSymbolResolverBase {
 protected:
 	void *_handle;
-	
+
 	static ExtraeSymbolResolverBase *_singleton;
-	
+
 	static inline void *getHandle()
 	{
 		assert(_singleton);
 		return _singleton->_handle;
 	}
-	
+
 public:
 	ExtraeSymbolResolverBase();
 
@@ -47,7 +47,7 @@ public:
 	{
 		_singleton = new ExtraeSymbolResolverBase;
 	}
-	
+
 	static std::string getSharedObjectPath();
 };
 
@@ -55,31 +55,31 @@ public:
 template <typename RETURN_T, StringLiteral const *NAME, typename... PARAMETERS_T>
 class ExtraeSymbolResolver : public ExtraeSymbolResolverBase {
 private:
-	
+
 public:
 	typedef RETURN_T (*function_t)(PARAMETERS_T...);
-	
+
 	static RETURN_T call(PARAMETERS_T... parameters)
 	{
 		static function_t symbol = (function_t) dlsym(ExtraeSymbolResolverBase::getHandle(), *NAME);
 		assert(symbol != nullptr);
-		
+
 		return (*symbol)(parameters...);
 	}
-	
+
 	static function_t getFunction()
 	{
 		static function_t symbol = (function_t) dlsym(ExtraeSymbolResolverBase::getHandle(), *NAME);
 		assert(symbol != nullptr);
-		
+
 		return symbol;
 	}
-	
+
 	static void *getSymbol()
 	{
 		static void *symbol = dlsym(ExtraeSymbolResolverBase::getHandle(), *NAME);
 		assert(symbol != nullptr);
-		
+
 		return symbol;
 	}
 };

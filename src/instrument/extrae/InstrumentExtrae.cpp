@@ -24,6 +24,7 @@ namespace Instrument {
 	const ConfigVariable<bool> _traceAsThreads("instrument.extrae.as_threads");
 	const ConfigVariable<unsigned int> _detailLevel("instrument.extrae.detail_level");
 	const ConfigVariable<bool> _extraeInstrumentCluster("instrument.extrae.instrument_cluster");
+	const ConfigVariable<bool> _extraeInstrumentDependencies("instrument.extrae.instrument_dependencies");
 
 	SpinLock _extraeLock;
 
@@ -72,27 +73,6 @@ namespace Instrument {
 		// We use "total_num_cpus" since, when DLB is enabled, any CPU in the
 		// system might emit events
 		return nanos6_get_total_num_cpus() + GenericIds::getTotalExternalThreads();
-	}
-
-	void emitEvent(EventType eventType, extrae_value_t eventValue)
-	{
-		if (!_extraeInstrumentCluster)
-			return;
-
-		extrae_type_t type = (extrae_type_t)eventType;
-		extrae_value_t value = eventValue;
-
-		extrae_combined_events_t ce;
-		ce.HardwareCounters = 0;
-		ce.Callers = 0;
-		ce.UserFunction = EXTRAE_USER_FUNCTION_NONE;
-		ce.nEvents = 1;
-		ce.nCommunications = 0;
-		ce.Communications = NULL;
-		ce.Types = &type;
-		ce.Values = &value;
-
-		ExtraeAPI::emit_CombinedEvents(&ce);
 	}
 
 } // namespace Instrument

@@ -166,18 +166,18 @@ namespace Instrument {
 		extrae_combined_events_t ce;
 		ce.HardwareCounters = 0;
 		ce.Callers = 0;
-		ce.UserFunction = EXTRAE_USER_FUNCTION_NONE; 
-		
+		ce.UserFunction = EXTRAE_USER_FUNCTION_NONE;
+
 		extrae_type_t type = (extrae_type_t) EventType::MESSAGE_SEND;
 		ce.Types = &type;
-        
+
 		ce.nEvents = 1;
 		extrae_value_t value = 0;
 		ce.Values = &value;
 
 		ce.nCommunications = 0;
 		ce.Communications = NULL;
-		
+
 		if(messageId >= 0)
 		{
 			value = (extrae_value_t)(messageType + 1);

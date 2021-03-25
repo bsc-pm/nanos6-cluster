@@ -27,7 +27,7 @@ ExtraeSymbolResolverBase::ExtraeSymbolResolverBase()
 	if (f != nullptr) {
 		Dl_info dlInfo = {nullptr, nullptr, nullptr, nullptr};
 		__attribute__((unused)) int rc = dladdr(f, &dlInfo);
-		
+
 		_handle = dlopen(dlInfo.dli_fname, RTLD_LAZY | RTLD_LOCAL | RTLD_NOLOAD);
 		if (_handle == nullptr) {
 			std::cerr << "Error: failed to get a handle to \"" << dlInfo.dli_fname << "\": " << dlerror() << std::endl;
@@ -49,7 +49,7 @@ ExtraeSymbolResolverBase::ExtraeSymbolResolverBase()
 std::string ExtraeSymbolResolverBase::getSharedObjectPath()
 {
 	struct link_map *lm = nullptr;
-	
+
 	assert(_singleton);
 	int rc = dlinfo(_singleton->_handle, RTLD_DI_LINKMAP, &lm);
 	if ((rc == 0) && (lm != nullptr)) {
@@ -58,4 +58,3 @@ std::string ExtraeSymbolResolverBase::getSharedObjectPath()
 		return std::string();
 	}
 }
-
