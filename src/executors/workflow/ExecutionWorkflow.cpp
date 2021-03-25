@@ -219,25 +219,26 @@ namespace ExecutionWorkflow {
 				 * when a child finished and called TaskFinalization::taskFinished.
 				 */
 				assert (task->hasFinished());
-				DataAccessRegistration::unregisterTaskDataAccessesWithCallback(
+				DataAccessRegistration::unregisterTaskDataAccesses(
 					task,
 					cpu, /*cpu, */
 					hpDependencyData,
-
+					targetMemoryPlace,
+					false,
 					/* For clusters, finalize this task and send
-					 * the MessageTaskFinished BEFORE propagating
-					 * satisfiability to any other tasks. This is to
-					 * avoid potentially sending the
-					 * MessageTaskFinished messages out of order
-					 */
+						* the MessageTaskFinished BEFORE propagating
+						* satisfiability to any other tasks. This is to
+						* avoid potentially sending the
+						* MessageTaskFinished messages out of order
+						*/
 					[&] {
 						TaskFinalization::taskFinished(task, cpu);
 						bool ret = task->markAsReleased();
 						if (ret) {
 							TaskFinalization::disposeTask(task);
 						}
-					},
-					targetMemoryPlace);
+					}
+				);
 
 			} else {
 				executionStep->start();
@@ -281,11 +282,12 @@ namespace ExecutionWorkflow {
 					hpDependencyData);
 
 				if (task->markAsFinished(cpu/* cpu */)) {
-						DataAccessRegistration::unregisterTaskDataAccessesWithCallback(
+						DataAccessRegistration::unregisterTaskDataAccesses(
 							task,
 							cpu, /*cpu, */
 							hpDependencyData,
-
+							targetMemoryPlace,
+							false,
 							/* For clusters, finalize this task and send
 							 * the MessageTaskFinished BEFORE propagating
 							 * satisfiability to any other tasks. This is to
@@ -299,8 +301,8 @@ namespace ExecutionWorkflow {
 									// const std::string label = task->getLabel();
 									TaskFinalization::disposeTask(task);
 								}
-							},
-							targetMemoryPlace);
+							}
+						);
 					}
 				delete workflow;
 			},

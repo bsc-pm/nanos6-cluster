@@ -18,6 +18,7 @@
 #include <DataAccessRegistration.hpp>
 #include <InstrumentInstrumentationContext.hpp>
 #include <InstrumentThreadInstrumentationContext.hpp>
+#include <InstrumentDependencySubsystemEntryPoints.hpp>
 
 
 namespace ExecutionWorkflow {
@@ -94,6 +95,7 @@ namespace ExecutionWorkflow {
 
 	void setupTaskwaitWorkflow(Task *task, DataAccess *taskwaitFragment, CPUDependencyData &hpDependencyData)
 	{
+		Instrument::enterSetupTaskwaitWorkflow();
 		WorkerThread *currentThread = WorkerThread::getCurrentWorkerThread();
 
 		ComputePlace *computePlace =
@@ -101,7 +103,8 @@ namespace ExecutionWorkflow {
 
 		DataAccessRegistration::releaseTaskwaitFragment(
 			task, taskwaitFragment->getAccessRegion(),
-			computePlace, hpDependencyData
+			computePlace, hpDependencyData, false
 		);
+		Instrument::exitSetupTaskwaitWorkflow();
 	}
 }

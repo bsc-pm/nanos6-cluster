@@ -89,22 +89,13 @@ namespace DataAccessRegistration {
 		ComputePlace *computePlace,
 		CPUDependencyData &dependencyData,
 		MemoryPlace *location = nullptr,
-		bool fromBusyThread = false
+		bool fromBusyThread = false,
+		std::function<void()> callback = nullptr
 	) {
 		unregisterTaskDataAccesses1(task, computePlace, dependencyData, location, fromBusyThread);
-		unregisterTaskDataAccesses2(task, computePlace, dependencyData, location, fromBusyThread);
-	}
-
-	inline void unregisterTaskDataAccessesWithCallback(
-		Task *task,
-		ComputePlace *computePlace,
-		CPUDependencyData &dependencyData,
-		std::function<void()> callback,
-		MemoryPlace *location = nullptr,
-		bool fromBusyThread = false
-	) {
-		unregisterTaskDataAccesses1(task, computePlace, dependencyData, location, fromBusyThread);
-		callback();
+		if (callback) {
+			callback();
+		}
 		unregisterTaskDataAccesses2(task, computePlace, dependencyData, location, fromBusyThread);
 	}
 
@@ -123,6 +114,7 @@ namespace DataAccessRegistration {
 	//! \param[in] readSatisfied is true if the region becomes read satisfied.
 	//! \param[in] writeSatisfied is true if the region becomes write satisfied.
 	//! \param[in] location is not a nullptr if we have an update for the location of the region.
+#ifdef USE_CLUSTER
 	void propagateSatisfiability(
 		Task *task,
 		DataAccessRegion const &region,
@@ -134,9 +126,20 @@ namespace DataAccessRegistration {
 		MemoryPlace const *location
 	);
 
-	void setNamespacePredecessor(Task *task, Task *parentTask, DataAccessRegion region, ClusterNode *remoteNode, void *namespacePredecessor);
+	void setNamespacePredecessor(
+		Task *task,
+		Task *parentTask,
+		DataAccessRegion region,
+		ClusterNode *remoteNode,
+		void *namespacePredecessor
+	);
+#endif // USE_CLUSTER
 
-	void handleEnterTaskwait(Task *task, ComputePlace *computePlace, CPUDependencyData &dependencyData, bool noflush=false, bool nonLocalOnly=false);
+	void handleEnterTaskwait(Task *task,
+		ComputePlace *computePlace,
+		CPUDependencyData &dependencyData,
+		bool noflush=false,
+		bool nonLocalOnly=false);
 
 	void handleExitTaskwait(Task *task, ComputePlace *computePlace, CPUDependencyData &dependencyData);
 

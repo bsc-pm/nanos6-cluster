@@ -358,9 +358,13 @@ namespace DataAccessRegistration {
 		return ready;
 	}
 
-	void unregisterTaskDataAccesses(Task *task, ComputePlace *computePlace, CPUDependencyData &hpDependencyData,
-		__attribute__((unused)) MemoryPlace *location, bool fromBusyThread)
-	{
+	void unregisterTaskDataAccesses(Task *task,
+		ComputePlace *computePlace,
+		CPUDependencyData &hpDependencyData,
+		__attribute__((unused)) MemoryPlace *location,
+		bool fromBusyThread,
+		std::function<void()> callback
+	) {
 		assert(task != nullptr);
 
 		Instrument::enterUnregisterTaskDataAcesses();
@@ -428,6 +432,10 @@ namespace DataAccessRegistration {
 				task->decreaseRemovalBlockingCount();
 		}
 
+		if (callback) {
+			callback();
+		}
+
 		processSatisfiedOriginators(hpDependencyData, computePlace, fromBusyThread);
 		processDeletableOriginators(hpDependencyData);
 
@@ -441,8 +449,12 @@ namespace DataAccessRegistration {
 		Instrument::exitUnregisterTaskDataAcesses();
 	}
 
-	void handleEnterTaskwait(Task *task, ComputePlace *, CPUDependencyData &, bool /* noflush */)
-	{
+	void handleEnterTaskwait(Task *task,
+		ComputePlace *,
+		CPUDependencyData &,
+		__attribute__((unused)) bool noflush,
+		__attribute__((unused)) bool nonLocalOnly
+	) {
 		assert(task != nullptr);
 
 		TaskDataAccesses &accessStruct = task->getDataAccesses();
@@ -804,8 +816,8 @@ namespace DataAccessRegistration {
 		__attribute__((unused)) DataAccessRegion region,
 		__attribute__((unused)) ComputePlace *computePlace,
 		__attribute__((unused)) CPUDependencyData &hpDependencyData,
-		bool doDelayedOperations)
-	{
+		__attribute__((unused)) bool doDelayedOperations
+	) {
 		assert(false);
 	}
 } // namespace DataAccessRegistration

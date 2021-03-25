@@ -185,7 +185,7 @@ public:
 		_status(other.getStatus()),
 #ifdef USE_CLUSTER
 		_writeID(other._writeID),
-#endif
+#endif // USE_CLUSTER
 		_next(other.getNext()),
 		_reductionTypeAndOperatorIndex(other.getReductionTypeAndOperatorIndex()),
 		_reductionIndex(other.getReductionIndex()),
@@ -272,6 +272,7 @@ public:
 		return _status;
 	}
 
+#ifdef USE_CLUSTER
 	WriteID getWriteID() const
 	{
 		return _writeID;
@@ -281,6 +282,13 @@ public:
 	{
 		_writeID = id;
 	}
+#else
+	WriteID getWriteID() const
+	{
+		return 0;
+	}
+
+#endif // USE_CLUSTER
 
 	void setRegistered()
 	{

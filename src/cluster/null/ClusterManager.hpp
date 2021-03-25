@@ -13,7 +13,6 @@
 #include <ClusterMemoryNode.hpp>
 #include <ClusterNode.hpp>
 #include "DataAccessRegion.hpp"
-#include "WriteID.hpp"
 
 class Message;
 class DataTransfer;
@@ -29,7 +28,7 @@ public:
 
 	static inline void initialize()
 	{
-		WriteIDManager::initialize(0, 1);
+		// WriteIDManager::initialize(0, 1);
 	}
 
 	static inline void postinitialize()
@@ -106,12 +105,25 @@ public:
 		return nullptr;
 	}
 
-	static inline void setShutdownCallback(
+	static inline void initClusterNamespaceOrSetCallback(
 		__attribute__((unused)) void (*func)(void *),
 		__attribute__((unused)) void *args)
 	{
 	}
 
+	static inline bool getDisableRemote()
+	{
+		return true;
+	}
+
+	static inline bool isLocalMemoryPlace(const __attribute__((unused)) MemoryPlace *location)
+	{
+		return true;
+	}
+
+	static inline void synchronizeAll()
+	{
+	}
 };
 
 #endif /* CLUSTER_MANAGER_HPP */

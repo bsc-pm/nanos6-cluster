@@ -135,7 +135,13 @@ inline bool Task::markAsFinished(ComputePlace *computePlace)
 		//! We need to pass 'nullptr' here as a ComputePlace to notify
 		//! the DataAccessRegistration system that it is creating
 		//! taskwait fragments for a 'wait' task.
-		DataAccessRegistration::handleEnterTaskwait(this, nullptr, hpDependencyData, /* noflush */ true, delayedReleaseNonLocalOnly());
+		DataAccessRegistration::handleEnterTaskwait(
+			this,
+			nullptr,
+			hpDependencyData,
+			/* noflush */ true,
+			delayedReleaseNonLocalOnly()
+		);
 
 		if (!markAsBlocked()) {
 			return false;

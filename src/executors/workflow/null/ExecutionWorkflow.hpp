@@ -12,12 +12,13 @@
 class Task;
 class ComputePlace;
 class MemoryPlace;
+class CPUDependencyData;
 
 namespace ExecutionWorkflow {
-	
+
 	class WorkflowBase {
 	};
-	
+
 	// NOTE: objects of this class self-destruct when they finish
 	template <typename CONTENTS_T>
 	class Workflow : public WorkflowBase, CONTENTS_T {
@@ -28,7 +29,7 @@ namespace ExecutionWorkflow {
 		{
 		}
 	};
-	
+
 	//! \brief Creates a new workflow object that inherits
 	//! from CONTENTS_T and is constructed with the argsPack
 	//! parameters.
@@ -37,20 +38,20 @@ namespace ExecutionWorkflow {
 	{
 		return new Workflow<CONTENTS_T>(std::forward<TS>(argsPack)...);
 	}
-	
+
 	struct TaskExecutionWorkflowData {
 
 		TaskExecutionWorkflowData(__attribute__((unused))int symbolCount)
 		{
 		}
 	};
-	
+
 	void executeTask(
 		Task *task,
 		ComputePlace *targetComputePlace,
 		MemoryPlace *targetMemoryPlace
 	);
-	
+
 	void setupTaskwaitWorkflow(
 		Task *task,
 		DataAccess *taskwaitFragment,

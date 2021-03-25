@@ -52,9 +52,11 @@ void TaskFinalization::taskFinished(Task *task, ComputePlace *computePlace, bool
 						localHpDependencyData = new CPUDependencyData();
 					}
 
-					DataAccessRegistration::unregisterTaskDataAccessesWithCallback(
+					DataAccessRegistration::unregisterTaskDataAccesses(
 						task, computePlace,
 						*localHpDependencyData,
+						/* memory place */ nullptr,
+						fromBusyThread,
 						/* For clusters, finalize this task and send
 						 * the MessageTaskFinished BEFORE propagating
 						 * satisfiability to any other tasks. This is to
@@ -62,16 +64,16 @@ void TaskFinalization::taskFinished(Task *task, ComputePlace *computePlace, bool
 						 * MessageTaskFinished messages out of order
 						 */
 						[&] {
-								// This is just to emulate a recursive call to TaskFinalization::taskFinished() again.
-								// It should not return false because at this point delayed release has happenned which means that
-								// the task has gone through a taskwait (no more children should be unfinished)
-								ready = task->finishChild();
-								assert(ready);
-								if (task->markAsReleased())
-									TaskFinalization::disposeTask(task);
-							},
-						/* memory place */ nullptr,
-						fromBusyThread
+							// This is just to emulate a recursive call to
+							// TaskFinalization::taskFinished() again.  It should not return
+							// false because at this point delayed release has happenned which
+							// means that the task has gone through a taskwait (no more children
+							// should be unfinished)
+							ready = task->finishChild();
+							assert(ready);
+							if (task->markAsReleased())
+								TaskFinalization::disposeTask(task);
+						}
 					);
 
 				}
@@ -216,7 +218,7 @@ void TaskFinalization::disposeTask(Task *task)
 			// task instances. See test case namespacenewfail7 (it often fails
 			// but is timing dependent).  In the cluster namespace
 			// implementation, the reordering introduced by
-			// unregisterTaskDataAccessesWithCallback causes a use-after-poison
+			// unregisterTaskDataAccesses with a Callback causes a use-after-poison
 			// error which is found by ASan.
 			// MemoryAllocator::free(disposableBlock, disposableBlockSize);
 

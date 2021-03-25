@@ -40,8 +40,11 @@
 #include <InstrumentTaskId.hpp>
 #include <InstrumentDependencySubsystemEntryPoints.hpp>
 #include <ObjectAllocator.hpp>
-#include <ClusterUtil.hpp>
+
+#ifdef USE_CLUSTER
 #include "ClusterTaskContext.hpp"
+#include <ClusterUtil.hpp>
+#endif
 
 #pragma GCC visibility push(hidden)
 
@@ -52,7 +55,10 @@ namespace DataAccessRegistration {
 	 *
 	 * Prints desc, plus task name, then the accesses and fragments
 	 */
-	void printTaskAccessesAndFragments(const char *desc, Task *task)
+
+#ifdef USE_CLUSTER
+	__attribute__((unused))
+	static void printTaskAccessesAndFragments(const char *desc, Task *task)
 	{
 		clusterCout << desc << task->getLabel() << "\n";
 
@@ -162,7 +168,7 @@ namespace DataAccessRegistration {
 		if (lock)
 			lock->unlock();
 	}
-
+#endif //USE_CLUSTER
 
 	typedef CPUDependencyData::removable_task_list_t removable_task_list_t;
 
@@ -301,7 +307,8 @@ namespace DataAccessRegistration {
 				 */
 				bool disableReadPropagationToNext = false;
 				if (access->readSatisfied()) {
-					if (access->hasLocation() && !ClusterManager::isLocalMemoryPlace(access->getLocation())) {
+					if (access->hasLocation()
+						&& !ClusterManager::isLocalMemoryPlace(access->getLocation())) {
 						/* Read satisfied, but not present locally */
 						if (!access->complete()) {
 							/* And not complete */
@@ -1635,7 +1642,7 @@ namespace DataAccessRegistration {
 				} else {
 					access->setReadSatisfied(updateOperation._location);
 				}
-
+#ifdef USE_CLUSTER
 				WriteID id = 0;
 				// Take previous write ID if reading exactly the same region
 				// (note it will be zero if it's reading a subregion)
@@ -1648,6 +1655,7 @@ namespace DataAccessRegistration {
 					id = WriteIDManager::createWriteID();
 				}
 				access->setWriteID(id);
+#endif // USE_CLUSTER
 			}
 		}
 		if (updateOperation._makeWriteSatisfied) {
@@ -1798,6 +1806,9 @@ namespace DataAccessRegistration {
 
 			Task *targetOffloadedTask = getOffloadedTask(delayedOperation._target._task);
 
+			// targetOffloadedTask must be null when all the tasks are local.
+			assert(ClusterManager::inClusterMode() || targetOffloadedTask == nullptr);
+
 			// Process the delayed operation if there are in the same offloaded
 			// task (or a descendent of the same one), OR neither of them is 
 			// the descendent of an offloaded task
@@ -1821,6 +1832,7 @@ namespace DataAccessRegistration {
 				it++;
 				hpDependencyData._delayedOperations.erase(oldIterator);
 			} else {
+				assert(ClusterManager::inClusterMode());
 				it++;
 			}
 		}
@@ -1828,6 +1840,8 @@ namespace DataAccessRegistration {
 		if (lastLocked != nullptr) {
 			lastLocked->getDataAccesses()._lock.unlock();
 		}
+
+		assert(ClusterManager::inClusterMode() || hpDependencyData._delayedOperations.empty());
 	}
 
 
@@ -2664,6 +2678,7 @@ namespace DataAccessRegistration {
 				/*
 				 * Link the dataAccess and unset
 				 */
+#ifdef USE_CLUSTER
 				if (parent->isNodeNamespace()) {
 					if (previous->getNamespaceSuccessor() == dataAccess->getOriginator()) {
 						Instrument::namespacePropagation(Instrument::NamespaceSuccessful, dataAccess->getAccessRegion());
@@ -2739,6 +2754,9 @@ namespace DataAccessRegistration {
 						}
 					}
 				}
+#else // USE_CLUSTER
+				previous->setNext(next);
+#endif // USE_CLUSTER
 				previous->unsetInBottomMap();  /* only unsets the status bit, doesn't actually remove it */
 
 				DataAccessStatusEffects updatedStatus(previous);
@@ -3048,6 +3066,7 @@ namespace DataAccessRegistration {
 		MemoryPlace const *location, /* OUT */ CPUDependencyData &hpDependencyData, 
 		bool isRemote, bool isReleaseAccess
 	) {
+		(void)writeID;
 		assert(finishedTask != nullptr);
 		assert(dataAccess != nullptr);
 		// assert((location != nullptr) || dataAccess->isWeak());
@@ -3114,10 +3133,11 @@ namespace DataAccessRegistration {
 					// This should only happen on a weak access if no subtask has strong access ??
 					accessOrFragment->setLocation(ClusterManager::getCurrentMemoryNode());
 				}
-
+#ifdef USE_CLUSTER
 				if (writeID != 0 && accessOrFragment->getAccessRegion() == region) {
 					accessOrFragment->setWriteID(writeID);
 				}
+#endif // USE_CLUSTER
 				DataAccessStatusEffects updatedStatus(accessOrFragment);
 
 				handleDataAccessStatusChanges(
@@ -4406,7 +4426,14 @@ namespace DataAccessRegistration {
 		Instrument::enterUnregisterTaskDataAcesses2();
 		(void)task;
 		(void)location;
-		processDelayedOperationsSatisfiedOriginatorsAndRemovableTasks(hpDependencyData, computePlace, fromBusyThread);
+
+		assert(ClusterManager::inClusterMode() || hpDependencyData._delayedOperations.empty());
+
+		processDelayedOperationsSatisfiedOriginatorsAndRemovableTasks(
+			hpDependencyData,
+			computePlace,
+			fromBusyThread
+		);
 
 #ifndef NDEBUG
 		{
@@ -4421,13 +4448,12 @@ namespace DataAccessRegistration {
 	 * Called on receipt of MessageSatisfiability. Propagates satisfiability
 	 * from the workflow into the dependency system.
 	 */
+#ifdef USE_CLUSTER
 	void propagateSatisfiability(Task *task, DataAccessRegion const &region,
 		ComputePlace *computePlace, CPUDependencyData &hpDependencyData,
 		bool readSatisfied,    /* Change in read satisfiability (not new value) */
 		bool writeSatisfied,   /* Change in write satisfiability (not new value) */
-#ifdef USE_CLUSTER
 		WriteID writeID,
-#endif
 		MemoryPlace const *location)
 	{
 		Instrument::enterPropagateSatisfiability();
@@ -4448,8 +4474,8 @@ namespace DataAccessRegistration {
 		updateOperation._makeReadSatisfied = readSatisfied;
 		updateOperation._makeWriteSatisfied = writeSatisfied;
 
-		updateOperation._writeID = writeID;
 		updateOperation._location = location;
+		updateOperation._writeID = writeID;
 		updateOperation._propagateSatisfiability = true;
 
 		TaskDataAccesses &accessStructures = task->getDataAccesses();
@@ -4528,8 +4554,13 @@ namespace DataAccessRegistration {
 	 * exist. In the end it would likely be no more convoluted than this way of
 	 * doing it.
 	 */
-	void setNamespacePredecessor(Task *task, Task *parent, DataAccessRegion region, ClusterNode *remoteNode, void *namespacePredecessor)
-	{
+	void setNamespacePredecessor(
+		Task *task,
+		Task *parent,
+		DataAccessRegion region,
+		ClusterNode *remoteNode,
+		void *namespacePredecessor
+	) {
 		assert(parent != nullptr);
 		assert(parent->isNodeNamespace());
 
@@ -4573,7 +4604,7 @@ namespace DataAccessRegistration {
 			}
 		}
 	}
-
+#endif // USE_CLUSTER
 
 	/*
 	 * Enter a taskwait (called from nanos6_taskwait).

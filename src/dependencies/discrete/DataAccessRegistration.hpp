@@ -57,7 +57,8 @@ namespace DataAccessRegistration {
 		ComputePlace *computePlace,
 		CPUDependencyData &hpDependencyData,
 		MemoryPlace *location = nullptr,
-		bool fromBusyThread = false
+		bool fromBusyThread = false,
+		std::function<void()> callback = nullptr
 	);
 
 	void releaseAccessRegion(
@@ -71,7 +72,9 @@ namespace DataAccessRegistration {
 
 	void handleEnterTaskwait(Task *task,
 		ComputePlace *computePlace,
-		CPUDependencyData &dependencyData
+		CPUDependencyData &dependencyData,
+		bool noflush=false,
+		bool nonLocalOnly=false
 	);
 
 	void handleExitTaskwait(Task *task,
@@ -96,7 +99,9 @@ namespace DataAccessRegistration {
 		Task *task,
 		DataAccessRegion region,
 		ComputePlace *computePlace,
-		CPUDependencyData &hpDependencyData);
+		CPUDependencyData &hpDependencyData,
+		bool doDelayedOperations
+	);
 } // namespace DataAccessRegistration
 
 #endif // DATA_ACCESS_REGISTRATION_HPP

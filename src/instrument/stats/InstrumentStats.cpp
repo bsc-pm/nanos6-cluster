@@ -6,6 +6,9 @@
 
 #include "InstrumentStats.hpp"
 
+#include <iostream>
+#include <iomanip>      // std::setw
+#include <string>
 
 namespace Instrument {
 	namespace Stats {
@@ -21,7 +24,7 @@ namespace Instrument {
 		std::array<std::atomic<size_t>, NANOS_DEPENDENCY_STATE_TYPES>
 			nanos6_dependency_state_stats = {};
 
-		void show_dependency_state_stats(std::ofstream &output)
+		void show_dependency_state_stats(std::ostream &output)
 		{
 			std::array<std::string, NANOS_DEPENDENCY_STATE_TYPES> dependency_state_names =
 				{

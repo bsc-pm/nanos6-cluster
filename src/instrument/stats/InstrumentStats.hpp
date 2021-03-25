@@ -49,7 +49,7 @@ namespace Instrument {
 
 		extern std::array<std::atomic<size_t>, NANOS_DEPENDENCY_STATE_TYPES> nanos6_dependency_state_stats;
 
-		void show_dependency_state_stats(std::ofstream &output);
+		void show_dependency_state_stats(std::ostream &output);
 
 		struct TaskTimes {
 			Timer _instantiationTime;

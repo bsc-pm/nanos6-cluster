@@ -44,7 +44,7 @@
 #include <TaskDataAccesses.hpp>
 #include <TaskDataAccessesInfo.hpp>
 
-#include <cluster/NodeNamespace.hpp>
+#include <NodeNamespace.hpp>
 
 #define DATA_ALIGNMENT_SIZE sizeof(void *)
 

@@ -1370,6 +1370,7 @@ memory_debug_cppflags = $(memory_default_cppflags)
 else
 noinst_HEADERS += \
 	src/cluster/null/ClusterManager.hpp \
+	src/cluster/null/NodeNamespace.hpp \
 	src/cluster/offloading/null/ClusterTaskContext.hpp \
 	src/cluster/null/ClusterMemoryManagement.hpp
 
