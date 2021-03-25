@@ -62,8 +62,56 @@ private:
 		return _mpi_ub_tag & ((messageId << 8) | DATA_RAW);
 	}
 
-	template<typename T>
+
+	template <typename T>
+	class RequestContainer
+	{
+		static size_t maxCount;
+		static MPI_Request *requests;
+		static int *finished;
+		static MPI_Status *status;
+
+		static void clear()
+		{
+			maxCount = 0;
+			free(requests);
+			free(finished);
+			free(status);
+
+			// Make it defensive.
+			requests = nullptr;
+			finished = nullptr;
+			status = nullptr;
+		}
+
+		static void reserve(size_t size)
+		{
+			if (maxCount < size) {
+				clear();
+
+				maxCount = size;
+
+				requests = (MPI_Request *) malloc(maxCount * sizeof(MPI_Request));
+				FatalErrorHandler::failIf(requests == nullptr,
+					"Could not allocate memory for requests in testCompletionInternal");
+
+				finished = (int *) malloc(maxCount * sizeof(int));
+				FatalErrorHandler::failIf(finished == nullptr,
+					"Could not allocate memory for finished in testCompletionInternal");
+
+				status = (MPI_Status *) malloc(maxCount * sizeof(MPI_Status));
+				FatalErrorHandler::failIf(status == nullptr,
+					"Could not allocate memory for status array in testCompletionInternal");
+
+			}
+		}
+
+		friend class MPIMessenger;
+	};
+
+	template <typename T>
 	void testCompletionInternal(std::vector<T *> &pending);
+
 public:
 
 	MPIMessenger();
@@ -128,5 +176,12 @@ namespace
 	const bool __attribute__((unused))_registered_MPI_msn =
 		Messenger::RegisterMSNClass<MPIMessenger>("mpi-2sided");
 }
+
+
+template <typename T> size_t MPIMessenger::RequestContainer<T>::maxCount = 0;
+template <typename T> MPI_Request *MPIMessenger::RequestContainer<T>::requests = nullptr;
+template <typename T> int *MPIMessenger::RequestContainer<T>::finished = nullptr;
+template <typename T> MPI_Status *MPIMessenger::RequestContainer<T>::status = nullptr;
+
 
 #endif /* MPI_MESSENGER_HPP */

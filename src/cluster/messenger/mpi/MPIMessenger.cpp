@@ -103,6 +103,9 @@ MPIMessenger::~MPIMessenger()
 
 	ret = MPI_Finalize();
 	MPIErrorHandler::handle(ret, MPI_COMM_WORLD);
+
+	RequestContainer<Message>::clear();
+	RequestContainer<DataTransfer>::clear();
 }
 
 void MPIMessenger::sendMessage(Message *msg, ClusterNode const *toNode, bool block)
@@ -292,36 +295,44 @@ Message *MPIMessenger::checkMail(void)
 template <typename T>
 void MPIMessenger::testCompletionInternal(std::vector<T *> &pendings)
 {
-	assert(!pendings.empty());
+	const size_t msgCount = pendings.size();
+	assert(msgCount > 0);
 
-	const int msgCount = pendings.size();
-	int ret, completedCount;
+	int completedCount;
 
-	MPI_Request requests[msgCount];
-	int finished[msgCount];
-	MPI_Status status[msgCount];
+	RequestContainer<T>::reserve(msgCount);
+	assert(RequestContainer<T>::requests != nullptr);
+	assert(RequestContainer<T>::finished != nullptr);
+	assert(RequestContainer<T>::status != nullptr);
 
-	for (int i = 0; i < msgCount; ++i) {
+	for (size_t i = 0; i < msgCount; ++i) {
 		T *msg = pendings[i];
 		assert(msg != nullptr);
 
 		MPI_Request *req = (MPI_Request *)msg->getMessengerData();
 		assert(req != nullptr);
 
-		requests[i] = *req;
+		RequestContainer<T>::requests[i] = *req;
 	}
 
 	ExtraeLock();
-	ret = MPI_Testsome(msgCount, requests, &completedCount, finished, status);
+	const int ret = MPI_Testsome(
+		(int) msgCount,
+		RequestContainer<T>::requests,
+		&completedCount,
+		RequestContainer<T>::finished,
+		RequestContainer<T>::status
+	);
 	ExtraeUnlock();
-	MPIErrorHandler::handleErrorInStatus(ret, status, completedCount, INTRA_COMM);
+
+	MPIErrorHandler::handleErrorInStatus(ret, RequestContainer<T>::status, completedCount, INTRA_COMM);
 
 	for (int i = 0; i < completedCount; ++i) {
-		const int index = finished[i];
+		const int index = RequestContainer<T>::finished[i];
 		T *msg = pendings[index];
 
 		msg->markAsCompleted();
-		MPI_Request *req = (MPI_Request *)msg->getMessengerData();
+		MPI_Request *req = (MPI_Request *) msg->getMessengerData();
 		MemoryAllocator::free(req, sizeof(MPI_Request));
 	}
 }
