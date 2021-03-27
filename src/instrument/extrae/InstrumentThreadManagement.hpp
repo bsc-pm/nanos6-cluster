@@ -28,7 +28,7 @@ namespace Instrument {
 		ce.nEvents = 1;
 		ce.nCommunications = 0;
 
-		if (_detailLevel > 0) {
+		if (Extrae::_detailLevel > 0) {
 			ce.nCommunications++;
 		}
 
@@ -42,7 +42,7 @@ namespace Instrument {
 		ce.Types[0] = (extrae_type_t) EventType::RUNTIME_STATE;
 		ce.Values[0] = (extrae_value_t) NANOS_THREAD_CREATION;
 
-		if (_detailLevel > 0) {
+		if (Extrae::_detailLevel > 0) {
 			ce.Communications[0].type = EXTRAE_USER_SEND;
 			ce.Communications[0].tag = (extrae_comm_tag_t) thread_creation_tag;
 			ce.Communications[0].size = 0;
@@ -50,11 +50,11 @@ namespace Instrument {
 			ce.Communications[0].id = threadId;
 		}
 
-		if (_traceAsThreads) {
+		if (Extrae::_traceAsThreads) {
 			_extraeThreadCountLock.readLock();
 		}
 		ExtraeAPI::emit_CombinedEvents ( &ce );
-		if (_traceAsThreads) {
+		if (Extrae::_traceAsThreads) {
 			_extraeThreadCountLock.readUnlock();
 		}
 	}
@@ -75,11 +75,11 @@ namespace Instrument {
 		ce.Types[0] = (extrae_type_t) EventType::RUNTIME_STATE;
 		ce.Values[0] = value;
 
-		if (_traceAsThreads) {
+		if (Extrae::_traceAsThreads) {
 			_extraeThreadCountLock.readLock();
 		}
 		ExtraeAPI::emit_CombinedEvents ( &ce );
-		if (_traceAsThreads) {
+		if (Extrae::_traceAsThreads) {
 			_extraeThreadCountLock.readUnlock();
 		}
 	}
@@ -107,7 +107,7 @@ namespace Instrument {
 
 		threadLocal._currentThreadId = threadId;
 
-		if (_traceAsThreads) {
+		if (Extrae::_traceAsThreads) {
 			_extraeThreadCountLock.writeLock();
 			ExtraeAPI::change_num_threads(extrae_nanos6_get_num_threads());
 			_extraeThreadCountLock.writeUnlock();
@@ -121,15 +121,15 @@ namespace Instrument {
 		ce.nEvents = 1;
 		ce.nCommunications = 0;
 
-		if (_detailLevel >= (int) THREADS_AND_CPUS_LEVEL) {
-			if (_traceAsThreads) {
+		if (Extrae::_detailLevel >= (int) THREADS_AND_CPUS_LEVEL) {
+			if (Extrae::_traceAsThreads) {
 				ce.nEvents += 2; // CPU, THREAD_NUMA_NODE
 			} else {
 				ce.nEvents++; // THREAD
 			}
 		}
 
-		if (_detailLevel > 0) {
+		if (Extrae::_detailLevel > 0) {
 			ce.nCommunications++;
 		}
 
@@ -143,8 +143,8 @@ namespace Instrument {
 		ce.Types[0] = (extrae_type_t) EventType::RUNTIME_STATE;
 		ce.Values[0] = (extrae_value_t) NANOS_STARTUP;
 
-		if (_detailLevel >= (int) THREADS_AND_CPUS_LEVEL) {
-			if (_traceAsThreads) {
+		if (Extrae::_detailLevel >= (int) THREADS_AND_CPUS_LEVEL) {
+			if (Extrae::_traceAsThreads) {
 				ce.Types[1] = (extrae_type_t) EventType::CPU;
 				ce.Values[1] = (extrae_value_t) (computePlaceId._id + 1);
 				ce.Types[2] = (extrae_type_t) EventType::THREAD_NUMA_NODE;
@@ -155,7 +155,7 @@ namespace Instrument {
 			}
 		}
 
-		if (_detailLevel > 0) {
+		if (Extrae::_detailLevel > 0) {
 			ce.Communications[0].type = EXTRAE_USER_RECV;
 			ce.Communications[0].tag = (extrae_comm_tag_t) thread_creation_tag;
 			ce.Communications[0].size = 0;
@@ -163,11 +163,11 @@ namespace Instrument {
 			ce.Communications[0].id = threadId;
 		}
 
-		if (_traceAsThreads) {
+		if (Extrae::_traceAsThreads) {
 			_extraeThreadCountLock.readLock();
 		}
 		ExtraeAPI::emit_CombinedEvents ( &ce );
-		if (_traceAsThreads) {
+		if (Extrae::_traceAsThreads) {
 			_extraeThreadCountLock.readUnlock();
 		}
 	}
@@ -181,7 +181,7 @@ namespace Instrument {
 			__attribute__((unused)) ThreadLocalData &sentinelThreadLocal = getThreadLocalData();
 		}
 
-		if (_traceAsThreads) {
+		if (Extrae::_traceAsThreads) {
 			// Same thread counter as regular worker threads
 			threadId = GenericIds::getCommonPoolNewExternalThreadId();
 		} else {
@@ -210,18 +210,18 @@ namespace Instrument {
 		ce.Values[0] = (extrae_value_t) NANOS_IDLE;
 
 		_extraeThreadCountLock.writeLock();
-		if (_traceAsThreads) {
+		if (Extrae::_traceAsThreads) {
 			ExtraeAPI::change_num_threads(extrae_nanos6_get_num_threads());
 		} else {
 			ExtraeAPI::change_num_threads(extrae_nanos6_get_num_cpus_and_external_threads());
 		}
 		_extraeThreadCountLock.writeUnlock();
 
-		if (_traceAsThreads) {
+		if (Extrae::_traceAsThreads) {
 			_extraeThreadCountLock.readLock();
 		}
 		ExtraeAPI::emit_CombinedEvents ( &ce );
-		if (_traceAsThreads) {
+		if (Extrae::_traceAsThreads) {
 			_extraeThreadCountLock.readUnlock();
 		}
 	}
@@ -236,7 +236,7 @@ namespace Instrument {
 		__attribute__((unused)) compute_place_id_t cpu,
 		__attribute__((unused)) bool afterSynchronization
 	) {
-		if (_traceAsThreads) {
+		if (Extrae::_traceAsThreads) {
 			extrae_combined_events_t ce;
 
 			ce.HardwareCounters = 0;
@@ -245,8 +245,8 @@ namespace Instrument {
 			ce.nEvents = 1;
 			ce.nCommunications = 0;
 
-			if (_detailLevel >= (int) THREADS_AND_CPUS_LEVEL) {
-				if (_traceAsThreads) {
+			if (Extrae::_detailLevel >= (int) THREADS_AND_CPUS_LEVEL) {
+				if (Extrae::_traceAsThreads) {
 					ce.nEvents += 2; // CPU, THREAD_NUMA_NODE
 				} else {
 					ce.nEvents++; // THREAD
@@ -259,8 +259,8 @@ namespace Instrument {
 			ce.Types[0] = (extrae_type_t) EventType::RUNTIME_STATE;
 			ce.Values[0] = (extrae_value_t) NANOS_NOT_RUNNING;
 
-			if (_detailLevel >= (int) THREADS_AND_CPUS_LEVEL) {
-				if (_traceAsThreads) {
+			if (Extrae::_detailLevel >= (int) THREADS_AND_CPUS_LEVEL) {
+				if (Extrae::_traceAsThreads) {
 					ce.Types[1] = (extrae_type_t) EventType::CPU;
 					ce.Values[1] = (extrae_value_t) 0;
 					ce.Types[2] = (extrae_type_t) EventType::THREAD_NUMA_NODE;
@@ -280,7 +280,7 @@ namespace Instrument {
 		__attribute__((unused)) compute_place_id_t cpu,
 		__attribute__((unused)) bool afterSynchronization
 	) {
-		if (_traceAsThreads) {
+		if (Extrae::_traceAsThreads) {
 			extrae_combined_events_t ce;
 
 			ce.HardwareCounters = 0;
@@ -289,8 +289,8 @@ namespace Instrument {
 			ce.nEvents = 1;
 			ce.nCommunications = 0;
 
-			if (_detailLevel >= (int) THREADS_AND_CPUS_LEVEL) {
-				if (_traceAsThreads) {
+			if (Extrae::_detailLevel >= (int) THREADS_AND_CPUS_LEVEL) {
+				if (Extrae::_traceAsThreads) {
 					ce.nEvents += 2; // CPU, THREAD_NUMA_NODE
 				} else {
 					ce.nEvents++; // THREAD
@@ -303,8 +303,8 @@ namespace Instrument {
 			ce.Types[0] = (extrae_type_t) EventType::RUNTIME_STATE;
 			ce.Values[0] = (extrae_value_t) NANOS_IDLE;
 
-			if (_detailLevel >= (int) THREADS_AND_CPUS_LEVEL) {
-				if (_traceAsThreads) {
+			if (Extrae::_detailLevel >= (int) THREADS_AND_CPUS_LEVEL) {
+				if (Extrae::_traceAsThreads) {
 					ce.Types[1] = (extrae_type_t) EventType::CPU;
 					ce.Values[1] = (extrae_value_t) (cpu._id + 1);
 					ce.Types[2] = (extrae_type_t) EventType::THREAD_NUMA_NODE;
@@ -335,11 +335,11 @@ namespace Instrument {
 		ce.Types[0] = (extrae_type_t) EventType::RUNTIME_STATE;
 		ce.Values[0] = (extrae_value_t) NANOS_NOT_RUNNING;
 
-		if (_traceAsThreads) {
+		if (Extrae::_traceAsThreads) {
 			_extraeThreadCountLock.readLock();
 		}
 		ExtraeAPI::emit_CombinedEvents ( &ce );
-		if (_traceAsThreads) {
+		if (Extrae::_traceAsThreads) {
 			_extraeThreadCountLock.readUnlock();
 		}
 	}
@@ -360,18 +360,18 @@ namespace Instrument {
 			ce.Types[0] = (extrae_type_t) EventType::RUNTIME_STATE;
 			ce.Values[0] = (extrae_value_t) NANOS_RUNTIME;
 
-		if (_traceAsThreads) {
+		if (Extrae::_traceAsThreads) {
 			_extraeThreadCountLock.readLock();
 		}
 		ExtraeAPI::emit_CombinedEvents ( &ce );
-		if (_traceAsThreads) {
+		if (Extrae::_traceAsThreads) {
 			_extraeThreadCountLock.readUnlock();
 		}
 	}
 
 	static inline void extraeThreadWillShutdown()
 	{
-		if (_traceAsThreads) {
+		if (Extrae::_traceAsThreads) {
 			extrae_combined_events_t ce;
 
 			ce.HardwareCounters = 0;
@@ -380,8 +380,8 @@ namespace Instrument {
 			ce.nEvents = 1;
 			ce.nCommunications = 0;
 
-			if (_detailLevel >= (int) THREADS_AND_CPUS_LEVEL) {
-				if (_traceAsThreads) {
+			if (Extrae::_detailLevel >= (int) THREADS_AND_CPUS_LEVEL) {
+				if (Extrae::_traceAsThreads) {
 					ce.nEvents += 2; // CPU, THREAD_NUMA_NODE
 				} else {
 					ce.nEvents++; // THREAD
@@ -394,8 +394,8 @@ namespace Instrument {
 			ce.Types[0] = (extrae_type_t) EventType::RUNTIME_STATE;
 			ce.Values[0] = (extrae_value_t) NANOS_SHUTDOWN;
 
-			if (_detailLevel >= (int) THREADS_AND_CPUS_LEVEL) {
-				if (_traceAsThreads) {
+			if (Extrae::_detailLevel >= (int) THREADS_AND_CPUS_LEVEL) {
+				if (Extrae::_traceAsThreads) {
 					ce.Types[1] = (extrae_type_t) EventType::CPU;
 					ce.Values[1] = (extrae_value_t) 0;
 					ce.Types[2] = (extrae_type_t) EventType::THREAD_NUMA_NODE;

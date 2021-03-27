@@ -34,7 +34,7 @@ namespace Instrument {
 		ce.nCommunications = 0;
 
 		// Generate control dependency information
-		if (_detailLevel >= 8) {
+		if (Extrae::_detailLevel >= 8) {
 			ce.nCommunications ++;
 		}
 
@@ -61,7 +61,7 @@ namespace Instrument {
 		ce.Values[4] = (extrae_value_t) nullptr;
 
 		// Generate control dependency information
-		if (_detailLevel >= 8) {
+		if (Extrae::_detailLevel >= 8) {
 			ce.Communications[0].type = EXTRAE_USER_SEND;
 			ce.Communications[0].tag = (extrae_comm_tag_t) control_dependency_tag;
 			ce.Communications[0].size = taskId._taskInfo->_taskId;
@@ -73,11 +73,11 @@ namespace Instrument {
 			taskId._taskInfo->_lock.unlock();
 		}
 
-		if (_traceAsThreads) {
+		if (Extrae::_traceAsThreads) {
 			_extraeThreadCountLock.readLock();
 		}
 		ExtraeAPI::emit_CombinedEvents ( &ce );
-		if (_traceAsThreads) {
+		if (Extrae::_traceAsThreads) {
 			_extraeThreadCountLock.readUnlock();
 		}
 	}

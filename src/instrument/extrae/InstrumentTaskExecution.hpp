@@ -109,11 +109,11 @@ namespace Instrument {
 		ThreadLocalData &threadLocal = getThreadLocalData();
 		threadLocal._nestingLevels.push_back(taskId._taskInfo->_nestingLevel);
 
-		if (_traceAsThreads) {
+		if (Extrae::_traceAsThreads) {
 			_extraeThreadCountLock.readLock();
 		}
 		ExtraeAPI::emit_CombinedEvents ( &ce );
-		if (_traceAsThreads) {
+		if (Extrae::_traceAsThreads) {
 			_extraeThreadCountLock.readUnlock();
 		}
 
@@ -141,7 +141,7 @@ namespace Instrument {
 
 		// Generate control dependency information
 		size_t parentInTaskwait = 0;
-		if (_detailLevel >= 8) {
+		if (Extrae::_detailLevel >= 8) {
 			if ((taskId._taskInfo->_parent != nullptr) && taskId._taskInfo->_parent->_inTaskwait) {
 				taskId._taskInfo->_parent->_lock.lock();
 				if (taskId._taskInfo->_parent->_inTaskwait) {
@@ -197,11 +197,11 @@ namespace Instrument {
 			}
 		}
 
-		if (_traceAsThreads) {
+		if (Extrae::_traceAsThreads) {
 			_extraeThreadCountLock.readLock();
 		}
 		ExtraeAPI::emit_CombinedEvents ( &ce );
-		if (_traceAsThreads) {
+		if (Extrae::_traceAsThreads) {
 			_extraeThreadCountLock.readUnlock();
 		}
 
@@ -268,7 +268,7 @@ namespace Instrument {
 
 		if (first) {
 			// Generate graph information
-			if (_detailLevel >= 1) {
+			if (Extrae::_detailLevel >= 1) {
 				taskforId._taskInfo->_lock.lock();
 				ce.nCommunications += taskforId._taskInfo->_predecessors.size();
 
@@ -310,11 +310,11 @@ namespace Instrument {
 		ThreadLocalData &threadLocal = getThreadLocalData();
 		threadLocal._nestingLevels.push_back(taskforId._taskInfo->_nestingLevel);
 
-		if (_traceAsThreads) {
+		if (Extrae::_traceAsThreads) {
 			_extraeThreadCountLock.readLock();
 		}
 		ExtraeAPI::emit_CombinedEvents ( &ce );
-		if (_traceAsThreads) {
+		if (Extrae::_traceAsThreads) {
 			_extraeThreadCountLock.readUnlock();
 		}
 
@@ -346,7 +346,7 @@ namespace Instrument {
 			}
 
 			// Generate control dependency information
-			if (_detailLevel >= 8) {
+			if (Extrae::_detailLevel >= 8) {
 				if ((taskforId._taskInfo->_parent != nullptr) && taskforId._taskInfo->_parent->_inTaskwait) {
 					taskforId._taskInfo->_parent->_lock.lock();
 					if (taskforId._taskInfo->_parent->_inTaskwait) {
@@ -411,11 +411,11 @@ namespace Instrument {
 			}
 		}
 
-		if (_traceAsThreads) {
+		if (Extrae::_traceAsThreads) {
 			_extraeThreadCountLock.readLock();
 		}
 		ExtraeAPI::emit_CombinedEvents ( &ce );
-		if (_traceAsThreads) {
+		if (Extrae::_traceAsThreads) {
 			_extraeThreadCountLock.readUnlock();
 		}
 

@@ -70,8 +70,8 @@ void ConfigCentral::initialize()
 	// Extrae instrumentation
 	registerOption<bool_t>("instrument.extrae.as_threads", false);
 	registerOption<integer_t>("instrument.extrae.detail_level", 1);
-	registerOption<bool_t>("instrument.extrae.instrument_cluster", true);
-	registerOption<bool_t>("instrument.extrae.instrument_dependencies", true);
+	registerOption<string_t>("instrument.extrae.areas", {"all", "!DependencySystem"});
+
 
 	// Graph instrumentation
 	registerOption<bool_t>("instrument.graph.display", false);
@@ -92,7 +92,7 @@ void ConfigCentral::initialize()
 	// Verbose instrumentation
 	registerOption<string_t>("instrument.verbose.areas", {
 		"all", "!ComputePlaceManagement", "!DependenciesByAccess",
-		"!DependenciesByAccessLinks", "!DependenciesByGroup",
+		"!DependenciesByAccessLinks", "!DependenciesByGroup", "!DependencySystem",
 		"!LeaderThread", "!TaskStatus", "!ThreadManagement"
 	});
 	registerOption<bool_t>("instrument.verbose.dump_only_on_exit", false);

@@ -18,6 +18,7 @@ namespace Instrument {
 		bool _verboseDependenciesByAccess = false;
 		bool _verboseDependenciesByAccessLinks = false;
 		bool _verboseDependenciesByGroup = false;
+		bool _verboseDependencySystem = false;
 		bool _verboseLeaderThread = false;
 		bool _verboseMemoryAllocation = false;
 		bool _verboseReductions = false;

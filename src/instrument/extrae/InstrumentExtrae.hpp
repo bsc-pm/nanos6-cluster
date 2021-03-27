@@ -31,6 +31,15 @@ namespace Instrument {
 	namespace Extrae {
 		extern bool _detailTaskGraph;
 		extern bool _detailTaskCount;
+
+		extern bool _extraeInstrumentCluster;
+		extern bool _extraeInstrumentDependencies;
+
+		extern unsigned int _detailLevel;
+		extern bool _traceAsThreads;
+
+		extern bool _initialized;
+
 	}
 
 	enum {
@@ -72,15 +81,10 @@ namespace Instrument {
 		}
 	};
 
-	extern bool _initialized;
 	extern std::map<tracing_point_type_t, std::string> _delayedNumericTracingPoints;
 	extern std::map<tracing_point_type_t, scope_tracing_point_info_t> _delayedScopeTracingPoints;
 	extern std::map<tracing_point_type_t, enumerated_tracing_point_info_t> _delayedEnumeratedTracingPoints;
 
-	extern const ConfigVariable<bool> _traceAsThreads;
-	extern const ConfigVariable<unsigned int> _detailLevel;
-	extern const ConfigVariable<bool> _extraeInstrumentCluster;
-	extern const ConfigVariable<bool> _extraeInstrumentDependencies;
 
 	enum struct EventType {
 		// OmpSs common

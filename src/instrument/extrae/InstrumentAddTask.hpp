@@ -93,7 +93,7 @@ namespace Instrument {
 			_extraeTaskInfo->_predecessors.emplace(0, instantiation_dependency_tag);
 		}
 
-		if (_traceAsThreads) {
+		if (Extrae::_traceAsThreads) {
 			_extraeThreadCountLock.readLock();
 		}
 
@@ -105,7 +105,7 @@ namespace Instrument {
 
 		ExtraeAPI::emit_CombinedEvents ( &ce );
 
-		if (_traceAsThreads) {
+		if (Extrae::_traceAsThreads) {
 			_extraeThreadCountLock.readUnlock();
 		}
 
@@ -160,11 +160,11 @@ namespace Instrument {
 		ce.Types[1] = (extrae_type_t) EventType::INSTANTIATING_CODE_LOCATION;
 		ce.Values[1] = (extrae_value_t) nullptr;
 
-		if (_traceAsThreads) {
+		if (Extrae::_traceAsThreads) {
 			_extraeThreadCountLock.readLock();
 		}
 		ExtraeAPI::emit_CombinedEvents ( &ce );
-		if (_traceAsThreads) {
+		if (Extrae::_traceAsThreads) {
 			_extraeThreadCountLock.readUnlock();
 		}
 	}
@@ -196,13 +196,13 @@ namespace Instrument {
 		// since collaborators are already created at scheduler initialization. We are just setting up some
 		// data structures, and so, it is not fine to emmit NANOS_CREATION.
 
-		if (_traceAsThreads) {
+		if (Extrae::_traceAsThreads) {
 			_extraeThreadCountLock.readLock();
 		}
 
 		ExtraeAPI::emit_SimpleEvent ((extrae_type_t) EventType::INSTANTIATING_CODE_LOCATION, (extrae_value_t) taskInfo->implementations[0].run);
 
-		if (_traceAsThreads) {
+		if (Extrae::_traceAsThreads) {
 			_extraeThreadCountLock.readUnlock();
 		}
 
@@ -217,7 +217,7 @@ namespace Instrument {
 		// As we did not changed the runtime state in "enterInitTaskforCollaborator", we do not have to restore it here.
 		// Thus, emmit only code location.
 
-		if (_traceAsThreads) {
+		if (Extrae::_traceAsThreads) {
 			_extraeThreadCountLock.readLock();
 		}
 
@@ -226,7 +226,7 @@ namespace Instrument {
 			(extrae_value_t) nullptr
 		);
 
-		if (_traceAsThreads) {
+		if (Extrae::_traceAsThreads) {
 			_extraeThreadCountLock.readUnlock();
 		}
 	}

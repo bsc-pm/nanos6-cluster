@@ -73,27 +73,47 @@ namespace Instrument {
 	void initialize()
 	{
 		ExtraeSymbolResolverBase::initialize();
-		TokenizedEnvironmentVariable<std::string> extraeAreas("NANOS6_EXTRAE", ',', "all");
+		RuntimeInfo::addEntry("instrumentation", "Instrumentation", "extrae");
+
+		ConfigVariableSet<std::string> extraeAreas("instrument.extrae.areas");
 
 		for (auto area : extraeAreas) {
 			std::transform(area.begin(), area.end(), area.begin(), ::tolower);
 			if (area == "all") {
 				_detailTaskGraph =  true;
 				_detailTaskCount =  true;
+				_extraeInstrumentDependencies = true;
+				_extraeInstrumentCluster = true;
+
 			} else if (area == "taskgraph") {
 				_detailTaskGraph =  true;
 			} else if (area == "taskcount") {
 				_detailTaskCount =  true;
+			} else if (area == "dependencysystem") {
+				_extraeInstrumentDependencies = true;
+			} else if (area == "cluster") {
+				_extraeInstrumentCluster = true;
 
 			} else if (area == "!taskgraph") {
 				_detailTaskGraph =  false;
 			} else if (area == "!taskcount") {
 				_detailTaskCount =  false;
+			} else if (area == "!dependencysystem") {
+				_extraeInstrumentDependencies = false;
+			} else if (area == "!cluster") {
+				_extraeInstrumentCluster = false;
 
 			} else {
 				std::cerr << "Warning: ignoring unknown '" << area << "' extrae instrumentation" << std::endl;
 			}
 		}
+
+		const ConfigVariable<unsigned int> detailLevel("instrument.extrae.detail_level");
+		_detailLevel = detailLevel.getValue();
+
+		const ConfigVariable<bool> traceAsThreads("instrument.extrae.as_threads");
+		_traceAsThreads = traceAsThreads.getValue();
+
 
 		// This is a workaround to avoid an extrae segfault
 		if ((getenv("EXTRAE_ON") == nullptr) && (getenv("EXTRAE_CONFIG_FILE") == nullptr)) {

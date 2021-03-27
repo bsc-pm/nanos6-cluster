@@ -70,11 +70,11 @@ namespace Instrument {
 			taskId._taskInfo->_lock.unlock();
 		}
 
-		if (_traceAsThreads) {
+		if (Extrae::_traceAsThreads) {
 			_extraeThreadCountLock.readLock();
 		}
 		ExtraeAPI::emit_CombinedEvents ( &ce );
-		if (_traceAsThreads) {
+		if (Extrae::_traceAsThreads) {
 			_extraeThreadCountLock.readUnlock();
 		}
 	}
@@ -129,11 +129,11 @@ namespace Instrument {
 		taskId._taskInfo->_predecessors.emplace(0, control_dependency_tag);
 		taskId._taskInfo->_lock.unlock();
 
-		if (_traceAsThreads) {
+		if (Extrae::_traceAsThreads) {
 			_extraeThreadCountLock.readLock();
 		}
 		ExtraeAPI::emit_CombinedEvents ( &ce );
-		if (_traceAsThreads) {
+		if (Extrae::_traceAsThreads) {
 			_extraeThreadCountLock.readUnlock();
 		}
 	}

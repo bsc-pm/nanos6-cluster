@@ -16,7 +16,7 @@
 
 namespace Instrument {
 	void createdExternalThread_private(/* OUT */ external_thread_id_t &threadId, std::string const &name);
-	
+
 	template<typename... TS>
 	void createdExternalThread(/* OUT */ external_thread_id_t &threadId, TS... nameComponents)
 	{

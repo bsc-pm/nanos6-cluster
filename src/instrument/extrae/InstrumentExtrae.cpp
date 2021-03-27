@@ -14,17 +14,19 @@ namespace Instrument {
 	namespace Extrae {
 		bool _detailTaskGraph = false;
 		bool _detailTaskCount = false;
+
+		bool _extraeInstrumentCluster = false;
+		bool _extraeInstrumentDependencies = false;
+
+		unsigned int _detailLevel = 0;
+		bool _traceAsThreads = false;
+
+		bool _initialized = false;
 	}
 
-	bool _initialized = false;
 	std::map<tracing_point_type_t, std::string> _delayedNumericTracingPoints;
 	std::map<tracing_point_type_t, scope_tracing_point_info_t> _delayedScopeTracingPoints;
 	std::map<tracing_point_type_t, enumerated_tracing_point_info_t> _delayedEnumeratedTracingPoints;
-
-	const ConfigVariable<bool> _traceAsThreads("instrument.extrae.as_threads");
-	const ConfigVariable<unsigned int> _detailLevel("instrument.extrae.detail_level");
-	const ConfigVariable<bool> _extraeInstrumentCluster("instrument.extrae.instrument_cluster");
-	const ConfigVariable<bool> _extraeInstrumentDependencies("instrument.extrae.instrument_dependencies");
 
 	SpinLock _extraeLock;
 
@@ -61,14 +63,14 @@ namespace Instrument {
 
 	unsigned int extrae_nanos6_get_num_threads()
 	{
-		assert(_traceAsThreads);
+		assert(Extrae::_traceAsThreads);
 
 		return GenericIds::getTotalThreads();
 	}
 
 	unsigned int extrae_nanos6_get_num_cpus_and_external_threads()
 	{
-		assert(!_traceAsThreads);
+		assert(!Extrae::_traceAsThreads);
 
 		// We use "total_num_cpus" since, when DLB is enabled, any CPU in the
 		// system might emit events

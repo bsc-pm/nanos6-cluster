@@ -21,30 +21,30 @@ namespace Instrument {
             __attribute__((unused)) const DataAccessRegion& originalRegion,
             __attribute__((unused)) const InstrumentationContext &context) {
 	}
-	
+
 	void enterAllocateReductionInfo(
             __attribute__((unused)) data_access_id_t dataAccessId,
             __attribute__((unused)) const DataAccessRegion& accessRegion,
             __attribute__((unused)) const InstrumentationContext &context) {
 		extrae_combined_events_t ce;
-		
+
 		ce.HardwareCounters = 1;
 		ce.Callers = 0;
 		ce.UserFunction = EXTRAE_USER_FUNCTION_NONE;
 		ce.nEvents = 1;
 		ce.nCommunications = 0;
-		
+
 		ce.Types  = (extrae_type_t *)  alloca (ce.nEvents * sizeof (extrae_type_t) );
 		ce.Values = (extrae_value_t *) alloca (ce.nEvents * sizeof (extrae_value_t));
-		
+
 		ce.Types[0] = (extrae_type_t) EventType::REDUCTION_STATE;
 		ce.Values[0] = (extrae_value_t) NANOS_ALLOCATE_REDUCTION_INFO;
-		
-		if (_traceAsThreads) {
+
+		if (Extrae::_traceAsThreads) {
 			_extraeThreadCountLock.readLock();
 		}
 		ExtraeAPI::emit_CombinedEvents ( &ce );
-		if (_traceAsThreads) {
+		if (Extrae::_traceAsThreads) {
 			_extraeThreadCountLock.readUnlock();
 		}
 	}
@@ -53,24 +53,24 @@ namespace Instrument {
             __attribute__((unused)) const ReductionInfo& reductionInfo,
             __attribute__((unused)) const InstrumentationContext &context) {
 		extrae_combined_events_t ce;
-		
+
 		ce.HardwareCounters = 1;
 		ce.Callers = 0;
 		ce.UserFunction = EXTRAE_USER_FUNCTION_NONE;
 		ce.nEvents = 1;
 		ce.nCommunications = 0;
-		
+
 		ce.Types  = (extrae_type_t *)  alloca (ce.nEvents * sizeof (extrae_type_t) );
 		ce.Values = (extrae_value_t *) alloca (ce.nEvents * sizeof (extrae_value_t));
-		
+
 		ce.Types[0] = (extrae_type_t) EventType::REDUCTION_STATE;
 		ce.Values[0] = (extrae_value_t) NANOS_OUTSIDE_REDUCTION;
-		
-		if (_traceAsThreads) {
+
+		if (Extrae::_traceAsThreads) {
 			_extraeThreadCountLock.readLock();
 		}
 		ExtraeAPI::emit_CombinedEvents ( &ce );
-		if (_traceAsThreads) {
+		if (Extrae::_traceAsThreads) {
 			_extraeThreadCountLock.readUnlock();
 		}
 	}
@@ -78,24 +78,24 @@ namespace Instrument {
             __attribute__((unused)) const DataAccessRegion& originalRegion,
             __attribute__((unused)) const InstrumentationContext &context) {
 		extrae_combined_events_t ce;
-		
+
 		ce.HardwareCounters = 1;
 		ce.Callers = 0;
 		ce.UserFunction = EXTRAE_USER_FUNCTION_NONE;
 		ce.nEvents = 1;
 		ce.nCommunications = 0;
-		
+
 		ce.Types  = (extrae_type_t *)  alloca (ce.nEvents * sizeof (extrae_type_t) );
 		ce.Values = (extrae_value_t *) alloca (ce.nEvents * sizeof (extrae_value_t));
-		
+
 		ce.Types[0] = (extrae_type_t) EventType::REDUCTION_STATE;
 		ce.Values[0] = (extrae_value_t) NANOS_RETRIEVE_REDUCTION_STORAGE;
-		
-		if (_traceAsThreads) {
+
+		if (Extrae::_traceAsThreads) {
 			_extraeThreadCountLock.readLock();
 		}
 		ExtraeAPI::emit_CombinedEvents ( &ce );
-		if (_traceAsThreads) {
+		if (Extrae::_traceAsThreads) {
 			_extraeThreadCountLock.readUnlock();
 		}
 	}
@@ -105,24 +105,24 @@ namespace Instrument {
             __attribute__((unused)) const DataAccessRegion& originalRegion,
             __attribute__((unused)) const InstrumentationContext &context) {
 		extrae_combined_events_t ce;
-		
+
 		ce.HardwareCounters = 1;
 		ce.Callers = 0;
 		ce.UserFunction = EXTRAE_USER_FUNCTION_NONE;
 		ce.nEvents = 1;
 		ce.nCommunications = 0;
-		
+
 		ce.Types  = (extrae_type_t *)  alloca (ce.nEvents * sizeof (extrae_type_t) );
 		ce.Values = (extrae_value_t *) alloca (ce.nEvents * sizeof (extrae_value_t));
-		
+
 		ce.Types[0] = (extrae_type_t) EventType::REDUCTION_STATE;
 		ce.Values[0] = (extrae_value_t) NANOS_OUTSIDE_REDUCTION;
-		
-		if (_traceAsThreads) {
+
+		if (Extrae::_traceAsThreads) {
 			_extraeThreadCountLock.readLock();
 		}
 		ExtraeAPI::emit_CombinedEvents ( &ce );
-		if (_traceAsThreads) {
+		if (Extrae::_traceAsThreads) {
 			_extraeThreadCountLock.readUnlock();
 		}
 	}
@@ -130,24 +130,24 @@ namespace Instrument {
             __attribute__((unused)) const ReductionInfo& reductionInfo,
             __attribute__((unused)) const InstrumentationContext &context) {
 		extrae_combined_events_t ce;
-		
+
 		ce.HardwareCounters = 1;
 		ce.Callers = 0;
 		ce.UserFunction = EXTRAE_USER_FUNCTION_NONE;
 		ce.nEvents = 1;
 		ce.nCommunications = 0;
-		
+
 		ce.Types  = (extrae_type_t *)  alloca (ce.nEvents * sizeof (extrae_type_t) );
 		ce.Values = (extrae_value_t *) alloca (ce.nEvents * sizeof (extrae_value_t));
-		
+
 		ce.Types[0] = (extrae_type_t) EventType::REDUCTION_STATE;
 		ce.Values[0] = (extrae_value_t) NANOS_ALLOCATE_REDUCTION_STORAGE;
-		
-		if (_traceAsThreads) {
+
+		if (Extrae::_traceAsThreads) {
 			_extraeThreadCountLock.readLock();
 		}
 		ExtraeAPI::emit_CombinedEvents ( &ce );
-		if (_traceAsThreads) {
+		if (Extrae::_traceAsThreads) {
 			_extraeThreadCountLock.readUnlock();
 		}
 	}
@@ -156,24 +156,24 @@ namespace Instrument {
             __attribute__((unused)) const DataAccessRegion& privateStorage,
             __attribute__((unused)) const InstrumentationContext &context) {
 		extrae_combined_events_t ce;
-		
+
 		ce.HardwareCounters = 1;
 		ce.Callers = 0;
 		ce.UserFunction = EXTRAE_USER_FUNCTION_NONE;
 		ce.nEvents = 1;
 		ce.nCommunications = 0;
-		
+
 		ce.Types  = (extrae_type_t *)  alloca (ce.nEvents * sizeof (extrae_type_t) );
 		ce.Values = (extrae_value_t *) alloca (ce.nEvents * sizeof (extrae_value_t));
-		
+
 		ce.Types[0] = (extrae_type_t) EventType::REDUCTION_STATE;
 		ce.Values[0] = (extrae_value_t) NANOS_OUTSIDE_REDUCTION;
-		
-		if (_traceAsThreads) {
+
+		if (Extrae::_traceAsThreads) {
 			_extraeThreadCountLock.readLock();
 		}
 		ExtraeAPI::emit_CombinedEvents ( &ce );
-		if (_traceAsThreads) {
+		if (Extrae::_traceAsThreads) {
 			_extraeThreadCountLock.readUnlock();
 		}
 	}
@@ -182,24 +182,24 @@ namespace Instrument {
             __attribute__((unused)) const DataAccessRegion& privateStorage,
             __attribute__((unused)) const InstrumentationContext &context) {
 		extrae_combined_events_t ce;
-		
+
 		ce.HardwareCounters = 1;
 		ce.Callers = 0;
 		ce.UserFunction = EXTRAE_USER_FUNCTION_NONE;
 		ce.nEvents = 1;
 		ce.nCommunications = 0;
-		
+
 		ce.Types  = (extrae_type_t *)  alloca (ce.nEvents * sizeof (extrae_type_t) );
 		ce.Values = (extrae_value_t *) alloca (ce.nEvents * sizeof (extrae_value_t));
-		
+
 		ce.Types[0] = (extrae_type_t) EventType::REDUCTION_STATE;
 		ce.Values[0] = (extrae_value_t) NANOS_INITIALIZE_REDUCTION_STORAGE;
-		
-		if (_traceAsThreads) {
+
+		if (Extrae::_traceAsThreads) {
 			_extraeThreadCountLock.readLock();
 		}
 		ExtraeAPI::emit_CombinedEvents ( &ce );
-		if (_traceAsThreads) {
+		if (Extrae::_traceAsThreads) {
 			_extraeThreadCountLock.readUnlock();
 		}
 	}
@@ -208,24 +208,24 @@ namespace Instrument {
             __attribute__((unused)) const DataAccessRegion& privateStorage,
             __attribute__((unused)) const InstrumentationContext &context) {
 		extrae_combined_events_t ce;
-		
+
 		ce.HardwareCounters = 1;
 		ce.Callers = 0;
 		ce.UserFunction = EXTRAE_USER_FUNCTION_NONE;
 		ce.nEvents = 1;
 		ce.nCommunications = 0;
-		
+
 		ce.Types  = (extrae_type_t *)  alloca (ce.nEvents * sizeof (extrae_type_t) );
 		ce.Values = (extrae_value_t *) alloca (ce.nEvents * sizeof (extrae_value_t));
-		
+
 		ce.Types[0] = (extrae_type_t) EventType::REDUCTION_STATE;
 		ce.Values[0] = (extrae_value_t) NANOS_OUTSIDE_REDUCTION;
-		
-		if (_traceAsThreads) {
+
+		if (Extrae::_traceAsThreads) {
 			_extraeThreadCountLock.readLock();
 		}
 		ExtraeAPI::emit_CombinedEvents ( &ce );
-		if (_traceAsThreads) {
+		if (Extrae::_traceAsThreads) {
 			_extraeThreadCountLock.readUnlock();
 		}
 	}
@@ -235,24 +235,24 @@ namespace Instrument {
             __attribute__((unused)) const DataAccessRegion& originalRegion,
             __attribute__((unused)) const InstrumentationContext &context) {
 		extrae_combined_events_t ce;
-		
+
 		ce.HardwareCounters = 1;
 		ce.Callers = 0;
 		ce.UserFunction = EXTRAE_USER_FUNCTION_NONE;
 		ce.nEvents = 1;
 		ce.nCommunications = 0;
-		
+
 		ce.Types  = (extrae_type_t *)  alloca (ce.nEvents * sizeof (extrae_type_t) );
 		ce.Values = (extrae_value_t *) alloca (ce.nEvents * sizeof (extrae_value_t));
-		
+
 		ce.Types[0] = (extrae_type_t) EventType::REDUCTION_STATE;
 		ce.Values[0] = (extrae_value_t) NANOS_COMBINE_REDUCTION_STORAGE;
-		
-		if (_traceAsThreads) {
+
+		if (Extrae::_traceAsThreads) {
 			_extraeThreadCountLock.readLock();
 		}
 		ExtraeAPI::emit_CombinedEvents ( &ce );
-		if (_traceAsThreads) {
+		if (Extrae::_traceAsThreads) {
 			_extraeThreadCountLock.readUnlock();
 		}
 	}
@@ -262,24 +262,24 @@ namespace Instrument {
             __attribute__((unused)) const DataAccessRegion& originalRegion,
             __attribute__((unused)) const InstrumentationContext &context) {
 		extrae_combined_events_t ce;
-		
+
 		ce.HardwareCounters = 1;
 		ce.Callers = 0;
 		ce.UserFunction = EXTRAE_USER_FUNCTION_NONE;
 		ce.nEvents = 1;
 		ce.nCommunications = 0;
-		
+
 		ce.Types  = (extrae_type_t *)  alloca (ce.nEvents * sizeof (extrae_type_t) );
 		ce.Values = (extrae_value_t *) alloca (ce.nEvents * sizeof (extrae_value_t));
-		
+
 		ce.Types[0] = (extrae_type_t) EventType::REDUCTION_STATE;
 		ce.Values[0] = (extrae_value_t) NANOS_OUTSIDE_REDUCTION;
-		
-		if (_traceAsThreads) {
+
+		if (Extrae::_traceAsThreads) {
 			_extraeThreadCountLock.readLock();
 		}
 		ExtraeAPI::emit_CombinedEvents ( &ce );
-		if (_traceAsThreads) {
+		if (Extrae::_traceAsThreads) {
 			_extraeThreadCountLock.readUnlock();
 		}
 	}

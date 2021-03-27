@@ -14,9 +14,9 @@
 namespace Instrument {
 
 
-	inline void pushDependency(extrae_value_t value)
+	inline static void pushDependency(extrae_value_t value)
 	{
-		if (!_extraeInstrumentDependencies) {
+		if (!Extrae::_extraeInstrumentDependencies) {
 			return;
 		}
 		ThreadLocalData &threadLocal = getThreadLocalData();
@@ -25,9 +25,9 @@ namespace Instrument {
 		ExtraeAPI::event((extrae_type_t) EventType::DEPENDENCIES_SUBSYSTEM, value);
 	}
 
-	inline void popDependency(__attribute__((unused)) extrae_value_t value)
+	inline static void popDependency(__attribute__((unused)) extrae_value_t value)
 	{
-		if (!_extraeInstrumentDependencies) {
+		if (!Extrae::_extraeInstrumentDependencies) {
 			return;
 		}
 

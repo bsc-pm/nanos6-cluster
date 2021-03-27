@@ -92,6 +92,8 @@ namespace Instrument {
 				_verboseUserMutex = true;
 			} else if (area == "logmessages") {
 				_verboseLoggingMessages = true;
+			} else if (area == "dependencysystem") {
+				_verboseDependencySystem = true;
 
 			} else if (area == "!addtask") {
 				_verboseAddTask = false;
@@ -125,6 +127,8 @@ namespace Instrument {
 				_verboseUserMutex = false;
 			} else if (area == "!logmessages") {
 				_verboseLoggingMessages = false;
+			} else if (area == "!dependencysystem") {
+				_verboseDependencySystem = false;
 
 			} else {
 				std::cerr << "Warning: ignoring unknown '" << area << "' verbose instrumentation" << std::endl;

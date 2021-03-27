@@ -34,7 +34,7 @@ namespace Instrument {
 
 	void defineClusterExtraeEvents()
 	{
-		if (!_extraeInstrumentCluster)
+		if (!Extrae::_extraeInstrumentCluster)
 			return;
 
 		//! Event variables
@@ -77,7 +77,7 @@ namespace Instrument {
 
 	void clusterSendMessage(Message const *msg, int receiver)
 	{
-		if (!_extraeInstrumentCluster)
+		if (!Extrae::_extraeInstrumentCluster)
 			return;
 
 		const unsigned int messageType = msg->getType();
@@ -117,7 +117,7 @@ namespace Instrument {
 
 	void clusterHandleMessage(Message const *msg, int senderId)
 	{
-		if (!_extraeInstrumentCluster)
+		if (!Extrae::_extraeInstrumentCluster)
 			return;
 
 		const unsigned int messageType = msg->getType();
@@ -158,7 +158,7 @@ namespace Instrument {
 	//! This function is called when sending raw data
 	void clusterDataSend(void *, size_t, int dest, int messageId, InstrumentationContext const &)
 	{
-		if (!_extraeInstrumentCluster)
+		if (!Extrae::_extraeInstrumentCluster)
 		return;
 
 		const unsigned int messageType = MessageType::DATA_RAW;
@@ -204,7 +204,7 @@ namespace Instrument {
 	//! This function is called when receiving raw data
 	void clusterDataReceived(void *, size_t, int source, int messageId, InstrumentationContext const &)
 	{
-		if (!_extraeInstrumentCluster)
+		if (!Extrae::_extraeInstrumentCluster)
 		return;
 
 		const unsigned int messageType = MessageType::DATA_RAW;
@@ -254,7 +254,7 @@ namespace Instrument {
 
 	void emitClusterEvent(ClusterEventType clusterEventType, int eventValue, InstrumentationContext const &)
 	{
-		if (!_extraeInstrumentCluster)
+		if (!Extrae::_extraeInstrumentCluster)
 			return;
 
 		extrae_type_t type = clusterEventTypeToExtraeType[clusterEventType];
@@ -275,7 +275,7 @@ namespace Instrument {
 
 	void stateNodeNamespace(int state, InstrumentationContext const &)
 	{
-		if (!_extraeInstrumentCluster)
+		if (!Extrae::_extraeInstrumentCluster)
 			return;
 
 		extrae_type_t type = (extrae_type_t)EventType::NODE_NAMESPACE;

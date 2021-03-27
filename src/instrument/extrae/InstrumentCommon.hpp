@@ -26,12 +26,12 @@ namespace Instrument {
 		ce.nCommunications = 0;
 
 		// Precise task count (not sampled)
-		if (_detailLevel >= 1) {
+		if (Extrae::_detailLevel >= 1) {
 			ce.nEvents += 1;
 		}
 
 		// Generate graph information
-		if (_detailLevel >= 1) {
+		if (Extrae::_detailLevel >= 1) {
 			taskId._taskInfo->_lock.lock();
 			ce.nCommunications += taskId._taskInfo->_predecessors.size();
 		}
@@ -73,7 +73,7 @@ namespace Instrument {
 		size_t readyTasks = --_readyTasks;
 
 		// Precise task count (not sampled)
-		if (_detailLevel >= 1) {
+		if (Extrae::_detailLevel >= 1) {
 			ce.Types[5] = (extrae_type_t) EventType::READY_TASKS;
 			ce.Values[5] = (extrae_value_t) readyTasks;
 
@@ -84,7 +84,7 @@ namespace Instrument {
 		}
 
 		// Generate graph information
-		if (_detailLevel >= 1) {
+		if (Extrae::_detailLevel >= 1) {
 			int index = 0;
 			for (auto const &taskAndTag : taskId._taskInfo->_predecessors) {
 				ce.Communications[index].type = EXTRAE_USER_RECV;
@@ -98,11 +98,11 @@ namespace Instrument {
 			taskId._taskInfo->_lock.unlock();
 		}
 
-		if (_traceAsThreads) {
+		if (Extrae::_traceAsThreads) {
 			_extraeThreadCountLock.readLock();
 		}
 		ExtraeAPI::emit_CombinedEvents ( &ce );
-		if (_traceAsThreads) {
+		if (Extrae::_traceAsThreads) {
 			_extraeThreadCountLock.readUnlock();
 		}
 

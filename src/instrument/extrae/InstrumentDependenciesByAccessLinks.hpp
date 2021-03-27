@@ -49,7 +49,7 @@ namespace Instrument {
 		task_id_t targetTaskId,
 		InstrumentationContext const &context
 	) {
-		if ((_detailLevel < 1) || (dataAccessId._originator._taskInfo == nullptr)) {
+		if ((Extrae::_detailLevel < 1) || (dataAccessId._originator._taskInfo == nullptr)) {
 			return;
 		}
 
@@ -69,7 +69,7 @@ namespace Instrument {
 		}
 
 		// Taskwait control dependencies are only emitted when the detail level is at least 8
-		if ((dataAccessId._objectType == taskwait_type) && (_detailLevel < 8)) {
+		if ((dataAccessId._objectType == taskwait_type) && (Extrae::_detailLevel < 8)) {
 			return;
 		}
 
@@ -119,11 +119,11 @@ namespace Instrument {
 		ce.Communications[0].partner = EXTRAE_COMM_PARTNER_MYSELF;
 		ce.Communications[0].id = (context._taskId._taskInfo->_taskId << 32) + targetTaskId._taskInfo->_taskId;
 
-		if (_traceAsThreads) {
+		if (Extrae::_traceAsThreads) {
 			_extraeThreadCountLock.readLock();
 		}
 		ExtraeAPI::emit_CombinedEvents ( &ce );
-		if (_traceAsThreads) {
+		if (Extrae::_traceAsThreads) {
 			_extraeThreadCountLock.readUnlock();
 		}
 	}

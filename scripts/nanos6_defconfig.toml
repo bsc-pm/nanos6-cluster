@@ -184,10 +184,8 @@ __require_EXTRAE
 		as_threads = false
 		# Choose the detail level of the information generated in extrae traces. Default is 1
 		detail_level = 1
-		# Generate internal cluster communication events in the extrae traces.  Default is true.
-		instrument_cluster = true
-		# Generate internal events related to the dependency system in the extrae traces.  Default is true.
-		instrument_dependencies = true
+		# Extrae events concepts to emit. Possible values on README.md
+		areas = ["all", "!DependencySystem"]
 __!require_EXTRAE
 __require_GRAPH
 	[instrument.graph]
@@ -235,7 +233,8 @@ __require_VERBOSE
 		dump_only_on_exit = false
 		# Verbose log concepts to display. Possible values on README.md
 		areas = ["all", "!ComputePlaceManagement", "!DependenciesByAccess", "!DependenciesByAccessLinks",
-			"!DependenciesByGroup", "!LeaderThread", "!TaskStatus",	"!ThreadManagement"]
+			"!DependenciesByGroup", "!DependencySystem","!LeaderThread", "!TaskStatus",
+			"!ThreadManagement"]
 __!require_VERBOSE
 
 __require_CLUSTER

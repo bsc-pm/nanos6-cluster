@@ -42,13 +42,13 @@ namespace Instrument {
 				ce.Values[1] = 0;
 			}
 
-			if (_traceAsThreads) {
+			if (Extrae::_traceAsThreads) {
 				_extraeThreadCountLock.readLock();
 			}
 
 			ExtraeAPI::emit_CombinedEvents ( &ce );
 
-			if (_traceAsThreads) {
+			if (Extrae::_traceAsThreads) {
 				_extraeThreadCountLock.readUnlock();
 			}
 		}
