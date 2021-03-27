@@ -78,11 +78,22 @@ namespace Instrument {
 		InstrumentationContext const &context = ThreadInstrumentationContext::getCurrent()
 	);
 
-	void emitClusterEvent(ClusterEventType clusterEventType, int value, InstrumentationContext const & = ThreadInstrumentationContext::getCurrent());
+	void emitClusterEvent(
+		ClusterEventType clusterEventType,
+		int value,
+		InstrumentationContext const & = ThreadInstrumentationContext::getCurrent()
+	);
 
-	void offloadedTaskCompletes(task_id_t taskId, InstrumentationContext const &context = ThreadInstrumentationContext::getCurrent());
+	void offloadedTaskCompletes(
+		task_id_t taskId,
+		InstrumentationContext const &context = ThreadInstrumentationContext::getCurrent()
+	);
 
-	void namespacePropagation(NamespacePropagation, DataAccessRegion region, InstrumentationContext const &context = ThreadInstrumentationContext::getCurrent());
+	void namespacePropagation(
+		NamespacePropagation,
+		DataAccessRegion region,
+		InstrumentationContext const &context = ThreadInstrumentationContext::getCurrent()
+	);
 }
 
 #endif //! INSTRUMENT_CLUSTER_HPP

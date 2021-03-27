@@ -115,7 +115,7 @@ namespace Instrument {
 		}
 
 		addLogEntry(logEntry);
-	}	
+	}
 
 	void taskIsOffloaded(task_id_t, InstrumentationContext const &)
 	{
@@ -160,10 +160,13 @@ namespace Instrument {
 	{
 	}
 
-	void namespacePropagation(NamespacePropagation prop, DataAccessRegion region, InstrumentationContext const &)
-	{
+	void namespacePropagation(
+		NamespacePropagation prop,
+		DataAccessRegion region,
+		InstrumentationContext const &
+	) {
 		// This can generate lots of output so normally disable it
-		if (true) { // (!_verboseClusterMessages) {
+		if (!_verboseDependencySystem) {
 			return;
 		}
 

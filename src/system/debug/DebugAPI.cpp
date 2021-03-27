@@ -15,6 +15,8 @@
 #include "tasks/Task.hpp"
 #include "tasks/TaskImplementation.hpp"
 
+#include <InstrumentDebug.hpp>
+
 
 void nanos6_wait_for_full_initialization(void)
 {
@@ -224,4 +226,11 @@ long nanos6_cpus_get_numa(void *cpuIterator)
 int nanos6_is_dlb_enabled(void)
 {
 	return CPUManager::isDLBEnabled();
+}
+
+
+void nanos6_instrument_event(unsigned int event, unsigned int value)
+{
+	// Invert this value.
+	Instrument::emitInstrumentationEvent(event, value);
 }

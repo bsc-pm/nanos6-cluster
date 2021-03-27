@@ -31,6 +31,12 @@ namespace Instrument {
 	) {
 	}
 
+	inline void emitInstrumentationEvent(
+		__attribute__((unused)) size_t event,
+		__attribute__((unused)) size_t value
+	) {
+	}
+
 }
 
 #endif //INSTRUMENT_NULL_DEBUG_HPP

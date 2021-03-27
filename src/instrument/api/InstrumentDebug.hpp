@@ -15,6 +15,7 @@ namespace Instrument {
 	void pollingServiceExit();
 	inline void pollingServiceRegister(const char *name, uint8_t id);
 
+	void emitInstrumentationEvent(size_t event, size_t value);
 }
 
 #endif //INSTRUMENT_POLLING_SERVICES_HPP

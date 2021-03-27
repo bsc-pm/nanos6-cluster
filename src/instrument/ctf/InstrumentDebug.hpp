@@ -35,6 +35,12 @@ namespace Instrument {
 		tp_debug_register(name, id);
 	}
 
+	inline void emitInstrumentationEvent(
+		__attribute__((unused)) size_t event,
+		__attribute__((unused)) size_t value
+	) {
+	}
+
 }
 
 #endif //INSTRUMENT_CTF_DEBUG_HPP

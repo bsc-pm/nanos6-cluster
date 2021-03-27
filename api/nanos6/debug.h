@@ -122,6 +122,12 @@ long nanos6_cpus_get_numa(void *cpuIterator);
 //! \brief Check whether DLB is enabled
 int nanos6_is_dlb_enabled(void);
 
+//! \brief emmit instrumentation events with event and value.
+//!
+//! Use the same convention than extrae event where value 0 means end of the event.
+void nanos6_instrument_event(unsigned int event, unsigned int value);
+
+
 #ifdef __cplusplus
 }
 #endif

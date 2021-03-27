@@ -20,8 +20,15 @@ namespace Instrument {
 	std::atomic<size_t> namespaceCounter[MaxNamespacePropagation];
 
 	// Must match definition of enum NamespacePropagation
-	const char *namespaceNames[MaxNamespacePropagation] = {"Successful", "Wrong predecessor", "Predecessor finished", "Not hinted ancestor present", "Not hinted no ancestor"};
-	
+	const char *namespaceNames[MaxNamespacePropagation] =
+	{
+		"Successful",
+		"Wrong predecessor",
+		"Predecessor finished",
+		"Not hinted ancestor present",
+		"Not hinted no ancestor"
+	};
+
 	void initClusterCounters()
 	{
 		for(int j=0; j<TOTAL_MESSAGE_TYPES; j++) {
