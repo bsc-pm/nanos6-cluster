@@ -3080,6 +3080,12 @@ namespace DataAccessRegistration {
 		}
 		assert(!dataAccess->hasBeenDiscounted());
 
+		// Does the original access have early release in namespace? We need this
+		// information when handling the fragments in the below loop, but it may
+		// get deleted by the same loop when it handles the original access itself
+		// (which is done first). This only happens when disable_autowait=true.
+		bool dataAccessEarlyReleaseInNamespace = dataAccess->getEarlyReleaseInNamespace();
+
 		/*
 		 * Set complete and update location for the access itself and all
 		 * (child task) fragments.
@@ -3095,7 +3101,7 @@ namespace DataAccessRegistration {
 
 				// If the access is early released in the namespace (autowait
 				// feature), then set early release in the fragments too.
-				if (dataAccess->getEarlyReleaseInNamespace()) {
+				if (dataAccessEarlyReleaseInNamespace) {
 					if (accessOrFragment != dataAccess) {
 						accessOrFragment->setEarlyReleaseInNamespace();
 					}
