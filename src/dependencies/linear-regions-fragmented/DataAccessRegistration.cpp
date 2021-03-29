@@ -39,6 +39,7 @@
 #include <InstrumentReductions.hpp>
 #include <InstrumentTaskId.hpp>
 #include <InstrumentDependencySubsystemEntryPoints.hpp>
+#include <InstrumentDebug.hpp>
 #include <ObjectAllocator.hpp>
 
 #ifdef USE_CLUSTER
@@ -543,7 +544,7 @@ namespace DataAccessRegistration {
 
 	static void unfragmentTaskAccesses(Task *task, TaskDataAccesses &accessStructures)
 	{
-		 (void)task;
+		(void)task;
 
 		DataAccess *lastAccess = nullptr;
 		accessStructures._accesses.processAllWithErase(
@@ -4317,6 +4318,15 @@ namespace DataAccessRegistration {
 		assert(!accessStructures.hasBeenDeleted());
 		TaskDataAccesses::accesses_t &accesses = accessStructures._accesses;
 
+		// This is an optimization to merge dependencies of consecutive regions with the same
+		// characteristics. One of the performance issues detected with the regions dependency
+		// system is the excessive cost of processDelayedOperationsSameTask.
+		{
+			accessStructures._lock.lock();
+			unfragmentTaskAccesses(task, accessStructures);
+			accessStructures._lock.unlock();
+		}
+
 		//! If a valid location has not been provided then we use
 		//! the MemoryPlace assigned to the Task
 		if (location == nullptr) {
@@ -4379,7 +4389,7 @@ namespace DataAccessRegistration {
 				 * of MessageReleaseAccess.  There should also be no fragments,
 				 * since the task was not executed here. All accesses can
 				 * therefore simply be removed, since they will never be
-				 * accessed again on the current node. 
+				 * accessed again on the current node.
 				 */
 				 assert(accessStructures._accessFragments.empty());
 				 accessStructures._accesses.processAll(
