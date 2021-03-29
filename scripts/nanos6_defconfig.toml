@@ -256,6 +256,11 @@ __require_CLUSTER
 	# Indicate the virtual address space start. If set to 0x00000000, the runtime will find a
 	# suitable address. Default is 0x00000000
 	va_start = 0x00000000
+	# Disable propagation of dependencies in the remote namespace. Default is false
+	disable_remote = false
+	# Disable the "autowait" feature, which disables early release for accesses of offloaded
+	# tasks that are not propagated in the remote namespace. Default is false
+	disable_autowait = false
 
 	[mpi]
 		# Decide if mpi messenger must use a different
