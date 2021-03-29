@@ -463,7 +463,7 @@ namespace DataAccessRegistration {
 				                     || (access->getObjectType() == top_level_sink_type)
 				               	));
 			/* Also must have already received the namespace information from previous access */
-			_isRemovable = _isRemovable && ((access->getObjectType() == fragment_type)
+			_isRemovable = _isRemovable && ((access->getObjectType() != access_type)
 											|| (access->getValidNamespacePrevious() != VALID_NAMESPACE_UNKNOWN));
 
 			/*
@@ -853,9 +853,16 @@ namespace DataAccessRegistration {
 				updateOperation._location = access->getLocation();
 			}
 
+			// Note: do not pass namespace propagation info to taskwaits
+			// (1) It would be unnecessary delayed operations and overhead.
+			// (2) It may result in fragmentation of a taskwait after it
+			//     become complete. In this case the taskwait may be
+			//     fragmented while it is in the _completedTaskwaits list, which
+			//     will fail (since only the first fragment would be in the list).
 			if (updatedStatus._allowNamespacePropagation
 				&& !access->hasSubaccesses()
 				&& !access->getPropagatedNamespaceInfo()
+				&& (access->getNext()._objectType == access_type)
 				&& (access->getValidNamespaceSelf() != VALID_NAMESPACE_UNKNOWN)) {
 
 				updateOperation._validNamespace = access->getValidNamespaceSelf();
