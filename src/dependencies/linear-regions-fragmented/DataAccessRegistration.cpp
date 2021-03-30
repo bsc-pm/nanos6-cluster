@@ -508,6 +508,19 @@ namespace DataAccessRegistration {
 	inline bool canMergeAccesses(const DataAccess *lastAccess, const DataAccess *access)
 	{
 		if (lastAccess != nullptr) {
+
+			// Most of the below checks are clearly necessary in order to be
+			// able to merge the accesses. Regarding the previous access'
+			// namespace (validNamespacePrevious), this information is not
+			// really needed after the task starts, so it is not needed at any
+			// time that the unfragment functions are called. But each access
+			// always receives the namespace previous exactly once and we
+			// cannot delete the access until this information has been
+			// received. We know that it has been received once
+			// getValidNamespacePrevious returns something other than
+			// VALID_NAMESPACE_UNKNOWN.  The below check (that in fact both
+			// accesses have the same value of the namespace previous) is
+			// slightly more than is required, but it is simple.
 			if (access->getAccessRegion().getStartAddress() == lastAccess->getAccessRegion().getEndAddress()
 				&& access->getStatus() == lastAccess->getStatus()
 				&& access->isWeak() == lastAccess->isWeak()
@@ -519,6 +532,7 @@ namespace DataAccessRegistration {
 				&& access->getDataLinkStep() == lastAccess->getDataLinkStep()
 				&& lastAccess->getNext()._task == access->getNext()._task
 				&& access->getNext()._objectType == lastAccess->getNext()._objectType
+				&& access->getValidNamespacePrevious() == lastAccess->getValidNamespacePrevious()
 				) {
 				return true;
 			}
