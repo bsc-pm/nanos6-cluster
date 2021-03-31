@@ -60,7 +60,8 @@ private:
 		_curMemoryChunk = VirtualMemoryManagement::allocLocalNUMA(allocSize, _NUMANodeId);
 		FatalErrorHandler::failIf(
 			_curMemoryChunk == nullptr,
-			" Could not allocate a memory chunk for the global allocator."
+			" Could not allocate a memory chunk for the global allocator. allocSize = ", allocSize,
+			" Numa node: ", _NUMANodeId
 		);
 #endif
 

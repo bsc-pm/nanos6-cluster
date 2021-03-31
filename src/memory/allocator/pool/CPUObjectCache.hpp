@@ -22,6 +22,7 @@ class CPUObjectCache {
 	const size_t _numaNodeCount;
 
 	size_t _allocationSize;
+	size_t _objectCounter;
 
 	typedef std::deque<T *> pool_t;
 
@@ -44,7 +45,8 @@ class CPUObjectCache {
 public:
 	CPUObjectCache(NUMAObjectCache<T> *pool, size_t numaId, size_t numaNodeCount)
 		: _NUMAObjectCache(pool), _NUMANodeId(numaId),
-		_numaNodeCount(numaNodeCount), _allocationSize(1), _available(numaNodeCount + 1)
+		  _numaNodeCount(numaNodeCount), _allocationSize(1), _objectCounter(0),
+		_available(numaNodeCount + 1)
 	{
 		assert(!_available.empty());
 		assert(numaId <= numaNodeCount);
@@ -52,6 +54,11 @@ public:
 
 	~CPUObjectCache()
 	{
+	}
+
+	size_t getCounter() const
+	{
+		return _objectCounter;
 	}
 
 	//! Allocate an object from the current CPU memory pool
@@ -93,6 +100,7 @@ public:
 
 		AddressSanitizer::unpoisonMemoryRegion(ret, sizeof(T));
 		new (ret) T(std::forward<TS>(args)...);
+		++_objectCounter;
 		return ret;
 	}
 
@@ -116,6 +124,7 @@ public:
 			// _allocationSize+64 to reduce number of doublings of _allocationSize.
 			_NUMAObjectCache->returnObjects(nodeId, _available[nodeId], 64);
 		}
+		--_objectCounter;
 	}
 };
 

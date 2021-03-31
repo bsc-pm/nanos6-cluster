@@ -13,6 +13,8 @@
 
 #include "hardware/HardwareInfo.hpp"
 
+#include "lowlevel/FatalErrorHandler.hpp"
+
 #include <sys/mman.h>
 
 class VirtualMemoryArea {
@@ -66,6 +68,10 @@ public:
 		 * way to ensure all allocations are aligned to PAGE_SIZE */
 		size = ROUND_UP(size, HardwareInfo::getPageSize());
 		if (size > _available) {
+			FatalErrorHandler::warn(
+				"VirtualMemoryArea wanted: ", size,
+				"bytes but only: ", _available, " are available."
+			);
 			return nullptr;
 		}
 

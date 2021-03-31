@@ -92,6 +92,21 @@ public:
 			_CPUCaches[cpuId]->deleteObject(ptr);
 		}
 	}
+
+	// Function to get the total number of allocated object if this type.
+	// This is an estimated value because we don't use a lock in any moment.
+	// This is a debug function.
+	size_t getNumObject() const
+	{
+		size_t ret = 0;
+
+		for (CPUObjectCache<T> *it : _CPUCaches) {
+			ret += it->getCounter();
+		}
+
+		return ret;
+	}
+
 };
 
 #endif /* __OBJECT_CACHE_HPP__ */
