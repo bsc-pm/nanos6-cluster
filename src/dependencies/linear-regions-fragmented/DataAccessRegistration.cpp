@@ -530,9 +530,10 @@ namespace DataAccessRegistration {
 				&& access->getLocation()
 				&& ClusterManager::isLocalMemoryPlace(access->getLocation())
 				&& access->getDataLinkStep() == lastAccess->getDataLinkStep()
-				&& lastAccess->getNext()._task == access->getNext()._task
+				&& access->getNext()._task == lastAccess->getNext()._task
 				&& access->getNext()._objectType == lastAccess->getNext()._objectType
 				&& access->getValidNamespacePrevious() == lastAccess->getValidNamespacePrevious()
+				&& access->getNamespaceSuccessor() == lastAccess->getNamespaceSuccessor()
 				) {
 				return true;
 			}
