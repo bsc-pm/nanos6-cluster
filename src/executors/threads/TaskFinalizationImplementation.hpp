@@ -134,7 +134,15 @@ void TaskFinalization::disposeTask(Task *task)
 
 		assert(task->hasFinished());
 
+		// NOTE: We must check whether the parent is the namespace before
+		// calling task->unlinkFromParent().  It is not valid to dereference
+		// parent after the task has been unlinked from the parent unless
+		// disposable=true.  This is because the last to finish child may
+		// concurrently unlink itself, get disposable=true, and then delete
+		// the parent.
+		bool parentIsNodeNamespace = (parent != nullptr && parent->isNodeNamespace());
 		disposable = task->unlinkFromParent();
+
 		const bool isTaskfor = task->isTaskfor();
 		const bool isTaskloop = task->isTaskloop();
 		const bool isSpawned = task->isSpawned();
@@ -192,9 +200,8 @@ void TaskFinalization::disposeTask(Task *task)
 				executor->decreaseCallbackParticipants(spawnCallback);
 			} else if (NodeNamespace::isEnabled()
 						&& (task->isNodeNamespace()
-							|| (parent != nullptr
-								&& parent->isNodeNamespace())
-						   )) {
+							|| parentIsNodeNamespace)
+						   ) {
 
 				NodeNamespace::callbackDecrement();
 			}
