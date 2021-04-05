@@ -144,7 +144,7 @@ public:
 		 * that will serve for now.
 		 */
 		if (_singleton->_callback.getCounterValue() > 0) {
-			clusterCout << "Waiting for NodeNamespace callback counter to become zero...\n";
+			// clusterCout << "Waiting for NodeNamespace callback counter to become zero...\n";
 			while (_singleton->_callback.getCounterValue() > 0) {
 				sleep(1);
 			}
