@@ -3640,14 +3640,14 @@ namespace DataAccessRegistration {
 								return true;
 							}
 							addr = accessRegion.getEndAddress();
-							if (dataAccess->getEarlyReleaseInNamespace()) {
+							if (dataAccess->hasNext()) {
 								// This access has early release in the namespace
 								if (dataAccess->getAccessRegion().getStartAddress() > region.getStartAddress()) {
 									// There is a bit before this complete access
 									DataAccessRegion subregion(region.getStartAddress(),
 																std::min<void*>(dataAccess->getAccessRegion().getStartAddress(),
 																region.getEndAddress()));
-									// Non early-released access that needs a taskwait fragment
+									// Access with no next that needs a taskwait fragment
 									bottomMapEntry = fragmentBottomMapEntry(bottomMapEntry, subregion, accessStructures);
 									createTopLevelSinkFragment(task, bottomMapEntry, region, accessStructures, hpDependencyData);
 									continueWithoutRestart = false;
