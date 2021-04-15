@@ -1021,6 +1021,7 @@ noinst_HEADERS = \
 	src/instrument/lint/Callbacks.hpp \
 	src/instrument/lint/InstrumentAddTask.hpp \
 	src/instrument/lint/InstrumentBlockingAPI.hpp \
+	src/instrument/lint/InstrumentCluster.hpp \
 	src/instrument/lint/InstrumentComputePlaceId.hpp \
 	src/instrument/lint/InstrumentComputePlaceManagement.hpp \
 	src/instrument/lint/InstrumentCPULocalData.hpp \
@@ -1201,6 +1202,7 @@ noinst_HEADERS = \
 	src/memory/allocator/malloc/MemoryAllocator.hpp \
 	src/memory/allocator/malloc/ObjectAllocator.hpp \
 	src/memory/allocator/pool/CPUObjectCache.hpp \
+	src/memory/allocator/pool/Poison.hpp \
 	src/memory/allocator/pool/ExternalMemoryPool.hpp \
 	src/memory/allocator/pool/MemoryAllocator.hpp \
 	src/memory/allocator/pool/MemoryPool.hpp \

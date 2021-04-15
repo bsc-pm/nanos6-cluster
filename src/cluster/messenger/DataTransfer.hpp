@@ -13,7 +13,7 @@
 
 #include <DataAccessRegion.hpp>
 
-#include "InstrumentCluster.hpp"
+#include <InstrumentCluster.hpp>
 
 class MemoryPlace;
 

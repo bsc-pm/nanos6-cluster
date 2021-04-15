@@ -1,1 +1,1 @@
-/gpfs/projects/bsc28/bsc28860/tools/nanos6_cluster/src/instrument/null/InstrumentDebug.hpp
+../null/InstrumentDebug.hpp
