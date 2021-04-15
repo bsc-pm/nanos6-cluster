@@ -72,7 +72,10 @@ static std::vector<DataAccessRegion> findMappedRegions()
 			}
 		}
 
-		FatalErrorHandler::failIf(mapfile.fail(), "Could not read virtual memory mappings");
+		if (!mapfile.eof()) {
+			// Check the fail only if not at eof.
+			FatalErrorHandler::failIf(mapfile.fail(), "Could not read virtual memory mappings");
+		}
 		mapfile.close();
 	} else {
 		FatalErrorHandler::fail("Could not open memory mappings file");
