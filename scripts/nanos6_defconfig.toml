@@ -13,7 +13,7 @@
 	debug = false
 	# Choose the dependency system implementation. Default is "discrete"
 	# Possible values: "discrete", "regions"
-	dependencies = "discrete"
+	dependencies = "regions"
 	# Choose the instrumentation variant to run. Default is "none"
 	# Possible values: "none", "ctf", "extrae", "graph", "lint", "stats", "verbose"
 	instrument = "none"
@@ -41,7 +41,7 @@
 	# The underlying policy of the CPU manager for the handling of CPUs. Default is "default", which
 	# corresponds to "idle"
 	# Possible values: "default", "idle", "busy", "lewi", "greedy"
-	policy = "default"
+	policy = "busy"
 
 [taskfor]
 	# Choose the total number of CPU groups that will execute the worksharing tasks (taskfors). Default
@@ -244,27 +244,30 @@ __require_CLUSTER
 	# Possible values: "disabled", "mpi-2sided"
 	communication = "disabled"
 	# Choose the distributed memory for Cluster mode. Default is 2GB
-	distributed_memory = "2G"
+	distributed_memory = "128G"
 	# Choose the local memory for Cluster mode. Default is none (not set), which means that the
 	# runtime will allocate minimum between 2GB and the 5% of the total physical memory of the
 	# machine
-	# local_memory = "2G"
+	local_memory = "64G"
 	# Indicate the scheduling policy for Cluster mode. Default is "locality"
 	# Possible values: "locality", "random"
 	scheduling_policy = "locality"
 	# Indicate the virtual address space start. If set to 0x00000000, the runtime will find a
 	# suitable address. Default is 0x00000000
 	va_start = 0x00000000
+	# Use namespace code. Default true
+	use_namespace = true
 	# Disable propagation of dependencies in the remote namespace. Default is false
 	disable_remote = false
 	# Disable the "autowait" feature, which disables early release for accesses of offloaded
 	# tasks that are not propagated in the remote namespace. Default is false
 	disable_autowait = false
 
-	[mpi]
+	[cluster.mpi]
 		# Decide if mpi messenger must use a different
 		# communicator for data_raws messages. Default is true
 		comm_data_raw = true
+
 __!require_CLUSTER
 
 [memory]
