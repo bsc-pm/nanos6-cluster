@@ -33,6 +33,25 @@ runtime_handled_reductions_tests =
 discrete_tests =
 dlb_tests =
 
+# dep-wait.mercurium.test
+# dep-nonest.mercurium.test
+# simple-commutative.mercurium.test
+# commutative-stencil.mercurium.test
+# task-for-multiaxpy.mercurium.test
+# task-for-dep-multiaxpy.mercurium.test
+# task-for-nonpod.mercurium.test
+# task-for-nqueens.mercurium.test
+# taskloop-multiaxpy.mercurium.test \
+# taskloop-dep-multiaxpy.mercurium.test \
+# taskloop-nested-dep-multiaxpy.mercurium.test \
+# taskloop-nonpod.mercurium.test \
+# taskloop-nqueens.mercurium.test \
+# taskloop-for-multiaxpy.mercurium.test \
+# taskloop-for-dep-multiaxpy.mercurium.test \
+# taskloop-for-nested-dep-multiaxpy.mercurium.test \
+# taskloop-for-nonpod.mercurium.test \
+# taskloop-for-nqueens.mercurium.test \
+# taskloop-for-reduction.mercurium.test
 
 if HAVE_NANOS6_MERCURIUM
 base_tests += \
@@ -41,29 +60,9 @@ base_tests += \
 	events-dep.mercurium.test \
 	scheduling-wait-for.mercurium.test \
 	fibonacci.mercurium.test \
-	dep-nonest.mercurium.test \
 	dep-early-release.mercurium.test \
 	dep-er-and-weak.mercurium.test \
-	if0.mercurium.test \
-	dep-wait.mercurium.test \
-	simple-commutative.mercurium.test \
-	commutative-stencil.mercurium.test \
-	task-for-multiaxpy.mercurium.test \
-	task-for-dep-multiaxpy.mercurium.test \
-	task-for-nonpod.mercurium.test \
-	task-for-nqueens.mercurium.test \
-	taskloop-multiaxpy.mercurium.test \
-	taskloop-dep-multiaxpy.mercurium.test \
-	taskloop-nested-dep-multiaxpy.mercurium.test \
-	taskloop-nonpod.mercurium.test \
-	taskloop-nqueens.mercurium.test \
-	taskloop-for-multiaxpy.mercurium.test \
-	taskloop-for-dep-multiaxpy.mercurium.test \
-	taskloop-for-nested-dep-multiaxpy.mercurium.test \
-	taskloop-for-nonpod.mercurium.test \
-	taskloop-for-nqueens.mercurium.test \
-	taskloop-for-reduction.mercurium.test
-
+	if0.mercurium.test
 
 if USE_CUDA
 base_tests += cuda-saxpy.mercurium.test
@@ -77,9 +76,9 @@ dlb_tests += \
 	dlb-cpu-sharing-active-process.mercurium.test \
 	dlb-cpu-sharing-passive-process.mercurium.test \
 	dlb-cpu-sharing.mercurium.test
-else
-cpu_management_tests += \
-	cpu-activation.mercurium.test
+# else
+# cpu_management_tests += \
+# 	cpu-activation.mercurium.test
 endif
 
 user_mutex_tests += \
@@ -92,13 +91,14 @@ linear_region_tests += \
 	lr-er-and-weak.mercurium.test \
 	lr-release.mercurium.test
 
-reductions_tests += \
-	red-firstprivate.mercurium.test \
-	red-nonest.mercurium.test \
-	red-nest.mercurium.test \
-	red-nest-other.mercurium.test \
-	red-nqueens.mercurium.test \
-	red-stress.mercurium.test
+
+# reductions_tests += \
+# 	red-nonest.mercurium.test \
+# 	red-nest.mercurium.test \
+# 	red-nest-other.mercurium.test \
+#       red-firstprivate.mercurium.test \
+# 	red-nqueens.mercurium.test \
+# 	red-stress.mercurium.test
 
 discrete_tests += \
 	discrete-deps.mercurium.test \
@@ -133,34 +133,36 @@ discrete_tests += \
 #	red-combine-taskwait.mercurium.test \
 #	red-combine-taskwait-mark.mercurium.test
 
+# dep-wait.mercurium.debug.test
+# dep-nonest.mercurium.debug.test
+# simple-commutative.mercurium.debug.test
+# commutative-stencil.mercurium.debug.test
+# task-for-multiaxpy.mercurium.debug.test
+# task-for-dep-multiaxpy.mercurium.debug.test
+# task-for-nonpod.mercurium.debug.test
+# task-for-nqueens.mercurium.debug.test
+# taskloop-multiaxpy.mercurium.debug.test \
+# taskloop-dep-multiaxpy.mercurium.debug.test \
+# taskloop-nested-dep-multiaxpy.mercurium.debug.test \
+# taskloop-nonpod.mercurium.debug.test \
+# taskloop-nqueens.mercurium.debug.test \
+# taskloop-for-multiaxpy.mercurium.debug.test \
+# taskloop-for-dep-multiaxpy.mercurium.debug.test \
+# taskloop-for-nested-dep-multiaxpy.mercurium.debug.test \
+# taskloop-for-nonpod.mercurium.debug.test \
+# taskloop-for-nqueens.mercurium.debug.test \
+# taskloop-for-reduction.mercurium.debug.test
+
+
 base_tests +=  \
 	blocking.mercurium.debug.test \
 	events.mercurium.debug.test \
 	events-dep.mercurium.debug.test \
 	scheduling-wait-for.mercurium.debug.test \
 	fibonacci.mercurium.debug.test \
-	dep-nonest.mercurium.debug.test \
 	dep-early-release.mercurium.debug.test \
 	dep-er-and-weak.mercurium.debug.test \
-	if0.mercurium.debug.test \
-	dep-wait.mercurium.debug.test \
-	simple-commutative.mercurium.debug.test \
-	commutative-stencil.mercurium.debug.test \
-	task-for-multiaxpy.mercurium.debug.test \
-	task-for-dep-multiaxpy.mercurium.debug.test \
-	task-for-nonpod.mercurium.debug.test \
-	task-for-nqueens.mercurium.debug.test \
-	taskloop-multiaxpy.mercurium.debug.test \
-	taskloop-dep-multiaxpy.mercurium.debug.test \
-	taskloop-nested-dep-multiaxpy.mercurium.debug.test \
-	taskloop-nonpod.mercurium.debug.test \
-	taskloop-nqueens.mercurium.debug.test \
-	taskloop-for-multiaxpy.mercurium.debug.test \
-	taskloop-for-dep-multiaxpy.mercurium.debug.test \
-	taskloop-for-nested-dep-multiaxpy.mercurium.debug.test \
-	taskloop-for-nonpod.mercurium.debug.test \
-	taskloop-for-nqueens.mercurium.debug.test \
-	taskloop-for-reduction.mercurium.debug.test
+	if0.mercurium.debug.test
 
 if USE_CUDA
 base_tests += cuda-saxpy.mercurium.debug.test
@@ -172,9 +174,9 @@ dlb_tests += \
 	dlb-cpu-sharing-active-process.mercurium.debug.test \
 	dlb-cpu-sharing-passive-process.mercurium.debug.test \
 	dlb-cpu-sharing.mercurium.debug.test
-else
-cpu_management_tests += \
-	cpu-activation.mercurium.debug.test
+# else
+# cpu_management_tests += \
+# 	cpu-activation.mercurium.debug.test
 endif
 
 user_mutex_tests += \
@@ -187,13 +189,14 @@ linear_region_tests += \
 	lr-er-and-weak.mercurium.debug.test \
 	lr-release.mercurium.debug.test
 
-reductions_tests += \
-	red-firstprivate.mercurium.debug.test \
-	red-nonest.mercurium.debug.test \
-	red-nest.mercurium.debug.test \
-	red-nest-other.mercurium.debug.test \
-	red-nqueens.mercurium.debug.test \
-	red-stress.mercurium.debug.test
+# red-firstprivate.mercurium.debug.test
+
+# reductions_tests += \
+# 	red-nonest.mercurium.debug.test \
+# 	red-nest.mercurium.debug.test \
+# 	red-nest-other.mercurium.debug.test \
+# 	red-nqueens.mercurium.debug.test \
+# 	red-stress.mercurium.debug.test
 
 discrete_tests += \
 	discrete-deps.mercurium.debug.test \
@@ -332,14 +335,14 @@ fibonacci_mercurium_test_CPPFLAGS = -DNDEBUG
 fibonacci_mercurium_test_CXXFLAGS = $(OPT_CXXFLAGS) $(AM_CXXFLAGS)
 fibonacci_mercurium_test_LDFLAGS = $(test_common_debug_ldflags)
 
-cpu_activation_mercurium_debug_test_SOURCES = ../cpu-activation/cpu-activation.cpp ../cpu-activation/ConditionVariable.hpp
-cpu_activation_mercurium_debug_test_CXXFLAGS = $(DEBUG_CXXFLAGS) $(AM_CXXFLAGS)
-cpu_activation_mercurium_debug_test_LDFLAGS = $(test_common_debug_ldflags)
+# cpu_activation_mercurium_debug_test_SOURCES = ../cpu-activation/cpu-activation.cpp ../cpu-activation/ConditionVariable.hpp
+# cpu_activation_mercurium_debug_test_CXXFLAGS = $(DEBUG_CXXFLAGS) $(AM_CXXFLAGS)
+# cpu_activation_mercurium_debug_test_LDFLAGS = $(test_common_debug_ldflags)
 
-cpu_activation_mercurium_test_SOURCES = ../cpu-activation/cpu-activation.cpp ../cpu-activation/ConditionVariable.hpp
-cpu_activation_mercurium_test_CPPFLAGS = -DNDEBUG
-cpu_activation_mercurium_test_CXXFLAGS = $(OPT_CXXFLAGS) $(AM_CXXFLAGS)
-cpu_activation_mercurium_test_LDFLAGS = $(test_common_ldflags)
+# cpu_activation_mercurium_test_SOURCES = ../cpu-activation/cpu-activation.cpp ../cpu-activation/ConditionVariable.hpp
+# cpu_activation_mercurium_test_CPPFLAGS = -DNDEBUG
+# cpu_activation_mercurium_test_CXXFLAGS = $(OPT_CXXFLAGS) $(AM_CXXFLAGS)
+# cpu_activation_mercurium_test_LDFLAGS = $(test_common_ldflags)
 
 critical_mercurium_debug_test_SOURCES = ../critical/critical.cpp
 critical_mercurium_debug_test_CXXFLAGS = $(DEBUG_CXXFLAGS) $(AM_CXXFLAGS)
@@ -350,27 +353,27 @@ critical_mercurium_test_CPPFLAGS = -DNDEBUG
 critical_mercurium_test_CXXFLAGS = $(OPT_CXXFLAGS) $(AM_CXXFLAGS)
 critical_mercurium_test_LDFLAGS = $(test_common_ldflags)
 
-dep_nonest_mercurium_debug_test_SOURCES = ../dependencies/dep-nonest.cpp
-dep_nonest_mercurium_debug_test_CPPFLAGS =
-if HAVE_CONCURRENT_SUPPORT
-dep_nonest_mercurium_debug_test_CPPFLAGS += -DHAVE_CONCURRENT_SUPPORT
-endif
-if HAVE_DLB
-dep_nonest_mercurium_debug_test_CPPFLAGS += -DHAVE_DLB
-endif
-dep_nonest_mercurium_debug_test_CXXFLAGS = $(DEBUG_CXXFLAGS) $(AM_CXXFLAGS)
-dep_nonest_mercurium_debug_test_LDFLAGS = $(test_common_debug_ldflags)
+# dep_nonest_mercurium_debug_test_SOURCES = ../dependencies/dep-nonest.cpp
+# dep_nonest_mercurium_debug_test_CPPFLAGS =
+# if HAVE_CONCURRENT_SUPPORT
+# dep_nonest_mercurium_debug_test_CPPFLAGS += -DHAVE_CONCURRENT_SUPPORT
+# endif
+# if HAVE_DLB
+# dep_nonest_mercurium_debug_test_CPPFLAGS += -DHAVE_DLB
+# endif
+# dep_nonest_mercurium_debug_test_CXXFLAGS = $(DEBUG_CXXFLAGS) $(AM_CXXFLAGS)
+# dep_nonest_mercurium_debug_test_LDFLAGS = $(test_common_debug_ldflags)
 
-dep_nonest_mercurium_test_SOURCES = ../dependencies/dep-nonest.cpp
-dep_nonest_mercurium_test_CPPFLAGS = -DNDEBUG
-if HAVE_CONCURRENT_SUPPORT
-dep_nonest_mercurium_test_CPPFLAGS += -DHAVE_CONCURRENT_SUPPORT
-endif
-if HAVE_DLB
-dep_nonest_mercurium_test_CPPFLAGS += -DHAVE_DLB
-endif
-dep_nonest_mercurium_test_CXXFLAGS = $(OPT_CXXFLAGS) $(AM_CXXFLAGS)
-dep_nonest_mercurium_test_LDFLAGS = $(test_common_ldflags)
+# dep_nonest_mercurium_test_SOURCES = ../dependencies/dep-nonest.cpp
+# dep_nonest_mercurium_test_CPPFLAGS = -DNDEBUG
+# if HAVE_CONCURRENT_SUPPORT
+# dep_nonest_mercurium_test_CPPFLAGS += -DHAVE_CONCURRENT_SUPPORT
+# endif
+# if HAVE_DLB
+# dep_nonest_mercurium_test_CPPFLAGS += -DHAVE_DLB
+# endif
+# dep_nonest_mercurium_test_CXXFLAGS = $(OPT_CXXFLAGS) $(AM_CXXFLAGS)
+# dep_nonest_mercurium_test_LDFLAGS = $(test_common_ldflags)
 
 dep_early_release_mercurium_debug_test_SOURCES = ../dependencies/dep-early-release.cpp
 dep_early_release_mercurium_debug_test_CXXFLAGS = $(DEBUG_CXXFLAGS) $(AM_CXXFLAGS)
@@ -399,113 +402,113 @@ if0_mercurium_test_CPPFLAGS = -DNDEBUG
 if0_mercurium_test_CXXFLAGS = $(OPT_CXXFLAGS) $(AM_CXXFLAGS)
 if0_mercurium_test_LDFLAGS = $(test_common_ldflags)
 
-dep_wait_mercurium_debug_test_SOURCES = ../dependencies/dep-wait.cpp
-dep_wait_mercurium_debug_test_CXXFLAGS = $(DEBUG_CXXFLAGS) $(AM_CXXFLAGS)
-dep_wait_mercurium_debug_test_LDFLAGS = $(test_common_debug_ldflags)
+# dep_wait_mercurium_debug_test_SOURCES = ../dependencies/dep-wait.cpp
+# dep_wait_mercurium_debug_test_CXXFLAGS = $(DEBUG_CXXFLAGS) $(AM_CXXFLAGS)
+# dep_wait_mercurium_debug_test_LDFLAGS = $(test_common_debug_ldflags)
 
-dep_wait_mercurium_test_SOURCES = ../dependencies/dep-wait.cpp
-dep_wait_mercurium_test_CPPFLAGS = -DNDEBUG
-dep_wait_mercurium_test_CXXFLAGS = $(OPT_CXXFLAGS) $(AM_CXXFLAGS)
-dep_wait_mercurium_test_LDFLAGS = $(test_common_ldflags)
+# dep_wait_mercurium_test_SOURCES = ../dependencies/dep-wait.cpp
+# dep_wait_mercurium_test_CPPFLAGS = -DNDEBUG
+# dep_wait_mercurium_test_CXXFLAGS = $(OPT_CXXFLAGS) $(AM_CXXFLAGS)
+# dep_wait_mercurium_test_LDFLAGS = $(test_common_ldflags)
 
-simple_commutative_mercurium_debug_test_SOURCES = ../commutative/simple-commutative.cpp
-simple_commutative_mercurium_debug_test_CXXFLAGS = $(DEBUG_CXXFLAGS) $(AM_CXXFLAGS)
-simple_commutative_mercurium_debug_test_LDFLAGS = $(test_common_debug_ldflags)
+# simple_commutative_mercurium_debug_test_SOURCES = ../commutative/simple-commutative.cpp
+# simple_commutative_mercurium_debug_test_CXXFLAGS = $(DEBUG_CXXFLAGS) $(AM_CXXFLAGS)
+# simple_commutative_mercurium_debug_test_LDFLAGS = $(test_common_debug_ldflags)
 
-simple_commutative_mercurium_test_SOURCES = ../commutative/simple-commutative.cpp
-simple_commutative_mercurium_test_CPPFLAGS = -DNDEBUG
-simple_commutative_mercurium_test_CXXFLAGS = $(OPT_CXXFLAGS) $(AM_CXXFLAGS)
-simple_commutative_mercurium_test_LDFLAGS = $(test_common_ldflags)
+# simple_commutative_mercurium_test_SOURCES = ../commutative/simple-commutative.cpp
+# simple_commutative_mercurium_test_CPPFLAGS = -DNDEBUG
+# simple_commutative_mercurium_test_CXXFLAGS = $(OPT_CXXFLAGS) $(AM_CXXFLAGS)
+# simple_commutative_mercurium_test_LDFLAGS = $(test_common_ldflags)
 
-commutative_stencil_mercurium_debug_test_SOURCES = ../commutative/commutative-stencil.cpp
-commutative_stencil_mercurium_debug_test_CXXFLAGS = $(DEBUG_CXXFLAGS) $(AM_CXXFLAGS)
-commutative_stencil_mercurium_debug_test_LDFLAGS = $(test_common_debug_ldflags)
+# commutative_stencil_mercurium_debug_test_SOURCES = ../commutative/commutative-stencil.cpp
+# commutative_stencil_mercurium_debug_test_CXXFLAGS = $(DEBUG_CXXFLAGS) $(AM_CXXFLAGS)
+# commutative_stencil_mercurium_debug_test_LDFLAGS = $(test_common_debug_ldflags)
 
-commutative_stencil_mercurium_test_SOURCES = ../commutative/commutative-stencil.cpp
-commutative_stencil_mercurium_test_CPPFLAGS = -DNDEBUG
-commutative_stencil_mercurium_test_CXXFLAGS = $(OPT_CXXFLAGS) $(AM_CXXFLAGS)
-commutative_stencil_mercurium_test_LDFLAGS = $(test_common_ldflags)
+# commutative_stencil_mercurium_test_SOURCES = ../commutative/commutative-stencil.cpp
+# commutative_stencil_mercurium_test_CPPFLAGS = -DNDEBUG
+# commutative_stencil_mercurium_test_CXXFLAGS = $(OPT_CXXFLAGS) $(AM_CXXFLAGS)
+# commutative_stencil_mercurium_test_LDFLAGS = $(test_common_ldflags)
 
-task_for_multiaxpy_mercurium_debug_test_SOURCES = ../task-for/task-for-multiaxpy.cpp
-task_for_multiaxpy_mercurium_debug_test_CXXFLAGS = $(DEBUG_CXXFLAGS) $(AM_CXXFLAGS)
-task_for_multiaxpy_mercurium_debug_test_LDFLAGS = $(test_common_debug_ldflags)
+# task_for_multiaxpy_mercurium_debug_test_SOURCES = ../task-for/task-for-multiaxpy.cpp
+# task_for_multiaxpy_mercurium_debug_test_CXXFLAGS = $(DEBUG_CXXFLAGS) $(AM_CXXFLAGS)
+# task_for_multiaxpy_mercurium_debug_test_LDFLAGS = $(test_common_debug_ldflags)
 
-task_for_multiaxpy_mercurium_test_SOURCES = ../task-for/task-for-multiaxpy.cpp
-task_for_multiaxpy_mercurium_test_CPPFLAGS = -DNDEBUG
-task_for_multiaxpy_mercurium_test_CXXFLAGS = $(OPT_CXXFLAGS) $(AM_CXXFLAGS)
-task_for_multiaxpy_mercurium_test_LDFLAGS = $(test_common_ldflags)
+# task_for_multiaxpy_mercurium_test_SOURCES = ../task-for/task-for-multiaxpy.cpp
+# task_for_multiaxpy_mercurium_test_CPPFLAGS = -DNDEBUG
+# task_for_multiaxpy_mercurium_test_CXXFLAGS = $(OPT_CXXFLAGS) $(AM_CXXFLAGS)
+# task_for_multiaxpy_mercurium_test_LDFLAGS = $(test_common_ldflags)
 
-task_for_dep_multiaxpy_mercurium_debug_test_SOURCES = ../task-for/task-for-dep-multiaxpy.cpp
-task_for_dep_multiaxpy_mercurium_debug_test_CXXFLAGS = $(DEBUG_CXXFLAGS) $(AM_CXXFLAGS)
-task_for_dep_multiaxpy_mercurium_debug_test_LDFLAGS = $(test_common_debug_ldflags)
+# task_for_dep_multiaxpy_mercurium_debug_test_SOURCES = ../task-for/task-for-dep-multiaxpy.cpp
+# task_for_dep_multiaxpy_mercurium_debug_test_CXXFLAGS = $(DEBUG_CXXFLAGS) $(AM_CXXFLAGS)
+# task_for_dep_multiaxpy_mercurium_debug_test_LDFLAGS = $(test_common_debug_ldflags)
 
-task_for_dep_multiaxpy_mercurium_test_SOURCES = ../task-for/task-for-dep-multiaxpy.cpp
-task_for_dep_multiaxpy_mercurium_test_CPPFLAGS = -DNDEBUG
-task_for_dep_multiaxpy_mercurium_test_CXXFLAGS = $(OPT_CXXFLAGS) $(AM_CXXFLAGS)
-task_for_dep_multiaxpy_mercurium_test_LDFLAGS = $(test_common_ldflags)
+# task_for_dep_multiaxpy_mercurium_test_SOURCES = ../task-for/task-for-dep-multiaxpy.cpp
+# task_for_dep_multiaxpy_mercurium_test_CPPFLAGS = -DNDEBUG
+# task_for_dep_multiaxpy_mercurium_test_CXXFLAGS = $(OPT_CXXFLAGS) $(AM_CXXFLAGS)
+# task_for_dep_multiaxpy_mercurium_test_LDFLAGS = $(test_common_ldflags)
 
-task_for_nonpod_mercurium_debug_test_SOURCES = ../task-for/task-for-nonpod.cpp
-task_for_nonpod_mercurium_debug_test_CXXFLAGS = $(DEBUG_CXXFLAGS) $(AM_CXXFLAGS)
-task_for_nonpod_mercurium_debug_test_LDFLAGS = $(test_common_debug_ldflags)
+# task_for_nonpod_mercurium_debug_test_SOURCES = ../task-for/task-for-nonpod.cpp
+# task_for_nonpod_mercurium_debug_test_CXXFLAGS = $(DEBUG_CXXFLAGS) $(AM_CXXFLAGS)
+# task_for_nonpod_mercurium_debug_test_LDFLAGS = $(test_common_debug_ldflags)
 
-task_for_nonpod_mercurium_test_SOURCES = ../task-for/task-for-nonpod.cpp
-task_for_nonpod_mercurium_test_CPPFLAGS = -DNDEBUG
-task_for_nonpod_mercurium_test_CXXFLAGS = $(OPT_CXXFLAGS) $(AM_CXXFLAGS)
-task_for_nonpod_mercurium_test_LDFLAGS = $(test_common_ldflags)
+# task_for_nonpod_mercurium_test_SOURCES = ../task-for/task-for-nonpod.cpp
+# task_for_nonpod_mercurium_test_CPPFLAGS = -DNDEBUG
+# task_for_nonpod_mercurium_test_CXXFLAGS = $(OPT_CXXFLAGS) $(AM_CXXFLAGS)
+# task_for_nonpod_mercurium_test_LDFLAGS = $(test_common_ldflags)
 
-task_for_nqueens_mercurium_debug_test_SOURCES = ../task-for/task-for-nqueens.cpp
-task_for_nqueens_mercurium_debug_test_CXXFLAGS = $(DEBUG_CXXFLAGS) $(AM_CXXFLAGS)
-task_for_nqueens_mercurium_debug_test_LDFLAGS = $(test_common_debug_ldflags)
+# task_for_nqueens_mercurium_debug_test_SOURCES = ../task-for/task-for-nqueens.cpp
+# task_for_nqueens_mercurium_debug_test_CXXFLAGS = $(DEBUG_CXXFLAGS) $(AM_CXXFLAGS)
+# task_for_nqueens_mercurium_debug_test_LDFLAGS = $(test_common_debug_ldflags)
 
-task_for_nqueens_mercurium_test_SOURCES = ../task-for/task-for-nqueens.cpp
-task_for_nqueens_mercurium_test_CPPFLAGS = -DNDEBUG
-task_for_nqueens_mercurium_test_CXXFLAGS = $(OPT_CXXFLAGS) $(AM_CXXFLAGS)
-task_for_nqueens_mercurium_test_LDFLAGS = $(test_common_ldflags)
+# task_for_nqueens_mercurium_test_SOURCES = ../task-for/task-for-nqueens.cpp
+# task_for_nqueens_mercurium_test_CPPFLAGS = -DNDEBUG
+# task_for_nqueens_mercurium_test_CXXFLAGS = $(OPT_CXXFLAGS) $(AM_CXXFLAGS)
+# task_for_nqueens_mercurium_test_LDFLAGS = $(test_common_ldflags)
 
-taskloop_multiaxpy_mercurium_debug_test_SOURCES = ../taskloop/taskloop-multiaxpy.cpp
-taskloop_multiaxpy_mercurium_debug_test_CXXFLAGS = $(DEBUG_CXXFLAGS) $(AM_CXXFLAGS)
-taskloop_multiaxpy_mercurium_debug_test_LDFLAGS = $(test_common_debug_ldflags)
+# taskloop_multiaxpy_mercurium_debug_test_SOURCES = ../taskloop/taskloop-multiaxpy.cpp
+# taskloop_multiaxpy_mercurium_debug_test_CXXFLAGS = $(DEBUG_CXXFLAGS) $(AM_CXXFLAGS)
+# taskloop_multiaxpy_mercurium_debug_test_LDFLAGS = $(test_common_debug_ldflags)
 
-taskloop_multiaxpy_mercurium_test_SOURCES = ../taskloop/taskloop-multiaxpy.cpp
-taskloop_multiaxpy_mercurium_test_CPPFLAGS = -DNDEBUG
-taskloop_multiaxpy_mercurium_test_CXXFLAGS = $(OPT_CXXFLAGS) $(AM_CXXFLAGS)
-taskloop_multiaxpy_mercurium_test_LDFLAGS = $(test_common_ldflags)
+# taskloop_multiaxpy_mercurium_test_SOURCES = ../taskloop/taskloop-multiaxpy.cpp
+# taskloop_multiaxpy_mercurium_test_CPPFLAGS = -DNDEBUG
+# taskloop_multiaxpy_mercurium_test_CXXFLAGS = $(OPT_CXXFLAGS) $(AM_CXXFLAGS)
+# taskloop_multiaxpy_mercurium_test_LDFLAGS = $(test_common_ldflags)
 
-taskloop_dep_multiaxpy_mercurium_debug_test_SOURCES = ../taskloop/taskloop-dep-multiaxpy.cpp
-taskloop_dep_multiaxpy_mercurium_debug_test_CXXFLAGS = $(DEBUG_CXXFLAGS) $(AM_CXXFLAGS)
-taskloop_dep_multiaxpy_mercurium_debug_test_LDFLAGS = $(test_common_debug_ldflags)
+# taskloop_dep_multiaxpy_mercurium_debug_test_SOURCES = ../taskloop/taskloop-dep-multiaxpy.cpp
+# taskloop_dep_multiaxpy_mercurium_debug_test_CXXFLAGS = $(DEBUG_CXXFLAGS) $(AM_CXXFLAGS)
+# taskloop_dep_multiaxpy_mercurium_debug_test_LDFLAGS = $(test_common_debug_ldflags)
 
-taskloop_dep_multiaxpy_mercurium_test_SOURCES = ../taskloop/taskloop-dep-multiaxpy.cpp
-taskloop_dep_multiaxpy_mercurium_test_CPPFLAGS = -DNDEBUG
-taskloop_dep_multiaxpy_mercurium_test_CXXFLAGS = $(OPT_CXXFLAGS) $(AM_CXXFLAGS)
-taskloop_dep_multiaxpy_mercurium_test_LDFLAGS = $(test_common_ldflags)
+# taskloop_dep_multiaxpy_mercurium_test_SOURCES = ../taskloop/taskloop-dep-multiaxpy.cpp
+# taskloop_dep_multiaxpy_mercurium_test_CPPFLAGS = -DNDEBUG
+# taskloop_dep_multiaxpy_mercurium_test_CXXFLAGS = $(OPT_CXXFLAGS) $(AM_CXXFLAGS)
+# taskloop_dep_multiaxpy_mercurium_test_LDFLAGS = $(test_common_ldflags)
 
-taskloop_nested_dep_multiaxpy_mercurium_debug_test_SOURCES = ../taskloop/taskloop-nested-dep-multiaxpy.cpp
-taskloop_nested_dep_multiaxpy_mercurium_debug_test_CXXFLAGS = $(DEBUG_CXXFLAGS) $(AM_CXXFLAGS)
-taskloop_nested_dep_multiaxpy_mercurium_debug_test_LDFLAGS = $(test_common_debug_ldflags)
+# taskloop_nested_dep_multiaxpy_mercurium_debug_test_SOURCES = ../taskloop/taskloop-nested-dep-multiaxpy.cpp
+# taskloop_nested_dep_multiaxpy_mercurium_debug_test_CXXFLAGS = $(DEBUG_CXXFLAGS) $(AM_CXXFLAGS)
+# taskloop_nested_dep_multiaxpy_mercurium_debug_test_LDFLAGS = $(test_common_debug_ldflags)
 
-taskloop_nested_dep_multiaxpy_mercurium_test_SOURCES = ../taskloop/taskloop-nested-dep-multiaxpy.cpp
-taskloop_nested_dep_multiaxpy_mercurium_test_CPPFLAGS = -DNDEBUG
-taskloop_nested_dep_multiaxpy_mercurium_test_CXXFLAGS = $(OPT_CXXFLAGS) $(AM_CXXFLAGS)
-taskloop_nested_dep_multiaxpy_mercurium_test_LDFLAGS = $(test_common_ldflags)
+# taskloop_nested_dep_multiaxpy_mercurium_test_SOURCES = ../taskloop/taskloop-nested-dep-multiaxpy.cpp
+# taskloop_nested_dep_multiaxpy_mercurium_test_CPPFLAGS = -DNDEBUG
+# taskloop_nested_dep_multiaxpy_mercurium_test_CXXFLAGS = $(OPT_CXXFLAGS) $(AM_CXXFLAGS)
+# taskloop_nested_dep_multiaxpy_mercurium_test_LDFLAGS = $(test_common_ldflags)
 
-taskloop_nonpod_mercurium_debug_test_SOURCES = ../taskloop/taskloop-nonpod.cpp
-taskloop_nonpod_mercurium_debug_test_CXXFLAGS = $(DEBUG_CXXFLAGS) $(AM_CXXFLAGS)
-taskloop_nonpod_mercurium_debug_test_LDFLAGS = $(test_common_debug_ldflags)
+# taskloop_nonpod_mercurium_debug_test_SOURCES = ../taskloop/taskloop-nonpod.cpp
+# taskloop_nonpod_mercurium_debug_test_CXXFLAGS = $(DEBUG_CXXFLAGS) $(AM_CXXFLAGS)
+# taskloop_nonpod_mercurium_debug_test_LDFLAGS = $(test_common_debug_ldflags)
 
-taskloop_nonpod_mercurium_test_SOURCES = ../taskloop/taskloop-nonpod.cpp
-taskloop_nonpod_mercurium_test_CPPFLAGS = -DNDEBUG
-taskloop_nonpod_mercurium_test_CXXFLAGS = $(OPT_CXXFLAGS) $(AM_CXXFLAGS)
-taskloop_nonpod_mercurium_test_LDFLAGS = $(test_common_ldflags)
+# taskloop_nonpod_mercurium_test_SOURCES = ../taskloop/taskloop-nonpod.cpp
+# taskloop_nonpod_mercurium_test_CPPFLAGS = -DNDEBUG
+# taskloop_nonpod_mercurium_test_CXXFLAGS = $(OPT_CXXFLAGS) $(AM_CXXFLAGS)
+# taskloop_nonpod_mercurium_test_LDFLAGS = $(test_common_ldflags)
 
-taskloop_nqueens_mercurium_debug_test_SOURCES = ../taskloop/taskloop-nqueens.cpp
-taskloop_nqueens_mercurium_debug_test_CXXFLAGS = $(DEBUG_CXXFLAGS) $(AM_CXXFLAGS)
-taskloop_nqueens_mercurium_debug_test_LDFLAGS = $(test_common_debug_ldflags)
+# taskloop_nqueens_mercurium_debug_test_SOURCES = ../taskloop/taskloop-nqueens.cpp
+# taskloop_nqueens_mercurium_debug_test_CXXFLAGS = $(DEBUG_CXXFLAGS) $(AM_CXXFLAGS)
+# taskloop_nqueens_mercurium_debug_test_LDFLAGS = $(test_common_debug_ldflags)
 
-taskloop_nqueens_mercurium_test_SOURCES = ../taskloop/taskloop-nqueens.cpp
-taskloop_nqueens_mercurium_test_CPPFLAGS = -DNDEBUG
-taskloop_nqueens_mercurium_test_CXXFLAGS = $(OPT_CXXFLAGS) $(AM_CXXFLAGS)
-taskloop_nqueens_mercurium_test_LDFLAGS = $(test_common_ldflags)
+# taskloop_nqueens_mercurium_test_SOURCES = ../taskloop/taskloop-nqueens.cpp
+# taskloop_nqueens_mercurium_test_CPPFLAGS = -DNDEBUG
+# taskloop_nqueens_mercurium_test_CXXFLAGS = $(OPT_CXXFLAGS) $(AM_CXXFLAGS)
+# taskloop_nqueens_mercurium_test_LDFLAGS = $(test_common_ldflags)
 
 discrete_taskloop_multiaxpy_mercurium_debug_test_SOURCES = ../discrete-taskloop/taskloop-multiaxpy.cpp
 discrete_taskloop_multiaxpy_mercurium_debug_test_CXXFLAGS = $(DEBUG_CXXFLAGS) $(AM_CXXFLAGS)
@@ -552,59 +555,59 @@ discrete_taskloop_nqueens_mercurium_test_CPPFLAGS = -DNDEBUG
 discrete_taskloop_nqueens_mercurium_test_CXXFLAGS = $(OPT_CXXFLAGS) $(AM_CXXFLAGS)
 discrete_taskloop_nqueens_mercurium_test_LDFLAGS = $(test_common_ldflags)
 
-taskloop_for_multiaxpy_mercurium_debug_test_SOURCES = ../taskloop-for/taskloop-for-multiaxpy.cpp
-taskloop_for_multiaxpy_mercurium_debug_test_CXXFLAGS = $(DEBUG_CXXFLAGS) $(AM_CXXFLAGS)
-taskloop_for_multiaxpy_mercurium_debug_test_LDFLAGS = $(test_common_debug_ldflags)
+# taskloop_for_multiaxpy_mercurium_debug_test_SOURCES = ../taskloop-for/taskloop-for-multiaxpy.cpp
+# taskloop_for_multiaxpy_mercurium_debug_test_CXXFLAGS = $(DEBUG_CXXFLAGS) $(AM_CXXFLAGS)
+# taskloop_for_multiaxpy_mercurium_debug_test_LDFLAGS = $(test_common_debug_ldflags)
 
-taskloop_for_multiaxpy_mercurium_test_SOURCES = ../taskloop-for/taskloop-for-multiaxpy.cpp
-taskloop_for_multiaxpy_mercurium_test_CPPFLAGS = -DNDEBUG
-taskloop_for_multiaxpy_mercurium_test_CXXFLAGS = $(OPT_CXXFLAGS) $(AM_CXXFLAGS)
-taskloop_for_multiaxpy_mercurium_test_LDFLAGS = $(test_common_ldflags)
+# taskloop_for_multiaxpy_mercurium_test_SOURCES = ../taskloop-for/taskloop-for-multiaxpy.cpp
+# taskloop_for_multiaxpy_mercurium_test_CPPFLAGS = -DNDEBUG
+# taskloop_for_multiaxpy_mercurium_test_CXXFLAGS = $(OPT_CXXFLAGS) $(AM_CXXFLAGS)
+# taskloop_for_multiaxpy_mercurium_test_LDFLAGS = $(test_common_ldflags)
 
-taskloop_for_dep_multiaxpy_mercurium_debug_test_SOURCES = ../taskloop-for/taskloop-for-dep-multiaxpy.cpp
-taskloop_for_dep_multiaxpy_mercurium_debug_test_CXXFLAGS = $(DEBUG_CXXFLAGS) $(AM_CXXFLAGS)
-taskloop_for_dep_multiaxpy_mercurium_debug_test_LDFLAGS = $(test_common_debug_ldflags)
+# taskloop_for_dep_multiaxpy_mercurium_debug_test_SOURCES = ../taskloop-for/taskloop-for-dep-multiaxpy.cpp
+# taskloop_for_dep_multiaxpy_mercurium_debug_test_CXXFLAGS = $(DEBUG_CXXFLAGS) $(AM_CXXFLAGS)
+# taskloop_for_dep_multiaxpy_mercurium_debug_test_LDFLAGS = $(test_common_debug_ldflags)
 
-taskloop_for_dep_multiaxpy_mercurium_test_SOURCES = ../taskloop-for/taskloop-for-dep-multiaxpy.cpp
-taskloop_for_dep_multiaxpy_mercurium_test_CPPFLAGS = -DNDEBUG
-taskloop_for_dep_multiaxpy_mercurium_test_CXXFLAGS = $(OPT_CXXFLAGS) $(AM_CXXFLAGS)
-taskloop_for_dep_multiaxpy_mercurium_test_LDFLAGS = $(test_common_ldflags)
+# taskloop_for_dep_multiaxpy_mercurium_test_SOURCES = ../taskloop-for/taskloop-for-dep-multiaxpy.cpp
+# taskloop_for_dep_multiaxpy_mercurium_test_CPPFLAGS = -DNDEBUG
+# taskloop_for_dep_multiaxpy_mercurium_test_CXXFLAGS = $(OPT_CXXFLAGS) $(AM_CXXFLAGS)
+# taskloop_for_dep_multiaxpy_mercurium_test_LDFLAGS = $(test_common_ldflags)
 
-taskloop_for_nested_dep_multiaxpy_mercurium_debug_test_SOURCES = ../taskloop-for/taskloop-for-nested-dep-multiaxpy.cpp
-taskloop_for_nested_dep_multiaxpy_mercurium_debug_test_CXXFLAGS = $(DEBUG_CXXFLAGS) $(AM_CXXFLAGS)
-taskloop_for_nested_dep_multiaxpy_mercurium_debug_test_LDFLAGS = $(test_common_debug_ldflags)
+# taskloop_for_nested_dep_multiaxpy_mercurium_debug_test_SOURCES = ../taskloop-for/taskloop-for-nested-dep-multiaxpy.cpp
+# taskloop_for_nested_dep_multiaxpy_mercurium_debug_test_CXXFLAGS = $(DEBUG_CXXFLAGS) $(AM_CXXFLAGS)
+# taskloop_for_nested_dep_multiaxpy_mercurium_debug_test_LDFLAGS = $(test_common_debug_ldflags)
 
-taskloop_for_nested_dep_multiaxpy_mercurium_test_SOURCES = ../taskloop-for/taskloop-for-nested-dep-multiaxpy.cpp
-taskloop_for_nested_dep_multiaxpy_mercurium_test_CPPFLAGS = -DNDEBUG
-taskloop_for_nested_dep_multiaxpy_mercurium_test_CXXFLAGS = $(OPT_CXXFLAGS) $(AM_CXXFLAGS)
-taskloop_for_nested_dep_multiaxpy_mercurium_test_LDFLAGS = $(test_common_ldflags)
+# taskloop_for_nested_dep_multiaxpy_mercurium_test_SOURCES = ../taskloop-for/taskloop-for-nested-dep-multiaxpy.cpp
+# taskloop_for_nested_dep_multiaxpy_mercurium_test_CPPFLAGS = -DNDEBUG
+# taskloop_for_nested_dep_multiaxpy_mercurium_test_CXXFLAGS = $(OPT_CXXFLAGS) $(AM_CXXFLAGS)
+# taskloop_for_nested_dep_multiaxpy_mercurium_test_LDFLAGS = $(test_common_ldflags)
 
-taskloop_for_nonpod_mercurium_debug_test_SOURCES = ../taskloop-for/taskloop-for-nonpod.cpp
-taskloop_for_nonpod_mercurium_debug_test_CXXFLAGS = $(DEBUG_CXXFLAGS) $(AM_CXXFLAGS)
-taskloop_for_nonpod_mercurium_debug_test_LDFLAGS = $(test_common_debug_ldflags)
+# taskloop_for_nonpod_mercurium_debug_test_SOURCES = ../taskloop-for/taskloop-for-nonpod.cpp
+# taskloop_for_nonpod_mercurium_debug_test_CXXFLAGS = $(DEBUG_CXXFLAGS) $(AM_CXXFLAGS)
+# taskloop_for_nonpod_mercurium_debug_test_LDFLAGS = $(test_common_debug_ldflags)
 
-taskloop_for_nonpod_mercurium_test_SOURCES = ../taskloop-for/taskloop-for-nonpod.cpp
-taskloop_for_nonpod_mercurium_test_CPPFLAGS = -DNDEBUG
-taskloop_for_nonpod_mercurium_test_CXXFLAGS = $(OPT_CXXFLAGS) $(AM_CXXFLAGS)
-taskloop_for_nonpod_mercurium_test_LDFLAGS = $(test_common_ldflags)
+# taskloop_for_nonpod_mercurium_test_SOURCES = ../taskloop-for/taskloop-for-nonpod.cpp
+# taskloop_for_nonpod_mercurium_test_CPPFLAGS = -DNDEBUG
+# taskloop_for_nonpod_mercurium_test_CXXFLAGS = $(OPT_CXXFLAGS) $(AM_CXXFLAGS)
+# taskloop_for_nonpod_mercurium_test_LDFLAGS = $(test_common_ldflags)
 
-taskloop_for_nqueens_mercurium_debug_test_SOURCES = ../taskloop-for/taskloop-for-nqueens.cpp
-taskloop_for_nqueens_mercurium_debug_test_CXXFLAGS = $(DEBUG_CXXFLAGS) $(AM_CXXFLAGS)
-taskloop_for_nqueens_mercurium_debug_test_LDFLAGS = $(test_common_debug_ldflags)
+# taskloop_for_nqueens_mercurium_debug_test_SOURCES = ../taskloop-for/taskloop-for-nqueens.cpp
+# taskloop_for_nqueens_mercurium_debug_test_CXXFLAGS = $(DEBUG_CXXFLAGS) $(AM_CXXFLAGS)
+# taskloop_for_nqueens_mercurium_debug_test_LDFLAGS = $(test_common_debug_ldflags)
 
-taskloop_for_nqueens_mercurium_test_SOURCES = ../taskloop-for/taskloop-for-nqueens.cpp
-taskloop_for_nqueens_mercurium_test_CPPFLAGS = -DNDEBUG
-taskloop_for_nqueens_mercurium_test_CXXFLAGS = $(OPT_CXXFLAGS) $(AM_CXXFLAGS)
-taskloop_for_nqueens_mercurium_test_LDFLAGS = $(test_common_ldflags)
+# taskloop_for_nqueens_mercurium_test_SOURCES = ../taskloop-for/taskloop-for-nqueens.cpp
+# taskloop_for_nqueens_mercurium_test_CPPFLAGS = -DNDEBUG
+# taskloop_for_nqueens_mercurium_test_CXXFLAGS = $(OPT_CXXFLAGS) $(AM_CXXFLAGS)
+# taskloop_for_nqueens_mercurium_test_LDFLAGS = $(test_common_ldflags)
 
-taskloop_for_reduction_mercurium_debug_test_SOURCES = ../taskloop-for/taskloop-for-reduction.cpp
-taskloop_for_reduction_mercurium_debug_test_CXXFLAGS = $(DEBUG_CXXFLAGS) $(AM_CXXFLAGS)
-taskloop_for_reduction_mercurium_debug_test_LDFLAGS = $(test_common_debug_ldflags)
+# taskloop_for_reduction_mercurium_debug_test_SOURCES = ../taskloop-for/taskloop-for-reduction.cpp
+# taskloop_for_reduction_mercurium_debug_test_CXXFLAGS = $(DEBUG_CXXFLAGS) $(AM_CXXFLAGS)
+# taskloop_for_reduction_mercurium_debug_test_LDFLAGS = $(test_common_debug_ldflags)
 
-taskloop_for_reduction_mercurium_test_SOURCES = ../taskloop-for/taskloop-for-reduction.cpp
-taskloop_for_reduction_mercurium_test_CPPFLAGS = -DNDEBUG
-taskloop_for_reduction_mercurium_test_CXXFLAGS = $(OPT_CXXFLAGS) $(AM_CXXFLAGS)
-taskloop_for_reduction_mercurium_test_LDFLAGS = $(test_common_ldflags)
+# taskloop_for_reduction_mercurium_test_SOURCES = ../taskloop-for/taskloop-for-reduction.cpp
+# taskloop_for_reduction_mercurium_test_CPPFLAGS = -DNDEBUG
+# taskloop_for_reduction_mercurium_test_CXXFLAGS = $(OPT_CXXFLAGS) $(AM_CXXFLAGS)
+# taskloop_for_reduction_mercurium_test_LDFLAGS = $(test_common_ldflags)
 
 discrete_taskloop_for_multiaxpy_mercurium_debug_test_SOURCES = ../discrete-taskloop-for/taskloop-for-multiaxpy.cpp
 discrete_taskloop_for_multiaxpy_mercurium_debug_test_CXXFLAGS = $(DEBUG_CXXFLAGS) $(AM_CXXFLAGS)
@@ -705,47 +708,47 @@ lr_release_mercurium_test_CPPFLAGS = -DNDEBUG
 lr_release_mercurium_test_CXXFLAGS = $(OPT_CXXFLAGS) $(AM_CXXFLAGS)
 lr_release_mercurium_test_LDFLAGS = $(test_common_ldflags)
 
-red_firstprivate_mercurium_debug_test_SOURCES = ../reductions/red-firstprivate.cpp
-red_firstprivate_mercurium_debug_test_CXXFLAGS = $(DEBUG_CXXFLAGS) $(AM_CXXFLAGS)
-red_firstprivate_mercurium_debug_test_LDFLAGS = $(test_common_debug_ldflags)
+# red_firstprivate_mercurium_debug_test_SOURCES = ../reductions/red-firstprivate.cpp
+# red_firstprivate_mercurium_debug_test_CXXFLAGS = $(DEBUG_CXXFLAGS) $(AM_CXXFLAGS)
+# red_firstprivate_mercurium_debug_test_LDFLAGS = $(test_common_debug_ldflags)
 
-red_firstprivate_mercurium_test_SOURCES = ../reductions/red-firstprivate.cpp
-red_firstprivate_mercurium_test_CPPFLAGS = -DNDEBUG
-red_firstprivate_mercurium_test_CXXFLAGS = $(OPT_CXXFLAGS) $(AM_CXXFLAGS)
-red_firstprivate_mercurium_test_LDFLAGS = $(test_common_ldflags)
+# red_firstprivate_mercurium_test_SOURCES = ../reductions/red-firstprivate.cpp
+# red_firstprivate_mercurium_test_CPPFLAGS = -DNDEBUG
+# red_firstprivate_mercurium_test_CXXFLAGS = $(OPT_CXXFLAGS) $(AM_CXXFLAGS)
+# red_firstprivate_mercurium_test_LDFLAGS = $(test_common_ldflags)
 
-red_nonest_mercurium_debug_test_SOURCES = ../reductions/red-nonest.cpp
-if HAVE_DLB
-red_nonest_mercurium_debug_test_CPPFLAGS = -DHAVE_DLB
-endif
-red_nonest_mercurium_debug_test_CXXFLAGS = $(DEBUG_CXXFLAGS) $(AM_CXXFLAGS)
-red_nonest_mercurium_debug_test_LDFLAGS = $(test_common_debug_ldflags)
+# red_nonest_mercurium_debug_test_SOURCES = ../reductions/red-nonest.cpp
+# if HAVE_DLB
+# red_nonest_mercurium_debug_test_CPPFLAGS = -DHAVE_DLB
+# endif
+# red_nonest_mercurium_debug_test_CXXFLAGS = $(DEBUG_CXXFLAGS) $(AM_CXXFLAGS)
+# red_nonest_mercurium_debug_test_LDFLAGS = $(test_common_debug_ldflags)
 
-red_nonest_mercurium_test_SOURCES = ../reductions/red-nonest.cpp
-red_nonest_mercurium_test_CPPFLAGS = -DNDEBUG
-if HAVE_DLB
-red_nonest_mercurium_test_CPPFLAGS += -DHAVE_DLB
-endif
-red_nonest_mercurium_test_CXXFLAGS = $(OPT_CXXFLAGS) $(AM_CXXFLAGS)
-red_nonest_mercurium_test_LDFLAGS = $(test_common_ldflags)
+# red_nonest_mercurium_test_SOURCES = ../reductions/red-nonest.cpp
+# red_nonest_mercurium_test_CPPFLAGS = -DNDEBUG
+# if HAVE_DLB
+# red_nonest_mercurium_test_CPPFLAGS += -DHAVE_DLB
+# endif
+# red_nonest_mercurium_test_CXXFLAGS = $(OPT_CXXFLAGS) $(AM_CXXFLAGS)
+# red_nonest_mercurium_test_LDFLAGS = $(test_common_ldflags)
 
-red_nest_mercurium_debug_test_SOURCES = ../reductions/red-nest.cpp
-red_nest_mercurium_debug_test_CXXFLAGS = $(DEBUG_CXXFLAGS) $(AM_CXXFLAGS)
-red_nest_mercurium_debug_test_LDFLAGS = $(test_common_debug_ldflags)
+# red_nest_mercurium_debug_test_SOURCES = ../reductions/red-nest.cpp
+# red_nest_mercurium_debug_test_CXXFLAGS = $(DEBUG_CXXFLAGS) $(AM_CXXFLAGS)
+# red_nest_mercurium_debug_test_LDFLAGS = $(test_common_debug_ldflags)
 
-red_nest_mercurium_test_SOURCES = ../reductions/red-nest.cpp
-red_nest_mercurium_test_CPPFLAGS = -DNDEBUG
-red_nest_mercurium_test_CXXFLAGS = $(OPT_CXXFLAGS) $(AM_CXXFLAGS)
-red_nest_mercurium_test_LDFLAGS = $(test_common_ldflags)
+# red_nest_mercurium_test_SOURCES = ../reductions/red-nest.cpp
+# red_nest_mercurium_test_CPPFLAGS = -DNDEBUG
+# red_nest_mercurium_test_CXXFLAGS = $(OPT_CXXFLAGS) $(AM_CXXFLAGS)
+# red_nest_mercurium_test_LDFLAGS = $(test_common_ldflags)
 
-red_nest_other_mercurium_debug_test_SOURCES = ../reductions/red-nest-other.cpp
-red_nest_other_mercurium_debug_test_CXXFLAGS = $(DEBUG_CXXFLAGS) $(AM_CXXFLAGS)
-red_nest_other_mercurium_debug_test_LDFLAGS = $(test_common_debug_ldflags)
+# red_nest_other_mercurium_debug_test_SOURCES = ../reductions/red-nest-other.cpp
+# red_nest_other_mercurium_debug_test_CXXFLAGS = $(DEBUG_CXXFLAGS) $(AM_CXXFLAGS)
+# red_nest_other_mercurium_debug_test_LDFLAGS = $(test_common_debug_ldflags)
 
-red_nest_other_mercurium_test_SOURCES = ../reductions/red-nest-other.cpp
-red_nest_other_mercurium_test_CPPFLAGS = -DNDEBUG
-red_nest_other_mercurium_test_CXXFLAGS = $(OPT_CXXFLAGS) $(AM_CXXFLAGS)
-red_nest_other_mercurium_test_LDFLAGS = $(test_common_ldflags)
+# red_nest_other_mercurium_test_SOURCES = ../reductions/red-nest-other.cpp
+# red_nest_other_mercurium_test_CPPFLAGS = -DNDEBUG
+# red_nest_other_mercurium_test_CXXFLAGS = $(OPT_CXXFLAGS) $(AM_CXXFLAGS)
+# red_nest_other_mercurium_test_LDFLAGS = $(test_common_ldflags)
 
 discrete_deps_mercurium_debug_test_SOURCES = ../discrete/discrete-deps.cpp
 discrete_deps_mercurium_debug_test_CXXFLAGS = $(DEBUG_CXXFLAGS) $(AM_CXXFLAGS)
@@ -870,23 +873,23 @@ discrete_red_stress_mercurium_test_LDFLAGS = $(test_common_ldflags)
 #red_combine_taskwait_mark_mercurium_test_CXXFLAGS = $(OPT_CXXFLAGS) $(AM_CXXFLAGS)
 #red_combine_taskwait_mark_mercurium_test_LDFLAGS = $(test_common_ldflags)
 
-red_nqueens_mercurium_debug_test_SOURCES = ../reductions/red-nqueens.cpp
-red_nqueens_mercurium_debug_test_CXXFLAGS = $(DEBUG_CXXFLAGS) $(AM_CXXFLAGS)
-red_nqueens_mercurium_debug_test_LDFLAGS = $(test_common_debug_ldflags)
+# red_nqueens_mercurium_debug_test_SOURCES = ../reductions/red-nqueens.cpp
+# red_nqueens_mercurium_debug_test_CXXFLAGS = $(DEBUG_CXXFLAGS) $(AM_CXXFLAGS)
+# red_nqueens_mercurium_debug_test_LDFLAGS = $(test_common_debug_ldflags)
 
-red_nqueens_mercurium_test_SOURCES = ../reductions/red-nqueens.cpp
-red_nqueens_mercurium_test_CPPFLAGS = -DNDEBUG
-red_nqueens_mercurium_test_CXXFLAGS = $(OPT_CXXFLAGS) $(AM_CXXFLAGS)
-red_nqueens_mercurium_test_LDFLAGS = $(test_common_ldflags)
+# red_nqueens_mercurium_test_SOURCES = ../reductions/red-nqueens.cpp
+# red_nqueens_mercurium_test_CPPFLAGS = -DNDEBUG
+# red_nqueens_mercurium_test_CXXFLAGS = $(OPT_CXXFLAGS) $(AM_CXXFLAGS)
+# red_nqueens_mercurium_test_LDFLAGS = $(test_common_ldflags)
 
-red_stress_mercurium_debug_test_SOURCES = ../reductions/red-stress.cpp
-red_stress_mercurium_debug_test_CXXFLAGS = $(DEBUG_CXXFLAGS) $(AM_CXXFLAGS)
-red_stress_mercurium_debug_test_LDFLAGS = $(test_common_debug_ldflags)
+# red_stress_mercurium_debug_test_SOURCES = ../reductions/red-stress.cpp
+# red_stress_mercurium_debug_test_CXXFLAGS = $(DEBUG_CXXFLAGS) $(AM_CXXFLAGS)
+# red_stress_mercurium_debug_test_LDFLAGS = $(test_common_debug_ldflags)
 
-red_stress_mercurium_test_SOURCES = ../reductions/red-stress.cpp
-red_stress_mercurium_test_CPPFLAGS = -DNDEBUG
-red_stress_mercurium_test_CXXFLAGS = $(OPT_CXXFLAGS) $(AM_CXXFLAGS)
-red_stress_mercurium_test_LDFLAGS = $(test_common_ldflags)
+# red_stress_mercurium_test_SOURCES = ../reductions/red-stress.cpp
+# red_stress_mercurium_test_CPPFLAGS = -DNDEBUG
+# red_stress_mercurium_test_CXXFLAGS = $(OPT_CXXFLAGS) $(AM_CXXFLAGS)
+# red_stress_mercurium_test_LDFLAGS = $(test_common_ldflags)
 
 dlb_cpu_management_mercurium_test_SOURCES = ../dlb/dlb-cpu-management.cpp
 dlb_cpu_management_mercurium_test_CPPFLAGS = -DNDEBUG
