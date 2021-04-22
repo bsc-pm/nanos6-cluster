@@ -3096,7 +3096,7 @@ namespace DataAccessRegistration {
 		Task *finishedTask, DataAccess *dataAccess, DataAccessRegion region,
 		WriteID writeID,
 		MemoryPlace const *location, /* OUT */ CPUDependencyData &hpDependencyData, 
-		bool isRemote, bool isReleaseAccess
+		bool isReleaseAccess
 	) {
 		(void)writeID;
 		assert(finishedTask != nullptr);
@@ -3146,25 +3146,26 @@ namespace DataAccessRegistration {
 
 				accessOrFragment->setComplete();
 
-				if (isRemote && isReleaseAccess) {
-					bool notSat = false;
-					if (!accessOrFragment->readSatisfied()) {
-						accessOrFragment->setReadSatisfied(location);
-						notSat = true;
-					}
-					if (!accessOrFragment->writeSatisfied()) {
-						accessOrFragment->setWriteSatisfied();
-						notSat = true;
-					}
-					if (!accessOrFragment->receivedReductionInfo()) {
-						accessOrFragment->setReceivedReductionInfo();
-					}
-					if (notSat) {
-						accessOrFragment->unsetDataLinkStep();
-					}
-				}
-
 				if (location != nullptr) {
+
+					if (isReleaseAccess && accessOrFragment->hasDataLinkStep()) {
+						bool notSat = false;
+						if (!accessOrFragment->readSatisfied()) {
+							accessOrFragment->setReadSatisfied(location);
+							notSat = true;
+						}
+						if (!accessOrFragment->writeSatisfied()) {
+							accessOrFragment->setWriteSatisfied();
+							notSat = true;
+						}
+						if (!accessOrFragment->receivedReductionInfo()) {
+							accessOrFragment->setReceivedReductionInfo();
+						}
+						if (notSat) {
+							accessOrFragment->unsetDataLinkStep();
+						}
+					}
+
 					/* Normal non-cluster case e.g. for NUMA */
 					accessOrFragment->setLocation(location);
 				} else if (accessOrFragment->getLocation() == nullptr) {
@@ -3898,7 +3899,7 @@ namespace DataAccessRegistration {
 					//! the MemoryPlace assigned to the Task but only for non-weak
 					//! accesses. For weak accesses we do not want to update the
 					//! location of the access
-					MemoryPlace const *releaseLocation;
+					MemoryPlace const *releaseLocation = nullptr;
 					if ((location == nullptr) && !dataAccess->isWeak()) {
 						assert(task->hasMemoryPlace());
 						releaseLocation = task->getMemoryPlace();
@@ -3907,7 +3908,13 @@ namespace DataAccessRegistration {
 					}
 
 					dataAccess = fragmentAccess(dataAccess, region, accessStructures);
-					finalizeAccess(task, dataAccess, region, writeID, releaseLocation, /* OUT */ hpDependencyData, true, true);
+
+					finalizeAccess(
+						task, dataAccess,
+						region, writeID,
+						releaseLocation, /* OUT */ hpDependencyData,
+						true
+					);
 
 					return true;
 				});
@@ -4260,34 +4267,38 @@ namespace DataAccessRegistration {
 		{
 			std::lock_guard<TaskDataAccesses::spinlock_t> guard(accessStructures._lock);
 
-			/* Finalize all local accesses.
-			 */
+			/* Finalize all local accesses. */
 			accesses.processAll(
 				[&](TaskDataAccesses::accesses_t::iterator position) -> bool {
 					DataAccess *dataAccess = &(*position);
 					assert(dataAccess != nullptr);
 
 					// Do we need to finalize it?
-					bool finalizeIt = dataAccess->hasNext();
-
-					if (finalizeIt) {
+					if (dataAccess->hasNext()) {
 						assert(!dataAccess->isInBottomMap());
 						dataAccess->setEarlyReleaseInNamespace();
-						finalizeAccess(task, dataAccess, dataAccess->getAccessRegion(), 0, nullptr, /* OUT */ hpDependencyData, false, true);
+
+						finalizeAccess(
+							task, dataAccess,
+							dataAccess->getAccessRegion(), 0,
+							nullptr, /* OUT */ hpDependencyData,
+							true
+						);
+
 					} else {
 						didAll = false;
 					}
 					return true;
 				});
 
-			}
-			processDelayedOperationsSatisfiedOriginatorsAndRemovableTasks(hpDependencyData, computePlace, true);
-			if (didAll) {
-				/* If all accesses have already been finalized then we don't need to perform
-				 * delayed release (and it would hang).
-				 */
-				task->completeDelayedRelease();
-			}
+		}
+		processDelayedOperationsSatisfiedOriginatorsAndRemovableTasks(hpDependencyData, computePlace, true);
+		if (didAll) {
+			/* If all accesses have already been finalized then we don't need to perform
+			 * delayed release (and it would hang).
+			 */
+			task->completeDelayedRelease();
+		}
 	}
 
 
@@ -4377,7 +4388,7 @@ namespace DataAccessRegistration {
 				createTopLevelSink(task, accessStructures, hpDependencyData);
 			}
 
-			bool isRemote = location->getType() ==  nanos6_device_t::nanos6_cluster_device
+			const bool isRemote = location->getType() ==  nanos6_device_t::nanos6_cluster_device
 							&& location->getIndex() != ClusterManager::getCurrentClusterNode()->getIndex();
 
 			if (isRemote) {
@@ -4432,15 +4443,17 @@ namespace DataAccessRegistration {
 							return true;
 						}
 
-						// If a task contains a taskwait noflush or has a sync clause, it is NOT true that all non-weak
-						// data is located at the task
-						MemoryPlace *accessLocation = nullptr;
-
 						/* Finish work of above loop: remove from bottom map when offloaded task ends */
 						if (parent && parent->isNodeNamespace() && dataAccess->isInBottomMap()) {
 							dataAccess->unsetInBottomMap();
 						}
-						finalizeAccess(task, dataAccess, dataAccess->getAccessRegion(), 0, accessLocation, /* OUT */ hpDependencyData, isRemote, false);
+						finalizeAccess(
+							task, dataAccess,
+							dataAccess->getAccessRegion(), 0,
+							nullptr, /* OUT */ hpDependencyData,
+							false
+						);
+
 						return true;
 					});
 			}
