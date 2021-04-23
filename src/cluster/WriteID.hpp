@@ -135,7 +135,7 @@ public:
 	static void initialize(int nodeIndex, __attribute__((unused)) int clusterSize)
 	{
 		// The probability of collision is too high if a write ID has less than 64 bits
-		static_assert(sizeof(WriteID) >= 8);
+		static_assert(sizeof(WriteID) >= 8, "WriteID size is wrong.");
 		assert(clusterSize < (1 << logMaxNodes));
 		assert(_singleton == nullptr);
 

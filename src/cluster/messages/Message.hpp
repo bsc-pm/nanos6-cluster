@@ -64,7 +64,7 @@ public:
 	template<typename T>
 	static bool RegisterMSGClass(int id)
 	{
-		static_assert(std::is_base_of<Message, T>::value);
+		static_assert(std::is_base_of<Message, T>::value, "Base class is wrong.");
 
 		return GenericFactory<int, Message*, Message::Deliverable*>::getInstance().emplace(
 			id,

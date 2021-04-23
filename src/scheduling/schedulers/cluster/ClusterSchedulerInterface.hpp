@@ -54,7 +54,7 @@ public:
 	template<typename T>
 	static bool RegisterClusterSchedulerPolicy(nanos6_cluster_scheduler_t id)
 	{
-		static_assert(std::is_base_of<ClusterSchedulerPolicy, T>::value);
+		static_assert(std::is_base_of<ClusterSchedulerPolicy, T>::value, "Base class is wrong.");
 
 		return GenericFactory<
 			nanos6_cluster_scheduler_t,

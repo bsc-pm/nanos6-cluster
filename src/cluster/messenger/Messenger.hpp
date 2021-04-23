@@ -33,7 +33,7 @@ public:
 	template<typename T>
 	static bool RegisterMSNClass(const std::string &name)
 	{
-		static_assert(std::is_base_of<Messenger, T>::value);
+		static_assert(std::is_base_of<Messenger, T>::value, "Base class type is wrong.");
 		return GenericFactory<std::string, Messenger*>::getInstance().emplace(
 			name,
 			[]() -> Messenger* {
