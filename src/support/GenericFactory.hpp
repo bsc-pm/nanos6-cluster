@@ -7,7 +7,7 @@
 #ifndef __GENERIC_FACTORY_HPP__
 #define __GENERIC_FACTORY_HPP__
 
-#include <unordered_map>
+#include <map>
 #include "lowlevel/FatalErrorHandler.hpp"
 
 template <typename KEY, typename T, typename... ARGS>
@@ -18,7 +18,7 @@ public:
 
 private:
 	//! Maps object type specific keys to callbacks
-	std::unordered_map<KEY, create_callback> _callbacks;
+	std::map<KEY, create_callback> _callbacks;
 
 	GenericFactory() = default;
 	~GenericFactory() = default;
