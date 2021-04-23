@@ -33,11 +33,15 @@ class VirtualMemoryArea {
 	//! amount of available memory
 	size_t _available;
 
+	size_t _count_allocs;
+
 public:
 	VirtualMemoryArea(const void *address, size_t size)
 		: _start(address), _size(size), _end((char *)_start + _size),
-		_nextFree((char *)_start), _available(size)
+		_nextFree((char *)_start), _available(size), _count_allocs(0)
 	{
+		assert(_size > 0);
+		assert(_available > 0);
 	}
 
 	//! Virtual addresses should be unique, so can't copy this
@@ -70,7 +74,8 @@ public:
 		if (size > _available) {
 			FatalErrorHandler::warn(
 				"VirtualMemoryArea wanted: ", size,
-				"bytes but only: ", _available, " are available."
+				" bytes but only: ", _available, " are available.",
+				" vm_start: ", _start, " size: ", _size, " allocations: ", _count_allocs
 			);
 			return nullptr;
 		}
@@ -79,6 +84,7 @@ public:
 
 		_available -= size;
 		_nextFree += size;
+		++_count_allocs;
 
 		return ret;
 	}

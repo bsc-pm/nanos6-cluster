@@ -218,6 +218,8 @@ void VirtualMemoryManagement::shutdown()
 
 void VirtualMemoryManagement::setupMemoryLayout(void *address, size_t distribSize, size_t localSize)
 {
+	assert(distribSize > 0);
+	assert(localSize > 0);
 	const ClusterNode *current = ClusterManager::getCurrentClusterNode();
 	const std::vector<ClusterNode *> &nodesList = ClusterManager::getClusterNodes();
 
@@ -241,15 +243,20 @@ void VirtualMemoryManagement::setupMemoryLayout(void *address, size_t distribSiz
 	assert(_localNUMAVMA.empty());
 	const size_t numaNodeCount =
 		HardwareInfo::getMemoryPlaceCount(nanos6_device_t::nanos6_host_device);
+	assert(numaNodeCount > 0);
 	_localNUMAVMA.resize(numaNodeCount);
 
 	// Divide the address space between the NUMA nodes and the
 	// making sure that all areas have a size that is multiple
 	// of PAGE_SIZE
 	const size_t pageSize = HardwareInfo::getPageSize();
+	assert(pageSize > 0);
 	const size_t localPages = localSize / pageSize;
+	assert(localPages > 0);
 	const size_t pagesPerNUMA = localPages / numaNodeCount;
 	const size_t sizePerNUMA = pagesPerNUMA * pageSize;
+	assert(sizePerNUMA > 0);
+	assert(pagesPerNUMA > 0);
 
 	size_t extraPages = localPages % numaNodeCount;
 	char *ptr = (char *)localAddress;
