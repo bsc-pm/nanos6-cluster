@@ -42,9 +42,9 @@ bool IntrusiveLinearRegionMap<ContentType, Hook>::processAllWithErase(ProcessorT
 		iterator position = it;
 		VERIFY_MAP();
 
-		bool erase = processor(position); // NOTE: an error here indicates that the lambda is missing the "bool" return type
+		bool toerase = processor(position); // NOTE: an error here indicates that the lambda is missing the "bool" return type
 		VERIFY_MAP();
-		if (erase) {
+		if (toerase) {
 			it = BaseType::erase(position);
 		} else {
 			it++;
