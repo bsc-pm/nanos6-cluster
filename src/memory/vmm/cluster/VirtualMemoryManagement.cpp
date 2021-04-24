@@ -179,6 +179,7 @@ void VirtualMemoryManagement::initialize()
 
 	// localSize == 0 when not set in any toml.
 	if (localSize == 0) {
+		FatalErrorHandler::warn("cluster.local_memory not from toml.");
 		const size_t totalMemory = HardwareInfo::getPhysicalMemorySize();
 		localSize = std::min(2UL << 30, totalMemory / 20);
 	}
