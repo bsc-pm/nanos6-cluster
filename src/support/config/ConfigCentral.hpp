@@ -178,32 +178,6 @@ private:
 		defaults[option] = defaultValues;
 	}
 
-	//! \brief Update regular option of an accepted type
-	//!
-	//! This function should be called only when initializing the default
-	//! values that depend on other runtime modules, e.g. after the hardware
-	//! info initialization. This function is not thread safe
-	//!
-	//! \param option The option name
-	//! \param defaultValue The new default value of the option
-	template <typename T>
-	static inline void updateOption(const std::string &option, const T &defaultValue)
-	{
-		assert(existsOption(option));
-
-		// Get the option kind
-		OptionKind kind = ConfigOptionType::getOptionKind<T>();
-
-		// Check that it is the same kind as the registered one
-		OptionKind registeredKind = getOptionKind(option);
-		if (kind != registeredKind)
-			FatalErrorHandler::fail("Invalid option kind for the config option ", option);
-
-		// Update the option default
-		ConfigMap<T> &defaults = getDefaults<T>();
-		defaults[option] = defaultValue;
-	}
-
 public:
 	//! \brief Initialize options and their defaults if needed
 	//!

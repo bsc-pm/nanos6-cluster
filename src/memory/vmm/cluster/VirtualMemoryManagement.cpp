@@ -176,6 +176,12 @@ void VirtualMemoryManagement::initialize()
 	// total physical memory of the machine
 	ConfigVariable<StringifiedMemorySize> localSizeEnv("cluster.local_memory");
 	size_t localSize = localSizeEnv.getValue();
+
+	// localSize == 0 when not set in any toml.
+	if (localSize == 0) {
+		const size_t totalMemory = HardwareInfo::getPhysicalMemorySize();
+		localSize = std::min(2UL << 30, totalMemory / 20);
+	}
 	assert(localSize > 0);
 	localSize = ROUND_UP(localSize, HardwareInfo::getPageSize());
 

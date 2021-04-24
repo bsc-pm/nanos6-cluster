@@ -17,8 +17,8 @@ void ConfigCentral::initialize()
 	// Cluster
 	registerOption<bool_t>("cluster.services_in_task", false);
 	registerOption<string_t>("cluster.communication", "disabled");
-	registerOption<memory_t>("cluster.distributed_memory", 2UL << 30);
 	registerOption<memory_t>("cluster.local_memory", 0);
+	registerOption<memory_t>("cluster.distributed_memory", 2UL << 30);
 	registerOption<string_t>("cluster.scheduling_policy", "locality");
 	registerOption<integer_t>("cluster.va_start", 0);
 	registerOption<bool_t>("cluster.use_namespace", false);
@@ -149,15 +149,4 @@ void ConfigCentral::initialize()
 #else
 	registerOption<string_t>("version.dependencies", "discrete");
 #endif
-}
-
-void ConfigCentral::initializeMemoryDependentOptions()
-{
-	// The cluster.local_memory variable determines the size of the local address
-	// space per cluster node. The default value is the minimum between 2GB and
-	// the 5% of the total physical memory of the machine
-	size_t totalMemory = HardwareInfo::getPhysicalMemorySize();
-	size_t localSize = std::min(2UL << 30, totalMemory / 20);
-
-	updateOption<memory_t>("cluster.local_memory", localSize);
 }

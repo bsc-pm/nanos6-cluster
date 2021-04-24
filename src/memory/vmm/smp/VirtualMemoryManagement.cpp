@@ -25,8 +25,13 @@ void VirtualMemoryManagement::initialize()
 	// the 5% of the total physical memory of the machine
 	ConfigVariable<StringifiedMemorySize> _sizeEnv("cluster.local_memory");
 	_size = _sizeEnv.getValue();
-	assert(_size > 0);
 
+	// _size == 0 when not set in any toml.
+	if (_size == 0) {
+		const size_t totalMemory = HardwareInfo::getPhysicalMemorySize();
+		_size = std::min(2UL << 30, totalMemory / 20);
+	}
+	assert(_size > 0);
 	_size = ROUND_UP(_size, HardwareInfo::getPageSize());
 
 	_allocations.resize(1);
