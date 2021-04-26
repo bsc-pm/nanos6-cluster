@@ -141,12 +141,12 @@ static int _nanos6_check_disabled_variant(char const *optimization, char const *
  * the system file: /proc/sys/kernel/randomize_va_space.
  */
 __attribute__ ((visibility ("hidden"), constructor(101)))
-void _nanos6_pre_loader(int argc, char* argv[], char * envp [])
+void _nanos6_pre_loader(int argc, char *argv[], char *envp [])
 {
 	if (personality(-1) & ADDR_NO_RANDOMIZE) {
 		return;
 	}
-	if (argc > 0 && argv[0] != NULL && personality(ADDR_NO_RANDOMIZE) != -1) {
+	if (argc > 0 && argv != NULL && argv[0] != NULL && personality(ADDR_NO_RANDOMIZE) != -1) {
 		execvpe(argv[0], argv, envp);
 		perror("execve");             /* execvpe() only returns on error */
 		exit(EXIT_FAILURE);
