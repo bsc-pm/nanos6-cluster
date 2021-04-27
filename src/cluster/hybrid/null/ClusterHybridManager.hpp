@@ -19,7 +19,10 @@ public:
 	static void preinitialize(
 		__attribute__((unused)) bool forceHybrid,
 		__attribute__((unused)) int externalRank,
-		__attribute__((unused)) int apprankNum)
+		__attribute__((unused)) int apprankNum,
+		__attribute__((unused)) int internalRank,
+		__attribute__((unused)) int physicalNodeNum,
+		__attribute__((unused)) int indexThisPhysicalNode)
 	{}
 
 	static void initialize()

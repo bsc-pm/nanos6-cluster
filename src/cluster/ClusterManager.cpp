@@ -130,17 +130,19 @@ void ClusterManager::internal_reset() {
 	const size_t clusterSize = _msn->getClusterSize();
 	const int apprankNum = _msn->getApprankNum();
 	const int externalRank = _msn->getExternalRank();
-	const int nodeIndex = _msn->getNodeIndex();
+	const int internalRank = _msn->getNodeIndex();  /* internal rank */
+	const int physicalNodeNum = _msn->getPhysicalNodeNum();
+	const int indexThisPhysicalNode = _msn->getIndexThisPhysicalNode();
 	const int masterIndex = _msn->getMasterIndex();
 
 	// TODO: Check if this initialization may conflict somehow.
-	MessageId::initialize(nodeIndex, clusterSize);
-	WriteIDManager::initialize(nodeIndex, clusterSize);
-	OffloadedTaskIdManager::initialize(nodeIndex, clusterSize);
+	MessageId::initialize(internalRank, clusterSize);
+	WriteIDManager::initialize(internalRank, clusterSize);
+	OffloadedTaskIdManager::initialize(internalRank, clusterSize);
 
 	int numAppranks = _msn->getNumAppranks();
 	bool inHybridMode = numAppranks > 1;
-	ClusterHybridManager::preinitialize(inHybridMode, externalRank, apprankNum);
+	ClusterHybridManager::preinitialize(inHybridMode, externalRank, apprankNum, internalRank, physicalNodeNum, indexThisPhysicalNode);
 
 	if (this->_clusterNodes.empty()) {
 		// Called from constructor the first time
@@ -150,7 +152,7 @@ void ClusterManager::internal_reset() {
 			_clusterNodes[i] = new ClusterNode(i, i, apprankNum, inHybridMode, _msn->internalRankToInstrumentationRank(i));
 		}
 
-		_thisNode = _clusterNodes[nodeIndex];
+		_thisNode = _clusterNodes[internalRank];
 		_masterNode = _clusterNodes[masterIndex];
 	}
 }

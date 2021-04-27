@@ -19,7 +19,13 @@ private:
 
 public:
 
-	static void preinitialize(bool forceHybrid, int externalRank, int apprankNum);
+	static void preinitialize(
+		bool forceHybrid,
+		int externalRank,
+		int apprankNum,
+		int internalRank,
+		int physicalNodeNum,
+		int indexThisPhysicalNode);
 
 	static void initialize();
 

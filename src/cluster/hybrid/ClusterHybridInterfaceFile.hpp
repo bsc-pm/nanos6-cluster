@@ -38,6 +38,8 @@ class ClusterHybridInterfaceFile : public ClusterHybridInterface {
 
 		void initialize(int externalRank, int apprankNum);
 
+		void writeMapFile();
+
 		void poll(void);
 };
 

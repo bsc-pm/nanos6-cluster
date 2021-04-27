@@ -12,7 +12,13 @@
 bool ClusterHybridManager::_inHybridClusterMode = false;
 ClusterHybridInterface *ClusterHybridManager::_hyb = nullptr;
 
-void ClusterHybridManager::preinitialize(bool forceHybrid, int externalRank, int apprankNum)
+void ClusterHybridManager::preinitialize(
+	bool forceHybrid,
+	int externalRank,
+	int apprankNum,
+	__attribute__((unused)) int internalRank,
+	__attribute__((unused)) int physicalNodeNum,
+	__attribute__((unused)) int indexThisPhysicalNode)
 {
 	_inHybridClusterMode = forceHybrid; // default policy: in hybrid if >1 apprank
 
@@ -52,5 +58,8 @@ void ClusterHybridManager::initialize()
 			numCores = myNumCores;
 		}
 		ClusterManager::getClusterNode(i)->setCurrentAllocCores(numCores);
+	}
+	if (_hyb) {
+		_hyb->writeMapFile();
 	}
 }

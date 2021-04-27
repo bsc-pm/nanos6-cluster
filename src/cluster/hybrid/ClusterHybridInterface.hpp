@@ -25,6 +25,9 @@ class ClusterHybridInterface {
 
 		virtual void initialize(int externalRank, int apprankNum) = 0;
 
+		//! Write out the information about this rank: apprankNum, internalRank, etc.
+		virtual void writeMapFile() = 0;
+
 		//! Called by polling service
 		virtual void poll() = 0;
 };

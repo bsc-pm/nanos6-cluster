@@ -17,6 +17,11 @@
 #include "ClusterHybridInterfaceFile.hpp"
 #include "ClusterHybridManager.hpp"
 #include "ClusterMemoryManagement.hpp"
+#include <executors/threads/CPUManager.hpp>
+
+#pragma GCC visibility push(default)
+#include <mpi.h>
+#pragma GCC visibility pop
 
 ClusterHybridInterfaceFile::ClusterHybridInterfaceFile() :
 	_allocFileThisApprank(nullptr)
@@ -60,12 +65,33 @@ void ClusterHybridInterfaceFile::initialize(int externalRank, int apprankNum)
 		}
 	}
 
+	// After this barrier, all ranks can assume that the .hybrid/ directory
+	// has been created by the first external rank
+	MPI_Barrier(MPI_COMM_WORLD);
+
 	// Filenames for this apprank's core allocation (using global policy)
 	// We cannot call ClusterManager::getApprankNum() as this function is
 	// called during the initialization of ClusterManager.
-	std::stringstream ss;
-	ss << _directory << "/alloc" << apprankNum;
-	_allocFileThisApprank = strdup(ss.str().c_str());
+	std::stringstream ss1;
+	ss1 << _directory << "/alloc" << apprankNum;
+	_allocFileThisApprank = strdup(ss1.str().c_str());
+}
+
+void ClusterHybridInterfaceFile::writeMapFile(void)
+{
+	// Now create our map file
+	std::stringstream ss0;
+	assert(CPUManager::isPreinitialized()); // need CPUManager::getTotalCPUs()
+	int externalRank = ClusterManager::getExternalRank();
+	ss0 << _directory << "/map" << externalRank;
+	std::ofstream mapFile(ss0.str().c_str());
+	mapFile << "externalRank " << externalRank << "\n"
+		<< "apprankNum " << ClusterManager::getApprankNum() << "\n"
+		<< "internalRank " << ClusterManager::getCurrentClusterNode()->getIndex() << "\n"
+		<< "nodeNum " << ClusterManager::getPhysicalNodeNum() << "\n"
+		<< "indexThisPhysicalNode " << ClusterManager::getIndexThisPhysicalNode() << "\n"
+		<< "cpusOnNode " << CPUManager::getTotalCPUs() << "\n";
+	mapFile.close();
 }
 
 bool ClusterHybridInterfaceFile::updateNumbersOfCores(void)
