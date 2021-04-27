@@ -66,9 +66,12 @@ ClusterManager::ClusterManager(std::string const &commType, int argc, char **arg
 	/*
 	 * Initialize hybrid interface: controls data distribution within the apprank
 	 */
-	int apprankNum = _msn->getApprankNum();
-	int externalRank = _msn->getExternalRank();
-	_hyb->initialize(externalRank, apprankNum);
+	const int apprankNum = _msn->getApprankNum();
+	const int externalRank = _msn->getExternalRank();
+	const int internalRank = _msn->getNodeIndex();  /* internal rank */
+	const int nodeNum = _msn->getNodeNum();
+	const int indexThisNode = _msn->getIndexThisNode();
+	_hyb->initialize(externalRank, apprankNum, internalRank, nodeNum, indexThisNode);
 
 	TaskOffloading::RemoteTasksInfoMap::init();
 	TaskOffloading::OffloadedTasksInfoMap::init();
@@ -144,13 +147,13 @@ void ClusterManager::internal_reset() {
 	 * indices for cluster nodes */
 
 	const size_t clusterSize = _msn->getClusterSize();
-	const int nodeIndex = _msn->getNodeIndex();
+	const int internalRank = _msn->getNodeIndex();  /* internal rank */
 	const int masterIndex = _msn->getMasterIndex();
 
 	// TODO: Check if this initialization may conflict somehow.
-	MessageId::initialize(nodeIndex, clusterSize);
-	WriteIDManager::initialize(nodeIndex, clusterSize);
-	OffloadedTaskIdManager::initialize(nodeIndex, clusterSize);
+	MessageId::initialize(internalRank, clusterSize);
+	WriteIDManager::initialize(internalRank, clusterSize);
+	OffloadedTaskIdManager::initialize(internalRank, clusterSize);
 
 	int apprankNum = _msn->getApprankNum();
 	int numAppranks = _msn->getNumAppranks();
@@ -164,7 +167,7 @@ void ClusterManager::internal_reset() {
 			_clusterNodes[i] = new ClusterNode(i, i, apprankNum, inHybridMode, _msn->internalRankToInstrumentationRank(i));
 		}
 
-		_thisNode = _clusterNodes[nodeIndex];
+		_thisNode = _clusterNodes[internalRank];
 		_masterNode = _clusterNodes[masterIndex];
 	}
 }

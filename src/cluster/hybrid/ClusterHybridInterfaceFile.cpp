@@ -12,6 +12,10 @@
 #include "ClusterHybridManager.hpp"
 #include "ClusterMemoryManagement.hpp"
 
+#pragma GCC visibility push(default)
+#include <mpi.h>
+#pragma GCC visibility pop
+
 ClusterHybridInterfaceFile::ClusterHybridInterfaceFile() :
 	_allocFileThisApprank(nullptr)
 {
@@ -22,7 +26,11 @@ ClusterHybridInterfaceFile::ClusterHybridInterfaceFile() :
 	readTime(&_prevTime);
 }
 
-void ClusterHybridInterfaceFile::initialize(int externalRank, int apprankNum)
+void ClusterHybridInterfaceFile::initialize(int externalRank,
+											int apprankNum,
+											int internalRank,
+											int nodeNum,
+											int indexThisNode)
 {
 	/*
 	 * External rank 0 clears or creates the .hybrid/ directory (NOTE: cannot
@@ -51,14 +59,29 @@ void ClusterHybridInterfaceFile::initialize(int externalRank, int apprankNum)
 		}
 	}
 
+	MPI_Barrier(MPI_COMM_WORLD);
+
+	/*
+	 * Now create our map file
+	 */
+	std::stringstream ss0;
+	ss0 << _directory << "/map" << externalRank;
+	std::ofstream mapFile(ss0.str().c_str());
+	mapFile << "externalRank " << externalRank << "\n"
+	        << "apprankNum " << apprankNum << "\n"
+			<< "internalRank " << internalRank << "\n"
+			<< "nodeNum " << nodeNum << "\n"
+			<< "indexThisNode " << indexThisNode << "\n";
+	mapFile.close();
+
 	/*
 	 * Filenames for this apprank's core allocation
 	 * (cannot call ClusterManager::getApprankNum() as this function is
 	 * called during the initialization of ClusterManager)
 	 */
-	std::stringstream ss;
-	ss << _directory << "/alloc" << apprankNum;
-	_allocFileThisApprank = strdup(ss.str().c_str());
+	std::stringstream ss1;
+	ss1 << _directory << "/alloc" << apprankNum;
+	_allocFileThisApprank = strdup(ss1.str().c_str());
 }
 
 

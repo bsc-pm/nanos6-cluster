@@ -36,7 +36,11 @@ class ClusterHybridInterfaceFile : public ClusterHybridInterface {
 		{
 		}
 
-		void initialize(int externalRank, int apprankNum);
+		void initialize(int externalRank,
+						int apprankNum,
+						int internalRank,
+						int nodeNum,
+						int indexThisNode);
 
 		void poll(void);
 
