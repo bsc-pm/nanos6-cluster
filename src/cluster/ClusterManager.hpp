@@ -457,6 +457,13 @@ public:
 		return _singleton->_msn->getApprankNum();
 	}
 
+	static inline int getNumNodes()
+	{
+		assert(_singleton);
+		assert(_singleton->_msn != nullptr);
+		return _singleton->_msn->getNumNodes();
+	}
+
 	static inline int getNodeNum()
 	{
 		assert(_singleton);

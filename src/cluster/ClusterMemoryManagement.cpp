@@ -108,7 +108,10 @@ namespace ClusterMemoryManagement {
 	{
 		// Take write lock on the directory, which also protects _dmallocs.
 		Directory::writeLock();
-		for (DmallocInfo &dmalloc : _dmallocs) {
+		for(DmallocInfo &dmalloc : _dmallocs) {
+			// std::cout << nanos6_get_cluster_physical_node_id() << " redistribute dmalloc "
+			// 		  << dmalloc._region.getStartAddress() << ":" << dmalloc._region.getSize() << "\n";
+
 			ClusterDirectory::unregisterAllocation(dmalloc._region);
 			ClusterDirectory::registerAllocation(
 				dmalloc._region, dmalloc._policy, dmalloc._nrDimensions, dmalloc._dimensions, nullptr

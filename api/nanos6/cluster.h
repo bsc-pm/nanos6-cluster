@@ -53,21 +53,41 @@ __attribute__ ((used)) char const * nanos6_library_mode_init_cluster(int argc, c
 //! \returns true if we are on cluster mode
 int nanos6_in_cluster_mode(void);
 
-//! \brief Determine whether current node is the master node
-//!
-//! \returns true if the current node is the master node,
-//! otherwise it returns false
+//! \brief Check if it is the master irank (compatibility with normal API).
 int nanos6_is_master_node(void);
 
-//! \brief Get the id of the current cluster node
-//!
-//! \returns the id of the current cluster node
+//! \brief Get irank (compatibility with normal API)
 int nanos6_get_cluster_node_id(void);
 
-//! \brief Get the number of cluster nodes
-//!
-//! \returns the number of cluster nodes
+//! \brief Get the number of iranks (compatibility with normal API)
 int nanos6_get_num_cluster_nodes(void);
+
+//! \brief Get the id of the current physical cluster node
+//!
+//! \returns the id of the current physical cluster node
+
+int nanos6_get_cluster_physical_node_id(void);
+
+//! \brief Get the number of physical cluster nodes
+//!
+//! \returns the number of physical cluster nodes
+int nanos6_get_num_cluster_physical_nodes(void);
+
+//! \brief Determine whether current node is the master internal rank
+//!
+//! \returns true if the current node is the master internal rank
+//! otherwise it returns false
+int nanos6_is_master_irank(void);
+
+//! \brief Get the id of the internal rank in this apprank
+//!
+//! \returns the id of the internal rank in this apprank
+int nanos6_get_cluster_irank_id(void);
+
+//! \brief Get the number of internal ranks in this apprank
+//!
+//! \returns the number of internal ranks in this apprank
+int nanos6_get_num_cluster_iranks(void);
 
 //! \brief Get if namespace propagation is enables
 //!

@@ -21,6 +21,7 @@ int nanos6_in_cluster_mode(void)
 	return (*symbol)();
 }
 
+
 int nanos6_is_master_node(void)
 {
 	typedef int nanos6_is_master_node_t(void);
@@ -55,6 +56,111 @@ int nanos6_get_num_cluster_nodes(void)
 	if (__builtin_expect(symbol == NULL, 0)) {
 		symbol = (nanos6_get_num_cluster_nodes_t *) _nanos6_resolve_symbol(
 				"nanos6_get_num_cluster_nodes", "cluster", NULL);
+	}
+
+	return (*symbol)();
+}
+
+int nanos6_is_master_node(void)
+{
+	typedef int nanos6_is_master_node_t(void);
+
+	static nanos6_is_master_node_t *symbol = NULL;
+	if (__builtin_expect(symbol == NULL, 0)) {
+		symbol = (nanos6_is_master_node_t *) _nanos6_resolve_symbol(
+				"nanos6_is_master_node", "cluster", NULL);
+	}
+
+	return (*symbol)();
+}
+
+int nanos6_get_cluster_node_id(void)
+{
+	typedef int nanos6_get_cluster_node_id_t(void);
+
+	static nanos6_get_cluster_node_id_t *symbol = NULL;
+	if (__builtin_expect(symbol == NULL, 0)) {
+		symbol = (nanos6_get_cluster_node_id_t *) _nanos6_resolve_symbol(
+				"nanos6_get_cluster_node_id", "cluster", NULL);
+	}
+
+	return (*symbol)();
+}
+
+int nanos6_get_num_cluster_nodes(void)
+{
+	typedef int nanos6_get_num_cluster_nodes_t(void);
+
+	static nanos6_get_num_cluster_nodes_t *symbol = NULL;
+	if (__builtin_expect(symbol == NULL, 0)) {
+		symbol = (nanos6_get_num_cluster_nodes_t *) _nanos6_resolve_symbol(
+				"nanos6_get_num_cluster_nodes", "cluster", NULL);
+	}
+
+	return (*symbol)();
+}
+
+
+int nanos6_is_master_irank(void)
+{
+	typedef int nanos6_is_master_irank_t(void);
+
+	static nanos6_is_master_irank_t *symbol = NULL;
+	if (__builtin_expect(symbol == NULL, 0)) {
+		symbol = (nanos6_is_master_irank_t *) _nanos6_resolve_symbol(
+				"nanos6_is_master_irank", "cluster", NULL);
+	}
+
+	return (*symbol)();
+}
+
+int nanos6_get_cluster_physical_node_id(void)
+{
+	typedef int nanos6_get_cluster_physical_node_id_t(void);
+
+	static nanos6_get_cluster_physical_node_id_t *symbol = NULL;
+	if (__builtin_expect(symbol == NULL, 0)) {
+		symbol = (nanos6_get_cluster_physical_node_id_t *) _nanos6_resolve_symbol(
+				"nanos6_get_cluster_physical_node_id", "cluster", NULL);
+	}
+
+	return (*symbol)();
+}
+
+int nanos6_get_num_cluster_physical_nodes(void)
+{
+	typedef int nanos6_get_num_cluster_physical_nodes_t(void);
+
+	static nanos6_get_num_cluster_physical_nodes_t *symbol = NULL;
+	if (__builtin_expect(symbol == NULL, 0)) {
+		symbol = (nanos6_get_num_cluster_physical_nodes_t *) _nanos6_resolve_symbol(
+				"nanos6_get_num_cluster_physical_nodes", "cluster", NULL);
+	}
+
+	return (*symbol)();
+}
+
+int nanos6_get_cluster_irank_id(void)
+{
+	typedef int nanos6_get_cluster_irank_id_t(void);
+
+	static nanos6_get_cluster_irank_id_t *symbol = NULL;
+	if (__builtin_expect(symbol == NULL, 0)) {
+		symbol = (nanos6_get_cluster_irank_id_t *) _nanos6_resolve_symbol(
+				"nanos6_get_cluster_irank_id", "cluster", NULL);
+	}
+
+	return (*symbol)();
+}
+
+int nanos6_get_num_cluster_iranks(void)
+{
+	typedef int nanos6_get_num_cluster_iranks_t(void);
+
+	static nanos6_get_num_cluster_iranks_t *symbol = NULL;
+	if (__builtin_expect(symbol == NULL, 0)) {
+		symbol = (nanos6_get_num_cluster_iranks_t *) _nanos6_resolve_symbol(
+				"nanos6_get_num_cluster_iranks", "cluster", NULL);
 	}
 
 	return (*symbol)();

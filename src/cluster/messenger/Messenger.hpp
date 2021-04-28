@@ -154,7 +154,10 @@ public:
 	//! Get number of external ranks (meaning MPI ranks in the original mpirun command)
 	virtual int getNumExternalRanks() const = 0;
 
-	//! Get the node number
+	//! Get the number of physical nodes
+	virtual int getNumNodes() const = 0;
+
+	//! Get the physical node number
 	virtual int getNodeNum() const = 0;
 
 	//! Get the index number of the instances on this node

@@ -223,7 +223,13 @@ public:
 		return _numExternalRanks;
 	}
 
-	//! Get the node number
+	//! Get number of physical nodes
+	inline int getNumNodes() const
+	{
+		return _numNodes;
+	}
+
+	//! Get the physical node number
 	inline int getNodeNum() const
 	{
 		return _nodeNum;
