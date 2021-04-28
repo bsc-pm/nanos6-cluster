@@ -500,6 +500,16 @@ public:
 		return _singleton->_msn->getApprankNum();
 	}
 
+	//! \brief Get the number of physical nodes
+	//!
+	//! \returns the number of physical nodes (within the job)
+	static inline int getNumNodes()
+	{
+		assert(_singleton);
+		assert(_singleton->_msn != nullptr);
+		return _singleton->_msn->getNumNodes();
+	}
+
 	//! \brief Get the physical node number
 	//!
 	//! \returns the physical node number (within the job)

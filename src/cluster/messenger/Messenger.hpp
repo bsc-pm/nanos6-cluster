@@ -163,6 +163,9 @@ public:
 	//! \brief Get number of external ranks (meaning MPI ranks in the original mpirun command)
 	virtual int getNumExternalRanks() const = 0;
 
+	//! Get the number of physical nodes
+	virtual int getNumNodes() const = 0;
+
 	//! \brief Get the physical node number
 	virtual int getPhysicalNodeNum() const = 0;
 

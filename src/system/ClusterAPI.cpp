@@ -19,17 +19,45 @@ extern "C" int nanos6_in_cluster_mode(void)
 	return ClusterManager::inClusterMode();
 }
 
+// Compatibility in pure OmpSs-2@Cluster, "node" means irank
 extern "C" int nanos6_is_master_node(void)
+{
+	return nanos6_is_master_irank();
+}
+
+// Compatibility: in pure OmpSs-2@Cluster, "node" means irank
+extern "C" int nanos6_get_cluster_node_id(void)
+{
+	return nanos6_get_cluster_irank_id();
+}
+
+// Compatibility: in pure OmpSs-2@Cluster, "node" means irank
+extern "C" int nanos6_get_num_cluster_nodes(void)
+{
+	return nanos6_get_num_cluster_iranks();
+}
+
+extern "C" int nanos6_is_master_irank(void)
 {
 	return ClusterManager::isMasterNode();
 }
 
-extern "C" int nanos6_get_cluster_node_id(void)
+extern "C" int nanos6_get_cluster_physical_node_id(void)
+{
+	return ClusterManager::getPhysicalNodeNum();
+}
+
+extern "C" int nanos6_get_num_cluster_physical_nodes(void)
+{
+	return ClusterManager::getNumNodes();
+}
+
+extern "C" int nanos6_get_cluster_irank_id(void)
 {
 	return ClusterManager::getCurrentClusterNode()->getIndex();
 }
 
-extern "C" int nanos6_get_num_cluster_nodes(void)
+extern "C" int nanos6_get_num_cluster_iranks(void)
 {
 	return ClusterManager::clusterSize();
 }
