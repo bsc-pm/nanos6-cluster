@@ -22,6 +22,7 @@
 #include "executors/threads/cpu-managers/dlb/DLBCPUActivation.hpp"
 #include "DLBCPUActivation.hpp"
 #include "ClusterHybridMetrics.hpp"
+#include "ClusterUtil.hpp"
 
 // #define DMALLOC_FROM_DIRECTORY
 
@@ -111,6 +112,11 @@ int ClusterBalanceScheduler::getScheduledNode(
 	if (numTasksAlready <= 2 * bestNode->getCurrentAllocCores()) {
 
 		// If it is executed remotely then it cannot be stolen any more
+		// clusterCout << "Direct schedule to " << bestNode->getIndex() << " [" << bestNode << " / " << ClusterManager::getCurrentClusterNode()
+	// 				<< "] " << numTasksAlready << " vs " << (2*bestNode->getCurrentAllocCores()) << "\n";
+		if (bestNode != ClusterManager::getCurrentClusterNode()) {
+			ClusterHybridMetrics::incDirectOffload(1);
+		}
 		return bestNodeId;
 	}
 
@@ -141,6 +147,9 @@ int ClusterBalanceScheduler::getScheduledNode(
 		// offload immediately
 
 		// If it is executed remotely then it cannot be stolen any more
+		if (thiefId != ClusterManager::getCurrentClusterNode()->getIndex()) {
+			ClusterHybridMetrics::incDirectThiefOffload(1);
+		}
 		Scheduler::addReadyLocalOrExecuteRemote(thiefId, task, computePlace, hint);
 	} else {
 		// Put in a ready queue (to take when we get the MessageTaskFinished)
@@ -207,6 +216,9 @@ void ClusterBalanceScheduler::checkSendMoreAllNodes()
 			for (int i = 0 ; i < toSend; i++) {
 				Task *task = stealTask(node);
 				if (task) {
+					if (node != ClusterManager::getCurrentClusterNode()) {
+						ClusterHybridMetrics::incSendMoreOffload(1);
+					}
 					Scheduler::addReadyLocalOrExecuteRemote(node->getIndex(), task, nullptr, NO_HINT);
 				} else {
 					// No more tasks to send
@@ -265,6 +277,9 @@ void ClusterBalanceScheduler::offloadedTaskFinished(ClusterNode *remoteNode)
 		if (task) {
 			numSentTasks ++;
 			Scheduler::addReadyLocalOrExecuteRemote(remoteNode->getIndex(), task, nullptr, NO_HINT);
+			if (remoteNode != ClusterManager::getCurrentClusterNode()) {
+				ClusterHybridMetrics::incCheckOffload(1);
+			}
 		} else {
 			break;
 		}

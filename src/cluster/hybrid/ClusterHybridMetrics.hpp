@@ -19,6 +19,10 @@ private:
 	static SpinLock _promisedTasksLock;
 	static std::atomic<size_t> _numReadyTasks;
 	static std::atomic<size_t> _numImmovableReadyTasks;
+	static std::atomic<size_t> _directOffload;
+	static std::atomic<size_t> _directThiefOffload;
+	static std::atomic<size_t> _sendMoreOffload;
+	static std::atomic<size_t> _checkOffload;
 
 public:
 
@@ -43,6 +47,45 @@ public:
 		return _numReadyTasks + _numImmovableReadyTasks;
 	}
 
+	static inline void incDirectOffload(int by)
+	{
+		_directOffload += by;
+	}
+
+	static inline size_t getDirectOffload()
+	{
+		return _directOffload;
+	}
+
+	static inline void incDirectThiefOffload(int by)
+	{
+		_directThiefOffload += by;
+	}
+
+	static inline size_t getDirectThiefOffload()
+	{
+		return _directThiefOffload;
+	}
+
+	static inline void incSendMoreOffload(int by)
+	{
+		_sendMoreOffload += by;
+	}
+
+	static inline size_t getSendMoreOffload()
+	{
+		return _sendMoreOffload;
+	}
+
+	static inline void incCheckOffload(int by)
+	{
+		_checkOffload += by;
+	}
+
+	static inline size_t getCheckOffload()
+	{
+		return _checkOffload;
+	}
 };
 
 #endif // CLUSTERHYBRIDMETRICS_HPP

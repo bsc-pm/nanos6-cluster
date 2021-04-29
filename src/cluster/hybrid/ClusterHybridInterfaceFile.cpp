@@ -337,7 +337,11 @@ void ClusterHybridInterfaceFile::appendUtilization(float timestamp, float totalB
 					 // << ClusterHybridManager::getAveragedBusyOtherInstances() << " "
 					 // << ClusterHybridManager::getAveragedBusy() << "\n";
 					 << otherAlloc << " " 
-					 << numOffloaded << "\n";
+					 << numOffloaded << " " 
+					 << ClusterHybridMetrics::getDirectOffload() << " " 
+					 << ClusterHybridMetrics::getDirectThiefOffload() << " " 
+					 << ClusterHybridMetrics::getSendMoreOffload() << " " 
+					 << ClusterHybridMetrics::getCheckOffload() << "\n";
 
 #if 0
 	int ncpus = CPUManager::getTotalCPUs();

@@ -9,4 +9,8 @@
 SpinLock ClusterHybridMetrics::_promisedTasksLock;
 std::atomic<size_t> ClusterHybridMetrics::_numReadyTasks(0);
 std::atomic<size_t> ClusterHybridMetrics::_numImmovableReadyTasks(0);
+std::atomic<size_t> ClusterHybridMetrics::_directOffload;
+std::atomic<size_t> ClusterHybridMetrics::_directThiefOffload;
+std::atomic<size_t> ClusterHybridMetrics::_sendMoreOffload;
+std::atomic<size_t> ClusterHybridMetrics::_checkOffload;
 
