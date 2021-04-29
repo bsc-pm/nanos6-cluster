@@ -93,6 +93,11 @@ int ClusterBalanceScheduler::getScheduledNode(
 	if (numTasksAlready <= 2 * (bestNode->getCurrentAllocCores()-1)) {
 
 		// If it is executed remotely then it cannot be stolen any more
+		if (bestNode != ClusterManager::getCurrentClusterNode()) {
+			ClusterMetrics::incDirectOffload(1);
+		} else {
+			ClusterMetrics::incDirectSelf(1);
+		}
 		return bestNodeId;
 	}
 
@@ -119,6 +124,11 @@ int ClusterBalanceScheduler::getScheduledNode(
 			// offload immediately
 
 			// If it is executed remotely then it cannot be stolen any more
+			if (thiefId != ClusterManager::getCurrentClusterNode()->getIndex()) {
+				ClusterMetrics::incDirectThiefOffload(1);
+			} else {
+				ClusterMetrics::incDirectThiefSelf(1);
+			}
 			return thiefId;
 		}
 	}
@@ -190,6 +200,7 @@ void ClusterBalanceScheduler::checkSendMoreAllNodes()
 			for (int i = 0 ; i < toSend; i++) {
 				Task *task = stealTask(node);
 				if (task) {
+					ClusterMetrics::incSendMoreOffload(1);
 					Scheduler::addReadyLocalOrExecuteRemote(node->getIndex(), task, nullptr, NO_HINT);
 				} else {
 					// No more tasks to send
@@ -215,6 +226,7 @@ Task *ClusterBalanceScheduler::stealTask(ComputePlace *)
 	Task *task = stealTask(ClusterManager::getCurrentClusterNode());
 	if (task) {
 		checkSendMoreAllNodes();
+		ClusterMetrics::incStealSelf(1);
 	}
 	return task;
 }
@@ -268,6 +280,8 @@ void ClusterBalanceScheduler::offloadedTaskFinished(ClusterNode *remoteNode)
 		if (task) {
 			numSentTasks ++;
 			Scheduler::addReadyLocalOrExecuteRemote(remoteNode->getIndex(), task, nullptr, NO_HINT);
+			assert(remoteNode != ClusterManager::getCurrentClusterNode());
+			ClusterMetrics::incCheckOffload(1);
 		} else {
 			break;
 		}

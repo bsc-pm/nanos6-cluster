@@ -10,3 +10,11 @@ std::atomic<size_t> ClusterMetrics::_numReadyTasks(0);
 std::atomic<size_t> ClusterMetrics::_numImmovableTasks(0);
 std::atomic<size_t> ClusterMetrics::_totalBusyCoresCurrentApprank;
 
+// Debug metrics for ClusterBalanceScheduler
+std::atomic<size_t> ClusterMetrics::_directSelf;
+std::atomic<size_t> ClusterMetrics::_directOffload;
+std::atomic<size_t> ClusterMetrics::_directThiefSelf;
+std::atomic<size_t> ClusterMetrics::_directThiefOffload;
+std::atomic<size_t> ClusterMetrics::_stealSelf;
+std::atomic<size_t> ClusterMetrics::_sendMoreOffload;
+std::atomic<size_t> ClusterMetrics::_checkOffload;

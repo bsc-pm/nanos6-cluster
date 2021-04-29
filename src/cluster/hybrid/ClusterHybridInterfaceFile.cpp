@@ -329,7 +329,11 @@ void ClusterHybridInterfaceFile::appendUtilization(float timestamp, float totalB
 		<< numBorrowed << " "                                          // 13: borrowed: number of borrowed CPUs
 		<< ClusterHybridManager::getBusyOtherInstancesSameNode() << " "// 14:
 		<< otherAlloc << " "                                           // 15:
-		<< numOffloaded << "\n";                                       // 16:
+		<< numOffloaded << " "                                         // 16:
+		<< ClusterMetrics::getDirectOffload() << " "                   // 17:
+		<< ClusterMetrics::getDirectThiefOffload() << " "              // 18:
+		<< ClusterMetrics::getSendMoreOffload() << " "                 // 19:
+		<< ClusterMetrics::getCheckOffload() << "\n";                  // 20:
 
 	_utilizationFile.flush();
 }
