@@ -23,6 +23,10 @@ private:
 	static std::atomic<size_t> _directThiefOffload;
 	static std::atomic<size_t> _sendMoreOffload;
 	static std::atomic<size_t> _checkOffload;
+	static std::atomic<size_t> _sentNumNewTask;
+	static std::atomic<size_t> _receivedNumNewTask;
+	static std::atomic<size_t> _sentNumTaskFinished;
+	static std::atomic<size_t> _receivedNumTaskFinished;
 
 public:
 
@@ -85,6 +89,42 @@ public:
 	static inline size_t getCheckOffload()
 	{
 		return _checkOffload;
+	}
+
+	static inline void incSentNumNewTask()
+	{
+		_sentNumNewTask ++;
+	}
+	static inline size_t getSentNumNewTask()
+	{
+		return _sentNumNewTask;
+	}
+
+	static inline void incReceivedNumNewTask()
+	{
+		_receivedNumNewTask ++;
+	}
+	static inline size_t getReceivedNumNewTask()
+	{
+		return _receivedNumNewTask;
+	}
+
+	static inline void incSentNumTaskFinished()
+	{
+		_sentNumTaskFinished ++;
+	}
+	static inline size_t getSentNumTaskFinished()
+	{
+		return _sentNumTaskFinished;
+	}
+
+	static inline void incReceivedNumTaskFinished()
+	{
+		_receivedNumTaskFinished ++;
+	}
+	static inline size_t getReceivedNumTaskFinished()
+	{
+		return _receivedNumTaskFinished;
 	}
 };
 

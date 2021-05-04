@@ -28,7 +28,7 @@ void LocalPolicy::execute(ComputePlace *cpu, CPUManagerPolicyHint hint, size_t n
 	// Get average number of busy CPUs
 	int ncpus = CPUManager::getTotalCPUs();
 	float averageBusyCPUs = _averagedStats->readBusyCores();
-	averageBusyCPUs = std::max<float>(1.0, averageBusyCPUs);
+	averageBusyCPUs = std::max<float>(2.0, averageBusyCPUs);
 	averageBusyCPUs = std::min<float>(averageBusyCPUs, (float)ncpus);
 	CPU *currentCPU = (CPU *) cpu;
 	ClusterHybridManager::setAveragedBusy(averageBusyCPUs);

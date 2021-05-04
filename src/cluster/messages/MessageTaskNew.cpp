@@ -13,6 +13,7 @@
 #include <ClusterManager.hpp>
 #include <TaskOffloading.hpp>
 #include "NodeNamespace.hpp"
+#include "cluster/hybrid/ClusterHybridMetrics.hpp"
 
 MessageTaskNew::MessageTaskNew(
 	const ClusterNode *from,
@@ -63,6 +64,7 @@ MessageTaskNew::MessageTaskNew(
 
 bool MessageTaskNew::handleMessage()
 {
+	ClusterHybridMetrics::incReceivedNumNewTask();
 	NodeNamespace::enqueueTaskMessage(this);
 
 	// The Message will be deleted by remoteTaskCleanup

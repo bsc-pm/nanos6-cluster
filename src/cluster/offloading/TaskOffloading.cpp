@@ -121,6 +121,7 @@ namespace TaskOffloading {
 			msg->setBounds(taskloop->getBounds());
 		}
 
+		ClusterHybridMetrics::incSentNumNewTask();
 		ClusterManager::sendMessage(msg, remoteNode);
 
 		// Offloaded tasks do not need the "wait" clause, since any waiting will be handled
@@ -444,6 +445,7 @@ namespace TaskOffloading {
 
 			clusterContext->getOwnerTask()->getDataReleaseStep()->releasePendingAccesses(true);
 		}
+		ClusterHybridMetrics::incSentNumTaskFinished();
 
 		// For the moment, we do not delete the Message since it includes the
 		// buffers that hold the nanos6_task_info_t and the

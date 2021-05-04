@@ -13,4 +13,8 @@ std::atomic<size_t> ClusterHybridMetrics::_directOffload;
 std::atomic<size_t> ClusterHybridMetrics::_directThiefOffload;
 std::atomic<size_t> ClusterHybridMetrics::_sendMoreOffload;
 std::atomic<size_t> ClusterHybridMetrics::_checkOffload;
+std::atomic<size_t> ClusterHybridMetrics::_sentNumNewTask;
+std::atomic<size_t> ClusterHybridMetrics::_receivedNumNewTask;
+std::atomic<size_t> ClusterHybridMetrics::_sentNumTaskFinished;
+std::atomic<size_t> ClusterHybridMetrics::_receivedNumTaskFinished;
 
