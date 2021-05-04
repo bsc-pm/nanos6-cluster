@@ -333,7 +333,11 @@ void ClusterHybridInterfaceFile::appendUtilization(float timestamp, float totalB
 		<< ClusterMetrics::getDirectOffload() << " "                   // 17:
 		<< ClusterMetrics::getDirectThiefOffload() << " "              // 18:
 		<< ClusterMetrics::getSendMoreOffload() << " "                 // 19:
-		<< ClusterMetrics::getCheckOffload() << "\n";                  // 20:
+		<< ClusterMetrics::getCheckOffload() << " "                    // 20:
+		<< ClusterMetrics::getSentNumNewTask() << " "                  // 21:
+		<< ClusterMetrics::getReceivedNumNewTask() << " "              // 22:
+		<< ClusterMetrics::getSentNumTaskFinished() << " "             // 23:
+		<< ClusterMetrics::getReceivedNumTaskFinished() << "\n";       // 24:
 
 	_utilizationFile.flush();
 }

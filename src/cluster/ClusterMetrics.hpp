@@ -18,6 +18,10 @@ class ClusterMetrics {
 private:
 	static std::atomic<size_t> _numReadyTasks;
 	static std::atomic<size_t> _numImmovableTasks;
+	static std::atomic<size_t> _sentNumNewTask;
+	static std::atomic<size_t> _receivedNumNewTask;
+	static std::atomic<size_t> _sentNumTaskFinished;
+	static std::atomic<size_t> _receivedNumTaskFinished;
 	static std::atomic<size_t> _totalBusyCoresCurrentApprank;
 
 	// Debug metrics for ClusterBalanceScheduler
@@ -144,6 +148,56 @@ public:
 	static inline size_t getCheckOffload()
 	{
 		return _checkOffload;
+	}
+
+	//! --------------------- Debug metrics for offloaded tasks --------------------
+
+	//! \brief Increment the counter of tasks offloaded from this node
+	static inline void incSentNumNewTask()
+	{
+		_sentNumNewTask ++;
+	}
+
+	//! \brief Get the cumulative counter of tasks offloaded from this node
+	static inline size_t getSentNumNewTask()
+	{
+		return _sentNumNewTask;
+	}
+
+	//! \brief Increment the counter of tasks offloaded to this node
+	static inline void incReceivedNumNewTask()
+	{
+		_receivedNumNewTask ++;
+	}
+
+	//! \brief Get the cumulative counter of tasks offloaded to this node
+	static inline size_t getReceivedNumNewTask()
+	{
+		return _receivedNumNewTask;
+	}
+
+	//! \brief Increment the counter of finished tasks offloaded to this node
+	static inline void incSentNumTaskFinished()
+	{
+		_sentNumTaskFinished ++;
+	}
+
+	//! \brief Get the cumulative counter of finished tasks offloaded to this node
+	static inline size_t getSentNumTaskFinished()
+	{
+		return _sentNumTaskFinished;
+	}
+
+	//! \brief Increment the counter of finished tasks offloaded from this node
+	static inline void incReceivedNumTaskFinished()
+	{
+		_receivedNumTaskFinished ++;
+	}
+
+	//! \brief Get the cumulative counter of finished tasks offloaded from this node
+	static inline size_t getReceivedNumTaskFinished()
+	{
+		return _receivedNumTaskFinished;
 	}
 
 	//! \brief Set the total number of busy cores across this whole apprank

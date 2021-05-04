@@ -8,6 +8,10 @@
 
 std::atomic<size_t> ClusterMetrics::_numReadyTasks(0);
 std::atomic<size_t> ClusterMetrics::_numImmovableTasks(0);
+std::atomic<size_t> ClusterMetrics::_sentNumNewTask;
+std::atomic<size_t> ClusterMetrics::_receivedNumNewTask;
+std::atomic<size_t> ClusterMetrics::_sentNumTaskFinished;
+std::atomic<size_t> ClusterMetrics::_receivedNumTaskFinished;
 std::atomic<size_t> ClusterMetrics::_totalBusyCoresCurrentApprank;
 
 // Debug metrics for ClusterBalanceScheduler
