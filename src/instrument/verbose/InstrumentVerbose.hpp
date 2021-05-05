@@ -47,6 +47,7 @@ namespace Instrument {
 		extern bool _verboseDependenciesByAccessLinks;
 		extern bool _verboseDependenciesByGroup;
 		extern bool _verboseLeaderThread;
+		extern bool _verboseMemoryAllocation;
 		extern bool _verboseReductions;
 		extern bool _verboseTaskExecution;
 		extern bool _verboseTaskStatus;

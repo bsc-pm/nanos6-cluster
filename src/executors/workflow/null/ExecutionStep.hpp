@@ -10,8 +10,6 @@
 #include <DataAccessRegion.hpp>
 #include "dependencies/DataAccessType.hpp"
 
-#include "WriteID.hpp"
-
 struct DataAccess;
 class MemoryPlace;
 
@@ -64,7 +62,6 @@ namespace ExecutionWorkflow {
 		inline void linkRegion(
 			__attribute__((unused))DataAccessRegion const &region,
 			__attribute__((unused))MemoryPlace const *location,
-			__attribute__((unused))WriteID const *writeID,
 			__attribute__((unused))bool read,
 			__attribute__((unused))bool write
 		) {
@@ -80,7 +77,6 @@ namespace ExecutionWorkflow {
 
 		inline void releaseRegion(
 			__attribute__((unused))DataAccessRegion const &region,
-			__attribute__((unused))WriteID writeID,
 			__attribute__((unused))MemoryPlace const *location
 		) {
 		}

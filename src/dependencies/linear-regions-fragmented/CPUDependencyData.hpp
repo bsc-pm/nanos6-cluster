@@ -22,10 +22,6 @@
 #include <ExecutionStep.hpp>
 
 
-#ifdef USE_CLUSTER
-#include "cluster/WriteID.hpp"
-#endif
-
 struct DataAccess;
 class Task;
 class ReductionInfo;
@@ -42,9 +38,6 @@ struct CPUDependencyData {
 		bool _makeConcurrentSatisfied;
 		bool _makeCommutativeSatisfied;
 		MemoryPlace const *_location;
-#ifdef USE_CLUSTER
-		WriteID _writeID;
-#endif
 		ExecutionWorkflow::DataReleaseStep *_releaseStep;
 
 		bool _makeTopmost;
@@ -59,11 +52,7 @@ struct CPUDependencyData {
 			: _target(), _region(),
 			_makeReadSatisfied(false), _makeWriteSatisfied(false),
 			_makeConcurrentSatisfied(false), _makeCommutativeSatisfied(false),
-			_location(nullptr),
-#ifdef USE_CLUSTER
-			_writeID(0),
-#endif
-			_releaseStep(nullptr),
+			_location(nullptr), _releaseStep(nullptr),
 			_makeTopmost(false), _makeTopLevel(false),
 			_setReductionInfo(false), _reductionInfo(nullptr)
 		{
@@ -73,11 +62,7 @@ struct CPUDependencyData {
 			: _target(target), _region(region),
 			_makeReadSatisfied(false), _makeWriteSatisfied(false),
 			_makeConcurrentSatisfied(false), _makeCommutativeSatisfied(false),
-			_location(nullptr),
-#ifdef USE_CLUSTER
-			_writeID(0),
-#endif
-			_releaseStep(nullptr),
+			_location(nullptr), _releaseStep(nullptr),
 			_makeTopmost(false), _makeTopLevel(false),
 			_setReductionInfo(false), _reductionInfo(nullptr)
 		{

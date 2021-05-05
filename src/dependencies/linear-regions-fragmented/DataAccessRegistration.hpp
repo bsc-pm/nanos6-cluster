@@ -54,7 +54,6 @@ namespace DataAccessRegistration {
 		bool weak,
 		ComputePlace *computePlace,
 		CPUDependencyData &dependencyData,
-		WriteID writeID = 0,
 		MemoryPlace const *location = nullptr
 	);
 
@@ -88,11 +87,10 @@ namespace DataAccessRegistration {
 		CPUDependencyData &dependencyData,
 		bool readSatisfied,
 		bool writeSatisfied,
-		WriteID writeID,
 		MemoryPlace const *location
 	);
 
-	void handleEnterTaskwait(Task *task, ComputePlace *computePlace, CPUDependencyData &dependencyData, bool noflush=false);
+	void handleEnterTaskwait(Task *task, ComputePlace *computePlace, CPUDependencyData &dependencyData);
 
 	void handleExitTaskwait(Task *task, ComputePlace *computePlace, CPUDependencyData &dependencyData);
 

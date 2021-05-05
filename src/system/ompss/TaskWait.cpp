@@ -23,15 +23,10 @@
 
 void nanos6_taskwait(char const *invocationSource)
 {
-	TaskWait::taskWait(invocationSource, true, false);
+	TaskWait::taskWait(invocationSource, true);
 }
 
-void nanos6_taskwait_noflush(char const *invocationSource)
-{
-	TaskWait::taskWait(invocationSource, true, true);
-}
-
-void TaskWait::taskWait(char const *invocationSource, bool fromUserCode, bool noflush)
+void TaskWait::taskWait(char const *invocationSource, bool fromUserCode)
 {
 	WorkerThread *currentThread = WorkerThread::getCurrentWorkerThread();
 	assert(currentThread != nullptr);
@@ -55,7 +50,8 @@ void TaskWait::taskWait(char const *invocationSource, bool fromUserCode, bool no
 
 	ComputePlace *cpu = currentThread->getComputePlace();
 	assert(cpu != nullptr);
-	DataAccessRegistration::handleEnterTaskwait(currentTask, cpu, cpu->getDependencyData(), noflush);
+
+	DataAccessRegistration::handleEnterTaskwait(currentTask, cpu, cpu->getDependencyData());
 	bool done = currentTask->markAsBlocked();
 
 	// done == true:

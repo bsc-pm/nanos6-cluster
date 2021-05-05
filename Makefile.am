@@ -459,7 +459,6 @@ cluster_sources += \
 	src/cluster/ClusterManager.cpp \
 	src/cluster/NodeNamespace.cpp \
 	src/cluster/ClusterMemoryManagement.cpp \
-	src/cluster/WriteID.cpp \
 	src/cluster/messages/Message.cpp \
 	src/cluster/messages/MessageDataFetch.cpp \
 	src/cluster/messages/MessageDataSend.cpp \
@@ -871,6 +870,7 @@ noinst_HEADERS = \
 	src/instrument/api/InstrumentAddTask.hpp \
 	src/instrument/api/InstrumentBlockingAPI.hpp \
 	src/instrument/api/InstrumentCluster.hpp \
+	src/instrument/api/InstrumentMemory.hpp \
 	src/instrument/api/InstrumentComputePlaceManagement.hpp \
 	src/instrument/api/InstrumentDataAccessTypes.hpp \
 	src/instrument/api/InstrumentDebug.hpp \
@@ -913,6 +913,7 @@ noinst_HEADERS = \
 	src/instrument/ctf/InstrumentAddTask.hpp \
 	src/instrument/ctf/InstrumentBlockingAPI.hpp \
 	src/instrument/ctf/InstrumentCluster.hpp \
+	src/instrument/ctf/InstrumentMemory.hpp \
 	src/instrument/ctf/InstrumentComputePlaceId.hpp \
 	src/instrument/ctf/InstrumentComputePlaceManagement.hpp \
 	src/instrument/ctf/InstrumentCPULocalData.hpp \
@@ -949,6 +950,7 @@ noinst_HEADERS = \
 	src/instrument/extrae/InstrumentBlockingAPI.hpp \
 	src/instrument/extrae/InstrumentCommon.hpp \
 	src/instrument/extrae/InstrumentCluster.hpp \
+	src/instrument/extrae/InstrumentMemory.hpp \
 	src/instrument/extrae/InstrumentComputePlaceId.hpp \
 	src/instrument/extrae/InstrumentComputePlaceManagement.hpp \
 	src/instrument/extrae/InstrumentCPULocalData.hpp \
@@ -988,6 +990,7 @@ noinst_HEADERS = \
 	src/instrument/graph/InstrumentAddTask.hpp \
 	src/instrument/graph/InstrumentBlockingAPI.hpp \
 	src/instrument/graph/InstrumentCluster.hpp \
+	src/instrument/graph/InstrumentMemory.hpp \
 	src/instrument/graph/InstrumentComputePlaceId.hpp \
 	src/instrument/graph/InstrumentComputePlaceManagement.hpp \
 	src/instrument/graph/InstrumentCPULocalData.hpp \
@@ -1022,7 +1025,6 @@ noinst_HEADERS = \
 	src/instrument/lint/Callbacks.hpp \
 	src/instrument/lint/InstrumentAddTask.hpp \
 	src/instrument/lint/InstrumentBlockingAPI.hpp \
-	src/instrument/lint/InstrumentCluster.hpp \
 	src/instrument/lint/InstrumentComputePlaceId.hpp \
 	src/instrument/lint/InstrumentComputePlaceManagement.hpp \
 	src/instrument/lint/InstrumentCPULocalData.hpp \
@@ -1056,6 +1058,7 @@ noinst_HEADERS = \
 	src/instrument/null/InstrumentAddTask.hpp \
 	src/instrument/null/InstrumentBlockingAPI.hpp \
 	src/instrument/null/InstrumentCluster.hpp \
+	src/instrument/null/InstrumentMemory.hpp \
 	src/instrument/null/InstrumentComputePlaceId.hpp \
 	src/instrument/null/InstrumentComputePlaceManagement.hpp \
 	src/instrument/null/InstrumentCPULocalData.hpp \
@@ -1089,6 +1092,7 @@ noinst_HEADERS = \
 	src/instrument/stats/InstrumentAddTask.hpp \
 	src/instrument/stats/InstrumentBlockingAPI.hpp \
 	src/instrument/stats/InstrumentCluster.hpp \
+	src/instrument/stats/InstrumentMemory.hpp \
 	src/instrument/stats/InstrumentComputePlaceId.hpp \
 	src/instrument/stats/InstrumentComputePlaceManagement.hpp \
 	src/instrument/stats/InstrumentCPULocalData.hpp \
@@ -1138,6 +1142,7 @@ noinst_HEADERS = \
 	src/instrument/verbose/InstrumentAddTask.hpp \
 	src/instrument/verbose/InstrumentBlockingAPI.hpp \
 	src/instrument/verbose/InstrumentCluster.hpp \
+	src/instrument/verbose/InstrumentMemory.hpp \
 	src/instrument/verbose/InstrumentComputePlaceId.hpp \
 	src/instrument/verbose/InstrumentComputePlaceManagement.hpp \
 	src/instrument/verbose/InstrumentCPULocalData.hpp \
@@ -1206,7 +1211,6 @@ noinst_HEADERS = \
 	src/memory/allocator/pool/ExternalMemoryPool.hpp \
 	src/memory/allocator/pool/MemoryAllocator.hpp \
 	src/memory/allocator/pool/MemoryPool.hpp \
-	src/memory/allocator/pool/Poison.hpp \
 	src/memory/allocator/pool/MemoryPoolGlobal.hpp \
 	src/memory/allocator/pool/NUMAObjectCache.hpp \
 	src/memory/allocator/pool/ObjectAllocator.hpp \
@@ -1336,7 +1340,6 @@ noinst_HEADERS += \
 	src/cluster/ClusterUtil.hpp \
 	src/cluster/ClusterMemoryManagement.hpp \
 	src/cluster/NodeNamespace.hpp \
-	src/cluster/WriteID.hpp \
 	src/cluster/messages/Message.hpp \
 	src/cluster/messages/MessageDataFetch.hpp \
 	src/cluster/messages/MessageDataSend.hpp \

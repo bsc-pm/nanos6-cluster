@@ -84,7 +84,7 @@ void ConfigCentral::initialize()
 	registerOption<string_t>("instrument.verbose.areas", {
 		"all", "!ComputePlaceManagement", "!DependenciesByAccess",
 		"!DependenciesByAccessLinks", "!DependenciesByGroup",
-		"!LeaderThread", "!TaskStatus", "!ThreadManagement"
+		"!LeaderThread", "!TaskStatus", "!ThreadManagement", "!MemoryAllocation"
 	});
 	registerOption<bool_t>("instrument.verbose.dump_only_on_exit", false);
 	registerOption<string_t>("instrument.verbose.output_file", "/dev/stderr");
@@ -140,4 +140,15 @@ void ConfigCentral::initialize()
 #else
 	registerOption<string_t>("version.dependencies", "discrete");
 #endif
+}
+
+void ConfigCentral::initializeMemoryDependentOptions()
+{
+	// The cluster.local_memory variable determines the size of the local address
+	// space per cluster node. The default value is the minimum between 2GB and
+	// the 5% of the total physical memory of the machine
+	size_t totalMemory = HardwareInfo::getPhysicalMemorySize();
+	size_t localSize = std::min(2UL << 30, totalMemory / 20);
+
+	updateOption<memory_t>("cluster.local_memory", localSize);
 }

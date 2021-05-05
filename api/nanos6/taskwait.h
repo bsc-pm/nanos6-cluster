@@ -27,7 +27,6 @@ extern "C" {
 //!
 //! \param[in] invocation_source A string that identifies the source code location of the invocation
 void nanos6_taskwait(char const *invocation_source);
-void nanos6_taskwait_noflush(char const *invocation_source);
 
 //! \brief Block the control flow in a stream until all previously spawned
 //! functions have finished

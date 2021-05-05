@@ -4,10 +4,11 @@
 /*
  * Support for AddressSanitizer in the memory pool allocators.
  *
- * Configure using ./configure LDFLAGS="-ldl -lasan -fsanitize=address -fno-omit-frame-pointer"
- * CFLAGS="-fsanitize=address -fno-omit-frame-pointer -ggdb" CPPFLAGS="-fsanitize=address
- * -fno-omit-frame-pointer -ggdb"
+ * Configure using ./configure LDFLAGS="-ldl -lasan -fsanitize=address -fno-omit-frame-pointer" 
+ * CFLAGS="-fsanitize=address -fno-omit-frame-pointer -ggdb" CPPFLAGS="-fsanitize=address 
+ * -fno-omit-frame-pointer -ggdb" 
  */
+
 
 #ifdef __SANITIZE_ADDRESS__
 extern "C" {
@@ -16,32 +17,24 @@ extern "C" {
 }
 #endif
 
-namespace AddressSanitizer {
-
+inline void poison_memory_region(void const volatile *addr, size_t size)
+{
 #ifdef __SANITIZE_ADDRESS__
-
-	inline void poisonMemoryRegion(void const volatile *addr, size_t size)
-	{
-		__asan_poison_memory_region(addr, size);
-	}
-
-	inline void unpoisonMemoryRegion(void const volatile *addr, size_t size)
-	{
-		__asan_unpoison_memory_region(addr, size);
-	}
-
+	__asan_poison_memory_region(addr, size);
 #else
-
-	inline void poisonMemoryRegion(void const volatile *, size_t)
-	{
-	}
-
-	inline void unpoisonMemoryRegion(void const volatile *, size_t)
-	{
-	}
-
+	(void)addr;
+	(void)size;
 #endif
+}
 
+inline void unpoison_memory_region(void const volatile *addr, size_t size)
+{
+#ifdef __SANITIZE_ADDRESS__
+	__asan_unpoison_memory_region(addr, size);
+#else
+	(void)addr;
+	(void)size;
+#endif
 }
 
 #endif /* ASAN_HPP */

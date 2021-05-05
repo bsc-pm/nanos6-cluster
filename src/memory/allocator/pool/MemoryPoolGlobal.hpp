@@ -68,7 +68,7 @@ private:
 			numa_setlocal_memory(_curMemoryChunk, allocSize);
 		}
 
-		AddressSanitizer::poisonMemoryRegion(_curMemoryChunk, allocSize);
+		poison_memory_region(_curMemoryChunk, allocSize);
 		_oldMemoryChunks.push_back(_curMemoryChunk);
 	}
 
@@ -109,7 +109,7 @@ public:
 	{
 #if HAVE_MEMKIND
 		for (auto it : _oldMemoryChunks) {
-			AddressSanitizer::unpoisonMemoryRegion(_curMemoryChunk, allocSize);
+			unpoison_memory_region(_curMemoryChunk, allocSize);
 			memkind_free(_memoryKind, it);
 		}
 #endif
@@ -145,7 +145,7 @@ public:
 		_curAvailable -= chunkSize;
 		_curMemoryChunk = (char *)_curMemoryChunk + chunkSize;
 
-		AddressSanitizer::unpoisonMemoryRegion(curAddr, chunkSize);
+		unpoison_memory_region(curAddr, chunkSize);
 		return curAddr;
 	}
 };

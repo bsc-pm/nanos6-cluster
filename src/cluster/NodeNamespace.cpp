@@ -70,14 +70,12 @@ void NodeNamespace::bodyPrivate()
 
 	Instrument::stateNodeNamespace(1);
 
-#ifndef NDEBUG
 	WorkerThread *workerThread = WorkerThread::getCurrentWorkerThread();
 	assert(workerThread != nullptr);
 	assert(_namespaceTask != nullptr);
 	assert(workerThread->getTask() != nullptr);
 
 	assert(workerThread->getTask() == _namespaceTask);
-#endif // NDEBUG
 
 	while (true) {
 		_spinlock.lock();

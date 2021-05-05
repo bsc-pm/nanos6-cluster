@@ -28,10 +28,6 @@ namespace Instrument {
 	}
 
 	void showClusterCounters(std::ofstream &output);
-
-	inline void stateNodeNamespace(int, InstrumentationContext const &)
-	{
-	}
 }
 
 #endif //! INSTRUMENT_STATS_CLUSTER_HPP

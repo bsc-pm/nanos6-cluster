@@ -17,7 +17,7 @@
 
 template <typename T>
 class CPUObjectCache {
-	NUMAObjectCache<T> * const _NUMAObjectCache;
+	NUMAObjectCache<T> *_NUMAObjectCache;
 	const size_t _NUMANodeId;
 	const size_t _numaNodeCount;
 
@@ -37,32 +37,27 @@ class CPUObjectCache {
 	 *
 	 * These pools are not thread safe, i.e. they are meant to be accessed
 	 * only by the thread that runs on the current CPU. */
-	std::vector<pool_t> _available;
+	std::deque<pool_t> _available;
 
 	CPUObjectCache () =  delete;
 
 public:
 	CPUObjectCache(NUMAObjectCache<T> *pool, size_t numaId, size_t numaNodeCount)
 		: _NUMAObjectCache(pool), _NUMANodeId(numaId),
-		_numaNodeCount(numaNodeCount), _allocationSize(1),
-		_available(_numaNodeCount + 1)
+		_numaNodeCount(numaNodeCount), _allocationSize (1)
 	{
-		assert(_NUMAObjectCache != nullptr);
-		assert(_NUMANodeId <= _numaNodeCount);
+		assert(numaId <= numaNodeCount);
+		_available.resize(numaNodeCount + 1);
 	}
 
 	~CPUObjectCache()
 	{
-		_available.clear();
 	}
 
 	//! Allocate an object from the current CPU memory pool
 	template <typename... TS>
 	T *newObject(TS &&... args)
 	{
-		assert(1 <= _available.size());
-		assert(_NUMANodeId < _available.size());
-
 		pool_t &local = _available.at(_NUMANodeId);
 
 		if (local.empty()) {
@@ -81,9 +76,8 @@ public:
 				// (1) performance-critical and need to avoid taking a lock, and
 				// (2) the CPUObjectCache redistributes free memory among CPUs via NUMAObjectCache
 				T *ptr = (T *) MemoryAllocator::alloc(_allocationSize * sizeof(T), /* useCPUPool */ true);
-				assert(ptr != nullptr);
 
-				AddressSanitizer::poisonMemoryRegion(ptr, _allocationSize * sizeof(T));
+				poison_memory_region(ptr, _allocationSize * sizeof(T));
 
 				for (size_t i = 0; i < _allocationSize; ++i) {
 					local.push_back(&ptr[i]);
@@ -95,7 +89,7 @@ public:
 		assert(ret != nullptr);
 		local.pop_front();
 
-		AddressSanitizer::unpoisonMemoryRegion(ret, sizeof(T));
+		unpoison_memory_region(ret, sizeof(T));
 		new (ret) T(std::forward<TS>(args)...);
 		return ret;
 	}
@@ -103,15 +97,11 @@ public:
 	//! Deallocate an object
 	void deleteObject(T *ptr)
 	{
-		assert(1 <= _available.size());
-		assert(_NUMANodeId < _available.size());
-
 		const size_t nodeId = VirtualMemoryManagement::findNUMA((void *)ptr);
 		assert (nodeId < _available.size());
-
 		ptr->~T();
 
-		AddressSanitizer::poisonMemoryRegion(ptr, sizeof(T));
+		poison_memory_region(ptr, sizeof(T));
 		_available[nodeId].push_front(ptr);
 
 		// Return free objects to NUMA object cache

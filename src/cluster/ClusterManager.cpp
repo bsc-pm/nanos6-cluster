@@ -14,7 +14,6 @@
 #include <RemoteTasksInfoMap.hpp>
 #include <ClusterNode.hpp>
 #include <NodeNamespace.hpp>
-#include "WriteID.hpp"
 
 TaskOffloading::RemoteTasksInfoMap *TaskOffloading::RemoteTasksInfoMap::_singleton = nullptr;
 ClusterManager *ClusterManager::_singleton = nullptr;
@@ -76,8 +75,6 @@ ClusterManager::~ClusterManager()
 // Cluster is initialized before the memory allocator.
 void ClusterManager::initialize()
 {
-	WriteIDManager::initialize();
-
 	assert(_singleton == nullptr);
 	ConfigVariable<std::string> commType("cluster.communication");
 
@@ -120,9 +117,9 @@ void ClusterManager::initClusterNamespaceOrSetCallback(
 	assert(_singleton != nullptr);
 	assert(!ClusterManager::isMasterNode());
 
-	ConfigVariable<bool> useNamespace("cluster.use_namespace");
+	EnvironmentVariable<bool> useNamespace("cluster.use_namespace");
 
-	if (useNamespace.getValue()) {
+	if (useNamespace) {
 		clusterPrintf("Using namespace\n");
 		NodeNamespace::init(func, args);
 	} else {

@@ -13,7 +13,6 @@
 #include "dependencies/DataAccessType.hpp"
 
 #include <DataAccessRegion.hpp>
-#include "WriteID.hpp"
 
 class MessageReleaseAccess : public Message {
 	struct ReleaseAccessMessageContent {
@@ -29,8 +28,6 @@ class MessageReleaseAccess : public Message {
 		//! true if access is weak
 		bool _weak;
 		
-		WriteID _writeID;
-
 		//! The location on which the access is being released
 		int _location;
 	};
@@ -41,7 +38,7 @@ class MessageReleaseAccess : public Message {
 public:
 	MessageReleaseAccess(const ClusterNode *from, void *offloadedTaskId,
 			DataAccessRegion const &region, DataAccessType type,
-			bool weak, WriteID writeID, int location);
+			bool weak, int location);
 	
 	MessageReleaseAccess(Deliverable *dlv)
 		: Message(dlv)

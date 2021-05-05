@@ -39,13 +39,6 @@ public:
 
 	~HomeNodeMap()
 	{
-		std::lock_guard<spinlock_t> guard(lock);
-		deleteAll(
-			[&](HomeMapEntry *it)
-			{
-				delete it;
-			}
-		);
 	}
 
 	//! \brief Insert a region in the map

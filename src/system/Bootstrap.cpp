@@ -85,6 +85,7 @@ void nanos6_preinit(void)
 	HardwareCounters::preinitialize();
 	Monitoring::preinitialize();
 	HardwareInfo::initialize();
+	ConfigCentral::initializeMemoryDependentOptions();
 
 	ClusterManager::initialize();
 	CPUManager::preinitialize();

@@ -53,7 +53,7 @@ namespace TaskOffloading {
 			DataAccessRegistration::propagateSatisfiability(
 				localTask, satInfo._region, cpu,
 				hpDependencyData, satInfo._readSat,
-				satInfo._writeSat, satInfo._writeID, loc
+				satInfo._writeSat, loc
 			);
 
 			return;
@@ -71,7 +71,7 @@ namespace TaskOffloading {
 
 			DataAccessRegistration::propagateSatisfiability(
 				localTask, subRegion, cpu, hpDependencyData,
-				satInfo._readSat, satInfo._writeSat, satInfo._writeID, loc
+				satInfo._readSat, satInfo._writeSat, loc
 			);
 		}
 
@@ -166,7 +166,6 @@ namespace TaskOffloading {
 		DataAccessRegion const &region,
 		DataAccessType type,
 		bool weak,
-		WriteID writeID,
 		MemoryPlace const *location
 	) {
 		assert(location != nullptr);
@@ -188,7 +187,7 @@ namespace TaskOffloading {
 			offloader->getIndex());
 
 		MessageReleaseAccess *msg =
-			new MessageReleaseAccess(current, offloadedTaskId, region, type, weak, writeID, location->getIndex());
+			new MessageReleaseAccess(current, offloadedTaskId, region, type, weak, location->getIndex());
 
 		ClusterManager::sendMessage(msg, offloader);
 	}
@@ -198,7 +197,6 @@ namespace TaskOffloading {
 		DataAccessRegion const &region,
 		DataAccessType type,
 		bool weak,
-		WriteID writeID,
 		MemoryPlace const *location
 	) {
 		assert(task != nullptr);
@@ -214,7 +212,7 @@ namespace TaskOffloading {
 
 		DataAccessRegistration::releaseAccessRegion(
 			task, region, type, weak, cpu,
-			hpDependencyData, writeID, location
+			hpDependencyData, location
 		);
 	}
 

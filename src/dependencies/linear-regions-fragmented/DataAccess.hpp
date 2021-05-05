@@ -7,7 +7,6 @@
 #ifndef DATA_ACCESS_HPP
 #define DATA_ACCESS_HPP
 
-
 #define MAX_SYMBOLS 64 // TODO: Temporary solution to use a fixed bitset size
 
 #include <atomic>
@@ -32,7 +31,6 @@
 #include <InstrumentDataAccessId.hpp>
 #include <InstrumentDependenciesByAccessLinks.hpp>
 #include <InstrumentTaskId.hpp>
-#include "cluster/WriteID.hpp"
 
 
 struct DataAccess;
@@ -85,10 +83,6 @@ private:
 	DataAccessRegion _region;
 
 	status_t _status;
-
-#ifdef USE_CLUSTER
-	WriteID _writeID;
-#endif
 
 	//! Direct next access
 	DataAccessLink _next;
@@ -144,9 +138,6 @@ public:
 		_objectType(objectType),
 		_region(accessRegion),
 		_status(status),
-#ifdef USE_CLUSTER
-		_writeID(0),
-#endif
 		_next(next),
 		_reductionTypeAndOperatorIndex(reductionTypeAndOperatorIndex),
 		_reductionIndex(reductionIndex),
@@ -174,9 +165,6 @@ public:
 		_objectType(other.getObjectType()),
 		_region(other.getAccessRegion()),
 		_status(other.getStatus()),
-#ifdef USE_CLUSTER
-		_writeID(other._writeID),
-#endif
 		_next(other.getNext()),
 		_reductionTypeAndOperatorIndex(other.getReductionTypeAndOperatorIndex()),
 		_reductionIndex(other.getReductionIndex()),
@@ -258,16 +246,6 @@ public:
 	status_t const &getStatus() const
 	{
 		return _status;
-	}
-
-	WriteID getWriteID() const
-	{
-		return _writeID;
-	}
-
-	void setWriteID(WriteID id)
-	{
-		_writeID = id;
 	}
 
 	void setRegistered()

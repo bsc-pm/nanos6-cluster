@@ -19,6 +19,7 @@
 #include "hardware-counters/TaskHardwareCounters.hpp"
 #include "lowlevel/SpinLock.hpp"
 #include "scheduling/ReadyQueue.hpp"
+#include "tasks/TasktypeData.hpp"
 #include "system/ompss/SpawnFunction.hpp"
 
 #include <ClusterTaskContext.hpp>
@@ -35,7 +36,6 @@ class MemoryPlace;
 class TaskStatistics;
 class TasktypeData;
 class WorkerThread;
-class TasktypeData;
 
 #pragma GCC diagnostic push
 #pragma GCC diagnostic error "-Wunused-result"

@@ -13,7 +13,6 @@
 #include <mutex>
 #include <vector>
 #include <DataAccessRegion.hpp>
-#include "WriteID.hpp"
 
 struct DataAccess;
 class MemoryPlace;
@@ -126,7 +125,6 @@ namespace ExecutionWorkflow {
 		virtual inline void linkRegion(
 			DataAccessRegion const &,
 			MemoryPlace const *,
-			WriteID,
 			bool /*read*/,
 			bool /*write*/
 		) {
@@ -161,7 +159,7 @@ namespace ExecutionWorkflow {
 		DataReleaseStep(DataAccess *access);
 
 		//! Release a region
-		virtual inline void releaseRegion(DataAccessRegion const &, WriteID, MemoryPlace const *)
+		virtual inline void releaseRegion(DataAccessRegion const &, MemoryPlace const *)
 		{
 		}
 

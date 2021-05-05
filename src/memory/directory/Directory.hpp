@@ -64,7 +64,8 @@ public:
 	//!
 	//! \param[in] region is the DataAccessRegion to insert
 	//! \param[in] homeNode is the home node of the region
-	static inline void insert(DataAccessRegion const &region, MemoryPlace const *homeNode)
+	static inline void insert(DataAccessRegion const &region,
+			MemoryPlace const *homeNode)
 	{
 		_homeNodes.insert(region, homeNode);
 	}

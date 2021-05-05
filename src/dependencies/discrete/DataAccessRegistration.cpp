@@ -441,7 +441,7 @@ namespace DataAccessRegistration {
 		Instrument::exitUnregisterTaskDataAcesses();
 	}
 
-	void handleEnterTaskwait(Task *task, ComputePlace *, CPUDependencyData &, bool /* noflush */)
+	void handleEnterTaskwait(Task *task, ComputePlace *, CPUDependencyData &)
 	{
 		assert(task != nullptr);
 

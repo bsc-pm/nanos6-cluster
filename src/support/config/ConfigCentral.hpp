@@ -226,6 +226,13 @@ public:
 		assert(configCentral._initialized);
 	}
 
+	//! \brief Reinitialize the memory-dependent options
+	//!
+	//! This function reinitializes the default values of the options
+	//! that have dynamic defaults, e.g. the options that depend on the
+	//! on the system memory size
+	static void initializeMemoryDependentOptions();
+
 	//! \brief Get the configured value of a regular option
 	//!
 	//! This function first returns the value configured in the config

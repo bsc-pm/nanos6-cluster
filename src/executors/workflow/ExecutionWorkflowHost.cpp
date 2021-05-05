@@ -12,7 +12,6 @@
 #include "hardware/places/MemoryPlace.hpp"
 #include "scheduling/Scheduler.hpp"
 #include "system/TrackingPoints.hpp"
-#include "system/If0Task.hpp"
 #include "tasks/Task.hpp"
 #include "tasks/Taskfor.hpp"
 
@@ -90,9 +89,6 @@ namespace ExecutionWorkflow {
 			// Run the task
 			std::atomic_thread_fence(std::memory_order_acquire);
 			_task->body(translationTable);
-			if (_task->isIf0()) {
-				If0Task::executeNonInline(currentThread, _task, cpu);
-			}
 			std::atomic_thread_fence(std::memory_order_release);
 
 			// Update the CPU since the thread may have migrated
@@ -107,10 +103,6 @@ namespace ExecutionWorkflow {
 				MemoryAllocator::free(translationTable, tableSize);
 			}
 		} else {
-
-			if (_task->isIf0()) {
-				If0Task::executeNonInline(currentThread, _task, cpu);
-			}
 			// Runtime Tracking Point - A task completes its execution (user code)
 			TrackingPoints::taskCompletedUserCode(_task);
 		}
