@@ -36,6 +36,19 @@ unsigned int nanos6_get_current_virtual_cpu(void)
 }
 
 
+long nanos6_get_current_numa(void)
+{
+	typedef long nanos6_get_current_numa_t(void);
+
+	static nanos6_get_current_numa_t *symbol = NULL;
+	if (__builtin_expect(symbol == NULL, 0)) {
+		symbol = (nanos6_get_current_numa_t *) _nanos6_resolve_symbol("nanos6_get_current_numa", "cpu control", NULL);
+	}
+
+	return (*symbol)(cpuIterator);
+}
+
+
 int nanos6_enable_cpu(long systemCPUId)
 {
 	typedef int nanos6_enable_cpu_t(long systemCPUId);

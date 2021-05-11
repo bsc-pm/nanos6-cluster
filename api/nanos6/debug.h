@@ -119,6 +119,9 @@ long nanos6_cpus_get_virtual(void *cpuIterator);
 //! \brief retrieve the NUMA identifier where the CPU pointed to by the iterator is located
 long nanos6_cpus_get_numa(void *cpuIterator);
 
+//! \brief retrieve the NUMA identifier for the current cpu.
+long nanos6_get_current_numa(void);
+
 //! \brief Check whether DLB is enabled
 int nanos6_is_dlb_enabled(void);
 

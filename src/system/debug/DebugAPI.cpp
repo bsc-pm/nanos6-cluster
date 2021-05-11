@@ -223,6 +223,20 @@ long nanos6_cpus_get_numa(void *cpuIterator)
 	return cpu->getNumaNodeId();
 }
 
+
+long nanos6_get_current_numa(void)
+{
+	WorkerThread *currentThread = WorkerThread::getCurrentWorkerThread();
+	if (currentThread == nullptr) {
+		return -1;
+	}
+
+	CPU *currentCPU = currentThread->getComputePlace();
+	assert(currentCPU != 0);
+
+	return currentCPU->getNumaNodeId();
+}
+
 int nanos6_is_dlb_enabled(void)
 {
 	return CPUManager::isDLBEnabled();
