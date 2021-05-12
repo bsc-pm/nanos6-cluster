@@ -372,6 +372,9 @@ namespace ExecutionWorkflow {
 				//! access, if the access is not write-only
 			 	(objectType == access_type)
 				&& (type != WRITE_ACCESS_TYPE)
+				//! and, if it is a weak access, then only
+				//! if cluster.eager_weak_fetch == true
+				&& (!access->isWeak() || ClusterManager::getEagerWeakFetch())
 			);
 
 		//! If no data transfer is needed, then register the new location if

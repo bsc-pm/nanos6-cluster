@@ -29,6 +29,8 @@ void ConfigCentral::initialize()
 
 	registerOption<size_t>("cluster.message_max_size", std::numeric_limits<int>::max());
 
+	registerOption<bool_t>("cluster.eager_weak_fetch", true);
+
 
 	// CPU manager
 	registerOption<string_t>("cpumanager.policy", "default");

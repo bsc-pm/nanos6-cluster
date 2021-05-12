@@ -58,6 +58,8 @@ private:
 
 	size_t _messageMaxSize;
 
+	bool _eagerWeakFetch;
+
 	//! The ShutdownCallback for this ClusterNode.
 	//! At the moment this is an atomic variable, because we might have
 	//! to poll for this, until it's set from external code. For example,
@@ -413,6 +415,12 @@ public:
 			nFragments++;
 		}
 		return nFragments;
+	}
+
+	static bool getEagerWeakFetch()
+	{
+		assert(_singleton != nullptr);
+		return _singleton->_eagerWeakFetch;
 	}
 
 };

@@ -86,6 +86,9 @@ ClusterManager::ClusterManager(std::string const &commType)
 
 	ConfigVariable<size_t> messageMaxSize("cluster.message_max_size");
 	_messageMaxSize = messageMaxSize.getValue();
+
+	ConfigVariable<bool> eagerWeakFetch("cluster.eager_weak_fetch");
+	_eagerWeakFetch = eagerWeakFetch.getValue();
 }
 
 ClusterManager::~ClusterManager()
