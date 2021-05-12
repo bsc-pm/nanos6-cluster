@@ -3170,9 +3170,12 @@ namespace DataAccessRegistration {
 
 					/* Normal non-cluster case e.g. for NUMA */
 					accessOrFragment->setLocation(location);
-				} else if (accessOrFragment->getLocation() == nullptr) {
-					// This should only happen on a weak access if no subtask has strong access ??
-					accessOrFragment->setLocation(ClusterManager::getCurrentMemoryNode());
+				} else if (!accessOrFragment->isWeak()) {
+					const MemoryPlace *oldLocation = accessOrFragment->getLocation();
+					if (oldLocation == nullptr || Directory::isDirectoryMemoryPlace(oldLocation)) {
+						// This happens for strong subtasks of a weak task when cluster.eager_weak_fetch is false
+						accessOrFragment->setLocation(ClusterManager::getCurrentMemoryNode());
+					}
 				}
 #ifdef USE_CLUSTER
 				if (writeID != 0 && accessOrFragment->getAccessRegion() == region) {

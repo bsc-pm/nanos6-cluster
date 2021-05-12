@@ -58,8 +58,14 @@ namespace ExecutionWorkflow {
 		}
 
 		assert(targetMemoryPlace != nullptr);
-		//assert(sourceMemoryPlace != nullptr);
 
+		// The source memory place is nullptr if and only if the dependency is
+		// not yet read satisfied, which is only possible (at this point) if
+		// the access is weak. If it is not read satisfied do nothing now:
+		// don't copy the data and don't register the dependency. This means
+		// for instance that the data will not be eagerly fetched (as
+		// controlled by cluster.eager_weak_fetch) and the registration will be
+		// done when we receive MessageSatisfiability.
 		const nanos6_device_t sourceType =
 			(sourceMemoryPlace == nullptr) ? nanos6_host_device : sourceMemoryPlace->getType();
 
@@ -72,12 +78,27 @@ namespace ExecutionWorkflow {
 			access->setValidNamespaceSelf( ClusterManager::getCurrentMemoryNode()->getIndex());
 		}
 
-		step = _transfersMap[sourceType][targetType](
-			sourceMemoryPlace,
-			targetMemoryPlace,
-			region,
-			access
-		);
+		if (Directory::isDirectoryMemoryPlace(sourceMemoryPlace)
+			&& ClusterManager::inClusterMode()) {
+			// In cluster mode, if it's in the directory, always use
+			// clusterCopy. The data doesn't need copying, since being in the
+			// directory implies that the data is uninitialized. But the new
+			// location may need registering in the remote dependency system.
+			step = clusterCopy(
+				sourceMemoryPlace,
+				targetMemoryPlace,
+				region,
+				access);
+		} else {
+			step = _transfersMap[sourceType][targetType](
+				sourceMemoryPlace,
+				targetMemoryPlace,
+				region,
+				access
+			);
+		}
+		assert(!Directory::isDirectoryMemoryPlace(targetMemoryPlace));
+
 		Instrument::exitCreateDataCopyStep(isTaskwait);
 		return step;
 	}
@@ -324,56 +345,39 @@ namespace ExecutionWorkflow {
 
 				MemoryPlace const *currLocation = dataAccess->getLocation();
 
-				if (ClusterManager::inClusterMode()
-					&& Directory::isDirectoryMemoryPlace(currLocation)
-					&& targetComputePlace->getType() == nanos6_host_device) {
+#ifndef NDEBUG
+				// In debug mode, raise an error if the task has a non-weak access to
+				// an unknown region.
+				if (!dataAccess->isWeak()) {
+					if (ClusterManager::inClusterMode()
+						&& Directory::isDirectoryMemoryPlace(currLocation)
+						&& targetComputePlace->getType() == nanos6_host_device) {
 
-					Directory::HomeNodesArray const *homeNodes = Directory::find(region);
-
-					if (!dataAccess->isWeak()) {
 						// This isn't perfect, because the homeNodes list is only empty if the
 						// whole region is missing from the directory whereas we would prefer to raise
 						// an error even if just a part of it is missing. But this test does a good job of finding
 						// blatantly wrong accesses.
+						Directory::HomeNodesArray const *homeNodes = Directory::find(region);
 						FatalErrorHandler::failIf(homeNodes->empty(),
 												"Non-weak access ",
 												region,
 												" of ",
 												task->getLabel(),
 												" is an unknown region not from lmalloc, dmalloc or the stack");
+						delete homeNodes;
 					}
-
-					for (const auto &entry : *homeNodes) {
-						MemoryPlace const *entryLocation = entry->getHomeNode();
-						const DataAccessRegion subregion = region.intersect(entry->getAccessRegion());
-
-						Step *dataCopySubregionStep = workflow->createDataCopyStep(
-							entryLocation,
-							targetMemoryPlace,
-							subregion,
-							dataAccess,
-							false
-						);
-
-						workflow->enforceOrder(dataCopySubregionStep, executionStep);
-						workflow->addRootStep(dataCopySubregionStep);
-					}
-
-					delete homeNodes;
-
-				} else {
-
-					Step *dataCopyRegionStep = workflow->createDataCopyStep(
-						currLocation,
-						targetMemoryPlace,
-						region,
-						dataAccess,
-						false
-					);
-
-					workflow->enforceOrder(dataCopyRegionStep, executionStep);
-					workflow->addRootStep(dataCopyRegionStep);
 				}
+#endif
+				Step *dataCopyRegionStep = workflow->createDataCopyStep(
+					currLocation,
+					targetMemoryPlace,
+					region,
+					dataAccess,
+					false
+				);
+
+				workflow->enforceOrder(dataCopyRegionStep, executionStep);
+				workflow->addRootStep(dataCopyRegionStep);
 
 				releaseStep->addAccess(dataAccess);
 

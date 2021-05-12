@@ -43,39 +43,24 @@ namespace TaskOffloading {
 		CPUDependencyData &hpDependencyData =
 			(cpu != nullptr) ? cpu->getDependencyData() : localDependencyData;
 
-		if (!Directory::isDirectoryMemoryPlace(satInfo._src)) {
-			MemoryPlace const *loc;
-			if (satInfo._src == -1) {
-				loc = nullptr; // -1 means nullptr: see comment in ClusterDataLinkStep::linkRegion().
-			} else {
-				loc = ClusterManager::getMemoryNode(satInfo._src);
-			}
-			DataAccessRegistration::propagateSatisfiability(
-				localTask, satInfo._region, cpu,
-				hpDependencyData, satInfo._readSat,
-				satInfo._writeSat, satInfo._writeID, loc
-			);
-
-			return;
+		// Convert integer source id to a pointer to the relevant MemoryPlace
+		MemoryPlace const *loc;
+		if (satInfo._src == -1) {
+			 // -1 means nullptr: see comment in ClusterDataLinkStep::linkRegion(). It
+			 // happens for race conditions when write satisfiability is propagated
+			 // before read satisfiability.
+			loc = nullptr;
+		} else	{
+			// Otherwise it is either the node index or the directory (which is used
+			// for uninitialized memory regions).
+			loc = ClusterManager::getMemoryNodeOrDirectory(satInfo._src);
 		}
 
-		// The access is in the Directory. Retrieve the home nodes and
-		// propagate satisfiability per region
-		Directory::HomeNodesArray *array = Directory::find(satInfo._region);
-		assert(!array->empty());
-
-		for (HomeMapEntry const *entry : *array) {
-			MemoryPlace const *loc = entry->getHomeNode();
-			DataAccessRegion entryRegion = entry->getAccessRegion();
-			DataAccessRegion subRegion = satInfo._region.intersect(entryRegion);
-
-			DataAccessRegistration::propagateSatisfiability(
-				localTask, subRegion, cpu, hpDependencyData,
-				satInfo._readSat, satInfo._writeSat, satInfo._writeID, loc
-			);
-		}
-
-		delete array;
+		DataAccessRegistration::propagateSatisfiability(
+			localTask, satInfo._region, cpu,
+			hpDependencyData, satInfo._readSat,
+			satInfo._writeSat, satInfo._writeID, loc
+		);
 	}
 
 	void offloadTask(

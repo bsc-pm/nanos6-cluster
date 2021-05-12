@@ -221,7 +221,6 @@ namespace ExecutionWorkflow {
 	bool ClusterDataCopyStep::requiresDataFetch()
 	{
 		assert(ClusterManager::getCurrentMemoryNode() == _targetMemoryPlace);
-		assert(_sourceMemoryPlace->getType() == nanos6_cluster_device);
 		assert(_targetMemoryPlace->getType() == nanos6_cluster_device);
 		// TODO: If this condition never trigers then the _writeID member can be removed. from this
 		// class.
@@ -245,6 +244,7 @@ namespace ExecutionWorkflow {
 			return false;
 		}
 
+		assert(_sourceMemoryPlace->getType() == nanos6_cluster_device);
 		assert(_sourceMemoryPlace != _targetMemoryPlace);
 
 		if (WriteIDManager::checkWriteIDLocal(_writeID, _fullRegion)) {

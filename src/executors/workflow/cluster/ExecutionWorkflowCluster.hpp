@@ -310,23 +310,8 @@ namespace ExecutionWorkflow {
 		DataAccess *access
 	) {
 		assert(source != nullptr);
-		nanos6_device_t sourceType = source->getType();
 		assert(target == ClusterManager::getCurrentMemoryNode());
 
-		//! Currently, we cannot have a cluster data copy where the source
-		//! location is in the Directory. This would mean that the data
-		//! have not been written yet (that's why they're not in a
-		//! non-directory location), so we are reading something that is
-		//! not initialized yet. Unless it is a taskwait.
-		DataAccessObjectType objectType = access->getObjectType();
-		if (objectType != taskwait_type) {
-			assert(!Directory::isDirectoryMemoryPlace(source) &&
-				"You're probably trying to read something "
-				"that has not been initialized yet!"
-			);
-		}
-
-		assert(source->getType() == nanos6_cluster_device);
 		DataAccessType type = access->getType();
 		DataAccessRegion region = access->getAccessRegion();
 		bool isDistributedRegion = VirtualMemoryManagement::isDistributedRegion(region);
@@ -336,14 +321,39 @@ namespace ExecutionWorkflow {
 		//! DataTransfer
 		//! || The source and the destination is the same
 		//! || I already have the data.
-		if (sourceType == nanos6_host_device
-			|| source == target
+		if (ClusterManager::isLocalMemoryPlace(source)
 			|| WriteIDManager::checkWriteIDLocal(access->getWriteID(), region)) {
 
 			// NULL copy (do nothing, just release succesor and delete itself.)
 			return new Step();
 		}
 
+		// Helpful warning messages in debug build
+		DataAccessObjectType objectType = access->getObjectType();
+		if (access->getAccessRegion().getSize() > (1UL<<60)) {
+			if (objectType == access_type && access->getType() != NO_ACCESS_TYPE) {
+				FatalErrorHandler::failIf( !access->isWeak(),
+											"Large access ",
+											access->getAccessRegion(),
+											" for task ",
+											access->getOriginator()->getLabel(),
+											" is not weak");
+			}
+			// With cluster.eager_weak_fetch = true, the following code is not valid
+			//   int *a = (int *)nanos6_lmalloc(4);
+			//   #pragma oss task weakinout(a[1]) label("T") {...}
+			//   a[0] = 1;
+			// This is because T will fetch a and return its location as node 1. So any
+			// subsequent task will fetch a from node 1 and not return the data written
+			// on node 0. This is probably acceptable in this example where the weakinout
+			// is explicit, but when the weakinout is "all memory" there is too much
+			// chance of this kind of thing happening.
+			FatalErrorHandler::failIf( ClusterManager::getEagerWeakFetch() || (ClusterManager::getMessageMaxSize() != SIZE_MAX),
+										"Set cluster.eager_weak_fetch = false and cluster.message_max_size = -1 for large weak memory access ",
+										access->getAccessRegion(),
+										" of task ",
+										access->getOriginator()->getLabel());
+		}
 
 		bool needsTransfer =
 			(
@@ -375,6 +385,9 @@ namespace ExecutionWorkflow {
 				//! access, if the access is not write-only
 			 	(objectType == access_type)
 				&& (type != WRITE_ACCESS_TYPE)
+				//! and if it is not in the directory (which would mean
+				//! that the data is not yet initialized)
+				&& !Directory::isDirectoryMemoryPlace(source)
 				//! and, if it is a weak access, then only
 				//! if cluster.eager_weak_fetch == true
 				&& (!access->isWeak() || ClusterManager::getEagerWeakFetch())
@@ -383,6 +396,8 @@ namespace ExecutionWorkflow {
 		//! If no data transfer is needed, then register the new location if
 		//! it is a task with a non-weak access. This happens for out dependencies
 		//! (WRITE_ACCESS_TYPE), because the task will write the new data contents.
+		//! It also happens when the data was previously uninitialized (was in
+		//! the directory) even on an in or inout dependency.
 		bool registerLocation = !needsTransfer
 				&& ( (objectType != taskwait_type)
 					  && !access->isWeak());
