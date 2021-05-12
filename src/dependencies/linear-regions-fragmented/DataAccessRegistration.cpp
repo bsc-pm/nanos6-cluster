@@ -4066,52 +4066,93 @@ namespace DataAccessRegistration {
 			region.getSize()
 		);
 
-		/* Create a new access */
-		DataAccess *newLocalAccess = createAccess(
-			task,
-			access_type,
-			NO_ACCESS_TYPE,
-			/* not weak */ false,
-			region
-		);
-
-		/* Modifications to be done after the lock is taken  */
-		DataAccessStatusEffects initialStatus(newLocalAccess);
-		newLocalAccess->setNewInstrumentationId(task->getInstrumentationTaskId());
-
-		const MemoryPlace *loc = location ? location : Directory::getDirectoryMemoryPlace();
-		newLocalAccess->setReadSatisfied(loc);
-		newLocalAccess->setWriteSatisfied();
-		newLocalAccess->setConcurrentSatisfied();
-		newLocalAccess->setCommutativeSatisfied();
-		newLocalAccess->setReceivedReductionInfo();
-		newLocalAccess->setValidNamespacePrevious(VALID_NAMESPACE_NONE, nullptr);
-		newLocalAccess->setValidNamespaceSelf(VALID_NAMESPACE_NONE);
-		newLocalAccess->setRegistered();
-#ifndef NDEBUG
-		newLocalAccess->setReachable();
-#endif
-		DataAccessStatusEffects updatedStatus(newLocalAccess);
-		//! This is an exception to avoid decreasing predecessor and it
-		//! is not used anywhere else.
-		updatedStatus.setEnforcesDependency();
-
 		/* Take the lock on the task data accesses */
 		std::lock_guard<TaskDataAccesses::spinlock_t> guard(accessStructures._lock);
 
-		/* Insert the new access (with the lock) */
-		accessStructures._accesses.insert(*newLocalAccess);
-
-		/* Handle the above data access status changes */
 		CPUDependencyData hpDependencyData;
-		handleDataAccessStatusChanges(
-			initialStatus,
-			updatedStatus,
-			newLocalAccess,
-			accessStructures,
-			task,
-			hpDependencyData
-		);
+
+		/* Check whether the access is already counted in the dependencies, as part of
+		 * an "all" memory region for instance.
+		 */
+		bool foundIt = false;
+		accessStructures._accesses.processIntersecting(
+			region,
+			[&](TaskDataAccesses::accesses_t::iterator position) -> bool {
+				__attribute__((unused)) DataAccess *access = &(*position);
+				/* We should never see a partial overlap but this newly
+				 * registered region may fragment an existing access.
+				 */
+				assert(region.fullyContainedIn(access->getAccessRegion()));
+				access = fragmentAccess(access, region, accessStructures);
+
+				DataAccessStatusEffects initialStatus(access);
+				if (location) {
+					access->setLocation(location);
+				}
+				access->setValidNamespacePrevious(VALID_NAMESPACE_NONE, nullptr);
+				access->setValidNamespaceSelf(VALID_NAMESPACE_NONE);
+				DataAccessStatusEffects updatedStatus(access);
+
+				/* Handle the above data access status changes */
+				handleDataAccessStatusChanges(
+					initialStatus,
+					updatedStatus,
+					access,
+					accessStructures,
+					task,
+					hpDependencyData
+				);
+
+				foundIt = true;
+				return !foundIt;
+			});
+
+		if (!foundIt) {
+			/* We have not found this access region so create a new one */
+
+			/* Create a new access */
+			DataAccess *newLocalAccess = createAccess(
+				task,
+				access_type,
+				NO_ACCESS_TYPE,
+				/* not weak */ false,
+				region
+			);
+
+			/* Modifications to be done after the lock is taken  */
+			DataAccessStatusEffects initialStatus(newLocalAccess);
+			newLocalAccess->setNewInstrumentationId(task->getInstrumentationTaskId());
+
+			const MemoryPlace *loc = location ? location : Directory::getDirectoryMemoryPlace();
+			newLocalAccess->setReadSatisfied(loc);
+			newLocalAccess->setWriteSatisfied();
+			newLocalAccess->setConcurrentSatisfied();
+			newLocalAccess->setCommutativeSatisfied();
+			newLocalAccess->setReceivedReductionInfo();
+			newLocalAccess->setValidNamespacePrevious(VALID_NAMESPACE_NONE, nullptr);
+			newLocalAccess->setValidNamespaceSelf(VALID_NAMESPACE_NONE);
+			newLocalAccess->setRegistered();
+	#ifndef NDEBUG
+			newLocalAccess->setReachable();
+	#endif
+			DataAccessStatusEffects updatedStatus(newLocalAccess);
+			//! This is an exception to avoid decreasing predecessor and it
+			//! is not used anywhere else.
+			updatedStatus.setEnforcesDependency();
+
+			/* Insert the new access (with the lock) */
+			accessStructures._accesses.insert(*newLocalAccess);
+
+			/* Handle the above data access status changes */
+			handleDataAccessStatusChanges(
+				initialStatus,
+				updatedStatus,
+				newLocalAccess,
+				accessStructures,
+				task,
+				hpDependencyData
+			);
+		}
 
 		/* Do not expect any delayed operations */
 		assert (hpDependencyData.empty());
