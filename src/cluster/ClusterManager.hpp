@@ -407,8 +407,12 @@ public:
 		assert(totalSize > 0);
 
 		const size_t maxRegionSize = ClusterManager::getMessageMaxSize();
-
-		return (totalSize + maxRegionSize - 1) / maxRegionSize;
+		// Note: this calculation still works when maxRegionSize == SIZE_MAX.
+		size_t nFragments = totalSize / maxRegionSize;
+		if ((totalSize % maxRegionSize) != 0) {
+			nFragments++;
+		}
+		return nFragments;
 	}
 
 };

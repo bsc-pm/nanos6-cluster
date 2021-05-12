@@ -179,7 +179,7 @@ namespace ExecutionWorkflow {
 	{
 		// We fragment the transfers here.
 		// TODO: If this affects performance, we can do the fragmentation on demand.
-		// So only when the fragmentation is goinf to take place.
+		// So only when the fragmentation is going to take place.
 		_nFragments = ClusterManager::getMPIFragments(region);
 
 		char *start = (char *)region.getStartAddress();
@@ -187,16 +187,15 @@ namespace ExecutionWorkflow {
 		for (size_t i = 0; start < region.getEndAddress(); ++i) {
 
 			assert(i < _nFragments);
+			// Note: this calculation still works when the maximum message size is SIZE_MAX.
 			char *end = (char *) region.getEndAddress();
-
-			char *tmp = start + ClusterManager::getMessageMaxSize();
-			if (tmp < end) {
-				end = tmp;
+			if ((size_t)(end-start) > ClusterManager::getMessageMaxSize()) {
+				end = start + ClusterManager::getMessageMaxSize();
 			}
 
 			_regionsFragments.push_back(DataAccessRegion(start, end));
 
-			start = tmp;
+			start = end;
 		}
 
 		_postcallback = [&]() {
