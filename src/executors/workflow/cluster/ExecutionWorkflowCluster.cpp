@@ -165,7 +165,8 @@ namespace ExecutionWorkflow {
 		WriteID writeID,
 		bool isTaskwait,
 		bool isWeak,
-		bool needsTransfer
+		bool needsTransfer,
+		bool registerLocation
 	) : Step(),
 		_sourceMemoryPlace(sourceMemoryPlace),
 		_targetMemoryPlace(targetMemoryPlace),
@@ -175,7 +176,8 @@ namespace ExecutionWorkflow {
 		_writeID(writeID),
 		_isTaskwait(isTaskwait),
 		_isWeak(isWeak),
-		_needsTransfer(needsTransfer)
+		_needsTransfer(needsTransfer),
+		_registerLocation(registerLocation)
 	{
 		// We fragment the transfers here.
 		// TODO: If this affects performance, we can do the fragmentation on demand.
@@ -220,26 +222,29 @@ namespace ExecutionWorkflow {
 		assert(ClusterManager::getCurrentMemoryNode() == _targetMemoryPlace);
 		assert(_sourceMemoryPlace->getType() == nanos6_cluster_device);
 		assert(_targetMemoryPlace->getType() == nanos6_cluster_device);
-		assert(_sourceMemoryPlace != _targetMemoryPlace);
 		// TODO: If this condition never trigers then the _writeID member can be removed. from this
 		// class.
 
+		if (_registerLocation) {
+			//! This access doesn't need a transfer. But we need to update the task location
+			//! to match the target node.
+			assert(!_needsTransfer);
+
+			DataAccessRegistration::updateTaskDataAccessLocation(
+				_task,
+				_fullRegion,
+				_targetMemoryPlace,
+				_isTaskwait
+			);
+		}
+
 		if (!_needsTransfer) {
-			//! This access doesn't need a transfer.
-			//! We need to perform the data access registration if it is
-			//! a non-weak output access. Otherwise there is nothing to do.
-			if (!_isTaskwait && !_isWeak) {
-				DataAccessRegistration::updateTaskDataAccessLocation(
-					_task,
-					_fullRegion,
-					_targetMemoryPlace,
-					_isTaskwait
-				);
-			}
 			releaseSuccessors();
 			delete this;
 			return false;
 		}
+
+		assert(_sourceMemoryPlace != _targetMemoryPlace);
 
 		if (WriteIDManager::checkWriteIDLocal(_writeID, _fullRegion)) {
 			releaseSuccessors();

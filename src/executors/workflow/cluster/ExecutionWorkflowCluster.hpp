@@ -123,6 +123,8 @@ namespace ExecutionWorkflow {
 		//! An actual data transfer is required
 		bool _needsTransfer;
 
+		bool _registerLocation;
+
 		//! Number of fragments messages
 		size_t _nFragments;
 
@@ -137,7 +139,8 @@ namespace ExecutionWorkflow {
 			WriteID writeID,
 			bool isTaskwait,
 			bool isWeak,
-			bool needsTransfer
+			bool needsTransfer,
+			bool registerLocation
 		);
 
 		//! Start the execution of the Step
@@ -366,10 +369,17 @@ namespace ExecutionWorkflow {
 			) ||
 			(
 				//! We need a DataTransfer for an access_type
-				//! access, if the access is not read-only
+				//! access, if the access is not write-only
 			 	(objectType == access_type)
 				&& (type != WRITE_ACCESS_TYPE)
 			);
+
+		//! If no data transfer is needed, then register the new location if
+		//! it is a task with a non-weak access. This happens for out dependencies
+		//! (WRITE_ACCESS_TYPE), because the task will write the new data contents.
+		bool registerLocation = !needsTransfer
+				&& ( (objectType != taskwait_type)
+					  && !access->isWeak());
 
 		return new ClusterDataCopyStep(
 			source,
@@ -379,7 +389,8 @@ namespace ExecutionWorkflow {
 			access->getWriteID(),
 			(objectType == taskwait_type),
 			access->isWeak(),
-			needsTransfer
+			needsTransfer,
+			registerLocation
 		);
 
 	}
