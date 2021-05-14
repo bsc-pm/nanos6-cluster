@@ -4162,7 +4162,16 @@ namespace DataAccessRegistration {
 				return true;
 			});
 
-		//! By now all fragments intersecting the local region should be removed
+		// If at this point there are still any fragments overlapping this
+		// region, then we are calling lfree or dfree without doing a taskwait
+		// first, which is unsafe. The above loop may have caused the fragments
+		// to become removable and therefore be discounted, but they are only
+		// actually deleted in handleExitTaskwait. This code will unfortunately
+		// raise an error even if the code has done a 'taskwait on' covering
+		// the whole region, which would actually be safe. If it ever becomes a
+		// problem we may have to remove this error or rethink how to do it.
+		FatalErrorHandler::failIf(accessStructures._accessFragments.contains(region),
+			"lfree or dfree without preceding taskwait");
 		assert(!accessStructures._accessFragments.contains(region));
 
 		//! Mark all the accesses intersecting the given region as complete
