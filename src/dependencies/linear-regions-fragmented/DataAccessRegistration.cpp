@@ -530,6 +530,8 @@ namespace DataAccessRegistration {
 				&& ClusterManager::isLocalMemoryPlace(lastAccess->getLocation())
 				&& access->getLocation()
 				&& ClusterManager::isLocalMemoryPlace(access->getLocation())
+				&& Directory::isDirectoryMemoryPlace(access->getLocation())
+						== Directory::isDirectoryMemoryPlace(lastAccess->getLocation())
 				&& access->getDataLinkStep() == lastAccess->getDataLinkStep()
 				&& access->getNext()._task == lastAccess->getNext()._task
 				&& access->getNext()._objectType == lastAccess->getNext()._objectType

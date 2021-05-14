@@ -173,7 +173,8 @@ namespace TaskOffloading {
 
 		// If location is a host device on this node it is a cluster
 		// device from the point of view of the remote node
-		if (location->getType() != nanos6_cluster_device) {
+		if (location->getType() != nanos6_cluster_device
+			&& !Directory::isDirectoryMemoryPlace(location)) {
 			location = ClusterManager::getCurrentMemoryNode();
 		}
 
@@ -200,7 +201,7 @@ namespace TaskOffloading {
 		MemoryPlace const *location
 	) {
 		assert(task != nullptr);
-		assert(location->getType() == nanos6_cluster_device);
+		assert(Directory::isDirectoryMemoryPlace(location) || location->getType() == nanos6_cluster_device);
 
 		WorkerThread *currentThread = WorkerThread::getCurrentWorkerThread();
 

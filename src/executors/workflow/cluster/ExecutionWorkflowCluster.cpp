@@ -48,7 +48,8 @@ namespace ExecutionWorkflow {
 				assert(!read);
 				locationIndex = -1; // means nullptr
 			} else {
-				if (location->getType() != nanos6_cluster_device) {
+				if (!Directory::isDirectoryMemoryPlace(location)
+					&& location->getType() != nanos6_cluster_device) {
 					location = ClusterManager::getCurrentMemoryNode();
 				}
 				locationIndex = location->getIndex();

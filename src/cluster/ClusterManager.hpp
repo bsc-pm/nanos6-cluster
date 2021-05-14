@@ -19,6 +19,7 @@
 #include <MessageDataFetch.hpp>
 #include <MessageDataSend.hpp>
 #include <ClusterShutdownCallback.hpp>
+#include "memory/directory/Directory.hpp"
 
 namespace ExecutionWorkflow
 {
@@ -141,7 +142,17 @@ public:
 	{
 		assert(!_singleton->_clusterNodes.empty());
 		assert(_singleton->_clusterNodes[id] != nullptr);
+		assert (!Directory::isDirectoryMemoryPlace(id));
 		return _singleton->_clusterNodes[id]->getMemoryNode();
+	}
+
+	static inline const MemoryPlace *getMemoryNodeOrDirectory(int id)
+	{
+		if (Directory::isDirectoryMemoryPlace(id)) {
+			return Directory::getDirectoryMemoryPlace();
+		} else {
+			return getMemoryNode(id);
+		}
 	}
 
 	//! \brief Get the current ClusterMemoryNode
@@ -165,6 +176,10 @@ public:
 
 	static bool isLocalMemoryPlace(const MemoryPlace *location)
 	{
+		assert(location);
+		if (Directory::isDirectoryMemoryPlace(location)) {
+			return false;
+		}
 		return (location->getType() != nanos6_cluster_device)
 				|| (location == getCurrentMemoryNode());
 	}
@@ -173,6 +188,9 @@ public:
 	{
 		if (location == nullptr) {
 			return -1;
+		}
+		if (Directory::isDirectoryMemoryPlace(location)) {
+			return -42;
 		}
 		return (location->getType() != nanos6_cluster_device) ?
 					getCurrentMemoryNode()->getIndex() :

@@ -25,7 +25,7 @@ MessageReleaseAccess::MessageReleaseAccess(const ClusterNode *from,
 
 bool MessageReleaseAccess::handleMessage()
 {
-	ClusterMemoryNode *memoryPlace = ClusterManager::getMemoryNode(_content->_location);
+	const MemoryPlace *memoryPlace = ClusterManager::getMemoryNodeOrDirectory(_content->_location);
 
 	TaskOffloading::releaseRemoteAccess((Task *)_content->_offloadedTaskId,
 			_content->_region, _content->_writeID, memoryPlace);

@@ -317,14 +317,16 @@ namespace ExecutionWorkflow {
 		//! location is in the Directory. This would mean that the data
 		//! have not been written yet (that's why they're not in a
 		//! non-directory location), so we are reading something that is
-		//! not initialized yet
-		assert(!Directory::isDirectoryMemoryPlace(source) &&
-			"You're probably trying to read something "
-			"that has not been initialized yet!"
-		);
+		//! not initialized yet. Unless it is a taskwait.
+		DataAccessObjectType objectType = access->getObjectType();
+		if (objectType != taskwait_type) {
+			assert(!Directory::isDirectoryMemoryPlace(source) &&
+				"You're probably trying to read something "
+				"that has not been initialized yet!"
+			);
+		}
 
 		assert(source->getType() == nanos6_cluster_device);
-		DataAccessObjectType objectType = access->getObjectType();
 		DataAccessType type = access->getType();
 		DataAccessRegion region = access->getAccessRegion();
 		bool isDistributedRegion = VirtualMemoryManagement::isDistributedRegion(region);
@@ -366,6 +368,7 @@ namespace ExecutionWorkflow {
 			 	(objectType == taskwait_type)
 				&& (type != READ_ACCESS_TYPE)
 				&& ((type != NO_ACCESS_TYPE) || !isDistributedRegion)
+				&& !Directory::isDirectoryMemoryPlace(source)
 			) ||
 			(
 				//! We need a DataTransfer for an access_type
