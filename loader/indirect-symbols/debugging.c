@@ -169,13 +169,13 @@ void nanos6_instrument_event(unsigned int event, unsigned int value)
 {
 	typedef void nanos6_instrument_event_t(unsigned int, unsigned int);
 
-	static nanos6_instrument_event *symbol = NULL;
+	static nanos6_instrument_event_t *symbol = NULL;
 	if (__builtin_expect(symbol == NULL, 0)) {
 		symbol = (nanos6_instrument_event_t *) _nanos6_resolve_symbol(
 				"nanos6_instrument_event", "debugging", NULL);
 	}
 
-	(*symbol)(event, value)
+	(*symbol)(event, value);
 }
 
 
