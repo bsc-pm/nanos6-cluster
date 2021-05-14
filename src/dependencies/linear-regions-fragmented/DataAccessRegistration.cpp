@@ -676,6 +676,17 @@ namespace DataAccessRegistration {
 	static inline DataAccess *fragmentAccess(
 		DataAccess *dataAccess, DataAccessRegion const &region,
 		TaskDataAccesses &accessStructures);
+	static inline DataAccess *createAccess(
+		Task *originator,
+		DataAccessObjectType objectType,
+		DataAccessType accessType, bool weak, DataAccessRegion region,
+		reduction_type_and_operator_index_t reductionTypeAndOperatorIndex = no_reduction_type_and_operator,
+		reduction_index_t reductionIndex = -1,
+		MemoryPlace const *location = nullptr,
+		MemoryPlace const *outputLocation = nullptr,
+		ExecutionWorkflow::DataLinkStep *dataLinkStep = nullptr,
+		DataAccess::status_t status = 0, DataAccessLink next = DataAccessLink()
+	);
 
 	/*
 	 * Make the changes to the data access implied by the differences between
@@ -1164,7 +1175,7 @@ namespace DataAccessRegistration {
 
 		//! We are about to delete the taskwait fragment. Before doing so,
 		//! move the location info back to the original access
-		accessStructures._accesses.processIntersecting(
+		accessStructures._accesses.processIntersectingAndMissing(
 			access->getAccessRegion(),
 			[&](TaskDataAccesses::accesses_t::iterator position) -> bool {
 				DataAccess *originalAccess = &(*position);
@@ -1205,6 +1216,55 @@ namespace DataAccessRegistration {
 				}
 
 				return true;
+			},
+			[&](DataAccessRegion missingRegion) -> bool {
+
+				// Missing region when removing a taskwait. This happens if a
+				// child task with a weak access on "all memory" allocates
+				// memory and doesn't free it. In this case we need to register
+				// it in the parent's accesses in order to remember its
+				// location.
+				DataAccess *newLocalAccess = createAccess(
+					task,
+					access_type,
+					NO_ACCESS_TYPE,
+					/* not weak */ false,
+					missingRegion
+				);
+
+				/* Modifications to be done after the lock is taken  */
+				DataAccessStatusEffects initialStatus(newLocalAccess);
+				newLocalAccess->setNewInstrumentationId(task->getInstrumentationTaskId());
+
+				newLocalAccess->setReadSatisfied(access->getLocation());
+				newLocalAccess->setWriteSatisfied();
+				newLocalAccess->setConcurrentSatisfied();
+				newLocalAccess->setCommutativeSatisfied();
+				newLocalAccess->setReceivedReductionInfo();
+				newLocalAccess->setValidNamespacePrevious(VALID_NAMESPACE_NONE, nullptr);
+				newLocalAccess->setValidNamespaceSelf(VALID_NAMESPACE_NONE);
+				newLocalAccess->setRegistered();
+		#ifndef NDEBUG
+				newLocalAccess->setReachable();
+		#endif
+				DataAccessStatusEffects updatedStatus(newLocalAccess);
+				//! This is an exception to avoid decreasing predecessor and it
+				//! is not used anywhere else.
+				updatedStatus.setEnforcesDependency();
+
+				/* Insert the new access */
+				accessStructures._accesses.insert(*newLocalAccess);
+
+				/* Handle the above data access status changes */
+				handleDataAccessStatusChanges(
+					initialStatus,
+					updatedStatus,
+					newLocalAccess,
+					accessStructures,
+					task,
+					hpDependencyData
+				);
+				return true;
 			});
 
 		accessStructures._taskwaitFragments.erase(access);
@@ -1219,12 +1279,12 @@ namespace DataAccessRegistration {
 		Task *originator,
 		DataAccessObjectType objectType,
 		DataAccessType accessType, bool weak, DataAccessRegion region,
-		reduction_type_and_operator_index_t reductionTypeAndOperatorIndex = no_reduction_type_and_operator,
-		reduction_index_t reductionIndex = -1,
-		MemoryPlace const *location = nullptr,
-		MemoryPlace const *outputLocation = nullptr,
-		ExecutionWorkflow::DataLinkStep *dataLinkStep = nullptr,
-		DataAccess::status_t status = 0, DataAccessLink next = DataAccessLink()
+		reduction_type_and_operator_index_t reductionTypeAndOperatorIndex,
+		reduction_index_t reductionIndex,
+		MemoryPlace const *location,
+		MemoryPlace const *outputLocation,
+		ExecutionWorkflow::DataLinkStep *dataLinkStep,
+		DataAccess::status_t status, DataAccessLink next
 	) {
 		// Not sure why this was previously commented as "Regular object duplication"
 		DataAccess *dataAccess = ObjectAllocator<DataAccess>::newObject(
