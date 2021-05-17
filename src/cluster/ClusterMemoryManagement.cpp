@@ -37,6 +37,11 @@ namespace ClusterMemoryManagement {
 			}
 		}
 
+		//! Get current task
+		WorkerThread *currentThread = WorkerThread::getCurrentWorkerThread();
+		assert(currentThread != nullptr);
+		Task *task = currentThread->getTask();
+
 		//! If we are not in cluster mode we are done here
 		if (!ClusterManager::inClusterMode()) {
 			assert(isMaster);
@@ -46,6 +51,7 @@ namespace ClusterMemoryManagement {
 			//! The home node of the new allocated region is the
 			//! current node
 			Directory::insert(allocatedRegion, ClusterManager::getCurrentMemoryNode());
+			DataAccessRegistration::registerLocalAccess(task, allocatedRegion, ClusterManager::getCurrentMemoryNode());
 
 			return dptr;
 		}
@@ -84,9 +90,6 @@ namespace ClusterMemoryManagement {
 		//! Register the newly allocated region with the Directory
 		//! of home nodes
 		DataAccessRegion allocatedRegion(dptr, size);
-		WorkerThread *currentThread = WorkerThread::getCurrentWorkerThread();
-		assert(currentThread != nullptr);
-		Task *task = currentThread->getTask();
 		ClusterDirectory::registerAllocation(allocatedRegion, policy, numDimensions, dimensions, task);
 
 		//! Register the new 'local' access

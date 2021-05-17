@@ -2877,12 +2877,29 @@ namespace DataAccessRegistration {
 				// Not part of the parent
 				local = true;
 
+#ifdef USE_CLUSTER
+				// The current implementation does not properly handle the case
+				// when a subtask's accesses are not a subset of its parent's
+				// accesses (unless the parent is main). The problem is in
+				// unregisterTaskDataAccesses1 for the parent, as it ignores
+				// any bottom map entries that are not part of the task's
+				// accesses. So the child's accesses continue to be flagged as
+				// being on the bottom map and are therefore never deleted. The
+				// program runs to completion, exits main, but then hangs. Since
+				// this only happens for incorrect pragmas, which won't work properly
+				// anyway, add a check and raise an error.
+				FatalErrorHandler::failIf(parent->getParent() != nullptr,
+										  "Access ", missingRegion,
+										  " of ", dataAccess->getOriginator()->getLabel(),
+										  " is not part of the parent's accesses");
+#else
 #ifndef NDEBUG
 				if (!first) {
 					assert((local == lastWasLocal) && "This fails with wrongly nested regions");
 				}
 				first = false;
 				lastWasLocal = local;
+#endif
 #endif
 
 				// NOTE: holes in the parent bottom map that are not in the parent accesses become fully satisfied
