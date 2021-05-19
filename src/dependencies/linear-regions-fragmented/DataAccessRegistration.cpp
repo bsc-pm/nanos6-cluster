@@ -3733,7 +3733,7 @@ namespace DataAccessRegistration {
 																region.getEndAddress()));
 									// Access with no next that needs a taskwait fragment
 									bottomMapEntry = fragmentBottomMapEntry(bottomMapEntry, subregion, accessStructures);
-									createTopLevelSinkFragment(task, bottomMapEntry, region, accessStructures, hpDependencyData);
+									createTopLevelSinkFragment(task, bottomMapEntry, subregion, accessStructures, hpDependencyData);
 									continueWithoutRestart = false;
 									bottomMapEntry = &(*(++bottomMapPosition));
 								}
