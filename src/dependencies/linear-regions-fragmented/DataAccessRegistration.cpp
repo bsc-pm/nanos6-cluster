@@ -1038,11 +1038,23 @@ namespace DataAccessRegistration {
 		 *     0    (DataLinkStep unset and read satisfied again remotely) => nothing
 		 */
 		const bool linksRead = initialStatus._triggersDataLinkRead < updatedStatus._triggersDataLinkRead;
-		const bool linksWrite = initialStatus._triggersDataLinkWrite < updatedStatus._triggersDataLinkWrite;
+		bool linksWrite = initialStatus._triggersDataLinkWrite < updatedStatus._triggersDataLinkWrite;
 		if (linksRead || linksWrite) {
 			assert(access->hasDataLinkStep());
 
 			ExecutionWorkflow::DataLinkStep *step = access->getDataLinkStep();
+
+			if (access->getType() == READ_ACCESS_TYPE) {
+				linksWrite = false; // never link true write satisfiability to an in access
+				if (linksRead) {
+					// Link pseudowrite with read satisfiability. We send it as if it
+					// is write satisfiability - the remote node will treat it as write
+					// satisfiability. This only works because namespace propagation
+					// never happens from an in to an inout or out access.
+					access->setRemoteHasPseudowrite();
+					linksWrite = true;
+				}
+			}
 
 			/*
 			 * Send satisfiability through the workflow. For Nanos6@cluster, this will
@@ -1051,13 +1063,16 @@ namespace DataAccessRegistration {
 			 * in the rare case that write satisfiability is propagated before read
 			 * satisfiability.
 			 */
-			step->linkRegion(
-				access->getAccessRegion(),
-				access->getLocation(),
-				access->getWriteID(),
-				linksRead,  /* propagate change, not the new value */
-				linksWrite  /* propagate change, not the new value */
-			);
+			if (linksRead || linksWrite) {
+
+				step->linkRegion(
+					access->getAccessRegion(),
+					access->getLocation(),
+					access->getWriteID(),
+					linksRead,  /* propagate change, not the new value */
+					linksWrite  /* propagate change, not the new value */
+				);
+			}
 
 			if (updatedStatus._triggersDataLinkRead && updatedStatus._triggersDataLinkWrite) {
 				access->unsetDataLinkStep();
@@ -1754,7 +1769,17 @@ namespace DataAccessRegistration {
 			 * _make{Read/Write}Satisfied and calling
 			 * applyUpdateOperationOnAccess as a delayed operation.
 			 */
-			access->setWriteSatisfied();
+			if (updateOperation._propagateSatisfiability  // It is satisfiability info from the offloader...
+				&& access->getType() == READ_ACCESS_TYPE  // for a read access
+				&& access->getPropagateFromNamespace()) { // and we are propagating from the predecessor in the namespace
+
+				// Ignore the initial pseudowrite satisfiability that comes with the MessageTaskNew for
+				// all read-satisfied read-only accesses. We will use the pseudowrite satisfiability that
+				// arrives at our end. Otherwise this task will receive (pseudo)write satisfiability twice,
+				// and therefore the second one may be after the task has been deleted (use-after-free).
+			} else {
+				access->setWriteSatisfied();
+			}
 		}
 
 		// Concurrent Satisfiability
@@ -2777,16 +2802,26 @@ namespace DataAccessRegistration {
 				 * Link the dataAccess and unset
 				 */
 #ifdef USE_CLUSTER
+				bool canPropagateInNamespace = false;
 				if (parent->isNodeNamespace()) {
 					if (previous->getNamespaceSuccessor() == dataAccess->getOriginator()) {
-						Instrument::namespacePropagation(Instrument::NamespaceSuccessful, dataAccess->getAccessRegion());
+						if (previous->getType() == READ_ACCESS_TYPE && dataAccess->getType() != READ_ACCESS_TYPE) {
+							// Cannot propagate in namespace from a read-only access to something different
+							// This is because the write satisfiability for an offloaded read-only access is
+							// only pseudowrite satisfiability.
+							Instrument::namespacePropagation(Instrument::NamespaceWrongPredecessor, dataAccess->getAccessRegion());
+						} else {
+							canPropagateInNamespace = true;
+							Instrument::namespacePropagation(Instrument::NamespaceSuccessful, dataAccess->getAccessRegion());
+						}
 					} else if (previous->getNamespaceSuccessor() != nullptr) {
 						Instrument::namespacePropagation(Instrument::NamespaceWrongPredecessor, dataAccess->getAccessRegion());
 					} else {
 						Instrument::namespacePropagation(Instrument::NamespaceNotHintedWithAncestor, dataAccess->getAccessRegion());
 					}
 				}
-				if (parent->isNodeNamespace() && previous->getNamespaceSuccessor() != dataAccess->getOriginator()) {
+
+				if (parent->isNodeNamespace() && !canPropagateInNamespace) {
 
 					// No namespace propagation. Need to set Topmost and set up reduction info in a similar way
 					// to the missing-from-bottom-map case below (in the second lambda).
@@ -3246,7 +3281,13 @@ namespace DataAccessRegistration {
 							notSat = true;
 						}
 						if (!accessOrFragment->writeSatisfied()) {
-							accessOrFragment->setWriteSatisfied();
+							// Remote only releases an access once it gets write or pseudowrite satisfiability.
+							// Update our access with write satisfiability, unless the remote only has pseudowrite.
+							// When the remote has pseudowrite only (from our perspective) we must wait
+							// for write satisfiability to be propagated at this end.
+							if (!accessOrFragment->remoteHasPseudowrite()) {
+								accessOrFragment->setWriteSatisfied();
+							}
 							notSat = true;
 						}
 						if (!accessOrFragment->receivedReductionInfo()) {
@@ -4550,16 +4591,45 @@ namespace DataAccessRegistration {
 						assert(dataAccess != nullptr);
 						if (!dataAccess->complete()) {
 							assert(dataAccess->hasNext()); // if propagated remotely there must be a next access
-							dataAccess->markAsDiscounted();
-							accessStructures._accesses.erase(dataAccess);
-							ObjectAllocator<DataAccess>::deleteObject(dataAccess);
 
-							assert(accessStructures._removalBlockers > 0);
-							accessStructures._removalBlockers--;
-							if (accessStructures._removalBlockers == 0) {
-								if (task->decreaseRemovalBlockingCount()) {
-									hpDependencyData._removableTasks.push_back(task);
+							if (!dataAccess->remoteHasPseudowrite()) {
+								// The remote end is propagating true write satisfiability
+								// We will only get this far if the remote task has received true
+								// write satisfiability, so we will never receive write satisfiability
+								// here if we haven't already. We can just delete the access.
+								dataAccess->markAsDiscounted();
+								accessStructures._accesses.erase(dataAccess);
+								ObjectAllocator<DataAccess>::deleteObject(dataAccess);
+
+								assert(accessStructures._removalBlockers > 0);
+								accessStructures._removalBlockers--;
+								if (accessStructures._removalBlockers == 0) {
+									if (task->decreaseRemovalBlockingCount()) {
+										hpDependencyData._removableTasks.push_back(task);
+									}
 								}
+							} else {
+								// The remote end only has pseudowrite. This means that its
+								// write satisfiability only means that all offloaded read
+								// accesses on that node, that were propagated through the
+								// namespace, have completed. We also propagate write
+								// satisfiability on this node (which may be true write
+								// satisfiability or in turn pseudowrite satisfiability
+								// from another node). Only once we get write satisfiability
+								// here do we know that all in accesses of tasks created on
+								// this node have completed. Just set the complete bit and
+								// let the normal mechanism check whether the access can be
+								// deleted already.
+								assert(dataAccess->getType() == READ_ACCESS_TYPE);
+
+								DataAccessStatusEffects initialStatus(dataAccess);
+								dataAccess->setComplete();
+								DataAccessStatusEffects updatedStatus(dataAccess);
+
+								handleDataAccessStatusChanges(
+									initialStatus, updatedStatus,
+									dataAccess, accessStructures, dataAccess->getOriginator(),
+									hpDependencyData);
 							}
 						} else {
 

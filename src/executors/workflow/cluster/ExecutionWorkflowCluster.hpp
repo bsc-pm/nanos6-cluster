@@ -69,6 +69,17 @@ namespace ExecutionWorkflow {
 		{
 			access->setDataLinkStep(this);
 
+			// Data link for read access. Ignore true
+			// write satisfiability and send only pseudowrite
+			// satisfiability if read satisfied.
+			if (access->getType() == READ_ACCESS_TYPE) {
+				_write = false;
+				if (_read) {
+					_write = true;
+					access->setRemoteHasPseudowrite();
+				}
+			}
+
 			assert(targetMemoryPlace->getType() == nanos6_device_t::nanos6_cluster_device);
 			int targetNamespace = targetMemoryPlace->getIndex();
 

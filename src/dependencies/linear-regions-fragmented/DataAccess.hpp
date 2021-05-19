@@ -76,6 +76,7 @@ private:
 		PROPAGATE_FROM_NAMESPACE_BIT,
 		PROPAGATED_NAMESPACE_INFO_BIT,
 		EARLY_RELEASE_IN_NAMESPACE_BIT,
+		REMOTE_HAS_PSEUDOWRITE_BIT,
 		TOTAL_STATUS_BITS
 	};
 
@@ -821,6 +822,16 @@ public:
 	void setEarlyReleaseInNamespace()
 	{
 		_status[EARLY_RELEASE_IN_NAMESPACE_BIT] = true;
+	}
+
+	bool remoteHasPseudowrite() const
+	{
+		return _status[REMOTE_HAS_PSEUDOWRITE_BIT];
+	}
+
+	void setRemoteHasPseudowrite()
+	{
+		_status[REMOTE_HAS_PSEUDOWRITE_BIT] = true;
 	}
 };
 
