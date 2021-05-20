@@ -42,6 +42,7 @@ struct CPUDependencyData {
 		bool _makeConcurrentSatisfied;
 		bool _makeCommutativeSatisfied;
 		bool _propagateSatisfiability;
+		bool _setPropagateFromNamespace;
 		MemoryPlace const *_location;
 #ifdef USE_CLUSTER
 		WriteID _writeID;
@@ -58,6 +59,7 @@ struct CPUDependencyData {
 			_makeReadSatisfied(false), _makeWriteSatisfied(false),
 			_makeConcurrentSatisfied(false), _makeCommutativeSatisfied(false),
 			 _propagateSatisfiability(false),
+			 _setPropagateFromNamespace(false),
 			_location(nullptr),
 #ifdef USE_CLUSTER
 			_writeID(0),
@@ -73,6 +75,7 @@ struct CPUDependencyData {
 			_makeReadSatisfied(false), _makeWriteSatisfied(false),
 			_makeConcurrentSatisfied(false), _makeCommutativeSatisfied(false),
 			 _propagateSatisfiability(false),
+			 _setPropagateFromNamespace(false),
 			_location(nullptr),
 #ifdef USE_CLUSTER
 			_writeID(0),
@@ -87,6 +90,7 @@ struct CPUDependencyData {
 		{
 			return !_makeReadSatisfied && !_makeWriteSatisfied
 				&& !_makeConcurrentSatisfied && !_makeCommutativeSatisfied
+				&& !_setPropagateFromNamespace
 				&& !_setReductionInfo
 				&& (_reductionSlotSet.size() == 0)
 				&& !_namespacePredecessor;

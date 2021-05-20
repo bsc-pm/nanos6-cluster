@@ -1765,6 +1765,10 @@ namespace DataAccessRegistration {
 			access->setCommutativeSatisfied();
 		}
 
+		if (updateOperation._setPropagateFromNamespace) {
+			access->setPropagateFromNamespace();
+		}
+
 		// ReductionInfo
 		if (updateOperation._setReductionInfo) {
 			access->setPreviousReductionInfo(updateOperation._reductionInfo);
@@ -2842,9 +2846,17 @@ namespace DataAccessRegistration {
 					// access that was in the bottom map.
 					previous->setNext(next);
 
-					if (dataAccess->getAccessRegion().fullyContainedIn(previous->getAccessRegion())) {
-						if (parent->isNodeNamespace()) {
+					if (parent->isNodeNamespace()) {
+						if (dataAccess->getAccessRegion().fullyContainedIn(previous->getAccessRegion())) {
 							dataAccess->setPropagateFromNamespace();
+						} else {
+							// Need to set propagate from namespace for the part of dataAccess that is covered
+							// by previous. Unfortunately we cannot fragment dataAccess right now because we are in the
+							// middle of handling all the bottom map entries that cover it. So make a delayed
+							// operation to set propagate from namespace for this region.
+							UpdateOperation updateOperation(DataAccessLink(dataAccess->getOriginator(), access_type), previous->getAccessRegion());
+							updateOperation._setPropagateFromNamespace = true;
+							hpDependencyData._delayedOperations.emplace_back(updateOperation);
 						}
 					}
 				}
