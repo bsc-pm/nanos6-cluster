@@ -58,6 +58,7 @@ namespace ExecutionWorkflow {
 		}
 
 		assert(targetMemoryPlace != nullptr);
+		assert(!Directory::isDirectoryMemoryPlace(targetMemoryPlace));
 
 		// The source memory place is nullptr if and only if the dependency is
 		// not yet read satisfied, which is only possible (at this point) if
@@ -84,11 +85,7 @@ namespace ExecutionWorkflow {
 			// clusterCopy. The data doesn't need copying, since being in the
 			// directory implies that the data is uninitialized. But the new
 			// location may need registering in the remote dependency system.
-			step = clusterCopy(
-				sourceMemoryPlace,
-				targetMemoryPlace,
-				region,
-				access);
+			step = clusterCopy(sourceMemoryPlace, targetMemoryPlace, region, access);
 		} else {
 			step = _transfersMap[sourceType][targetType](
 				sourceMemoryPlace,
@@ -97,7 +94,6 @@ namespace ExecutionWorkflow {
 				access
 			);
 		}
-		assert(!Directory::isDirectoryMemoryPlace(targetMemoryPlace));
 
 		Instrument::exitCreateDataCopyStep(isTaskwait);
 		return step;
@@ -200,9 +196,10 @@ namespace ExecutionWorkflow {
 	void executeTask(Task *task, ComputePlace *targetComputePlace, MemoryPlace *targetMemoryPlace)
 	{
 		/* The workflow has already been created for this Task.
-			* At this point the Task has been assigned to a WorkerThread
-			* because all its pending DataCopy steps have been completed
-			* and it's ready to actually run */
+		 * At this point the Task has been assigned to a WorkerThread
+		 * because all its pending DataCopy steps have been completed
+		 * and it's ready to actually run.
+		 */
 		if (task->getWorkflow() != nullptr) {
 			ExecutionWorkflow::Step *executionStep = task->getExecutionStep();
 
@@ -247,11 +244,11 @@ namespace ExecutionWorkflow {
 					targetMemoryPlace,
 					false,
 					/* For clusters, finalize this task and send
-						* the MessageTaskFinished BEFORE propagating
-						* satisfiability to any other tasks. This is to
-						* avoid potentially sending the
-						* MessageTaskFinished messages out of order
-						*/
+					 * the MessageTaskFinished BEFORE propagating
+					 * satisfiability to any other tasks. This is to
+					 * avoid potentially sending the
+					 * MessageTaskFinished messages out of order
+					 */
 					[&] {
 						TaskFinalization::taskFinished(task, cpu);
 						bool ret = task->markAsReleased();
@@ -331,7 +328,7 @@ namespace ExecutionWorkflow {
 		);
 
 		/* TODO: Once we have correct management for the Task symbols here
-			* we should create the corresponding allocation steps. */
+		 * we should create the corresponding allocation steps. */
 
 		DataReleaseStep *releaseStep = workflow->createDataReleaseStep(task);
 		workflow->enforceOrder(executionStep, releaseStep);
@@ -353,17 +350,19 @@ namespace ExecutionWorkflow {
 						&& Directory::isDirectoryMemoryPlace(currLocation)
 						&& targetComputePlace->getType() == nanos6_host_device) {
 
-						// This isn't perfect, because the homeNodes list is only empty if the
-						// whole region is missing from the directory whereas we would prefer to raise
-						// an error even if just a part of it is missing. But this test does a good job of finding
-						// blatantly wrong accesses.
+						// This isn't perfect, because the homeNodes list is only empty if the whole
+						// region is missing from the directory whereas we would prefer to raise an
+						// error even if just a part of it is missing. But this test does a good job
+						// of finding blatantly wrong accesses.
 						Directory::HomeNodesArray const *homeNodes = Directory::find(region);
-						FatalErrorHandler::failIf(homeNodes->empty(),
-												"Non-weak access ",
-												region,
-												" of ",
-												task->getLabel(),
-												" is an unknown region not from lmalloc, dmalloc or the stack");
+						FatalErrorHandler::failIf(
+							homeNodes->empty(),
+							"Non-weak access ",
+							region,
+							" of ",
+							task->getLabel(),
+							" is an unknown region not from lmalloc, dmalloc or the stack");
+
 						delete homeNodes;
 					}
 				}
@@ -400,8 +399,11 @@ namespace ExecutionWorkflow {
 		workflow->start();
 	}
 
-	void setupTaskwaitWorkflow(Task *task, DataAccess *taskwaitFragment, CPUDependencyData &hpDependencyData)
-	{
+	void setupTaskwaitWorkflow(
+		Task *task,
+		DataAccess *taskwaitFragment,
+		CPUDependencyData &hpDependencyData
+	) {
 		Instrument::enterSetupTaskwaitWorkflow();
 		WorkerThread *currentThread = WorkerThread::getCurrentWorkerThread();
 

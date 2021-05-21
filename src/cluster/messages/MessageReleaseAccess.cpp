@@ -11,10 +11,13 @@
 #include <TaskOffloading.hpp>
 #include <ClusterUtil.hpp>
 
-MessageReleaseAccess::MessageReleaseAccess(const ClusterNode *from,
-		void *offloadedTaskId, DataAccessRegion const &region,
-		WriteID writeID, int location)
-	: Message(RELEASE_ACCESS, sizeof(ReleaseAccessMessageContent), from)
+MessageReleaseAccess::MessageReleaseAccess(
+	const ClusterNode *from,
+	void *offloadedTaskId,
+	DataAccessRegion const &region,
+	WriteID writeID,
+	int location
+) : Message(RELEASE_ACCESS, sizeof(ReleaseAccessMessageContent), from)
 {
 	_content = reinterpret_cast<ReleaseAccessMessageContent *>(_deliverable->payload);
 	_content->_offloadedTaskId = offloadedTaskId;
@@ -27,8 +30,12 @@ bool MessageReleaseAccess::handleMessage()
 {
 	const MemoryPlace *memoryPlace = ClusterManager::getMemoryNodeOrDirectory(_content->_location);
 
-	TaskOffloading::releaseRemoteAccess((Task *)_content->_offloadedTaskId,
-			_content->_region, _content->_writeID, memoryPlace);
+	TaskOffloading::releaseRemoteAccess(
+		(Task *)_content->_offloadedTaskId,
+		_content->_region,
+		_content->_writeID,
+		memoryPlace
+	);
 
 	return true;
 }

@@ -16,42 +16,42 @@
 #include "WriteID.hpp"
 
 class MessageReleaseAccess : public Message {
+
 	struct ReleaseAccessMessageContent {
 		//! The opaque id identifying the offloaded task
 		void *_offloadedTaskId;
-		
+
 		//! The region we are releasing
 		DataAccessRegion _region;
-		
+
 		WriteID _writeID;
 
 		//! The location on which the access is being released
 		int _location;
 	};
-	
+
 	//! pointer to message payload
 	ReleaseAccessMessageContent *_content;
-	
+
 public:
 	MessageReleaseAccess(const ClusterNode *from, void *offloadedTaskId,
-			DataAccessRegion const &region,
-			WriteID writeID, int location);
-	
-	MessageReleaseAccess(Deliverable *dlv)
-		: Message(dlv)
+		DataAccessRegion const &region,
+		WriteID writeID, int location);
+
+	MessageReleaseAccess(Deliverable *dlv) : Message(dlv)
 	{
 		_content = reinterpret_cast<ReleaseAccessMessageContent *>(_deliverable->payload);
 	}
-	
+
 	bool handleMessage();
-	
+
 	inline std::string toString() const
 	{
 		std::stringstream ss;
-		
+
 		ss << "[region:" << _content->_region
 			<< " location:" << _content->_location << "]";
-		
+
 		return ss.str();
 	}
 };

@@ -166,8 +166,8 @@ namespace TaskOffloading {
 
 		ClusterNode *current = ClusterManager::getCurrentClusterNode();
 
-		std::stringstream ss;
-		ss << region;
+		// std::stringstream ss;
+		// ss << region;
 
 		// clusterPrintf("Sending MessageReleaseAccess remote task %p [%s] to %d\n",
 		// 	offloadedTaskId,
