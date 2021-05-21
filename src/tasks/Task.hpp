@@ -65,9 +65,10 @@ public:
 		stream_flag,
 		main_task_flag,
 		remote_wrapper_flag,
-		remote_flag,
+		remote_flag,          // remote: offloaded to this node
 		polling_flag,
 		nonlocal_wait_flag,
+		offloaded_flag,  // offloaded from this node
 		total_flags
 	};
 
@@ -677,9 +678,18 @@ public:
 		return _flags[remote_wrapper_flag];
 	}
 
+	// Check if this is a remote task (offloaded to this node)
 	inline bool isRemoteTask() const
 	{
 		const bool ret =_flags[remote_flag];
+		assert(ret ? (_parent != nullptr) : true);
+		return ret;
+	}
+
+	// Check if this is an offloaded task (from this node)
+	inline bool isOffloadedTask() const
+	{
+		const bool ret =_flags[offloaded_flag];
 		assert(ret ? (_parent != nullptr) : true);
 		return ret;
 	}
@@ -872,6 +882,11 @@ public:
 	inline void markAsRemote()
 	{
 		_flags[remote_flag] = true;
+	}
+
+	inline void markAsOffloaded()
+	{
+		_flags[offloaded_flag] = true;
 	}
 
 	inline void setClusterContext(TaskOffloading::ClusterTaskContext *clusterContext)

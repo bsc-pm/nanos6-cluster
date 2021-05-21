@@ -4520,10 +4520,7 @@ namespace DataAccessRegistration {
 				createTopLevelSink(task, accessStructures, hpDependencyData);
 			}
 
-			const bool isRemote = location->getType() ==  nanos6_device_t::nanos6_cluster_device
-							&& location->getIndex() != ClusterManager::getCurrentClusterNode()->getIndex();
-
-			if (isRemote) {
+			if (task->isOffloadedTask()) {
 
 				/* This task was executed on another node. All non-complete
 				 * accesses that remain at this point must have been propagated

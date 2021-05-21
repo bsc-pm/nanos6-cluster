@@ -81,6 +81,7 @@ namespace TaskOffloading {
 		SatisfiabilityInfo const *satInfoPtr = (nrSatInfo == 0) ? nullptr : satInfo.data();
 
 		Instrument::taskIsOffloaded(task->getInstrumentationTaskId());
+		task->markAsOffloaded();
 
 		MessageTaskNew *msg = new MessageTaskNew(
 			thisNode, taskInfo,
