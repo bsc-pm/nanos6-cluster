@@ -14,28 +14,31 @@
 MessageReleaseAccess::MessageReleaseAccess(
 	const ClusterNode *from,
 	void *offloadedTaskId,
-	DataAccessRegion const &region,
-	WriteID writeID,
-	int location
-) : Message(RELEASE_ACCESS, sizeof(ReleaseAccessMessageContent), from)
+	ReleaseAccessInfoVector &InfoVector
+) :
+	Message(RELEASE_ACCESS,
+		sizeof(void*) + sizeof(size_t) + InfoVector.size() * sizeof(ReleaseAccessInfo), from)
 {
 	_content = reinterpret_cast<ReleaseAccessMessageContent *>(_deliverable->payload);
+
 	_content->_offloadedTaskId = offloadedTaskId;
-	_content->_region = region;
-	_content->_writeID = writeID;
-	_content->_location = location;
+	_content->_ninfos = InfoVector.size();
+
+	size_t index = 0;
+	for (ReleaseAccessInfo const &accessinfo : InfoVector) {
+		_content->_regionInfoList[index++] = accessinfo;
+	}
 }
 
 bool MessageReleaseAccess::handleMessage()
 {
-	const MemoryPlace *memoryPlace = ClusterManager::getMemoryNodeOrDirectory(_content->_location);
+	const size_t nRegions = _content->_ninfos;
 
-	TaskOffloading::releaseRemoteAccess(
-		(Task *)_content->_offloadedTaskId,
-		_content->_region,
-		_content->_writeID,
-		memoryPlace
-	);
+	for (size_t i = 0; i < nRegions; ++i) {
+		ReleaseAccessInfo &accessinfo = _content->_regionInfoList[i];
+
+		TaskOffloading::releaseRemoteAccess((Task *)_content->_offloadedTaskId, accessinfo);
+	}
 
 	return true;
 }

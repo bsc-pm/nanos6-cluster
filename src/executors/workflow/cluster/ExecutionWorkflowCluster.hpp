@@ -23,6 +23,8 @@
 #include <ClusterUtil.hpp>
 #include <DataAccessRegistration.hpp>
 
+#include <MessageReleaseAccess.hpp>
+
 class ComputePlace;
 class MemoryPlace;
 
@@ -194,6 +196,8 @@ namespace ExecutionWorkflow {
 		//! the cluster node we need to notify
 		ClusterNode const *_offloader;
 
+		MessageReleaseAccess::ReleaseAccessInfoVector _releaseInfo;
+
 	public:
 		ClusterDataReleaseStep(TaskOffloading::ClusterTaskContext *context, Task *task)
 			: DataReleaseStep(task),
@@ -212,8 +216,8 @@ namespace ExecutionWorkflow {
 		void releaseRegion(
 			DataAccessRegion const &region,
 			WriteID writeID,
-			MemoryPlace const *location) override
-		{
+			MemoryPlace const *location
+		) override {
 			/*
 			 * location == nullptr means that the access was propagated in this node's
 			 * namespace rather than being released to the offloader. This means that
@@ -227,13 +231,39 @@ namespace ExecutionWorkflow {
 					"releasing remote region:", region
 				);
 
+				const MemoryPlace *clusterLocation = location;
+
+				// If location is a host device on this node it is a cluster
+				// device from the point of view of the remote node
+				if (location->getType() != nanos6_cluster_device
+					&& !Directory::isDirectoryMemoryPlace(location)) {
+					clusterLocation = ClusterManager::getCurrentMemoryNode();
+				}
+
+				if (_releaseInfo.empty()) {
+					_releaseInfo.push_back(
+						MessageReleaseAccess::ReleaseAccessInfo(region, writeID, clusterLocation)
+					);
+				} else {
+					_releaseInfo[0] =
+						MessageReleaseAccess::ReleaseAccessInfo(region, writeID, clusterLocation);
+				}
+
 				TaskOffloading::sendRemoteAccessRelease(
-					_remoteTaskIdentifier, _offloader, region, writeID, location
+					_remoteTaskIdentifier, _offloader, _releaseInfo
 				);
+
 			}
 
 			_bytesToRelease -= region.getSize();
 			if (_bytesToRelease == 0) {
+
+				// if (!_releaseInfo.empty()) {
+				// 	TaskOffloading::sendRemoteAccessRelease(
+				// 		_remoteTaskIdentifier, _offloader, _releaseInfo
+				// 	);
+				// }
+
 				delete this;
 			}
 		}

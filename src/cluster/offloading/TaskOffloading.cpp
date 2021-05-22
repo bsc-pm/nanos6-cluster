@@ -20,7 +20,6 @@
 #include <RemoteTasksInfoMap.hpp>
 #include <DataAccessRegistration.hpp>
 #include <Directory.hpp>
-#include <MessageReleaseAccess.hpp>
 #include <MessageTaskFinished.hpp>
 #include <MessageTaskNew.hpp>
 #include "MessageSatisfiability.hpp"
@@ -133,19 +132,8 @@ namespace TaskOffloading {
 	void sendRemoteAccessRelease(
 		void *offloadedTaskId,
 		ClusterNode const *offloader,
-		DataAccessRegion const &region,
-		WriteID writeID,
-		MemoryPlace const *location
+		MessageReleaseAccess::ReleaseAccessInfoVector &_release
 	) {
-		assert(location != nullptr);
-
-		// If location is a host device on this node it is a cluster
-		// device from the point of view of the remote node
-		if (location->getType() != nanos6_cluster_device
-			&& !Directory::isDirectoryMemoryPlace(location)) {
-			location = ClusterManager::getCurrentMemoryNode();
-		}
-
 		ClusterNode *current = ClusterManager::getCurrentClusterNode();
 
 		// std::stringstream ss;
@@ -156,20 +144,18 @@ namespace TaskOffloading {
 		// 	ss.str().c_str(),
 		// 	offloader->getIndex());
 
-		MessageReleaseAccess *msg =
-			new MessageReleaseAccess(current, offloadedTaskId, region, writeID, location->getIndex());
+		MessageReleaseAccess *msg = new MessageReleaseAccess(current, offloadedTaskId, _release);
 
 		ClusterManager::sendMessage(msg, offloader);
 	}
 
-	void releaseRemoteAccess(
-		Task *task,
-		DataAccessRegion const &region,
-		WriteID writeID,
-		MemoryPlace const *location
-	) {
+	void releaseRemoteAccess(Task *task, MessageReleaseAccess::ReleaseAccessInfo &accessinfo)
+	{
 		assert(task != nullptr);
-		assert(Directory::isDirectoryMemoryPlace(location) || location->getType() == nanos6_cluster_device);
+		MemoryPlace const *location = ClusterManager::getMemoryNodeOrDirectory(accessinfo._location);
+
+		assert(Directory::isDirectoryMemoryPlace(location)
+			|| location->getType() == nanos6_cluster_device);
 
 		WorkerThread *currentThread = WorkerThread::getCurrentWorkerThread();
 
@@ -180,11 +166,11 @@ namespace TaskOffloading {
 			(cpu != nullptr) ? cpu->getDependencyData() : localDependencyData;
 
 		DataAccessRegistration::releaseAccessRegion(
-			task, region,
+			task, accessinfo._region,
 			/* not relevant as specifyingDependency = false */ NO_ACCESS_TYPE,
 			/* not relevant as specifyingDependency = false */ false,
 			cpu,
-			hpDependencyData, writeID, location, /* specifyingDependency */ false
+			hpDependencyData, accessinfo._writeID, location, /* specifyingDependency */ false
 		);
 	}
 

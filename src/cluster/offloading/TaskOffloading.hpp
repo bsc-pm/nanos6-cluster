@@ -14,6 +14,8 @@
 #include "SatisfiabilityInfo.hpp"
 #include "dependencies/DataAccessType.hpp"
 
+#include <MessageReleaseAccess.hpp>
+
 class ClusterNode;
 class MemoryPlace;
 class MessageTaskNew;
@@ -66,10 +68,9 @@ namespace TaskOffloading {
 	//! \param[in] location is the ClusterMemoryPlace on which the access
 	//!		is released
 	void sendRemoteAccessRelease(void *offloadedTaskId,
-			ClusterNode const *offloader,
-			DataAccessRegion const &region,
-			WriteID writeID,
-			MemoryPlace const *location);
+		ClusterNode const *offloader,
+		MessageReleaseAccess::ReleaseAccessInfoVector &releaseInfoVector
+	);
 
 	//! \brief Release a region of an offloaded Task
 	//!
@@ -80,9 +81,7 @@ namespace TaskOffloading {
 	//! \param[in] location is the ClusterMemoryPlace on which the access
 	//!		is released
 	void releaseRemoteAccess(Task *task,
-		DataAccessRegion const &region,
-		WriteID writeID,
-		MemoryPlace const *location
+		MessageReleaseAccess::ReleaseAccessInfo &releaseInfo
 	);
 
 	//! Create and submit a task

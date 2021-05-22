@@ -16,11 +16,9 @@
 #include "WriteID.hpp"
 
 class MessageReleaseAccess : public Message {
+public:
 
-	struct ReleaseAccessMessageContent {
-		//! The opaque id identifying the offloaded task
-		void *_offloadedTaskId;
-
+	struct ReleaseAccessInfo {
 		//! The region we are releasing
 		DataAccessRegion _region;
 
@@ -28,17 +26,44 @@ class MessageReleaseAccess : public Message {
 
 		//! The location on which the access is being released
 		int _location;
+
+		ReleaseAccessInfo(
+			const DataAccessRegion &region,
+			WriteID writeID,
+			const MemoryPlace *location
+		) : _region(region.getStartAddress(), region.getSize()),
+			_writeID(writeID),
+			_location(location->getIndex())
+		{
+			assert(location->getType() == nanos6_cluster_device);
+		}
+	};
+
+	typedef std::vector<MessageReleaseAccess::ReleaseAccessInfo> ReleaseAccessInfoVector;
+
+private:
+	struct ReleaseAccessMessageContent {
+		//! The opaque id identifying the offloaded task
+		void *_offloadedTaskId;
+
+		size_t _ninfos;
+
+		ReleaseAccessInfo _regionInfoList[];
 	};
 
 	//! pointer to message payload
 	ReleaseAccessMessageContent *_content;
 
 public:
-	MessageReleaseAccess(const ClusterNode *from, void *offloadedTaskId,
-		DataAccessRegion const &region,
-		WriteID writeID, int location);
 
-	MessageReleaseAccess(Deliverable *dlv) : Message(dlv)
+	MessageReleaseAccess(
+		const ClusterNode *from,
+		void *offloadedTaskId,
+		ReleaseAccessInfoVector &vector
+	);
+
+	MessageReleaseAccess(Deliverable *dlv)
+		: Message(dlv)
 	{
 		_content = reinterpret_cast<ReleaseAccessMessageContent *>(_deliverable->payload);
 	}
@@ -49,8 +74,13 @@ public:
 	{
 		std::stringstream ss;
 
-		ss << "[region:" << _content->_region
-			<< " location:" << _content->_location << "]";
+		const size_t nRegions = _content->_ninfos;
+
+		for (size_t i = 0; i < nRegions; ++i) {
+			ReleaseAccessInfo &accessinfo = _content->_regionInfoList[i];
+
+			ss << "[region:" << accessinfo._region << " location:" << accessinfo._location << "]";
+		}
 
 		return ss.str();
 	}

@@ -438,14 +438,12 @@ namespace DataAccessRegistration {
 				// Being satisfied implies all predecessors (reduction or not) have been completed
 				&& _isSatisfied;
 
+			_triggersDataRelease = false;
 			if (access->getOriginator()->hasDataReleaseStep()) {
 				ExecutionWorkflow::DataReleaseStep *releaseStep =
 					access->getOriginator()->getDataReleaseStep();
 
-				_triggersDataRelease =
-					releaseStep->checkDataRelease(access);
-			} else {
-				_triggersDataRelease = false;
+				_triggersDataRelease = releaseStep->checkDataRelease(access);
 			}
 
 			_isRemovable = access->propagatedInRemoteNamespace() ||
@@ -694,8 +692,7 @@ namespace DataAccessRegistration {
 	 * tasks's data accesses (accessStructures). Any changes that cannot be
 	 * done while this lock is held (as they need a different lock and taking
 	 * it could cause a deadlock) will be added to hpDependencyData and done
-	 * later (in
-	 * processDelayedOperationsSatisfiedOriginatorsAndRemovableTasks).
+	 * later (in processDelayedOperationsSatisfiedOriginatorsAndRemovableTasks).
 	 */
 	static inline void handleDataAccessStatusChanges(
 		DataAccessStatusEffects const &initialStatus,
