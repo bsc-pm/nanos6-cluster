@@ -994,7 +994,7 @@ public:
 	{
 		// isRemoteTask asserts the parent is non null when true
 		// This assumes
-		return isRemoteTask() && _parent->isNodeNamespace();
+		return isRemoteTask() && _parent && _parent->isNodeNamespace();
 	}
 
 	//! Set the DataReleaseStep of the task. The task must not
