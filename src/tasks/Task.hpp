@@ -115,7 +115,9 @@ private:
 	ReadyTaskHint _schedulingHint;
 
 	//! DataReleaseStep related with this task
+	SpinLock _releaseStepInfoLock;
 	ExecutionWorkflow::DataReleaseStep *_dataReleaseStep;
+	friend class ExecutionWorkflow::DataReleaseStep;
 
 protected:
 	//! The thread assigned to this task, nullptr if the task has finished (but possibly waiting its children)

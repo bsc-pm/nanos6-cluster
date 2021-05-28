@@ -231,27 +231,35 @@ namespace ExecutionWorkflow {
 					"releasing remote region:", region
 				);
 
-				const MemoryPlace *clusterLocation = location;
-
 				// If location is a host device on this node it is a cluster
 				// device from the point of view of the remote node
+				const MemoryPlace *clusterLocation = (location->getType() == nanos6_cluster_device
+					|| Directory::isDirectoryMemoryPlace(location))
+					? location
+					: ClusterManager::getCurrentMemoryNode();
+
 				if (location->getType() != nanos6_cluster_device
 					&& !Directory::isDirectoryMemoryPlace(location)) {
 					clusterLocation = ClusterManager::getCurrentMemoryNode();
 				}
 
-				if (_releaseInfo.empty()) {
-					_releaseInfo.push_back(
-						MessageReleaseAccess::ReleaseAccessInfo(region, writeID, clusterLocation)
-					);
-				} else {
-					_releaseInfo[0] =
-						MessageReleaseAccess::ReleaseAccessInfo(region, writeID, clusterLocation);
-				}
+				// This change is temporal added only for this preparatory change for the next
+				// commit
+				//_infoLock.lock();
+
+				MessageReleaseAccess::ReleaseAccessInfoVector releaseInfo;
+
+				releaseInfo.push_back(
+					MessageReleaseAccess::ReleaseAccessInfo(region, writeID, clusterLocation)
+				);
 
 				TaskOffloading::sendRemoteAccessRelease(
-					_remoteTaskIdentifier, _offloader, _releaseInfo
+					_remoteTaskIdentifier, _offloader, releaseInfo
 				);
+
+				//_releaseInfo.clear();
+
+				//_infoLock.unlock();
 
 			}
 
@@ -459,8 +467,7 @@ namespace ExecutionWorkflow {
 				&& (type != READ_ACCESS_TYPE)
 				&& ((type != NO_ACCESS_TYPE) || !isDistributedRegion)
 				&& !Directory::isDirectoryMemoryPlace(source)
-			) ||
-			(
+			) || (
 				//! We need a DataTransfer for an access_type
 				//! access, if the access is not write-only
 			 	(objectType == access_type)

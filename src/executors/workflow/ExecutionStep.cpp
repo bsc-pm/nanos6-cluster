@@ -8,6 +8,8 @@
 
 #include <DataAccess.hpp>
 
+#include <tasks/Task.hpp>
+
 namespace ExecutionWorkflow {
 
 	DataLinkStep::DataLinkStep(DataAccess *access)
@@ -20,7 +22,8 @@ namespace ExecutionWorkflow {
 
 	DataReleaseStep::DataReleaseStep(Task *task)
 		: Step(),
-		_task(task)
+		_task(task),
+		_infoLock(task->_releaseStepInfoLock)
 	{
 	}
 

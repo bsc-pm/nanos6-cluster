@@ -145,8 +145,11 @@ namespace ExecutionWorkflow {
 		//! The number of bytes that this Step has to release
 		std::atomic<size_t> _bytesToRelease;
 
+		Task * const _task;
+
+		SpinLock &_infoLock;
+
 	public:
-		Task *_task;
 
 		//! \brief Create a DataReleaseStep
 		//!
