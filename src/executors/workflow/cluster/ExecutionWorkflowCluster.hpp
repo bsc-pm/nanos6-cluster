@@ -282,7 +282,18 @@ namespace ExecutionWorkflow {
 		Task *_task;
 
 	public:
-		ClusterExecutionStep(Task *task, ComputePlace *computePlace);
+		ClusterExecutionStep(Task *task, ComputePlace *computePlace)
+			: Step(),
+			_satInfo(),
+			_remoteNode(reinterpret_cast<ClusterNode *>(computePlace)),
+			_task(task)
+		{
+			assert(computePlace->getType() == nanos6_cluster_device);
+
+			TaskOffloading::ClusterTaskContext *clusterContext =
+				new TaskOffloading::ClusterTaskContext((void *)_task, _remoteNode);
+			_task->setClusterContext(clusterContext);
+		}
 
 		//! Inform the execution Step about the existence of a
 		//! pending data copy.
@@ -294,10 +305,30 @@ namespace ExecutionWorkflow {
 		//! \param[in] read is true if access is read-satisfied
 		//! \param[in] write is true if access is write-satisfied
 		//! \param[in] namespacePredecessorId is nullptr or predecessor remote task ID
-		void addDataLink(int source, DataAccessRegion const &region, WriteID writeID, bool read, bool write, void *namespacePredecessorId);
+		void addDataLink(
+			int source,
+			DataAccessRegion const &region,
+			WriteID writeID,
+			bool read, bool write,
+			void *namespacePredecessorId
+		) {
+			// This lock should already have been taken by the caller
+			// Apparently it is not.
+			//assert(_lock.isLockedByThisThread());
+			_satInfo.push_back(
+				TaskOffloading::SatisfiabilityInfo(
+					region, source,
+					read, write,
+					writeID, namespacePredecessorId)
+			);
+		}
 
 		//! Start the execution of the Step
-		void start() override;
+		void start() override
+		{
+			_task->setExecutionStep(this);
+			TaskOffloading::offloadTask(_task, _satInfo, _remoteNode);
+		}
 	};
 
 	class ClusterNotificationStep : public Step {
@@ -311,7 +342,15 @@ namespace ExecutionWorkflow {
 		}
 
 		//! Start the execution of the Step
-		void start() override;
+		void start() override
+		{
+			if (_callback) {
+				_callback();
+			}
+
+			releaseSuccessors();
+			delete this;
+		}
 	};
 
 	inline Step *clusterFetchData(
@@ -410,13 +449,11 @@ namespace ExecutionWorkflow {
 		//! It also happens when the data was previously uninitialized (was in
 		//! the directory) even on an in or inout dependency.
 		bool registerLocation = !needsTransfer
-				&& ( (objectType != taskwait_type)
-					  && !access->isWeak());
+			&& objectType != taskwait_type
+			&& !access->isWeak();
 
 		return new ClusterDataCopyStep(
-			source,
-			target,
-			inregion,
+			source, target, inregion,
 			access->getOriginator(),
 			access->getWriteID(),
 			(objectType == taskwait_type),

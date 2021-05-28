@@ -305,47 +305,4 @@ namespace ExecutionWorkflow {
 		return (handled == false);
 	}
 
-
-	ClusterExecutionStep::ClusterExecutionStep(Task *task, ComputePlace *computePlace)
-		: Step(),
-		_satInfo(),
-		_remoteNode(reinterpret_cast<ClusterNode *>(computePlace)),
-		_task(task)
-	{
-		assert(computePlace->getType() == nanos6_cluster_device);
-
-		TaskOffloading::ClusterTaskContext *clusterContext =
-			new TaskOffloading::ClusterTaskContext((void *)_task, _remoteNode);
-		_task->setClusterContext(clusterContext);
-	}
-
-	void ClusterExecutionStep::addDataLink(
-		int source,
-		DataAccessRegion const &region,
-		WriteID writeID,
-		bool read,
-		bool write,
-		void *namespacePredecessor
-	) {
-		// This lock should already have been taken by the caller
-		// Apparently it is not.
-		//assert(_lock.isLockedByThisThread());
-		_satInfo.push_back( TaskOffloading::SatisfiabilityInfo(region, source, read, write, writeID, namespacePredecessor) );
-	}
-
-	void ClusterExecutionStep::start()
-	{
-		_task->setExecutionStep(this);
-		TaskOffloading::offloadTask(_task, _satInfo, _remoteNode);
-	}
-
-	void ClusterNotificationStep::start()
-	{
-		if (_callback) {
-			_callback();
-		}
-
-		releaseSuccessors();
-		delete this;
-	}
 };

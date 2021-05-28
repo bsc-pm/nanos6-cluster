@@ -95,24 +95,6 @@ namespace TaskOffloading {
 		ClusterManager::sendMessage(msg, remoteNode);
 	}
 
-	void sendRemoteTaskFinished(void *offloadedTaskId, ClusterNode *offloader)
-	{
-		// clusterPrintf("Sending taskfinished for: %p %d\n", offloadedTaskId, offloader->getIndex());
-		// Unregister remote tasks first
-		assert(offloadedTaskId != nullptr);
-		assert(offloader != nullptr);
-		RemoteTasksInfoMap::eraseRemoteTaskInfo(offloadedTaskId, offloader->getIndex());
-
-		// clusterPrintf("Sending sendRemoteTaskFinished remote task %p %d\n",
-			// offloadedTaskId, offloader->getIndex());
-
-		// The notify back sending message
-		MessageTaskFinished *msg =
-			new MessageTaskFinished(ClusterManager::getCurrentClusterNode(), offloadedTaskId);
-
-		ClusterManager::sendMessage(msg, offloader);
-	}
-
 	void sendSatisfiability(Task *task, ClusterNode *remoteNode, SatisfiabilityInfo const &satInfo)
 	{
 		assert(task != nullptr);
@@ -350,4 +332,23 @@ namespace TaskOffloading {
 		// binary.
 		// delete msg;
 	}
+
+	void sendRemoteTaskFinished(void *offloadedTaskId, ClusterNode *offloader)
+	{
+		// clusterPrintf("Sending taskfinished for: %p %d\n", offloadedTaskId, offloader->getIndex());
+		// Unregister remote tasks first
+		assert(offloadedTaskId != nullptr);
+		assert(offloader != nullptr);
+		RemoteTasksInfoMap::eraseRemoteTaskInfo(offloadedTaskId, offloader->getIndex());
+
+		// clusterPrintf("Sending sendRemoteTaskFinished remote task %p %d\n",
+			// offloadedTaskId, offloader->getIndex());
+
+		// The notify back sending message
+		MessageTaskFinished *msg =
+			new MessageTaskFinished(ClusterManager::getCurrentClusterNode(), offloadedTaskId);
+
+		ClusterManager::sendMessage(msg, offloader);
+	}
+
 }
