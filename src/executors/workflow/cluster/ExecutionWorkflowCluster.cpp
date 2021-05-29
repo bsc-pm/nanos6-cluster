@@ -180,6 +180,25 @@ namespace ExecutionWorkflow {
 		_needsTransfer(needsTransfer),
 		_registerLocation(registerLocation)
 	{
+#ifndef NDEBUG
+		assert(ClusterManager::getCurrentMemoryNode() == _targetMemoryPlace);
+		assert(_targetMemoryPlace->getType() == nanos6_cluster_device);
+
+		assert(_sourceMemoryPlace != _targetMemoryPlace);
+
+		if (_registerLocation) {
+			assert(!_needsTransfer);
+		}
+
+		if (Directory::isDirectoryMemoryPlace(_sourceMemoryPlace)) {
+			assert(!_needsTransfer);
+		}
+
+		if (_needsTransfer) {
+			assert(_sourceMemoryPlace->getType() == nanos6_cluster_device);
+		}
+#endif
+
 		// We fragment the transfers here.
 		// TODO: If this affects performance, we can do the fragmentation on demand.
 		// So only when the fragmentation is going to take place.

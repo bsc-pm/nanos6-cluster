@@ -29,16 +29,16 @@ class MemoryPlace;
 namespace ExecutionWorkflow {
 	class ClusterDataLinkStep : public DataLinkStep {
 		//! The MemoryPlace that holds the data at the moment
-		MemoryPlace const *_sourceMemoryPlace;
+		MemoryPlace const * const _sourceMemoryPlace;
 
 		//! The MemoryPlace that requires the data
-		MemoryPlace const *_targetMemoryPlace;
+		MemoryPlace const * const _targetMemoryPlace;
 
 		//! DataAccessRegion that the Step covers
-		DataAccessRegion _region;
+		const DataAccessRegion _region;
 
 		//! The task in which the access belongs to
-		Task *_task;
+		Task * const _task;
 
 		//! read satisfiability at creation time
 		bool _read;
@@ -81,7 +81,7 @@ namespace ExecutionWorkflow {
 			}
 
 			assert(targetMemoryPlace->getType() == nanos6_device_t::nanos6_cluster_device);
-			int targetNamespace = targetMemoryPlace->getIndex();
+			const int targetNamespace = targetMemoryPlace->getIndex();
 
 			/* Starting workflow on another node: set the namespace and predecessor task */
 			if (ClusterManager::getDisableRemote()) {
@@ -111,30 +111,30 @@ namespace ExecutionWorkflow {
 
 	class ClusterDataCopyStep : public Step {
 		//! The MemoryPlace that the data will be copied from.
-		MemoryPlace const *_sourceMemoryPlace;
+		MemoryPlace const * const _sourceMemoryPlace;
 
 		//! The MemoryPlace that the data will be copied to.
-		MemoryPlace const *_targetMemoryPlace;
+		MemoryPlace const * const _targetMemoryPlace;
 
 		//! A mapping of the address range in the source node to the target node.
 		DataAccessRegion const _fullRegion;
 		std::vector<DataAccessRegion> _regionsFragments;
 
 		//! The task on behalf of which we perform the data copy
-		Task *_task;
+		Task * const _task;
 
-		WriteID _writeID;
+		const WriteID _writeID;
 
 		//! The data copy is for a taskwait
-		bool _isTaskwait;
+		const bool _isTaskwait;
 
 		//! The access is weak
-		bool _isWeak;
+		const bool _isWeak;
 
 		//! An actual data transfer is required
-		bool _needsTransfer;
+		const bool _needsTransfer;
 
-		bool _registerLocation;
+		const bool _registerLocation;
 
 		//! Number of fragments messages
 		size_t _nFragments;

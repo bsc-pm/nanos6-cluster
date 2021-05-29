@@ -1914,6 +1914,13 @@ namespace DataAccessRegistration {
 	{
 		Task *lastLocked = task;
 		Task *myOffloadedTask = getOffloadedTask(task);
+
+#ifndef NDEBUG
+		if (task->hasDataReleaseStep()) {
+			assert(task == myOffloadedTask);
+		}
+#endif // NDEBUG
+
 		// assert(task->getDataAccesses()._lock.isLockedByThisThread());
 
 		for (auto it = hpDependencyData._delayedOperations.begin();
