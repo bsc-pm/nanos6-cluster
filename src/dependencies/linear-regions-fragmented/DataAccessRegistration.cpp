@@ -1910,7 +1910,7 @@ namespace DataAccessRegistration {
 					Task *task)
 	{
 		Task *lastLocked = task;
-		Task *myOffloadedTask = getOffloadedTask(task);
+		Task * const myOffloadedTask = getOffloadedTask(task);
 
 #ifndef NDEBUG
 		if (task->hasDataReleaseStep()) {
@@ -1956,6 +1956,11 @@ namespace DataAccessRegistration {
 				it++;
 			}
 		}
+
+		// if handleDataAccessStatusChanges added some accesses to release
+		// then We release all of them together
+		assert(!task->hasDataReleaseStep()
+			|| (task->hasDataReleaseStep() && task == myOffloadedTask));
 
 		if (lastLocked != nullptr) {
 			lastLocked->getDataAccesses()._lock.unlock();
@@ -4635,14 +4640,12 @@ namespace DataAccessRegistration {
 									dataAccess, accessStructures, dataAccess->getOriginator(),
 									hpDependencyData);
 							}
-						} else {
-
 						}
 
 						/* Keep going for all accesses */
 						return true;
 					});
-			} else {
+			} else { // task->isOffloadedTask()
 
 				/* The task was executed here. Finalize all accesses.
 				 */

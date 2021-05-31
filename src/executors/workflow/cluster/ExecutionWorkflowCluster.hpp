@@ -436,11 +436,12 @@ namespace ExecutionWorkflow {
 			// on node 0. This is probably acceptable in this example where the weakinout
 			// is explicit, but when the weakinout is "all memory" there is too much
 			// chance of this kind of thing happening.
-			FatalErrorHandler::failIf( ClusterManager::getEagerWeakFetch() || (ClusterManager::getMessageMaxSize() != SIZE_MAX),
-										"Set cluster.eager_weak_fetch = false and cluster.message_max_size = -1 for large weak memory access ",
-										access->getAccessRegion(),
-										" of task ",
-										access->getOriginator()->getLabel());
+			FatalErrorHandler::failIf(
+				ClusterManager::getEagerWeakFetch() || (ClusterManager::getMessageMaxSize() != SIZE_MAX),
+				"Set cluster.eager_weak_fetch = false and cluster.message_max_size = -1 for large weak memory access ",
+				access->getAccessRegion(),
+				" of task ",
+				access->getOriginator()->getLabel());
 		}
 
 		bool needsTransfer =
