@@ -4242,9 +4242,10 @@ namespace DataAccessRegistration {
 				if (location) {
 					access->setLocation(location);
 				}
-				access->setValidNamespacePrevious(VALID_NAMESPACE_NONE, nullptr);
-				access->setValidNamespaceSelf(VALID_NAMESPACE_NONE);
+				// access->setValidNamespacePrevious(VALID_NAMESPACE_NONE, nullptr);
+				// access->setValidNamespaceSelf(VALID_NAMESPACE_NONE);
 				DataAccessStatusEffects updatedStatus(access);
+				updatedStatus._allowNamespacePropagation = false;
 
 				/* Handle the above data access status changes */
 				handleDataAccessStatusChanges(
