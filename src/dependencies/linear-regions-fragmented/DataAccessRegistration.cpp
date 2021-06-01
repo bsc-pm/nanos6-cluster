@@ -440,27 +440,27 @@ namespace DataAccessRegistration {
 
 			_triggersDataRelease = false;
 			if (access->getOriginator()->hasDataReleaseStep()) {
-				ExecutionWorkflow::DataReleaseStep *releaseStep =
+				ExecutionWorkflow::DataReleaseStep const * const releaseStep =
 					access->getOriginator()->getDataReleaseStep();
 
 				_triggersDataRelease = releaseStep->checkDataRelease(access);
 			}
 
-			_isRemovable = access->propagatedInRemoteNamespace() ||
-				                  (access->readSatisfied() && access->writeSatisfied()
-				               	&& access->receivedReductionInfo()
-				               	// Read as: If this (reduction) access is part of its predecessor reduction,
-				               	// it needs to have received the 'ReductionSlotSet' before being removed
-				               	&& ((access->getType() != REDUCTION_ACCESS_TYPE)
-				               		|| access->allocatedReductionInfo() || access->receivedReductionSlotSet())
-				               	&& access->complete()
-				               	&& (
-				                    !access->isInBottomMap() || access->hasNext()
-				                     || _triggersDataRelease // access->getOriginator()->isRemoteTask()
-				                     || (access->getType() == NO_ACCESS_TYPE)
-				                     || (access->getObjectType() == taskwait_type)
-				                     || (access->getObjectType() == top_level_sink_type)
-				               	));
+			_isRemovable = access->propagatedInRemoteNamespace()
+				|| (access->readSatisfied()
+					&& access->writeSatisfied()
+					&& access->receivedReductionInfo()
+					// Read as: If this (reduction) access is part of its predecessor reduction,
+					// it needs to have received the 'ReductionSlotSet' before being removed
+					&& ((access->getType() != REDUCTION_ACCESS_TYPE)
+						|| access->allocatedReductionInfo() || access->receivedReductionSlotSet())
+					&& access->complete()
+					&& (!access->isInBottomMap() || access->hasNext()
+						|| _triggersDataRelease // access->getOriginator()->isRemoteTask()
+						|| (access->getType() == NO_ACCESS_TYPE)
+						|| (access->getObjectType() == taskwait_type)
+						|| (access->getObjectType() == top_level_sink_type)
+					));
 			/* Also must have already received the namespace information from previous access */
 			_isRemovable = _isRemovable && ((access->getObjectType() != access_type)
 											|| (access->getValidNamespacePrevious() != VALID_NAMESPACE_UNKNOWN));
@@ -4594,7 +4594,7 @@ namespace DataAccessRegistration {
 				 * accessed again on the current node.
 				 */
 				 assert(accessStructures._accessFragments.empty());
-				 accessStructures._accesses.processAll(
+				 accesses.processAll(
 				 	[&](TaskDataAccesses::accesses_t::iterator position) -> bool {
 						DataAccess *dataAccess = &(*position);
 						assert(dataAccess != nullptr);

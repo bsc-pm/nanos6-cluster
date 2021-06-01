@@ -7,6 +7,7 @@
 #include "ExecutionStep.hpp"
 
 #include <DataAccess.hpp>
+#include <tasks/Task.hpp>
 
 #include <tasks/Task.hpp>
 

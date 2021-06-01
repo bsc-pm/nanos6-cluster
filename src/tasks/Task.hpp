@@ -453,7 +453,7 @@ public:
 	//! \returns true if its depedencies can be released
 	inline bool markAllChildrenAsFinished(ComputePlace *computePlace);
 
-	inline bool allChildrenHaveFinished()
+	inline bool allChildrenHaveFinished() const
 	{
 		return _countdownToRelease == 0;
 	}
@@ -493,7 +493,7 @@ public:
 	}
 
 	//! \brief Indicates whether it has finished
-	inline bool hasFinished()
+	inline bool hasFinished() const
 	{
 		if (_taskInfo->implementations[0].device_type_id != nanos6_host_device) {
 			return (_computePlace == nullptr);

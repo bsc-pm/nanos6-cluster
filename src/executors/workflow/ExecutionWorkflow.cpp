@@ -287,7 +287,7 @@ namespace ExecutionWorkflow {
 
 				CPUDependencyData localDependencyData;
 				CPUDependencyData &hpDependencyData =
-					(cpu == nullptr) ? localDependencyData : cpu->getDependencyData();
+					(cpu != nullptr) ? cpu->getDependencyData() : localDependencyData;
 
 				/*
 				 * For offloaded tasks with cluster.disable_autowait=false, handle
@@ -300,28 +300,27 @@ namespace ExecutionWorkflow {
 					hpDependencyData);
 
 				if (task->markAsFinished(cpu/* cpu */)) {
-						DataAccessRegistration::unregisterTaskDataAccesses(
-							task,
-							cpu, /*cpu, */
-							hpDependencyData,
-							targetMemoryPlace,
-							false,
-							/* For clusters, finalize this task and send
-							 * the MessageTaskFinished BEFORE propagating
-							 * satisfiability to any other tasks. This is to
-							 * avoid potentially sending the
-							 * MessageTaskFinished messages out of order
-							 */
-							[&] {
-								TaskFinalization::taskFinished(task, cpu);
-								bool ret = task->markAsReleased();
-								if (ret) {
-									// const std::string label = task->getLabel();
-									TaskFinalization::disposeTask(task);
-								}
+					DataAccessRegistration::unregisterTaskDataAccesses(
+						task,
+						cpu, /*cpu, */
+						hpDependencyData,
+						targetMemoryPlace,
+						false,
+						/* For clusters, finalize this task and send
+						 * the MessageTaskFinished BEFORE propagating
+						 * satisfiability to any other tasks. This is to
+						 * avoid potentially sending the
+						 * MessageTaskFinished messages out of order
+						 */
+						[&] {
+							TaskFinalization::taskFinished(task, cpu);
+							if (task->markAsReleased()) {
+								// const std::string label = task->getLabel();
+								TaskFinalization::disposeTask(task);
 							}
-						);
-					}
+						}
+					);
+				}
 				delete workflow;
 			},
 			targetComputePlace

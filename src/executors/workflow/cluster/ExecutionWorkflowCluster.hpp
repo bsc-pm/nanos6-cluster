@@ -276,9 +276,10 @@ namespace ExecutionWorkflow {
 			}
 		}
 
-		bool checkDataRelease(DataAccess const *access) override
+
+		bool checkDataRelease(DataAccess const *access) const override
 		{
-			Task *task = access->getOriginator();
+			Task const * const task = access->getOriginator();
 
 			const bool mustWait = task->mustDelayRelease() && !task->allChildrenHaveFinished();
 
