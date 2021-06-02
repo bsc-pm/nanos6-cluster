@@ -197,83 +197,99 @@ namespace ExecutionWorkflow {
 		ClusterNode const *_offloader;
 
 		MessageReleaseAccess::ReleaseAccessInfoVector _releaseInfo;
+		std::atomic<size_t> _releaseInfoSize;
+
+		void sendPendingAccessesUnlocked()
+		{
+			assert(hasPendings());
+			assert(_releaseInfoSize.load() == _releaseInfo.size());
+
+			Instrument::logMessage(
+				Instrument::ThreadInstrumentationContext::getCurrent(),
+				"releasingPendingAccesses: ", _releaseInfo.size()
+			);
+
+			TaskOffloading::sendRemoteAccessRelease(
+				_remoteTaskIdentifier, _offloader, _releaseInfo
+			);
+
+			_releaseInfo.clear();
+			_releaseInfoSize.store(0);
+
+			if (_bytesToRelease.load() == 0) {
+				_task->unsetDataReleaseStep();
+				delete this;
+			}
+		}
 
 	public:
 		ClusterDataReleaseStep(TaskOffloading::ClusterTaskContext *context, Task *task)
 			: DataReleaseStep(task),
 			_remoteTaskIdentifier(context->getRemoteIdentifier()),
-			_offloader(context->getRemoteNode())
+			_offloader(context->getRemoteNode()),
+			_releaseInfoSize(0)
 		{
 			task->setDataReleaseStep(this);
 		}
 
-		void addAccess(DataAccess *access)
+		virtual inline ~ClusterDataReleaseStep()
 		{
-			_bytesToRelease += access->getAccessRegion().getSize();
+			assert(_releaseInfoSize.load() == 0);
 		}
 
+		inline bool hasPendings() const override
+		{
+			return _releaseInfoSize.load() > 0;
+		}
 
-		void releaseRegion(
-			DataAccessRegion const &region,
-			WriteID writeID,
-			MemoryPlace const *location
-		) override {
-			/*
-			 * location == nullptr means that the access was propagated in this node's
-			 * namespace rather than being released to the offloader. This means that
-			 * the RELEASE_ACCESS message should not be sent. This function is still
-			 * called so that the workflow step can be deleted once all accesses are
-			 * accounted for.
-			 */
-			if (location != nullptr) {
-				Instrument::logMessage(
-					Instrument::ThreadInstrumentationContext::getCurrent(),
-					"releasing remote region:", region
-				);
+		void addAccess(DataAccess *access)
+		{
+			_bytesToRelease.fetch_add(access->getAccessRegion().getSize());
+		}
 
-				// If location is a host device on this node it is a cluster
-				// device from the point of view of the remote node
-				const MemoryPlace *clusterLocation = (location->getType() == nanos6_cluster_device
+		void releasePendingAccesses() override
+		{
+			if (!hasPendings())
+				return;
+
+			std::lock_guard<SpinLock> lck(_infoLock);
+			sendPendingAccessesUnlocked();
+		}
+
+		void addToReleaseList(DataAccess const *access) override
+		{
+			assert(access->getLocation() != nullptr);
+
+			DataAccessRegion const &region = access->getAccessRegion();
+			MemoryPlace const *location = access->getLocation();
+
+			Instrument::logMessage(
+				Instrument::ThreadInstrumentationContext::getCurrent(),
+				"addToReleaseList remote region:", region
+			);
+
+			// If location is a host device on this node it is a cluster
+			// device from the point of view of the remote node
+			const MemoryPlace * const clusterLocation =
+				(location->getType() == nanos6_cluster_device
 					|| Directory::isDirectoryMemoryPlace(location))
-					? location
-					: ClusterManager::getCurrentMemoryNode();
+				? location
+				: ClusterManager::getCurrentMemoryNode();
 
-				if (location->getType() != nanos6_cluster_device
-					&& !Directory::isDirectoryMemoryPlace(location)) {
-					clusterLocation = ClusterManager::getCurrentMemoryNode();
-				}
+			{  // scope for the lock to avoid errors with lock/unlock calls..
+				std::lock_guard<SpinLock> lck(_infoLock);
 
-				// This change is temporal added only for this preparatory change for the next
-				// commit
-				//_infoLock.lock();
-
-				MessageReleaseAccess::ReleaseAccessInfoVector releaseInfo;
-
-				releaseInfo.push_back(
-					MessageReleaseAccess::ReleaseAccessInfo(region, writeID, clusterLocation)
+				_releaseInfo.push_back(
+					MessageReleaseAccess::ReleaseAccessInfo(
+						region,
+						access->getWriteID(),
+						clusterLocation)
 				);
+				_releaseInfoSize.fetch_add(1);
 
-				TaskOffloading::sendRemoteAccessRelease(
-					_remoteTaskIdentifier, _offloader, releaseInfo
-				);
+			}  // end of locked protected region here.
 
-				//_releaseInfo.clear();
-
-				//_infoLock.unlock();
-
-			}
-
-			_bytesToRelease -= region.getSize();
-			if (_bytesToRelease == 0) {
-
-				// if (!_releaseInfo.empty()) {
-				// 	TaskOffloading::sendRemoteAccessRelease(
-				// 		_remoteTaskIdentifier, _offloader, _releaseInfo
-				// 	);
-				// }
-
-				delete this;
-			}
+			_bytesToRelease.fetch_sub(region.getSize());
 		}
 
 

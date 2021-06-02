@@ -1021,8 +1021,16 @@ namespace DataAccessRegistration {
 		if (initialStatus._triggersDataRelease != updatedStatus._triggersDataRelease) {
 			assert(!initialStatus._triggersDataRelease);
 
-			ExecutionWorkflow::DataReleaseStep *step = access->getOriginator()->getDataReleaseStep();
-			step->releaseRegion(access->getAccessRegion(), access->getWriteID(), access->getLocation());
+			// This assert is not required but a limitation of the current simple implementation.
+			// But in a general case it may be removed in favor of a more refined call.
+			assert(access->getOriginator() == task);
+			assert(task->hasDataReleaseStep());
+
+			if (access->getLocation() != nullptr) {
+				// This adds the access to the ClusterDataReleaseStep::_releaseInfo vector.
+				// The accesses will be released latter.
+				access->getOriginator()->getDataReleaseStep()->addToReleaseList(access);
+			}
 		}
 
 		/*
@@ -1964,6 +1972,10 @@ namespace DataAccessRegistration {
 
 		if (lastLocked != nullptr) {
 			lastLocked->getDataAccesses()._lock.unlock();
+		}
+
+		if (myOffloadedTask != nullptr && myOffloadedTask->hasDataReleaseStep()) {
+			myOffloadedTask->getDataReleaseStep()->releasePendingAccesses();
 		}
 
 		assert(ClusterManager::inClusterMode() || hpDependencyData._delayedOperations.empty());
@@ -3335,9 +3347,21 @@ namespace DataAccessRegistration {
 
 
 	static void handleRemovableTasks(
-		/* inout */ CPUDependencyData::removable_task_list_t &removableTasks)
-	{
+		/* inout */ CPUDependencyData::removable_task_list_t &removableTasks
+	) {
+		// We create a list here to avoid taking the lock too much when the vector is empty.
 		for (Task *removableTask : removableTasks) {
+			Task * offloadedTask = getOffloadedTask(removableTask);
+
+			if (offloadedTask != nullptr
+				&& offloadedTask->hasDataReleaseStep()) {
+
+				DataReleaseStep * releaseStep = offloadedTask->getDataReleaseStep();
+
+				if (releaseStep->hasPendings()) {
+					releaseStep->releasePendingAccesses();
+				}
+			}
 			TaskFinalization::disposeTask(removableTask);
 		}
 		removableTasks.clear();

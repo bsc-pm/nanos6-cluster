@@ -166,9 +166,18 @@ namespace ExecutionWorkflow {
 		//!		object
 		DataReleaseStep(Task *task);
 
-		//! Release a region
-		virtual inline void releaseRegion(DataAccessRegion const &, WriteID, MemoryPlace const *)
+		virtual inline ~DataReleaseStep()
+		{}
+
+		virtual inline void addToReleaseList(DataAccess const *)
+		{}
+
+		virtual inline void releasePendingAccesses()
+		{}
+
+		virtual inline bool hasPendings() const
 		{
+			return false;
 		}
 
 		//! \brief Check if a DataAccess is ready to release data
