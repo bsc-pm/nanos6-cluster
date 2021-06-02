@@ -3353,14 +3353,8 @@ namespace DataAccessRegistration {
 		for (Task *removableTask : removableTasks) {
 			Task * offloadedTask = getOffloadedTask(removableTask);
 
-			if (offloadedTask != nullptr
-				&& offloadedTask->hasDataReleaseStep()) {
-
-				DataReleaseStep * releaseStep = offloadedTask->getDataReleaseStep();
-
-				if (releaseStep->hasPendings()) {
-					releaseStep->releasePendingAccesses();
-				}
+			if (offloadedTask != nullptr && offloadedTask->hasDataReleaseStep()) {
+				offloadedTask->getDataReleaseStep()->releasePendingAccesses();
 			}
 			TaskFinalization::disposeTask(removableTask);
 		}

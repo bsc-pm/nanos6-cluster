@@ -59,19 +59,6 @@ namespace TaskOffloading {
 	//! \param[in] satInfo the satisfiability updates we propagate
 	void propagateSatisfiability(Task *task, SatisfiabilityInfo const &satInfo);
 
-	//! \brief Notify that a region is released on a remote node
-	//!
-	//! \param[in] offloadedTaskId is the task identifier of the offloader
-	//!		node
-	//! \param[in] offloader is the cluster node that offloaded the task
-	//! \param[in] region is the DataAccessRegion that is released
-	//! \param[in] location is the ClusterMemoryPlace on which the access
-	//!		is released
-	void sendRemoteAccessRelease(void *offloadedTaskId,
-		ClusterNode const *offloader,
-		MessageReleaseAccess::ReleaseAccessInfoVector &releaseInfoVector
-	);
-
 	//! \brief Release a region of an offloaded Task
 	//!
 	//! \param[in] task is the offloaded task

@@ -129,26 +129,6 @@ namespace TaskOffloading {
 		}
 	}
 
-	void sendRemoteAccessRelease(
-		void *offloadedTaskId,
-		ClusterNode const *offloader,
-		MessageReleaseAccess::ReleaseAccessInfoVector &_release
-	) {
-		ClusterNode *current = ClusterManager::getCurrentClusterNode();
-
-		// std::stringstream ss;
-		// ss << region;
-
-		// clusterPrintf("Sending MessageReleaseAccess remote task %p [%s] to %d\n",
-		// 	offloadedTaskId,
-		// 	ss.str().c_str(),
-		// 	offloader->getIndex());
-
-		MessageReleaseAccess *msg = new MessageReleaseAccess(current, offloadedTaskId, _release);
-
-		ClusterManager::sendMessage(msg, offloader);
-	}
-
 	void releaseRemoteAccess(Task *task, MessageReleaseAccess::ReleaseAccessInfo &accessinfo)
 	{
 		assert(task != nullptr);
