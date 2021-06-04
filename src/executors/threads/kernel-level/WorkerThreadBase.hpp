@@ -79,13 +79,13 @@ public:
 	//! \param[in] replacement a thread that is currently suspended and that must take the place of the current thread or nullptr
 	inline void switchTo(WorkerThreadBase *replacement);
 
-	inline int getCpuId()
+	inline int getCpuId() const
 	{
 		return _cpu->getSystemCPUId();
 	}
 
 	//! \brief get the hardware place currently assigned
-	inline CPU *getComputePlace()
+	inline CPU *getComputePlace() const
 	{
 		return _cpu;
 	}
@@ -105,7 +105,7 @@ public:
 		return static_cast<WorkerThreadBase *> (getCurrentKernelLevelThread());
 	}
 
-	inline pid_t getTid()
+	inline pid_t getTid() const
 	{
 		return KernelLevelThread::getTid();
 	}

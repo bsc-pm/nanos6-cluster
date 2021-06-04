@@ -435,9 +435,11 @@ namespace ExecutionWorkflow {
 		assert(source != nullptr);
 		assert(target == ClusterManager::getCurrentMemoryNode());
 
-		DataAccessType type = access->getType();
-		DataAccessRegion region = access->getAccessRegion();
-		bool isDistributedRegion = VirtualMemoryManagement::isDistributedRegion(region);
+		const DataAccessType type = access->getType();
+		const DataAccessRegion region = access->getAccessRegion();
+		const DataAccessObjectType objectType = access->getObjectType();
+		const bool isDistributedRegion = VirtualMemoryManagement::isDistributedRegion(region);
+		const bool isWeak = access->isWeak();
 
 		//! The source device is a host MemoryPlace of the current
 		//! ClusterNode. We do not really need to perform a
@@ -452,16 +454,16 @@ namespace ExecutionWorkflow {
 		}
 
 		// Helpful warning messages in debug build
-		DataAccessObjectType objectType = access->getObjectType();
-		if (access->getAccessRegion().getSize() > (1UL<<60)) {
-			if (objectType == access_type && access->getType() != NO_ACCESS_TYPE) {
-				FatalErrorHandler::failIf( !access->isWeak(),
-											"Large access ",
-											access->getAccessRegion(),
-											" for task ",
-											access->getOriginator()->getLabel(),
-											" is not weak");
+
+		if (region.getSize() > (1UL<<60)) {
+			if (objectType == access_type && type != NO_ACCESS_TYPE && !isWeak) {
+				FatalErrorHandler::fail(
+					"Large access ", region,
+					" for task ", access->getOriginator()->getLabel(),
+					" is not weak"
+				);
 			}
+
 			// With cluster.eager_weak_fetch = true, the following code is not valid
 			//   int *a = (int *)nanos6_lmalloc(4);
 			//   #pragma oss task weakinout(a[1]) label("T") {...}
@@ -471,12 +473,15 @@ namespace ExecutionWorkflow {
 			// on node 0. This is probably acceptable in this example where the weakinout
 			// is explicit, but when the weakinout is "all memory" there is too much
 			// chance of this kind of thing happening.
-			FatalErrorHandler::failIf(
-				ClusterManager::getEagerWeakFetch() || (ClusterManager::getMessageMaxSize() != SIZE_MAX),
-				"Set cluster.eager_weak_fetch = false and cluster.message_max_size = -1 for large weak memory access ",
-				access->getAccessRegion(),
-				" of task ",
-				access->getOriginator()->getLabel());
+			if (ClusterManager::getEagerWeakFetch()
+				|| ClusterManager::getMessageMaxSize() != SIZE_MAX) {
+
+				FatalErrorHandler::fail(
+					"Set cluster.eager_weak_fetch = false and cluster.message_max_size = -1 for large weak memory access ",
+					region,
+					" of task ",
+					access->getOriginator()->getLabel());
+			}
 		}
 
 		bool needsTransfer =
@@ -501,7 +506,7 @@ namespace ExecutionWorkflow {
 				//! access is a read-only access.
 			 	(objectType == taskwait_type)
 				&& (type != READ_ACCESS_TYPE)
-				&& ((type != NO_ACCESS_TYPE) || !isDistributedRegion)
+				&& (type != NO_ACCESS_TYPE || !isDistributedRegion)
 				&& !Directory::isDirectoryMemoryPlace(source)
 			) || (
 				//! We need a DataTransfer for an access_type
@@ -513,7 +518,7 @@ namespace ExecutionWorkflow {
 				&& !Directory::isDirectoryMemoryPlace(source)
 				//! and, if it is a weak access, then only
 				//! if cluster.eager_weak_fetch == true
-				&& (!access->isWeak() || ClusterManager::getEagerWeakFetch())
+				&& (!isWeak || ClusterManager::getEagerWeakFetch())
 			);
 
 		//! If no data transfer is needed, then register the new location if
@@ -523,18 +528,17 @@ namespace ExecutionWorkflow {
 		//! the directory) even on an in or inout dependency.
 		bool registerLocation = !needsTransfer
 			&& objectType != taskwait_type
-			&& !access->isWeak();
+			&& !isWeak;
 
 		return new ClusterDataCopyStep(
 			source, target, inregion,
 			access->getOriginator(),
 			access->getWriteID(),
-			(objectType == taskwait_type),
-			access->isWeak(),
+			objectType == taskwait_type,
+			isWeak,
 			needsTransfer,
 			registerLocation
 		);
-
 	}
 
 	inline Step *clusterCopy(

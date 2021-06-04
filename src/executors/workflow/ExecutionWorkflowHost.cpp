@@ -62,13 +62,11 @@ namespace ExecutionWorkflow {
 
 		_task->setThread(currentThread);
 
-		bool isTaskforCollaborator = _task->isTaskforCollaborator();
-		Instrument::task_id_t taskId;
-		if (isTaskforCollaborator) {
-			taskId = _task->getParent()->getInstrumentationTaskId();
-		} else {
-			taskId = _task->getInstrumentationTaskId();
-		}
+		const Instrument::task_id_t taskId
+			= _task->isTaskforCollaborator()
+			? _task->getParent()->getInstrumentationTaskId()
+			: _task->getInstrumentationTaskId();
+
 		Instrument::ThreadInstrumentationContext instrumentationContext(
 			taskId,
 			cpu->getInstrumentationId(),

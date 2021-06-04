@@ -78,7 +78,7 @@ public:
 		_tid = tid;
 	}
 
-	inline pid_t getTid()
+	inline pid_t getTid() const
 	{
 		return _tid;
 	}

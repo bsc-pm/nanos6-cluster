@@ -107,10 +107,7 @@ namespace ExecutionWorkflow {
 			case nanos6_cluster_device:
 				return new ClusterExecutionStep(task, computePlace);
 			default:
-				FatalErrorHandler::failIf(
-					true,
-					"Execution workflow does not support this device yet"
-				);
+				FatalErrorHandler::fail("Execution workflow does not support this device yet");
 				return nullptr;
 		}
 	}
@@ -128,10 +125,7 @@ namespace ExecutionWorkflow {
 			case nanos6_cluster_device:
 				return new ClusterNotificationStep(callback);
 			default:
-				FatalErrorHandler::failIf(
-					true,
-					"Execution workflow does not support this device yet"
-				);
+				FatalErrorHandler::fail("Execution workflow does not support this device yet");
 				//! Silencing annoying compiler warning
 				return nullptr;
 		}
@@ -215,9 +209,9 @@ namespace ExecutionWorkflow {
 				 */
 
 				assert(task->mustDelayRelease());
-				WorkerThread *currThread = WorkerThread::getCurrentWorkerThread();
+				WorkerThread const *currThread = WorkerThread::getCurrentWorkerThread();
 				CPU * const cpu =
-					(currThread != nullptr) ? currThread->getComputePlace() : nullptr;
+					(currThread == nullptr) ? nullptr : currThread->getComputePlace();
 				CPUDependencyData localDependencyData;
 				CPUDependencyData &hpDependencyData =
 					(cpu == nullptr) ? localDependencyData : cpu->getDependencyData();
@@ -282,12 +276,11 @@ namespace ExecutionWorkflow {
 			[=]() {
 				WorkerThread *currThread = WorkerThread::getCurrentWorkerThread();
 
-				CPU * const cpu =
-					(currThread != nullptr) ? currThread->getComputePlace() : nullptr;
+				CPU * const cpu = (currThread == nullptr) ? nullptr : currThread->getComputePlace();
 
 				CPUDependencyData localDependencyData;
 				CPUDependencyData &hpDependencyData =
-					(cpu != nullptr) ? cpu->getDependencyData() : localDependencyData;
+					(cpu == nullptr) ? localDependencyData : cpu->getDependencyData();
 
 				/*
 				 * For offloaded tasks with cluster.disable_autowait=false, handle

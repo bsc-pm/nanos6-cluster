@@ -17,32 +17,32 @@ class MessageSatisfiability : public Message {
 	struct SatisfiabilityMessageContent {
 		//! The opaque id identifying the offloaded task
 		void *_offloadedTaskId;
-		
+
 		//! Satisfiability information we are sending
 		TaskOffloading::SatisfiabilityInfo _satInfo;
 	};
-	
+
 	//! pointer to message payload
 	SatisfiabilityMessageContent *_content;
-	
+
 public:
 	MessageSatisfiability(const ClusterNode *from, void *offloadedTaskId,
 			TaskOffloading::SatisfiabilityInfo const &satInfo);
-	
+
 	MessageSatisfiability(Deliverable *dlv)
 		: Message(dlv)
 	{
 		_content = reinterpret_cast<SatisfiabilityMessageContent *>(_deliverable->payload);
 	}
-	
+
 	bool handleMessage();
-	
+
 	inline std::string toString() const
 	{
 		std::stringstream ss;
-		
+
 		ss << "[SatInfo:" << _content->_satInfo << "]";
-		
+
 		return ss.str();
 	}
 };
