@@ -3365,6 +3365,10 @@ namespace DataAccessRegistration {
 		CPUDependencyData &hpDependencyData,
 		__attribute__((unused)) ComputePlace *computePlace)
 	{
+		if (hpDependencyData._completedTaskwaits.empty()) {
+			return;
+		}
+
 		Instrument::enterHandleCompletedTaskwaits();
 		for (DataAccess *taskwait : hpDependencyData._completedTaskwaits) {
 			assert(taskwait->getObjectType() == taskwait_type);
