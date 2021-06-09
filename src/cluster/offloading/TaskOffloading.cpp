@@ -169,7 +169,7 @@ namespace TaskOffloading {
 		assert(msg != nullptr);
 		assert(parent != nullptr);
 
-		nanos6_task_info_t *taskInfo = msg->getTaskInfo();
+		nanos6_task_info_t * const taskInfo = msg->getTaskInfo();
 
 		size_t numTaskImplementations;
 		nanos6_task_implementation_info_t *taskImplementations =
@@ -197,7 +197,12 @@ namespace TaskOffloading {
 		size_t numSatInfo;
 		TaskOffloading::SatisfiabilityInfo *satInfo = msg->getSatisfiabilityInfo(numSatInfo);
 		for (size_t i = 0; i < numSatInfo; ++i) {
-			DataAccessRegistration::setNamespacePredecessor(task, parent, satInfo[i]._region, remoteNode, satInfo[i]._namespacePredecessor);
+			DataAccessRegistration::setNamespacePredecessor(
+				task,
+				parent,
+				satInfo[i]._region,
+				remoteNode,
+				satInfo[i]._namespacePredecessor);
 		}
 
 		void *argsBlockPtr = task->getArgsBlock();
@@ -212,6 +217,7 @@ namespace TaskOffloading {
 			remoteNode
 		);
 		assert(clusterContext);
+		task->setClusterContext(clusterContext);
 
 		// This is used only in the Namespace
 		if (useCallbackInContext) {
@@ -219,8 +225,6 @@ namespace TaskOffloading {
 
 			clusterContext->setCallback(remoteTaskCleanup, msg);
 		}
-
-		task->setClusterContext(clusterContext);
 
 		// Register remote Task with TaskOffloading mechanism before
 		// submitting it to the dependency system
@@ -244,19 +248,17 @@ namespace TaskOffloading {
 		// a memory leak on the remoteTaskInfos.
 		remoteTaskInfo._taskBeingConstructed = true;
 
-		// Submit the task
-		AddTask::submitTask(task, parent, true);
-
 		// If the task does not have the wait flag then, unless
 		// cluster.disable_autowait=false, set the "autowait" flag, which will
 		// enable early release for accesses ("locally") propagated in the namespace
 		// and use delayed release for the ("non-local") accesses that require a
 		// message back to the offloader.
-		if (!task->mustDelayRelease()) {
-			if (!ClusterManager::getDisableAutowait()) {
-				task->setDelayedNonLocalRelease();
-			}
+		if (!task->mustDelayRelease() && !ClusterManager::getDisableAutowait()) {
+			task->setDelayedNonLocalRelease();
 		}
+
+		// Submit the task
+		AddTask::submitTask(task, parent, true);
 
 		// Propagate satisfiability embedded in the Message
 		for (size_t i = 0; i < numSatInfo; ++i) {
