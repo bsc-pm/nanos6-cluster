@@ -105,6 +105,9 @@ private:
 	//! Task to which this one is closely nested
 	Task *_parent;
 
+	//! Offloaded ancestor task
+	Task *_offloadedTask;
+
 	//! Task priority
 	priority_t _priority;
 
@@ -327,6 +330,19 @@ public:
 		_parent = parent;
 		_parent->addChild(this);
 		_nestingLevel = _parent->getNestingLevel() + 1;
+
+		// Find and set the offloader predecessor.  setParent is called in submitTask; so we need to
+		// call set the _offloadedTask just here.
+		Task *task = this;
+
+		while (task->getParent() != nullptr) {
+			if (task->getParent()->isNodeNamespace()) {
+				// it is an offloaded task
+				_offloadedTask = task;
+				return;
+			}
+			task = task->getParent();
+		}
 	}
 
 	//! \brief Get the parent into which this task is nested
@@ -995,7 +1011,6 @@ public:
 	inline bool isRemoteTaskInNamespace() const
 	{
 		// isRemoteTask asserts the parent is non null when true
-		// This assumes
 		return isRemoteTask() && _parent && _parent->isNodeNamespace();
 	}
 
@@ -1029,6 +1044,13 @@ public:
 	{
 		return (_dataReleaseStep != nullptr);
 	}
+
+
+	Task *getOffloadedPredecesor() const
+	{
+		return _offloadedTask;
+	}
+
 
 };
 

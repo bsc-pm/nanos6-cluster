@@ -41,6 +41,7 @@ inline Task::Task(
 	_countdownToBeWokenUp(1),
 	_removalCount(1),
 	_parent(parent),
+	_offloadedTask(nullptr),
 	_priority(0),
 	_deadline(0),
 	_schedulingHint(NO_HINT),
@@ -95,6 +96,7 @@ inline void Task::reinitialize(
 	_countdownToBeWokenUp = 1;
 	_removalCount = 1;
 	_parent = parent;
+	_offloadedTask = nullptr;
 	_priority = 0;
 	_deadline = 0;
 	_schedulingHint = NO_HINT;

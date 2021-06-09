@@ -1893,24 +1893,6 @@ namespace DataAccessRegistration {
 		}
 	}
 
-	/*
-	 * Process the delayed operations that are in the given task or any
-	 * of its descendents.
-	 */
-
-	static Task *getOffloadedTask(Task *task)
-	{
-		while (task->getParent() != nullptr) {
-			if (task->getParent()->isNodeNamespace()) {
-				// it is an offloaded task
-				return task;
-			}
-			task=task->getParent();
-		}
-		return nullptr;
-	}
-
-
 	// Process all delayed operations that relate to access that are
 	// not in a different offloaded task.
 	static inline void processDelayedOperationsSameTask(
@@ -1918,7 +1900,7 @@ namespace DataAccessRegistration {
 					Task *task)
 	{
 		Task *lastLocked = task;
-		Task * const myOffloadedTask = getOffloadedTask(task);
+		const Task *myOffloadedTask = task->getOffloadedPredecesor();
 
 #ifndef NDEBUG
 		if (task->hasDataReleaseStep()) {
@@ -1932,7 +1914,7 @@ namespace DataAccessRegistration {
 		     it != hpDependencyData._delayedOperations.end();) {
 			UpdateOperation &delayedOperation = *it;
 
-			Task *targetOffloadedTask = getOffloadedTask(delayedOperation._target._task);
+			const Task *targetOffloadedTask = delayedOperation._target._task->getOffloadedPredecesor();
 
 			// targetOffloadedTask must be null when all the tasks are local.
 			assert(ClusterManager::inClusterMode() || targetOffloadedTask == nullptr);
@@ -2038,7 +2020,7 @@ namespace DataAccessRegistration {
 
 #if NO_DEPENDENCY_DELAYED_OPERATIONS
 #else
-		processDelayedOperations(hpDependencyData);
+		processDelayedOperations(hpDependencyData);   // Most of the time is here
 #endif
 
 		handleCompletedTaskwaits(hpDependencyData, computePlace);
@@ -3351,7 +3333,7 @@ namespace DataAccessRegistration {
 	) {
 		// We create a list here to avoid taking the lock too much when the vector is empty.
 		for (Task *removableTask : removableTasks) {
-			Task * offloadedTask = getOffloadedTask(removableTask);
+			const Task * offloadedTask = removableTask->getOffloadedPredecesor();
 
 			if (offloadedTask != nullptr && offloadedTask->hasDataReleaseStep()) {
 				offloadedTask->getDataReleaseStep()->releasePendingAccesses();
