@@ -77,6 +77,7 @@ private:
 		PROPAGATED_NAMESPACE_INFO_BIT,
 		EARLY_RELEASE_IN_NAMESPACE_BIT,
 		REMOTE_HAS_PSEUDOWRITE_BIT,
+		DISABLE_READ_PROPAGATION_UNTIL_HERE,
 		TOTAL_STATUS_BITS
 	};
 
@@ -832,6 +833,16 @@ public:
 	void setRemoteHasPseudowrite()
 	{
 		_status[REMOTE_HAS_PSEUDOWRITE_BIT] = true;
+	}
+
+	bool disableReadPropagationUntilHere() const
+	{
+		return _status[DISABLE_READ_PROPAGATION_UNTIL_HERE];
+	}
+
+	void setDisableReadPropagationUntilHere()
+	{
+		_status[DISABLE_READ_PROPAGATION_UNTIL_HERE] = true;
 	}
 };
 

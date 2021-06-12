@@ -307,15 +307,11 @@ namespace DataAccessRegistration {
 				 * the location at all parents including this task.
 				 */
 				bool disableReadPropagationToNext = false;
-				if (access->readSatisfied()) {
-					if (access->hasLocation()
-						&& !ClusterManager::isLocalMemoryPlace(access->getLocation())) {
-						/* Read satisfied, but not present locally */
-						if (!access->complete()) {
-							/* And not complete */
-							disableReadPropagationToNext = true;
-						}
-					}
+				if (access->disableReadPropagationUntilHere()
+					&& access->hasLocation()
+					&& !ClusterManager::isLocalMemoryPlace(access->getLocation())
+					&& !access->complete()) {
+					disableReadPropagationToNext = true;
 				}
 
 				if (access->hasSubaccesses()) {
@@ -1747,6 +1743,10 @@ namespace DataAccessRegistration {
 					// assert(access->getOriginator()->isRemoteTask());
 				} else {
 					access->setReadSatisfied(updateOperation._location);
+					if (!access->isWeak()
+						&& !access->getOriginator()->isOffloadedTask()) {
+							access->setDisableReadPropagationUntilHere();
+					}
 				}
 #ifdef USE_CLUSTER
 				WriteID id = 0;
