@@ -103,6 +103,15 @@ namespace Instrument {
 	}
 
 	inline void exitCreateDataCopyStep(__attribute__((unused)) bool isTaskwait) {}
+
+	inline void enterTaskDataAccessLocation()
+	{
+		pushDependency(Stats::NANOS_TASKDATAACCESSLOCATION);
+	}
+
+	inline void exitTaskDataAccessLocation()
+	{
+	}
 }
 
 #endif //INSTRUMENT_VERBOSE_DEPENDENCY_SUBSYTEM_ENTRY_POINTS_HPP

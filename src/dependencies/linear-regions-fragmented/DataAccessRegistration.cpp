@@ -4148,6 +4148,7 @@ namespace DataAccessRegistration {
 		bool isTaskwait)
 	{
 		assert(origTask != nullptr);
+		Instrument::enterTaskDataAccessLocation();
 
 		CPUDependencyData hpDependencyData;
 
@@ -4197,6 +4198,7 @@ namespace DataAccessRegistration {
 		}
 
 		processDelayedOperationsSatisfiedOriginatorsAndRemovableTasks(hpDependencyData, nullptr, false);
+		Instrument::exitTaskDataAccessLocation();
 	}
 
 	/*

@@ -61,6 +61,9 @@ namespace Instrument {
 
 	void exitCreateDataCopyStep(bool isTaskwait);
 
+	void enterTaskDataAccessLocation();
+
+	void exitTaskDataAccessLocation();
 }
 
 #endif //INSTRUMENT_DEPENDENCY_SUBSYTEM_ENTRY_POINTS_HPP

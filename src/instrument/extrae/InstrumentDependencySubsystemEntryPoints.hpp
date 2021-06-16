@@ -166,6 +166,16 @@ namespace Instrument {
 			popDependency(NANOS_CREATEDATACOPYSTEP_TASK);
 		}
 	}
+
+	inline void enterTaskDataAccessLocation()
+	{
+		pushDependency(NANOS_TASKDATAACCESSLOCATION);
+	}
+
+	inline void exitTaskDataAccessLocation()
+	{
+		popDependency(NANOS_TASKDATAACCESSLOCATION);
+	}
 }
 
 #endif //INSTRUMENT_EXTRAE_DEPENDENCY_SUBSYTEM_ENTRY_POINTS_HPP

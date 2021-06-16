@@ -70,6 +70,10 @@ namespace Instrument {
 	inline void enterCreateDataCopyStep(__attribute__((unused)) bool isTaskwait) {}
 
 	inline void exitCreateDataCopyStep(__attribute__((unused)) bool isTaskwait) {}
+
+	inline void enterTaskDataAccessLocation() {}
+
+	inline void exitTaskDataAccessLocation() {}
 }
 
 #endif //INSTRUMENT_CTF_DEPENDENCY_SUBSYTEM_ENTRY_POINTS_HPP
