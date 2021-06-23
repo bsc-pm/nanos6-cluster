@@ -803,7 +803,8 @@ public:
 	//! \brief Set the Execution Workflow for this Task
 	inline void setWorkflow(Workflow<TaskExecutionWorkflowData> *workflow)
 	{
-		assert(workflow != nullptr);
+		assert((_workflow == nullptr && workflow != nullptr)
+			|| (_workflow != nullptr && workflow == nullptr));
 		_workflow = workflow;
 	}
 	//! \brief Get the Execution Workflow of the Task

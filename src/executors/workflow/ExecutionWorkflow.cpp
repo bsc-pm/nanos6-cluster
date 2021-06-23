@@ -243,10 +243,9 @@ namespace ExecutionWorkflow {
 					 * avoid potentially sending the
 					 * MessageTaskFinished messages out of order
 					 */
-					[&] {
+					[&]() -> void {
 						TaskFinalization::taskFinished(task, cpu);
-						bool ret = task->markAsReleased();
-						if (ret) {
+						if (task->markAsReleased()) {
 							TaskFinalization::disposeTask(task);
 						}
 					}
@@ -273,54 +272,64 @@ namespace ExecutionWorkflow {
 		Step *executionStep = workflow->createExecutionStep(task, targetComputePlace);
 
 		Step *notificationStep = workflow->createNotificationStep(
-			[=]() {
+			[=]() -> void {
 				WorkerThread *currThread = WorkerThread::getCurrentWorkerThread();
-
 				CPU * const cpu = (currThread == nullptr) ? nullptr : currThread->getComputePlace();
 
-				CPUDependencyData localDependencyData;
-				CPUDependencyData &hpDependencyData =
-					(cpu == nullptr) ? localDependencyData : cpu->getDependencyData();
+				if (task->isTaskforCollaborator()) {
+					// For collaborators don't go to the Dependency System. It is simpler as they
+					// don't have dependencies.
+					assert(targetComputePlace->getType() == nanos6_host_device);
 
-				/*
-				 * For offloaded tasks with cluster.disable_autowait=false, handle
-				 * the early release of dependencies propagated in the namespace. All
-				 * other dependencies will be handled using the normal "wait" mechanism.
-				 */
-				DataAccessRegistration::unregisterLocallyPropagatedTaskDataAccesses(
-					task,
-					cpu,
-					hpDependencyData);
-
-				if (task->markAsFinished(cpu/* cpu */)) {
-					DataAccessRegistration::unregisterTaskDataAccesses(
-						task,
-						cpu, /*cpu, */
-						hpDependencyData,
-						targetMemoryPlace,
-						false,
-						/* For clusters, finalize this task and send
-						 * the MessageTaskFinished BEFORE propagating
-						 * satisfiability to any other tasks. This is to
-						 * avoid potentially sending the
-						 * MessageTaskFinished messages out of order
-						 */
-						[&] {
-							TaskFinalization::taskFinished(task, cpu);
-							if (task->markAsReleased()) {
-								// const std::string label = task->getLabel();
-								TaskFinalization::disposeTask(task);
-							}
+					if (task->markAsFinished(cpu/* cpu */)) {
+						TaskFinalization::taskFinished(task, cpu);
+						if (task->markAsReleased()) {
+							TaskFinalization::disposeTask(task);
 						}
-					);
+						task->setWorkflow(nullptr);
+					}
+
+				} else {
+					// For offloaded tasks with cluster.disable_autowait=false, handle
+					// the early release of dependencies propagated in the namespace. All
+					// other dependencies will be handled using the normal "wait" mechanism.
+					CPUDependencyData localDependencyData;
+					CPUDependencyData &hpDependencyData =
+						(cpu == nullptr) ? localDependencyData : cpu->getDependencyData();
+
+					DataAccessRegistration::unregisterLocallyPropagatedTaskDataAccesses(
+						task,
+						cpu,
+						hpDependencyData);
+
+					if (task->markAsFinished(cpu/* cpu */)) {
+						DataAccessRegistration::unregisterTaskDataAccesses(
+							task,
+							cpu, /*cpu, */
+							hpDependencyData,
+							targetMemoryPlace,
+							false,
+							// For clusters, finalize this task and send the MessageTaskFinished
+							// BEFORE propagating satisfiability to any other tasks. This is to
+							// avoid potentially sending the MessageTaskFinished messages out of
+							// order
+							[&]() -> void {
+								TaskFinalization::taskFinished(task, cpu);
+								if (task->markAsReleased()) {
+									// const std::string label = task->getLabel();
+									TaskFinalization::disposeTask(task);
+								}
+							}
+						);
+					}
 				}
 				delete workflow;
 			},
 			targetComputePlace
 		);
 
-		/* TODO: Once we have correct management for the Task symbols here
-		 * we should create the corresponding allocation steps. */
+		// TODO: Once we have correct management for the Task symbols here
+		// we should create the corresponding allocation steps.
 
 		DataReleaseStep *releaseStep = workflow->createDataReleaseStep(task);
 		workflow->enforceOrder(executionStep, releaseStep);
@@ -384,10 +393,10 @@ namespace ExecutionWorkflow {
 		task->setWorkflow(workflow);
 		task->setComputePlace(targetComputePlace);
 
-		//! Starting the workflow will either execute the task to
-		//! completion (if there are not pending transfers for the
-		//! task), or it will setup all the Execution Step will
-		//! execute when ready.
+		// Starting the workflow will either execute the task to
+		// completion (if there are not pending transfers for the
+		// task), or it will setup all the Execution Step will
+		// execute when ready.
 		workflow->start();
 	}
 

@@ -100,7 +100,9 @@ Task *HostUnsyncScheduler::getReadyTask(ComputePlace *computePlace)
 		}
 	}
 
-	if (result == nullptr || !result->isTaskforSource()) {
+	if (result == nullptr
+		|| !result->isTaskforSource()
+		|| (result->isTaskforSource() && result->getWorkflow() == nullptr)) {
 		return result;
 	}
 

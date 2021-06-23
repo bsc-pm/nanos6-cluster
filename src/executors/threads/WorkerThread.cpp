@@ -151,7 +151,7 @@ void WorkerThread::handleTask(CPU *cpu)
 	assert(targetMemoryPlace != nullptr);
 
 	// This if is only for source taskfors.
-	if (_task->isTaskforSource()) {
+	if (_task->isTaskforSource() && _task->getExecutionStep() != nullptr) {
 		assert(!_task->isRunnable());
 
 		// We have already set the chunk of the preallocatedTaskfor in the scheduler.
@@ -161,11 +161,12 @@ void WorkerThread::handleTask(CPU *cpu)
 			assert(collaborator->getMyChunk() >= 0);
 
 			_task = collaborator;
+
 			ExecutionWorkflow::executeTask(_task, cpu, targetMemoryPlace);
 		} else {
 			bool finished = ((Taskfor *)_task)->notifyCollaboratorHasFinished();
 			if (finished) {
-				TaskFinalization::disposeTask(_task);
+				ExecutionWorkflow::executeTask(_task, cpu, targetMemoryPlace);
 			}
 		}
 	} else {

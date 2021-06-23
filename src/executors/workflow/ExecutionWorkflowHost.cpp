@@ -53,67 +53,74 @@ namespace ExecutionWorkflow {
 		// releases the ExecutionStep
 		//
 		// In that case we need to add the Task back for scheduling
-		if ((cpu == nullptr) || (currentThread->getTask() == nullptr)) {
+		if ((cpu == nullptr) 
+			|| (currentThread->getTask() == nullptr)
+			|| (_task->isTaskforSource() && (_task->getExecutionStep() == nullptr))) {
+
 			_task->setExecutionStep(this);
 			Scheduler::addReadyTask(_task, nullptr, BUSY_COMPUTE_PLACE_TASK_HINT);
 
 			return;
 		}
 
-		_task->setThread(currentThread);
-
-		const Instrument::task_id_t taskId
-			= _task->isTaskforCollaborator()
-			? _task->getParent()->getInstrumentationTaskId()
-			: _task->getInstrumentationTaskId();
-
-		Instrument::ThreadInstrumentationContext instrumentationContext(
-			taskId,
-			cpu->getInstrumentationId(),
-			currentThread->getInstrumentationId()
-		);
-
-		if (_task->hasCode()) {
-			nanos6_address_translation_entry_t
-				stackTranslationTable[SymbolTranslation::MAX_STACK_SYMBOLS];
-
-			size_t tableSize = 0;
-			nanos6_address_translation_entry_t *translationTable =
-				SymbolTranslation::generateTranslationTable(
-					_task, cpu, stackTranslationTable, tableSize);
-
-			// Runtime Tracking Point - A task starts its execution
-			TrackingPoints::taskIsExecuting(_task);
-
-			// Run the task
-			std::atomic_thread_fence(std::memory_order_acquire);
-			_task->body(translationTable);
-			if (_task->isIf0()) {
-				If0Task::executeNonInline(currentThread, _task, cpu);
-			}
-			std::atomic_thread_fence(std::memory_order_release);
-
-			// Update the CPU since the thread may have migrated
-			cpu = currentThread->getComputePlace();
-			instrumentationContext.updateComputePlace(cpu->getInstrumentationId());
-
-			// Runtime Tracking Point - A task completes its execution (user code)
-			TrackingPoints::taskCompletedUserCode(_task);
-
-			// Free up all symbol translation
-			if (tableSize > 0) {
-				MemoryAllocator::free(translationTable, tableSize);
-			}
+		if (_task->isTaskforSource()) {
+			
 		} else {
+			_task->setThread(currentThread);
 
-			if (_task->isIf0()) {
-				If0Task::executeNonInline(currentThread, _task, cpu);
+			if (_task->hasCode()) {
+				const Instrument::task_id_t taskId
+					= _task->isTaskforCollaborator()
+					? _task->getParent()->getInstrumentationTaskId()
+					: _task->getInstrumentationTaskId();
+
+				Instrument::ThreadInstrumentationContext instrumentationContext(
+					taskId,
+					cpu->getInstrumentationId(),
+					currentThread->getInstrumentationId()
+				);
+
+				nanos6_address_translation_entry_t
+					stackTranslationTable[SymbolTranslation::MAX_STACK_SYMBOLS];
+
+				size_t tableSize = 0;
+				nanos6_address_translation_entry_t *translationTable =
+					SymbolTranslation::generateTranslationTable(
+						_task, cpu, stackTranslationTable, tableSize);
+
+				// Runtime Tracking Point - A task starts its execution
+				TrackingPoints::taskIsExecuting(_task);
+
+				// Run the task
+				std::atomic_thread_fence(std::memory_order_acquire);
+				_task->body(translationTable);
+				if (_task->isIf0()) {
+					If0Task::executeNonInline(currentThread, _task, cpu);
+				}
+				std::atomic_thread_fence(std::memory_order_release);
+
+				// Update the CPU since the thread may have migrated
+				cpu = currentThread->getComputePlace();
+				instrumentationContext.updateComputePlace(cpu->getInstrumentationId());
+
+				// Runtime Tracking Point - A task completes its execution (user code)
+				TrackingPoints::taskCompletedUserCode(_task);
+
+				// Free up all symbol translation
+				if (tableSize > 0) {
+					MemoryAllocator::free(translationTable, tableSize);
+				}
+			} else {
+
+				if (_task->isIf0()) {
+					If0Task::executeNonInline(currentThread, _task, cpu);
+				}
+				// Runtime Tracking Point - A task completes its execution (user code)
+				TrackingPoints::taskCompletedUserCode(_task);
 			}
-			// Runtime Tracking Point - A task completes its execution (user code)
-			TrackingPoints::taskCompletedUserCode(_task);
-		}
 
-		DataAccessRegistration::combineTaskReductions(_task, cpu);
+			DataAccessRegistration::combineTaskReductions(_task, cpu);
+		}
 
 		// Release the subsequent steps
 		_task->setExecutionStep(nullptr);
