@@ -4315,6 +4315,26 @@ namespace DataAccessRegistration {
 		Instrument::exitReleaseTaskwaitFragment();
 	}
 
+	void setLocationFromWorkflow(
+		DataAccess *access,
+		MemoryPlace const *location,
+		CPUDependencyData &hpDependencyData)
+	{
+		Task *task = access->getOriginator();
+		TaskDataAccesses &accessStructures = task->getDataAccesses();
+		DataAccessStatusEffects initialStatus(access);
+		access->setLocation(location);
+		DataAccessStatusEffects updatedStatus(access);
+
+		/* Setting the location may cause read satisfiability to be
+		 * propagated to the next task in the namespace (for in
+		 * dependencies).
+		 */
+		handleDataAccessStatusChanges(initialStatus,
+			updatedStatus, access, accessStructures,
+			task, hpDependencyData);
+	}
+
 	/*
 	 * Update the location information for all data accesses that intersect the
 	 * region, fragmenting them if necessary. For clusters this is done when
@@ -5387,12 +5407,6 @@ namespace DataAccessRegistration {
 			initialStatus, updatedStatus,
 			access, accessStructures, access->getOriginator(),
 			hpDependencyData);
-	}
-
-	void setNamespaceSelfDone(CPUDependencyData &hpDependencyData)
-	{
-		processDelayedOperations(hpDependencyData);
-		handleRemovableTasks(hpDependencyData._removableTasks);
 	}
 }; // namespace DataAccessRegistration
 

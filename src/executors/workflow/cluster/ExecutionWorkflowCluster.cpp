@@ -261,10 +261,18 @@ namespace ExecutionWorkflow {
 		// TODO: If this condition never trigers then the _writeID member can be removed. from this
 		// class.
 
-		if (_registerLocation) {
+		bool lateWriteID = false;
+		if (_needsTransfer && WriteIDManager::checkWriteIDLocal(_writeID, _fullRegion)) {
+			// Second chance: now it is found by write ID, so in the end just register the
+			// location.
+			lateWriteID = true;
+			Instrument::dataFetch(Instrument::LateWriteID, _fullRegion);
+		}
+
+		if (_registerLocation || lateWriteID) {
 			//! This access doesn't need a transfer. But we need to update the task location
 			//! to match the target node.
-			assert(!_needsTransfer);
+			assert(!_needsTransfer || lateWriteID);
 
 			DataAccessRegistration::updateTaskDataAccessLocation(
 				_task,
@@ -274,7 +282,7 @@ namespace ExecutionWorkflow {
 			);
 		}
 
-		if (!_needsTransfer) {
+		if (!_needsTransfer || lateWriteID) {
 			releaseSuccessors();
 			delete this;
 			return false;
@@ -283,12 +291,6 @@ namespace ExecutionWorkflow {
 		assert(_sourceMemoryPlace->getType() == nanos6_cluster_device);
 		assert(_sourceMemoryPlace != _targetMemoryPlace);
 
-		if (WriteIDManager::checkWriteIDLocal(_writeID, _fullRegion)) {
-			Instrument::dataFetch(Instrument::LateWriteID, _fullRegion);
-			releaseSuccessors();
-			delete this;
-			return false;
-		}
 
 		// Now check pending data transfers because the same data transfer
 		// (or one fully containing it) may already be pending. An example

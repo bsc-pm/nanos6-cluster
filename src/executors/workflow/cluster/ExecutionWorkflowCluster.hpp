@@ -425,7 +425,8 @@ namespace ExecutionWorkflow {
 		MemoryPlace const *source,
 		MemoryPlace const *target,
 		DataAccessRegion const &inregion,
-		DataAccess *access
+		DataAccess *access,
+		CPUDependencyData &hpDependencyData
 	) {
 		assert(source != nullptr);
 		assert(target == ClusterManager::getCurrentMemoryNode());
@@ -447,9 +448,16 @@ namespace ExecutionWorkflow {
 		}
 
 		if (WriteIDManager::checkWriteIDLocal(access->getWriteID(), region)) {
+			// It is present locally, even though the location for this particular
+			// data access says otherwise. Update the location to reflect the fact that the
+			// data is local, otherwise disableReadPropagationToNext will not pass read
+			// satisfiability to the successor until the access is complete. Note: this
+			// may create delayed operations (passing the read satisfiability, which is
+			// why this function needs hpDependencyData).
 			Instrument::dataFetch(Instrument::EarlyWriteID, region);
-
-			// NULL copy (do nothing, just release succesor and delete itself.)
+			if (access->readSatisfied()) {
+				DataAccessRegistration::setLocationFromWorkflow(access, ClusterManager::getCurrentMemoryNode(), hpDependencyData);
+			}
 			return new Step();
 		}
 
@@ -572,7 +580,7 @@ namespace ExecutionWorkflow {
 		}
 
 		if (target == current) {
-			return clusterFetchData(source, target, region, access);
+			return clusterFetchData(source, target, region, access, hpDependencyData);
 		}
 
 		assert(access->getObjectType() == access_type);

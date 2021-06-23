@@ -173,6 +173,11 @@ namespace DataAccessRegistration {
 	template <typename ProcessorType>
 	inline bool processAllDataAccesses(Task *task, ProcessorType processor);
 
+	void processDelayedOperationsSatisfiedOriginatorsAndRemovableTasks(
+		CPUDependencyData &hpDependencyData,
+		ComputePlace *computePlace,
+		bool fromBusyThread);
+
 	//! \brief Update the location of the DataAccess of a Task
 	//!
 	//! \param[in] task is the owner of the accesses we are updating
@@ -184,6 +189,12 @@ namespace DataAccessRegistration {
 		DataAccessRegion const &region,
 		MemoryPlace const *location,
 		bool isTaskwait
+	);
+
+	void setLocationFromWorkflow(
+		DataAccess *access,
+		MemoryPlace const *location,
+		CPUDependencyData &hpDependencyData
 	);
 
 	//! \brief Register a region as a NO_ACCESS_TYPE access within the Task
@@ -218,7 +229,6 @@ namespace DataAccessRegistration {
 		nanos6_address_translation_entry_t * translationTable, int totalSymbols);
 
 	void setNamespaceSelf(DataAccess *access, int targetNamespace, CPUDependencyData &hpDependencyData);
-	void setNamespaceSelfDone(CPUDependencyData &hpDependencyData);
 } // namespace DataAccessRegistration
 
 

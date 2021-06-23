@@ -268,9 +268,6 @@ namespace ExecutionWorkflow {
 
 		Step *notificationStep = nullptr;
 
-		// Thread and CPU while creating the workflow (not when executing the lambda functions)
-		WorkerThread *createCurrThread = WorkerThread::getCurrentWorkerThread();
-		CPU * const createCpu = (createCurrThread == nullptr) ? nullptr : createCurrThread->getComputePlace();
 
 		if (task->isTaskforCollaborator()) {
 			// Now we only support host's taskfor because they are not offloaded (yet).
@@ -343,9 +340,26 @@ namespace ExecutionWorkflow {
 		workflow->enforceOrder(executionStep, releaseStep);
 		workflow->enforceOrder(releaseStep, notificationStep);
 
+		// We must use local dependency data here, not the CPU's dependency data. This is because
+		// we may currently be creating the workflow for an offloaded task, which happens inside 
+		// functions called (indirectly) by DataRegistration::processSatisfiedOriginators.
+		// Note: it is only creating the workflow for an offloaded task that happens immediately,
+		// never the execution of a non-offloaded task. So the CPU dependency data may still be
+		// being used and we cannot use it again! Strictly speaking it is only the satisfied
+		// originators that are still in use, but (1) we need these, because if the task's data
+		// is found by the WriteID, then the data copy step will call setLocationFromWorkflow,
+		// which may indeed create satisfied originators; and (2) it is dangerous to rely on the
+		// fact that DataRegistration::processSatisfiedOriginators is the last to be called in 
+		// DataAccessRegistration::processDelayedOperationsSatisfiedOriginatorsAndRemovableTasks,
+		// and therefore the rest of the CPU dependency data isn't needed.
 		CPUDependencyData localDependencyData2;
-		CPUDependencyData &hpDependencyData2 =
-			(createCpu == nullptr) ? localDependencyData2 : createCpu->getDependencyData();
+		// Thread and CPU while creating the workflow (not when executing the lambda functions)
+		// WorkerThread *createCurrThread = WorkerThread::getCurrentWorkerThread();
+		// CPU * const createCpu = (createCurrThread == nullptr) ? nullptr : createCurrThread->getComputePlace();
+		// CPUDependencyData &hpDependencyData2 =
+		//	(createCpu == nullptr) ? localDependencyData2 : createCpu->getDependencyData();
+		CPUDependencyData &hpDependencyData2 = localDependencyData2;
+
 		DataAccessRegistration::processAllDataAccesses(
 			task,
 			[&](DataAccess *dataAccess) -> bool {
@@ -396,12 +410,6 @@ namespace ExecutionWorkflow {
 			}
 		);
 
-		// Setting the namespace for this task's accesses may require passing
-		// the valid namespace information to the successor accesses. We
-		// couldn't do it while holding the lock on our task's access
-		// structures (taken by DataAccessRegistration::processAllDataAccesses),
-		// so do it now.
-		DataAccessRegistration::setNamespaceSelfDone(hpDependencyData2);
 
 		if (executionStep->ready()) {
 			workflow->enforceOrder(executionStep, notificationStep);
@@ -416,6 +424,22 @@ namespace ExecutionWorkflow {
 		// task), or it will setup all the Execution Step will
 		// execute when ready.
 		workflow->start();
+
+		// There may be some delayed operations from setLocationFromWorkflow, which
+		// is called when a data transfer is not created because it is found by
+		// WriteID.
+		WorkerThread const *currThread = WorkerThread::getCurrentWorkerThread();
+		CPU * const cpu =
+			(currThread == nullptr) ? nullptr : currThread->getComputePlace();
+
+		// Two things may have created delayed operations:
+		// (1) Setting the namespace for this task's accesses may require passing
+		// the valid namespace information to the successor accesses.
+		// (2) Updating the data location if found by WriteID.
+		// We couldn't do either while holding the lock on our task's access
+		// structures (taken by DataAccessRegistration::processAllDataAccesses),
+		// so do all the delayed operations now.
+		DataAccessRegistration::processDelayedOperationsSatisfiedOriginatorsAndRemovableTasks(hpDependencyData2, cpu, false);
 	}
 
 	void setupTaskwaitWorkflow(
