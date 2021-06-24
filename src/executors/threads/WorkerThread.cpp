@@ -151,7 +151,7 @@ void WorkerThread::handleTask(CPU *cpu)
 	assert(targetMemoryPlace != nullptr);
 
 	// This if is only for source taskfors.
-	if (_task->isTaskforSource() && _task->getExecutionStep() != nullptr) {
+	if (_task->isTaskforSource() && _task->getWorkflow() != nullptr) {
 		assert(!_task->isRunnable());
 
 		// We have already set the chunk of the preallocatedTaskfor in the scheduler.
