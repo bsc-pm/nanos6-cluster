@@ -2807,10 +2807,16 @@ namespace DataAccessRegistration {
 				bool canPropagateInNamespace = false;
 				if (parent->isNodeNamespace()) {
 					if (previous->getNamespaceSuccessor() == dataAccess->getOriginator()) {
-						if (previous->getType() == READ_ACCESS_TYPE && dataAccess->getType() != READ_ACCESS_TYPE) {
-							// Cannot propagate in namespace from a read-only access to something different
-							// This is because the write satisfiability for an offloaded read-only access is
-							// only pseudowrite satisfiability.
+						if ((previous->getType() == READ_ACCESS_TYPE) != (dataAccess->getType() == READ_ACCESS_TYPE)) {
+							// When the access type of an offloaded task is READ_ACCESS_TYPE, then write satisfiability
+							// means pseudowrite satisfiability. We cannot propagate in the namespace from pseudowrite
+							// to true write or vice versa.
+							// Pseudowrite to true write is invalid at the remote side, because the remote node does not know
+							// whether all concurrent reads on other nodes have finished, so it cannot treat pseudowrite
+							// satisfied as true write satisfied. Write to pseudowrite is invalid because when the remote
+							// node has pseudowrite, the offloader has to also propagate true write satisfiability at its
+							// end. But namespace propagation from true write to pseudowrite would mean that the
+							// offloader never receives the true write satisfiability from the previous offloaded task.
 							Instrument::namespacePropagation(Instrument::NamespaceWrongPredecessor, dataAccess->getAccessRegion());
 						} else {
 							canPropagateInNamespace = true;
