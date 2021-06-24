@@ -80,8 +80,11 @@ void TaskFinalization::taskFinished(Task *task, ComputePlace *computePlace, bool
 
 				assert(!task->mustDelayRelease());
 			} else if (task->isTaskforCollaborator()) {
-				Taskfor *collaborator = (Taskfor *)task;
-				Taskfor *source = (Taskfor *)parent;
+				Taskfor *collaborator = dynamic_cast<Taskfor *>(task);
+				Taskfor *source = dynamic_cast<Taskfor *>(parent);
+				assert(parent->isTaskforSource());
+				assert(collaborator != nullptr);
+				assert(source != nullptr);
 
 				size_t completedIts = collaborator->getCompletedIterations();
 				if (completedIts > 0) {
@@ -129,7 +132,7 @@ void TaskFinalization::disposeTask(Task *task)
 		// disposable=true.  This is because the last to finish child may
 		// concurrently unlink itself, get disposable=true, and then delete
 		// the parent.
-		bool parentIsNodeNamespace = (parent != nullptr && parent->isNodeNamespace());
+		const bool parentIsNodeNamespace = (parent != nullptr && parent->isNodeNamespace());
 		disposable = task->unlinkFromParent();
 
 		const bool isTaskfor = task->isTaskfor();

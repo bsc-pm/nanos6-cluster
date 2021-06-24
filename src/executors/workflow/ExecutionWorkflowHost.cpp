@@ -63,9 +63,7 @@ namespace ExecutionWorkflow {
 			return;
 		}
 
-		if (_task->isTaskforSource()) {
-			
-		} else {
+		if (_task->isRunnable()) {
 			_task->setThread(currentThread);
 
 			if (_task->hasCode()) {

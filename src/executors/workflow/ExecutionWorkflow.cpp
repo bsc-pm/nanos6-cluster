@@ -194,6 +194,15 @@ namespace ExecutionWorkflow {
 		 * because all its pending DataCopy steps have been completed
 		 * and it's ready to actually run.
 		 */
+#ifndef NDEBUG
+		// This will expose some nasty errors difficult to debug latter. TaskforSource only comes
+		// here twise. When creating the workflow and when deleting the executionStep and releasing
+		// the notificationStep.
+		if (task->isTaskforSource() && task->getWorkflow() != nullptr) {
+			assert(task->getExecutionStep() != nullptr);
+		}
+#endif
+
 		if (task->getWorkflow() != nullptr) {
 			ExecutionWorkflow::Step *executionStep = task->getExecutionStep();
 

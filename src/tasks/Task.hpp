@@ -803,8 +803,15 @@ public:
 	//! \brief Set the Execution Workflow for this Task
 	inline void setWorkflow(Workflow<TaskExecutionWorkflowData> *workflow)
 	{
-		assert((_workflow == nullptr && workflow != nullptr)
-			|| (_workflow != nullptr && workflow == nullptr));
+#ifndef NDEBUG
+		// This is not enforced, but usefull when we try to execute the notification step more than
+		// once.
+		if (_workflow == nullptr) {
+			assert(workflow != nullptr);
+		} else {
+			assert(workflow == nullptr);
+		}
+#endif // NDEBUG
 		_workflow = workflow;
 	}
 	//! \brief Get the Execution Workflow of the Task
