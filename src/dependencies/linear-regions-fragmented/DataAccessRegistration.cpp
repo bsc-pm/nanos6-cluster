@@ -1056,7 +1056,6 @@ namespace DataAccessRegistration {
 					// is write satisfiability - the remote node will treat it as write
 					// satisfiability. This only works because namespace propagation
 					// never happens from an in to an inout or out access.
-					access->setRemoteHasPseudowrite();
 					linksWrite = true;
 				}
 			}

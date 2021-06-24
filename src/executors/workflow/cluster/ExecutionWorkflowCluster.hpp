@@ -75,10 +75,10 @@ namespace ExecutionWorkflow {
 			// write satisfiability and send only pseudowrite
 			// satisfiability if read satisfied.
 			if (access->getType() == READ_ACCESS_TYPE) {
+				access->setRemoteHasPseudowrite();
 				_write = false;
 				if (_read) {
 					_write = true;
-					access->setRemoteHasPseudowrite();
 				}
 			}
 
