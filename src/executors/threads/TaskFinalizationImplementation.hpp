@@ -230,6 +230,16 @@ void TaskFinalization::disposeTask(Task *task)
 			if (taskInfo->destroy_args_block != nullptr) {
 				taskInfo->destroy_args_block(task->getArgsBlock());
 			}
+
+			// Non disposable tasks like Taskforsource require a new workflow when they are
+			// reconstructed. SO we need to clear the old workflow here and set the tasks' pointer
+			// to nullptr. Then when added again throw executeTask a new forkflow will be recreated.
+			// Disposable tasks delete the workflow in the task's destructor.
+			if (task->getWorkflow() != nullptr) {
+				assert(task->getExecutionStep() == nullptr);
+				delete task->getWorkflow();
+				task->setWorkflow(nullptr);
+			}
 		}
 
 		task = parent;

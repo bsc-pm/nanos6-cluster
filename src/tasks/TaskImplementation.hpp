@@ -76,6 +76,11 @@ inline Task::~Task()
 		delete _clusterContext;
 	}
 
+	if (_workflow != nullptr) {
+		assert(_executionStep == nullptr);
+		delete _workflow;
+	}
+
 	// Destroy hardware counters
 	_hwCounters.shutdown();
 }

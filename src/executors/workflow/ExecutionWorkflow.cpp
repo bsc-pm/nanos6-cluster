@@ -281,23 +281,22 @@ namespace ExecutionWorkflow {
 		Step *executionStep = workflow->createExecutionStep(task, targetComputePlace);
 
 		Step *notificationStep = workflow->createNotificationStep(
-			[=]() -> void {
+			[task, targetComputePlace, targetMemoryPlace]() -> void {
 				WorkerThread *currThread = WorkerThread::getCurrentWorkerThread();
 				CPU * const cpu = (currThread == nullptr) ? nullptr : currThread->getComputePlace();
 
+				// For collaborators don't go to the Dependency System. It is simpler as they
+				// don't have dependencies.
 				if (task->isTaskforCollaborator()) {
-					// For collaborators don't go to the Dependency System. It is simpler as they
-					// don't have dependencies.
+					// Now we only support host's taskfor because they are not offloaded.
 					assert(targetComputePlace->getType() == nanos6_host_device);
 
-					if (task->markAsFinished(cpu/* cpu */)) {
+					if (task->markAsFinished(cpu)) {
 						TaskFinalization::taskFinished(task, cpu);
 						if (task->markAsReleased()) {
 							TaskFinalization::disposeTask(task);
 						}
-						task->setWorkflow(nullptr);
 					}
-
 				} else {
 					// For offloaded tasks with cluster.disable_autowait=false, handle
 					// the early release of dependencies propagated in the namespace. All
@@ -311,7 +310,7 @@ namespace ExecutionWorkflow {
 						cpu,
 						hpDependencyData);
 
-					if (task->markAsFinished(cpu/* cpu */)) {
+					if (task->markAsFinished(cpu)) {
 						DataAccessRegistration::unregisterTaskDataAccesses(
 							task,
 							cpu, /*cpu, */
@@ -325,21 +324,18 @@ namespace ExecutionWorkflow {
 							[&]() -> void {
 								TaskFinalization::taskFinished(task, cpu);
 								if (task->markAsReleased()) {
-									// const std::string label = task->getLabel();
 									TaskFinalization::disposeTask(task);
 								}
 							}
 						);
 					}
 				}
-				delete workflow;
 			},
 			targetComputePlace
 		);
 
-		// TODO: Once we have correct management for the Task symbols here
-		// we should create the corresponding allocation steps.
-
+		// TODO: Once we have correct management for the Task symbols here we should create the
+		// corresponding allocation steps.
 		DataReleaseStep *releaseStep = workflow->createDataReleaseStep(task);
 		workflow->enforceOrder(executionStep, releaseStep);
 		workflow->enforceOrder(releaseStep, notificationStep);
