@@ -404,28 +404,6 @@ namespace ExecutionWorkflow {
 		}
 	};
 
-	class ClusterNotificationStep : public Step {
-	private:
-		std::function<void ()> const _callback;
-
-	public:
-		ClusterNotificationStep(std::function<void ()> const &callback)
-			: Step(), _callback(callback)
-		{
-		}
-
-		//! Start the execution of the Step
-		void start() override
-		{
-			if (_callback) {
-				_callback();
-			}
-
-			releaseSuccessors();
-			delete this;
-		}
-	};
-
 	inline Step *clusterFetchData(
 		MemoryPlace const *source,
 		MemoryPlace const *target,

@@ -77,21 +77,6 @@ namespace ExecutionWorkflow {
 		//!	       be executed.
 		Step *createExecutionStep(Task *task, ComputePlace *computePlace);
 
-		//! \brief Creates a NotificationStep.
-		//!
-		//! A NotificationStep performs the cleanup of Task after
-		//! it has finished executing and notify anyone who is waiting
-		//! for the Task to complete.
-		//!
-		//! \param[in] callback is a function to be called once the notification
-		//!	       Step becomes ready.
-		//! \param[in] computePlace is the ComputePlace on which the task will
-		//!	       be executed.
-		Step *createNotificationStep(
-			std::function<void ()> const &callback,
-			ComputePlace const *computePlace
-		);
-
 		//! \brief Creates a DataReleaseStep.
 		//!
 		//! A DataReleaseStep triggers events related to the release

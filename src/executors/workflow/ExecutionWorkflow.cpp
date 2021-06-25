@@ -112,25 +112,6 @@ namespace ExecutionWorkflow {
 		}
 	}
 
-	Step *Workflow::createNotificationStep(
-		std::function<void ()> const &callback,
-		ComputePlace const *computePlace
-	) {
-		const nanos6_device_t type =
-			(computePlace == nullptr) ? nanos6_host_device : computePlace->getType();
-
-		switch (type) {
-			case nanos6_host_device:
-				return new HostNotificationStep(callback);
-			case nanos6_cluster_device:
-				return new ClusterNotificationStep(callback);
-			default:
-				FatalErrorHandler::fail("Execution workflow does not support this device yet");
-				//! Silencing annoying compiler warning
-				return nullptr;
-		}
-	}
-
 	DataReleaseStep *Workflow::createDataReleaseStep(Task *task)
 	{
 		if (task->isRemoteTask()) {
@@ -279,16 +260,18 @@ namespace ExecutionWorkflow {
 
 		Step *executionStep = workflow->createExecutionStep(task, targetComputePlace);
 
-		Step *notificationStep = workflow->createNotificationStep(
-			[task, targetComputePlace, targetMemoryPlace]() -> void {
-				WorkerThread *currThread = WorkerThread::getCurrentWorkerThread();
-				CPU * const cpu = (currThread == nullptr) ? nullptr : currThread->getComputePlace();
+		Step *notificationStep = nullptr;
 
-				// For collaborators don't go to the Dependency System. It is simpler as they
-				// don't have dependencies.
-				if (task->isTaskforCollaborator()) {
-					// Now we only support host's taskfor because they are not offloaded.
-					assert(targetComputePlace->getType() == nanos6_host_device);
+		if (task->isTaskforCollaborator()) {
+			// Now we only support host's taskfor because they are not offloaded (yet).
+			assert(targetComputePlace->getType() == nanos6_host_device);
+
+			// For collaborators don't go to the Dependency System. It is simpler as they don't have
+			// dependencies.
+			notificationStep = new NotificationStep(
+				[task]() -> void {
+					WorkerThread *currThread = WorkerThread::getCurrentWorkerThread();
+					CPU * const cpu = (currThread == nullptr) ? nullptr : currThread->getComputePlace();
 
 					if (task->markAsFinished(cpu)) {
 						TaskFinalization::taskFinished(task, cpu);
@@ -296,7 +279,18 @@ namespace ExecutionWorkflow {
 							TaskFinalization::disposeTask(task);
 						}
 					}
-				} else {
+				}
+			);
+		} else {
+			// At the moment we only support host and cluster devices.
+			assert(targetComputePlace->getType() == nanos6_host_device
+				||targetComputePlace->getType() == nanos6_cluster_device);
+
+			notificationStep = new NotificationStep(
+				[task, targetComputePlace, targetMemoryPlace]() -> void {
+					WorkerThread *currThread = WorkerThread::getCurrentWorkerThread();
+					CPU * const cpu = (currThread == nullptr) ? nullptr : currThread->getComputePlace();
+
 					// For offloaded tasks with cluster.disable_autowait=false, handle
 					// the early release of dependencies propagated in the namespace. All
 					// other dependencies will be handled using the normal "wait" mechanism.
@@ -329,9 +323,8 @@ namespace ExecutionWorkflow {
 						);
 					}
 				}
-			},
-			targetComputePlace
-		);
+			);
+		}
 
 		// TODO: Once we have correct management for the Task symbols here we should create the
 		// corresponding allocation steps.
@@ -434,38 +427,36 @@ namespace ExecutionWorkflow {
 		Workflow *workflow = new Workflow();
 
 
-		Step *notificationStep =
-			workflow->createNotificationStep(
-				[=]() {
-					/* We cannot re-use the 'computePlace', we need to
-						* retrieve the current Thread and associated
-						* ComputePlace */
-					WorkerThread *releasingThread = WorkerThread::getCurrentWorkerThread();
+		Step *notificationStep = new NotificationStep(
+			[task, region, workflow]() -> void {
+				/* We cannot re-use the 'computePlace', we need to
+				 * retrieve the current Thread and associated
+				 * ComputePlace */
+				WorkerThread *releasingThread = WorkerThread::getCurrentWorkerThread();
 
-					ComputePlace *releasingComputePlace =
-						(releasingThread == nullptr) ? nullptr : releasingThread->getComputePlace();
+				ComputePlace *releasingComputePlace =
+					(releasingThread == nullptr) ? nullptr : releasingThread->getComputePlace();
 
-					/* Here, we are always using a local CPUDependencyData
-						* object, to avoid the issue where we end-up calling
-						* this while the thread is already in the dependency
-						* system, using the CPUDependencyData of its
-						* ComputePlace. This is a *TEMPORARY* solution, until
-						* we fix how we handle taskwaits in a more clean
-						* way. */
-					CPUDependencyData localDependencyData;
+				/* Here, we are always using a local CPUDependencyData
+				 * object, to avoid the issue where we end-up calling
+				 * this while the thread is already in the dependency
+				 * system, using the CPUDependencyData of its
+				 * ComputePlace. This is a *TEMPORARY* solution, until
+				 * we fix how we handle taskwaits in a more clean
+				 * way. */
+				CPUDependencyData localDependencyData;
 
-					DataAccessRegistration::releaseTaskwaitFragment(
-						task,
-						region,
-						releasingComputePlace,
-						localDependencyData,
-						true
-					);
+				DataAccessRegistration::releaseTaskwaitFragment(
+					task,
+					region,
+					releasingComputePlace,
+					localDependencyData,
+					true
+				);
 
-					delete workflow;
-				},
-				computePlace
-			);
+				delete workflow;
+			}
+		);
 
 		MemoryPlace const *currLocation = taskwaitFragment->getLocation();
 

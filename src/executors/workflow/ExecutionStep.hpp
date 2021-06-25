@@ -7,6 +7,8 @@
 #ifndef EXECUTION_STEP_HPP
 #define EXECUTION_STEP_HPP
 
+#include <functional>
+
 #include "dependencies/DataAccessType.hpp"
 #include "lowlevel/SpinLock.hpp"
 
@@ -205,6 +207,27 @@ namespace ExecutionWorkflow {
 		{
 		}
 	};
+
+	class NotificationStep : public Step {
+		std::function<void ()> const _callback;
+	public:
+		NotificationStep(std::function<void ()> const &callback)
+			: Step(), _callback(callback)
+		{
+		}
+
+		//! start the execution of the Step
+		inline void start() override
+		{
+			if (_callback) {
+				_callback();
+			}
+
+			releaseSuccessors();
+			delete this;
+		}
+	};
+
 }
 
 #endif /* EXECUTION_STEP_HPP */

@@ -29,23 +29,6 @@ namespace ExecutionWorkflow {
 		//! Start the execution of the Step
 		void start() override;
 	};
-
-	class HostNotificationStep : public Step {
-		std::function<void ()> const _callback;
-	public:
-		HostNotificationStep(std::function<void ()> const &callback)
-			: _callback(callback)
-		{
-		}
-
-		//! start the execution of the Step
-		inline void start() override
-		{
-			_callback();
-			releaseSuccessors();
-			delete this;
-		}
-	};
 };
 
 #endif /* __EXECUTION_WORKFLOW_HOST_HPP__ */
