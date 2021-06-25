@@ -4206,7 +4206,7 @@ namespace DataAccessRegistration {
 	 * is necessary for dmallocs, because all child data accesses should
 	 * be contained within the parent data accesses (?).
 	 */
-	void registerLocalAccess(Task *task, DataAccessRegion const &region, const MemoryPlace *location = nullptr)
+	void registerLocalAccess(Task *task, DataAccessRegion const &region, const MemoryPlace *location = nullptr, bool isStack = false)
 	{
 		assert(task != nullptr);
 
@@ -4265,16 +4265,18 @@ namespace DataAccessRegistration {
 
 		if (!foundIt) {
 
-			/* We have not found this access region so create a new one. This must only
-			 * happen for lmallocs in the main task. Other tasks that perform an lmalloc
-			 * should have a weakinout access covering "all memory", which means that
-			 * foundIt should be true. It is not only that the program is correct. If
-			 * this is an offloaded task or a subtask of an offloaded task, we may send
-			 * more MessageReleaseAccess messages than originally expected, but the
-			 * DataReleaseStep gets deleted when the counter on the bytes to release
-			 * reaches zero. This may cause a use-after-free in the runtime
+			/* We have not found this access region so create a new one. This
+			 * must only happen for the stack (set in WorkerThread) or lmallocs
+			 * in the main task.  Other tasks that perform an lmalloc should
+			 * have a weakinout access covering "all memory", which means that
+			 * foundIt should be true. It is not only that the program is
+			 * correct. If this is an offloaded task or a subtask of an
+			 * offloaded task, we may send more MessageReleaseAccess messages
+			 * than originally expected, but the DataReleaseStep gets deleted
+			 * when the counter on the bytes to release reaches zero. This may
+			 * cause a use-after-free in the runtime
 			 */
-			FatalErrorHandler::failIf(task->getParent() != nullptr,
+			FatalErrorHandler::failIf(!isStack && (task->getParent() != nullptr),
 				"nanos6_lmalloc or nanos6_dmalloc in ",
 				task->getLabel(),
 				" without an weakinout \"all memory\" access");

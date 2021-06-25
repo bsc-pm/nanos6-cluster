@@ -51,7 +51,7 @@ namespace ClusterMemoryManagement {
 			//! The home node of the new allocated region is the
 			//! current node
 			Directory::insert(allocatedRegion, ClusterManager::getCurrentMemoryNode());
-			DataAccessRegistration::registerLocalAccess(task, allocatedRegion, ClusterManager::getCurrentMemoryNode());
+			DataAccessRegistration::registerLocalAccess(task, allocatedRegion, ClusterManager::getCurrentMemoryNode(), /* isStack */ false);
 
 			return dptr;
 		}
@@ -164,7 +164,7 @@ namespace ClusterMemoryManagement {
 		WorkerThread *currentThread = WorkerThread::getCurrentWorkerThread();
 		Task *task = currentThread->getTask();
 		DataAccessRegion allocatedRegion(lptr, size);
-		DataAccessRegistration::registerLocalAccess(task, allocatedRegion, ClusterManager::getCurrentMemoryNode());
+		DataAccessRegistration::registerLocalAccess(task, allocatedRegion, ClusterManager::getCurrentMemoryNode(), /* isStack */ false);
 		return lptr;
 	}
 

@@ -89,6 +89,12 @@ namespace ExecutionWorkflow {
 				// Runtime Tracking Point - A task starts its execution
 				TrackingPoints::taskIsExecuting(_task);
 
+				// Register the stack
+				size_t stackSize;
+				void *stackPtr = currentThread->getStackAndSize(/* OUT */ stackSize);
+				DataAccessRegion stackRegion(stackPtr, stackSize);
+				DataAccessRegistration::registerLocalAccess(_task, stackRegion, ClusterManager::getCurrentMemoryNode(), /* isStack */ true);
+
 				// Run the task
 				std::atomic_thread_fence(std::memory_order_acquire);
 				_task->body(translationTable);
@@ -96,6 +102,9 @@ namespace ExecutionWorkflow {
 					If0Task::executeNonInline(currentThread, _task, cpu);
 				}
 				std::atomic_thread_fence(std::memory_order_release);
+
+				// Unregister the stack
+				DataAccessRegistration::unregisterLocalAccess(_task, stackRegion);
 
 				// Update the CPU since the thread may have migrated
 				cpu = currentThread->getComputePlace();

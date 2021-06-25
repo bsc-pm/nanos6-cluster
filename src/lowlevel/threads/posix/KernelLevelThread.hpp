@@ -58,6 +58,12 @@ public:
 	{
 	}
 
+	void *getStackAndSize(size_t &size)
+	{
+		size = _stackSize;
+		return _stackPtr;
+	}
+
 	virtual ~KernelLevelThread()
 	{
 		if (_stackSize > 0) {

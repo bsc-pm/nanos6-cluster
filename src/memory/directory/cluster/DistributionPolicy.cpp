@@ -31,7 +31,7 @@ namespace ClusterDirectory {
 			ClusterMemoryNode *homeNode = ClusterManager::getMemoryNode(i);
 			Directory::insert(newRegion, homeNode);
 			if (task) {
-				DataAccessRegistration::registerLocalAccess(task, newRegion, homeNode);
+				DataAccessRegistration::registerLocalAccess(task, newRegion, homeNode, /* isStack */ false);
 			}
 			ptr += blockSize;
 		}
@@ -45,7 +45,7 @@ namespace ClusterDirectory {
 
 			Directory::insert(newRegion, homeNode);
 			if (task) {
-				DataAccessRegistration::registerLocalAccess(task, newRegion, homeNode);
+				DataAccessRegistration::registerLocalAccess(task, newRegion, homeNode, /* isStack */ false);
 			}
 		}
 	}

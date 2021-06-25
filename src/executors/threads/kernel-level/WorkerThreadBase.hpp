@@ -187,6 +187,10 @@ public:
 		return KernelLevelThread::getTid();
 	}
 
+	void *getStackAndSize(size_t &size)
+	{
+		return KernelLevelThread::getStackAndSize(size);
+	}
 };
 
 
