@@ -35,7 +35,7 @@ namespace ExecutionWorkflow {
 		/* cluster */ { clusterCopy, nullCopy, nullCopy, clusterCopy }
 		}};
 
-	Step *WorkflowBase::createDataCopyStep(
+	Step *Workflow::createDataCopyStep(
 		MemoryPlace const *sourceMemoryPlace,
 		MemoryPlace const *targetMemoryPlace,
 		DataAccessRegion const &region,
@@ -99,7 +99,7 @@ namespace ExecutionWorkflow {
 		return step;
 	}
 
-	Step *WorkflowBase::createExecutionStep(Task *task, ComputePlace *computePlace)
+	Step *Workflow::createExecutionStep(Task *task, ComputePlace *computePlace)
 	{
 		switch(computePlace->getType()) {
 			case nanos6_host_device:
@@ -112,7 +112,7 @@ namespace ExecutionWorkflow {
 		}
 	}
 
-	Step *WorkflowBase::createNotificationStep(
+	Step *Workflow::createNotificationStep(
 		std::function<void ()> const &callback,
 		ComputePlace const *computePlace
 	) {
@@ -131,7 +131,7 @@ namespace ExecutionWorkflow {
 		}
 	}
 
-	DataReleaseStep *WorkflowBase::createDataReleaseStep(Task *task)
+	DataReleaseStep *Workflow::createDataReleaseStep(Task *task)
 	{
 		if (task->isRemoteTask()) {
 			return new ClusterDataReleaseStep(task->getClusterContext(), task);
@@ -141,7 +141,7 @@ namespace ExecutionWorkflow {
 	}
 
 
-	void WorkflowBase::start()
+	void Workflow::start()
 	{
 		std::map<MemoryPlace const*, size_t> fragments;
 		std::map<MemoryPlace const*, std::vector<ClusterDataCopyStep *>> groups;
@@ -275,8 +275,7 @@ namespace ExecutionWorkflow {
 		task->setMemoryPlace(targetMemoryPlace);
 
 		// int numSymbols = task->getSymbolNum();
-		Workflow<TaskExecutionWorkflowData> *workflow =
-			new Workflow<TaskExecutionWorkflowData>(0 /* numSymbols */);
+		Workflow *workflow = new Workflow();
 
 		Step *executionStep = workflow->createExecutionStep(task, targetComputePlace);
 
@@ -432,7 +431,7 @@ namespace ExecutionWorkflow {
 			return;
 		}
 
-		Workflow<DataAccessRegion> *workflow = new Workflow<DataAccessRegion>();
+		Workflow *workflow = new Workflow();
 
 
 		Step *notificationStep =

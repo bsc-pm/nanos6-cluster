@@ -158,7 +158,7 @@ private:
 	std::atomic<int> _countdownToRelease;
 
 	//! Execution workflow to execute this Task
-	Workflow<TaskExecutionWorkflowData> *_workflow;
+	Workflow *_workflow;
 
 	//! At the moment we will store the Execution step of the task
 	//! here in order to invoke it after previous asynchronous
@@ -801,7 +801,7 @@ public:
 	}
 
 	//! \brief Set the Execution Workflow for this Task
-	inline void setWorkflow(Workflow<TaskExecutionWorkflowData> *workflow)
+	inline void setWorkflow(Workflow *workflow)
 	{
 #ifndef NDEBUG
 		// This is not enforced, but usefull when we try to execute the notification step more than
@@ -815,7 +815,7 @@ public:
 		_workflow = workflow;
 	}
 	//! \brief Get the Execution Workflow of the Task
-	inline Workflow<TaskExecutionWorkflowData> *getWorkflow() const
+	inline Workflow *getWorkflow() const
 	{
 		return _workflow;
 	}

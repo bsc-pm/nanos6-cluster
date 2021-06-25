@@ -40,7 +40,7 @@ namespace ExecutionWorkflow {
 
 	extern transfers_map_t _transfersMap;
 
-	class WorkflowBase {
+	class Workflow {
 		//! Root steps of the workflow
 		std::vector<Step *> _rootSteps;
 
@@ -134,26 +134,6 @@ namespace ExecutionWorkflow {
 		//! workflow consists of.
 		void start();
 
-	};
-
-	// NOTE: objects of this class self-destruct when they finish
-	template <typename CONTENTS_T>
-	class Workflow : public WorkflowBase, CONTENTS_T {
-	public:
-		template <typename... TS>
-		Workflow(TS &&... argsPack)
-			: WorkflowBase(), CONTENTS_T(std::forward<TS>(argsPack)...)
-		{
-		}
-	};
-
-	struct TaskExecutionWorkflowData {
-		std::vector<DataAccessRegion> _symbolRegions;
-
-		TaskExecutionWorkflowData(size_t symbolCount)
-			: _symbolRegions(symbolCount)
-		{
-		}
 	};
 
 	//! \brief Create a workflow for executing a task
