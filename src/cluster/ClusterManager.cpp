@@ -230,7 +230,7 @@ void ClusterManager::fetchVector(
 
 	std::vector<DataTransfer *> temporal(nFragments, nullptr);
 
-	for (ClusterDataCopyStep const *step : copySteps) {
+	for (ExecutionWorkflow::ClusterDataCopyStep const *step : copySteps) {
 
 		const std::vector<DataAccessRegion> &fragments = step->getFragments();
 

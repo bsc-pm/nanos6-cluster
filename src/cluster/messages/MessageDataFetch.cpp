@@ -23,7 +23,7 @@ MessageDataFetch::MessageDataFetch(
 	_content->_nregions = numFragments;
 	size_t index = 0;
 
-	for (ClusterDataCopyStep const *step : copySteps) {
+	for (ExecutionWorkflow::ClusterDataCopyStep const *step : copySteps) {
 
 		const std::vector<DataAccessRegion> fragments = step->getFragments();
 

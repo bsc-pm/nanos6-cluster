@@ -17,6 +17,8 @@
 #include "Task.hpp"
 #include "system/TrackingPoints.hpp"
 
+#include <ClusterTaskContext.hpp>
+#include <ExecutionWorkflow.hpp>
 #include <DataAccessRegistration.hpp>
 #include <InstrumentTaskId.hpp>
 #include <TaskDataAccesses.hpp>

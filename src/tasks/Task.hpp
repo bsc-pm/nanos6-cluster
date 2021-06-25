@@ -20,10 +20,7 @@
 #include "lowlevel/SpinLock.hpp"
 #include "scheduling/ReadyQueue.hpp"
 #include "system/ompss/SpawnFunction.hpp"
-#include <ExecutionStep.hpp>
 
-#include <ClusterTaskContext.hpp>
-#include <ExecutionWorkflow.hpp>
 #include <InstrumentTaskId.hpp>
 #include <TaskDataAccesses.hpp>
 #include <TaskDataAccessesInfo.hpp>
@@ -44,7 +41,16 @@ class TasktypeData;
 // TODO: Mercurium defines this value hard coded, we must use a better approach
 // and update it here and there in case of change.
 
-using namespace ExecutionWorkflow;
+namespace ExecutionWorkflow {
+	class Step;
+	class Workflow;
+	class DataReleaseStep;
+	class DataLinkStep;
+};
+
+namespace TaskOffloading {
+	class ClusterTaskContext;
+};
 
 class Task {
 public:
@@ -158,12 +164,12 @@ private:
 	std::atomic<int> _countdownToRelease;
 
 	//! Execution workflow to execute this Task
-	Workflow *_workflow;
+	ExecutionWorkflow::Workflow *_workflow;
 
 	//! At the moment we will store the Execution step of the task
 	//! here in order to invoke it after previous asynchronous
 	//! steps have been completed.
-	Step *_executionStep;
+	ExecutionWorkflow::Step *_executionStep;
 
 	//! Monitoring-related statistics about the task
 	TaskStatistics *_taskStatistics;
@@ -801,7 +807,7 @@ public:
 	}
 
 	//! \brief Set the Execution Workflow for this Task
-	inline void setWorkflow(Workflow *workflow)
+	inline void setWorkflow(ExecutionWorkflow::Workflow *workflow)
 	{
 #ifndef NDEBUG
 		// This is not enforced, but usefull when we try to execute the notification step more than
@@ -815,7 +821,7 @@ public:
 		_workflow = workflow;
 	}
 	//! \brief Get the Execution Workflow of the Task
-	inline Workflow *getWorkflow() const
+	inline ExecutionWorkflow::Workflow *getWorkflow() const
 	{
 		return _workflow;
 	}

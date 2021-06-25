@@ -28,7 +28,6 @@
 #include "executors/threads/CPUManager.hpp"
 #include "lowlevel/SpinLock.hpp"
 
-#include <ExecutionStep.hpp>
 #include <InstrumentDataAccessId.hpp>
 #include <InstrumentDependenciesByAccessLinks.hpp>
 #include <InstrumentTaskId.hpp>
@@ -38,6 +37,10 @@
 struct DataAccess;
 class Task;
 class MemoryPlace;
+
+namespace ExecutionWorkflow {
+	class DataLinkStep;
+};
 
 #define VALID_NAMESPACE_UNKNOWN -1
 #define VALID_NAMESPACE_NONE -2
