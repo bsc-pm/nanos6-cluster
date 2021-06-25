@@ -185,6 +185,10 @@ void TaskFinalization::disposeTask(Task *task)
 				taskInfo->destroy_args_block(task->getArgsBlock());
 			}
 
+			if (task->hasDataReleaseStep()) {
+				task->getDataReleaseStep()->releasePendingAccesses();
+			}
+
 			StreamFunctionCallback *spawnCallback = task->getParentSpawnCallback();
 			if (spawnCallback != nullptr) {
 				StreamExecutor *executor = (StreamExecutor *) parent;
