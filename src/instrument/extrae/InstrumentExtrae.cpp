@@ -17,6 +17,7 @@ namespace Instrument {
 
 		bool _extraeInstrumentCluster = false;
 		bool _extraeInstrumentDependencies = false;
+		bool _extraeInstrumentTaskforChunks = false;
 
 		unsigned int _detailLevel = 0;
 		bool _traceAsThreads = false;

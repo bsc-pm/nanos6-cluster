@@ -6,6 +6,7 @@
 
 #include "Taskfor.hpp"
 #include "executors/threads/WorkerThread.hpp"
+#include <InstrumentTaskExecution.hpp>
 
 void Taskfor::run(Taskfor &source, nanos6_address_translation_entry_t *translationTable)
 {
@@ -35,7 +36,9 @@ void Taskfor::run(Taskfor &source, nanos6_address_translation_entry_t *translati
 	size_t completedIterations = 0;
 
 	do {
+		Instrument::taskforChunk(_myChunk);
 		taskInfo.implementations[0].run(argsBlock, &_bounds, translationTable);
+		Instrument::taskforChunk(-1);
 		// Prevent translating twice the addresses because the argsBlock is overwritten
 		translationTable = nullptr;
 

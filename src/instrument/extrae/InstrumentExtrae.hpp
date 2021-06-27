@@ -34,6 +34,7 @@ namespace Instrument {
 
 		extern bool _extraeInstrumentCluster;
 		extern bool _extraeInstrumentDependencies;
+		extern bool _extraeInstrumentTaskforChunks;
 
 		extern unsigned int _detailLevel;
 		extern bool _traceAsThreads;
@@ -92,6 +93,7 @@ namespace Instrument {
 
 			TASK_INSTANCE_ID = 9200002,
 			RUNNING_FUNCTION_NAME = 9200011,
+			RUNNING_TASKFOR_CHUNK = 9200016,
 			RUNNING_CODE_LOCATION = 9200021,
 
 			READY_TASKS = 9200022,

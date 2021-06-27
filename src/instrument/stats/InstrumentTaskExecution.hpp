@@ -43,6 +43,11 @@ namespace Instrument {
 	inline void endTaskforCollaborator(task_id_t, task_id_t, bool, InstrumentationContext const &)
 	{
 	}
+
+	inline void taskforChunk(int chunk)
+	{
+	}
+
 }
 
 

@@ -52,6 +52,11 @@ namespace Instrument {
 		__attribute__((unused)) InstrumentationContext const &context)
 	{
 	}
+
+	inline void taskforChunk(__attribute__((unused)) int chunk)
+	{
+	}
+
 }
 
 

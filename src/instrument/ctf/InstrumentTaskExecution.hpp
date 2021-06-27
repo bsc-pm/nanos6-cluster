@@ -53,6 +53,11 @@ namespace Instrument {
 	) {
 		tp_task_end();
 	}
+
+	inline void taskforChunk(__attribute__((unused)) int chunk)
+	{
+	}
+
 }
 
 

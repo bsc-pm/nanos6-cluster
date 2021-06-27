@@ -185,7 +185,7 @@ __require_EXTRAE
 		# Choose the detail level of the information generated in extrae traces. Default is 1
 		detail_level = 1
 		# Extrae events concepts to emit. Possible values on README.md
-		areas = ["all", "!DependencySystem"]
+		areas = ["all", "!DependencySystem", "!taskforchunks"]
 __!require_EXTRAE
 __require_GRAPH
 	[instrument.graph]

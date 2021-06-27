@@ -239,8 +239,8 @@ namespace Instrument {
 			}
 		}
 
-		ce.Types  = (extrae_type_t *)  alloca (ce.nEvents * sizeof (extrae_type_t) );
-		ce.Values = (extrae_value_t *) alloca (ce.nEvents * sizeof (extrae_value_t));
+		ce.Types  = (extrae_type_t *)  alloca(ce.nEvents * sizeof (extrae_type_t) );
+		ce.Values = (extrae_value_t *) alloca(ce.nEvents * sizeof (extrae_value_t));
 
 
 		ce.Types[0] = (extrae_type_t) EventType::RUNTIME_STATE;
@@ -369,8 +369,8 @@ namespace Instrument {
 			}
 		}
 
-		ce.Types  = (extrae_type_t *)  alloca (ce.nEvents * sizeof (extrae_type_t) );
-		ce.Values = (extrae_value_t *) alloca (ce.nEvents * sizeof (extrae_value_t));
+		ce.Types  = (extrae_type_t *)  alloca(ce.nEvents * sizeof (extrae_type_t) );
+		ce.Values = (extrae_value_t *) alloca(ce.nEvents * sizeof (extrae_value_t));
 
 
 		ce.Types[0] = (extrae_type_t) EventType::RUNTIME_STATE;
@@ -422,6 +422,21 @@ namespace Instrument {
 		ThreadLocalData &threadLocal = getThreadLocalData();
 		assert(!threadLocal._nestingLevels.empty());
 		threadLocal._nestingLevels.pop_back();
+	}
+
+
+	inline void taskforChunk(int chunk)
+	{
+		if (!Extrae::_extraeInstrumentTaskforChunks)
+			return;
+
+		const int value = chunk + 1;
+		assert(chunk >= 0);
+
+		ExtraeAPI::emit_SimpleEvent(
+			(extrae_type_t) EventType::RUNNING_TASKFOR_CHUNK, 
+			(extrae_value_t) value
+		);
 	}
 }
 

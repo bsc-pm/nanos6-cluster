@@ -84,6 +84,7 @@ namespace Instrument {
 				_detailTaskCount =  true;
 				_extraeInstrumentDependencies = true;
 				_extraeInstrumentCluster = true;
+				_extraeInstrumentTaskforChunks = true;
 
 			} else if (area == "taskgraph") {
 				_detailTaskGraph =  true;
@@ -93,6 +94,9 @@ namespace Instrument {
 				_extraeInstrumentDependencies = true;
 			} else if (area == "cluster") {
 				_extraeInstrumentCluster = true;
+			} else if (area == "taskforchunks") {
+				_extraeInstrumentTaskforChunks = true;
+
 
 			} else if (area == "!taskgraph") {
 				_detailTaskGraph =  false;
@@ -102,6 +106,9 @@ namespace Instrument {
 				_extraeInstrumentDependencies = false;
 			} else if (area == "!cluster") {
 				_extraeInstrumentCluster = false;
+			} else if (area == "!taskforchunks") {
+				_extraeInstrumentTaskforChunks = false;
+
 
 			} else {
 				std::cerr << "Warning: ignoring unknown '" << area << "' extrae instrumentation" << std::endl;

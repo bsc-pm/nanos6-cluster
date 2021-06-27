@@ -43,6 +43,11 @@ namespace Instrument {
 	//! \param[in] collaboratorId The collaborator identifier
 	//! \param[in] last Whether the chunk is the last one
 	void endTaskforCollaborator(task_id_t taskforId, task_id_t collaboratorId, bool last = false, InstrumentationContext const &context = ThreadInstrumentationContext::getCurrent());
+
+	//! This function is called just before and after a collaborator executes an individual chunk
+	//! to finalize the events the function receives -1.
+	//! \param[in] chunk The task identifier
+	void taskforChunk(int chunk);
 }
 
 
