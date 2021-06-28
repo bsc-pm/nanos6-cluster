@@ -170,6 +170,10 @@ void ClusterManager::postinitialize()
 	assert(_singleton != nullptr);
 	assert(MemoryAllocator::isInitialized());
 
+	FatalErrorHandler::failIf(!_singleton->_msn,
+							  "This version needs cluster.communication != disabled");
+	assert(_singleton->_msn != nullptr);
+
 	if (inClusterMode()) {
 
 		if (_singleton->_taskInPoolins) {
