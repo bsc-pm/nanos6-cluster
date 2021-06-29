@@ -58,7 +58,7 @@ namespace ExecutionWorkflow {
 		}
 
 		assert(targetMemoryPlace != nullptr);
-		assert(!Directory::isDirectoryMemoryPlace(targetMemoryPlace));
+		assert(!targetMemoryPlace->isDirectoryMemoryPlace());
 
 		// The source memory place is nullptr if and only if the dependency is
 		// not yet read satisfied, which is only possible (at this point) if
@@ -79,8 +79,7 @@ namespace ExecutionWorkflow {
 			access->setValidNamespaceSelf( ClusterManager::getCurrentMemoryNode()->getIndex());
 		}
 
-		if (Directory::isDirectoryMemoryPlace(sourceMemoryPlace)
-			&& ClusterManager::inClusterMode()) {
+		if (ClusterManager::inClusterMode() && sourceMemoryPlace->isDirectoryMemoryPlace()) {
 			// In cluster mode, if it's in the directory, always use
 			// clusterCopy. The data doesn't need copying, since being in the
 			// directory implies that the data is uninitialized. But the new

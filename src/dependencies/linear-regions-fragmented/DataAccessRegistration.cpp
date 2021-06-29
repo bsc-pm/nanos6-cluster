@@ -309,7 +309,7 @@ namespace DataAccessRegistration {
 				bool disableReadPropagationToNext = false;
 				if (access->disableReadPropagationUntilHere()
 					&& access->hasLocation()
-					&& !ClusterManager::isLocalMemoryPlace(access->getLocation())
+					&& !access->getLocation()->isClusterLocalMemoryPlace()
 					&& !access->complete()) {
 					disableReadPropagationToNext = true;
 				}
@@ -521,11 +521,10 @@ namespace DataAccessRegistration {
 				&& access->isWeak() == lastAccess->isWeak()
 				&& access->getType() == lastAccess->getType()
 				&& lastAccess->getLocation()
-				&& ClusterManager::isLocalMemoryPlace(lastAccess->getLocation())
+				&& lastAccess->getLocation()->isClusterLocalMemoryPlace()
 				&& access->getLocation()
-				&& ClusterManager::isLocalMemoryPlace(access->getLocation())
-				&& Directory::isDirectoryMemoryPlace(access->getLocation())
-						== Directory::isDirectoryMemoryPlace(lastAccess->getLocation())
+				&& access->getLocation()->isClusterLocalMemoryPlace()
+				&& access->getLocation()->isDirectoryMemoryPlace() == lastAccess->getLocation()->isDirectoryMemoryPlace()
 				&& access->getDataLinkStep() == lastAccess->getDataLinkStep()
 				&& access->getNext()._task == lastAccess->getNext()._task
 				&& access->getNext()._objectType == lastAccess->getNext()._objectType
@@ -1206,8 +1205,8 @@ namespace DataAccessRegistration {
 						access->getAccessRegion(),
 						accessStructures);
 
-				if (ClusterManager::isLocalMemoryPlace(originalAccess->getLocation())
-					|| !ClusterManager::isLocalMemoryPlace(access->getLocation())) {
+				if (originalAccess->getLocation()->isClusterLocalMemoryPlace()
+					|| !access->getLocation()->isClusterLocalMemoryPlace()) {
 					// Either the original access was already local or the new location
 					// is non-local. In either case, we only need to update the location
 					// of the original access.

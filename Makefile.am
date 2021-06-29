@@ -381,6 +381,7 @@ common_sources = \
 	src/hardware/device/Accelerator.cpp \
 	src/hardware/hwinfo/HostInfo.cpp \
 	src/hardware/places/ComputePlace.cpp \
+	src/hardware/places/MemoryPlace.cpp \
 	src/hardware/places/NUMAPlace.cpp \
 	src/hardware-counters/HardwareCounters.cpp \
 	src/hardware-counters/ThreadHardwareCounters.cpp \

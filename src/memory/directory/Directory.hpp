@@ -47,7 +47,7 @@ public:
 	//!		checking
 	//!
 	//! \returns true if the index corresponds to the Directory MemoryPlace
-	static inline bool isDirectoryMemoryPlace(int index)
+	static inline bool isDirectoryMemoryPlaceIdx(int index)
 	{
 		return (index == _directoryMemoryPlace.getIndex());
 	}

@@ -41,7 +41,7 @@ int ClusterLocalityScheduler::getScheduledNode(
 				return false;
 			}
 
-			if (Directory::isDirectoryMemoryPlace(location)) {
+			if (location->isDirectoryMemoryPlace()) {
 				const Directory::HomeNodesArray *homeNodes = Directory::find(region);
 
 				for (const auto &entry : *homeNodes) {

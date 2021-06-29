@@ -142,17 +142,17 @@ public:
 	{
 		assert(!_singleton->_clusterNodes.empty());
 		assert(_singleton->_clusterNodes[id] != nullptr);
-		assert (!Directory::isDirectoryMemoryPlace(id));
+		assert (!Directory::isDirectoryMemoryPlaceIdx(id));
 		return _singleton->_clusterNodes[id]->getMemoryNode();
 	}
 
 	static inline const MemoryPlace *getMemoryNodeOrDirectory(int id)
 	{
-		if (Directory::isDirectoryMemoryPlace(id)) {
+		if (Directory::isDirectoryMemoryPlaceIdx(id)) {
 			return Directory::getDirectoryMemoryPlace();
-		} else {
-			return getMemoryNode(id);
 		}
+
+		return getMemoryNode(id);
 	}
 
 	//! \brief Get the current ClusterMemoryNode
@@ -174,27 +174,19 @@ public:
 		return _singleton->_masterNode == _singleton->_thisNode;
 	}
 
-	static bool isLocalMemoryPlace(const MemoryPlace *location)
-	{
-		assert(location);
-		if (Directory::isDirectoryMemoryPlace(location)) {
-			return false;
-		}
-		return (location->getType() != nanos6_cluster_device)
-				|| (location == getCurrentMemoryNode());
-	}
-
 	static int getMemoryPlaceNodeIndex(const MemoryPlace *location)
 	{
 		if (location == nullptr) {
 			return -1;
 		}
-		if (Directory::isDirectoryMemoryPlace(location)) {
+		if (location->isDirectoryMemoryPlace()) {
 			return -42;
 		}
-		return (location->getType() != nanos6_cluster_device) ?
-					getCurrentMemoryNode()->getIndex() :
-					location->getIndex();
+		if (location->getType() == nanos6_cluster_device) {
+			return location->getIndex();
+		}
+
+		return getCurrentMemoryNode()->getIndex();
 	}
 
 	//! \brief Get the number of cluster nodes

@@ -146,9 +146,10 @@ namespace TaskOffloading {
 		for (size_t i = 0; i < nRegions; ++i) {
 			MessageReleaseAccess::ReleaseAccessInfo &accessinfo = accessInfoList[i];
 
-			MemoryPlace const *location = ClusterManager::getMemoryNodeOrDirectory(accessinfo._location);
+			MemoryPlace const *location
+				= ClusterManager::getMemoryNodeOrDirectory(accessinfo._location);
 
-			assert(Directory::isDirectoryMemoryPlace(location)
+			assert(location->isDirectoryMemoryPlace()
 				|| location->getType() == nanos6_cluster_device);
 
 			DataAccessRegistration::releaseAccessRegion(

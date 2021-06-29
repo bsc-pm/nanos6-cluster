@@ -43,6 +43,10 @@ public:
 	{
 		return _addressSpace;
 	}
+
+	bool isDirectoryMemoryPlace() const;
+
+	bool isClusterLocalMemoryPlace() const;
 };
 
 #endif //MEMORY_PLACE_HPP

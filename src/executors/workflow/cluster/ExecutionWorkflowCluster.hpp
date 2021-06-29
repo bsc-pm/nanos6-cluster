@@ -279,7 +279,7 @@ namespace ExecutionWorkflow {
 			// device from the point of view of the remote node
 			const MemoryPlace * const clusterLocation =
 				(location->getType() == nanos6_cluster_device
-					|| Directory::isDirectoryMemoryPlace(location))
+					|| location->isDirectoryMemoryPlace())
 				? location
 				: ClusterManager::getCurrentMemoryNode();
 
@@ -424,7 +424,7 @@ namespace ExecutionWorkflow {
 		//! DataTransfer
 		//! || The source and the destination is the same
 		//! || I already have the data.
-		if (ClusterManager::isLocalMemoryPlace(source)
+		if (source->isClusterLocalMemoryPlace()
 			|| WriteIDManager::checkWriteIDLocal(access->getWriteID(), region)) {
 
 			// NULL copy (do nothing, just release succesor and delete itself.)
@@ -485,7 +485,7 @@ namespace ExecutionWorkflow {
 			 	(objectType == taskwait_type)
 				&& (type != READ_ACCESS_TYPE)
 				&& (type != NO_ACCESS_TYPE || !isDistributedRegion)
-				&& !Directory::isDirectoryMemoryPlace(source)
+				&& !source->isDirectoryMemoryPlace()
 			) || (
 				//! We need a DataTransfer for an access_type
 				//! access, if the access is not write-only
@@ -493,7 +493,7 @@ namespace ExecutionWorkflow {
 				&& (type != WRITE_ACCESS_TYPE)
 				//! and if it is not in the directory (which would mean
 				//! that the data is not yet initialized)
-				&& !Directory::isDirectoryMemoryPlace(source)
+				&& !source->isDirectoryMemoryPlace()
 				//! and, if it is a weak access, then only
 				//! if cluster.eager_weak_fetch == true
 				&& (!isWeak || ClusterManager::getEagerWeakFetch())
@@ -534,7 +534,7 @@ namespace ExecutionWorkflow {
 			&& source->getType() != nanos6_cluster_device) {
 
 			assert(source->getType() == nanos6_host_device);
-			if (!Directory::isDirectoryMemoryPlace(source)) {
+			if (!source->isDirectoryMemoryPlace()) {
 				source = current;
 			}
 		}
@@ -543,7 +543,7 @@ namespace ExecutionWorkflow {
 			//! At the moment cluster copies take into account only
 			//! Cluster and host devices
 			assert(target->getType() == nanos6_host_device);
-			assert(!Directory::isDirectoryMemoryPlace(target));
+			assert(!target->isDirectoryMemoryPlace());
 			target = current;
 		}
 
