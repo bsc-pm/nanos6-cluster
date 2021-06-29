@@ -32,6 +32,7 @@
 #include <InstrumentDependenciesByAccessLinks.hpp>
 #include <InstrumentTaskId.hpp>
 #include "cluster/WriteID.hpp"
+#include "cluster/ClusterManager.hpp"
 
 
 struct DataAccess;
@@ -848,6 +849,26 @@ public:
 		_status[DISABLE_READ_PROPAGATION_UNTIL_HERE] = true;
 	}
 
+
+	int getMemoryPlaceNodeIndex() const
+	{
+		if (_location == nullptr) {
+			return -1;
+		}
+		if (_location->isDirectoryMemoryPlace()) {
+			return -42;
+		}
+		if (_location->getType() == nanos6_cluster_device) {
+			return _location->getIndex();
+		}
+
+		// All the other devices are supposed to be in this node so we assume that.
+		return ClusterManager::getCurrentMemoryNode()->getIndex();
+	}
+
+
+	//! Function that return is this access can be merged to other into a single one.
+	//! \param[in] other A DataAccess before this.
 	inline bool canMergeWith(const DataAccess *other) const 
 	{
 		// Most of the below checks are clearly necessary in order to be

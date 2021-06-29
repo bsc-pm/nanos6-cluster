@@ -96,7 +96,7 @@ namespace DataAccessRegistration {
 					<< access->getAccessRegion().getStartAddress() << ":"
 					<< access->getAccessRegion().getSize()
 					<< " rw: " << access->readSatisfied() << access->writeSatisfied()
-					<< " loc: " << ClusterManager::getMemoryPlaceNodeIndex(access->getLocation())
+					<< " loc: " << access->getMemoryPlaceNodeIndex()
 					<< "\n";
 				return true; /* always continue, don't stop here */
 			}
@@ -119,7 +119,7 @@ namespace DataAccessRegistration {
 					<< fragment->getAccessRegion().getStartAddress() << ":"
 					<< fragment->getAccessRegion().getSize()
 					<< " rw: " << fragment->readSatisfied() << fragment->writeSatisfied()
-					<< " loc: " << ClusterManager::getMemoryPlaceNodeIndex(fragment->getLocation())
+					<< " loc: " << fragment->getMemoryPlaceNodeIndex()
 					<< "\n";
 				return true; /* always continue, don't stop here */
 			}
@@ -137,7 +137,7 @@ namespace DataAccessRegistration {
 					<< taskwaitFragment->getAccessRegion().getStartAddress() << ":"
 					<< taskwaitFragment->getAccessRegion().getSize()
 					<< " rw: " << taskwaitFragment->readSatisfied() << taskwaitFragment->writeSatisfied()
-					<< " loc: " << ClusterManager::getMemoryPlaceNodeIndex(taskwaitFragment->getLocation())
+					<< " loc: " << taskwaitFragment->getMemoryPlaceNodeIndex()
 					<< "\n";
 				return true; /* always continue, don't stop here */
 			}

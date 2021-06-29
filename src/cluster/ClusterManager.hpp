@@ -174,21 +174,6 @@ public:
 		return _singleton->_masterNode == _singleton->_thisNode;
 	}
 
-	static int getMemoryPlaceNodeIndex(const MemoryPlace *location)
-	{
-		if (location == nullptr) {
-			return -1;
-		}
-		if (location->isDirectoryMemoryPlace()) {
-			return -42;
-		}
-		if (location->getType() == nanos6_cluster_device) {
-			return location->getIndex();
-		}
-
-		return getCurrentMemoryNode()->getIndex();
-	}
-
 	//! \brief Get the number of cluster nodes
 	//!
 	//! \returns the number of cluster nodes
