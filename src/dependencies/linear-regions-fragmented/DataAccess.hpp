@@ -847,6 +847,38 @@ public:
 	{
 		_status[DISABLE_READ_PROPAGATION_UNTIL_HERE] = true;
 	}
+
+	inline bool canMergeWith(const DataAccess *other) const 
+	{
+		// Most of the below checks are clearly necessary in order to be
+		// able to merge the accesses. Regarding the previous access'
+		// namespace (validNamespacePrevious), this information is not
+		// really needed after the task starts, so it is not needed at any
+		// time that the unfragment functions are called. But each access
+		// always receives the namespace previous exactly once and we
+		// cannot delete the access until this information has been
+		// received. We know that it has been received once
+		// getValidNamespacePrevious returns something other than
+		// VALID_NAMESPACE_UNKNOWN.  The below check (that in fact both
+		// accesses have the same value of the namespace previous) is
+		// slightly more than is required, but it is simple.
+		return (other != nullptr)
+			&& this->getAccessRegion().getStartAddress() == other->getAccessRegion().getEndAddress()
+			&& this->getStatus() == other->getStatus()
+			&& this->isWeak() == other->isWeak()
+			&& this->getType() == other->getType()
+			&& other->getLocation()
+			&& other->getLocation()->isClusterLocalMemoryPlace()
+			&& this->getLocation()
+			&& this->getLocation()->isClusterLocalMemoryPlace()
+			&& this->getLocation()->isDirectoryMemoryPlace() == other->getLocation()->isDirectoryMemoryPlace()
+			&& this->getDataLinkStep() == other->getDataLinkStep()
+			&& this->getNext()._task == other->getNext()._task
+			&& this->getNext()._objectType == other->getNext()._objectType
+			&& this->getValidNamespacePrevious() == other->getValidNamespacePrevious()
+			&& this->getNamespaceSuccessor() == other->getNamespaceSuccessor();
+	}
+
 };
 
 

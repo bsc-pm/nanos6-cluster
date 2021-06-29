@@ -500,46 +500,9 @@ namespace DataAccessRegistration {
 		}
 	};
 
-	inline bool canMergeAccesses(const DataAccess *lastAccess, const DataAccess *access)
-	{
-		if (lastAccess != nullptr) {
-
-			// Most of the below checks are clearly necessary in order to be
-			// able to merge the accesses. Regarding the previous access'
-			// namespace (validNamespacePrevious), this information is not
-			// really needed after the task starts, so it is not needed at any
-			// time that the unfragment functions are called. But each access
-			// always receives the namespace previous exactly once and we
-			// cannot delete the access until this information has been
-			// received. We know that it has been received once
-			// getValidNamespacePrevious returns something other than
-			// VALID_NAMESPACE_UNKNOWN.  The below check (that in fact both
-			// accesses have the same value of the namespace previous) is
-			// slightly more than is required, but it is simple.
-			if (access->getAccessRegion().getStartAddress() == lastAccess->getAccessRegion().getEndAddress()
-				&& access->getStatus() == lastAccess->getStatus()
-				&& access->isWeak() == lastAccess->isWeak()
-				&& access->getType() == lastAccess->getType()
-				&& lastAccess->getLocation()
-				&& lastAccess->getLocation()->isClusterLocalMemoryPlace()
-				&& access->getLocation()
-				&& access->getLocation()->isClusterLocalMemoryPlace()
-				&& access->getLocation()->isDirectoryMemoryPlace() == lastAccess->getLocation()->isDirectoryMemoryPlace()
-				&& access->getDataLinkStep() == lastAccess->getDataLinkStep()
-				&& access->getNext()._task == lastAccess->getNext()._task
-				&& access->getNext()._objectType == lastAccess->getNext()._objectType
-				&& access->getValidNamespacePrevious() == lastAccess->getValidNamespacePrevious()
-				&& access->getNamespaceSuccessor() == lastAccess->getNamespaceSuccessor()
-				) {
-				return true;
-			}
-		}
-		return false;
-	}
-
 	static void unfragmentTaskAccesses(Task *task, TaskDataAccesses &accessStructures)
 	{
-		(void)task;
+		(void) task;
 
 		DataAccess *lastAccess = nullptr;
 		accessStructures._accesses.processAllWithErase(
@@ -549,10 +512,10 @@ namespace DataAccessRegistration {
 				assert(access->getOriginator() == task);
 				assert(access->isRegistered());
 
-				if (canMergeAccesses(lastAccess, access)) {
+				if (access->canMergeWith(lastAccess)) {
 					/* Combine two contiguous regions into one */
 					DataAccessRegion newrel(lastAccess->getAccessRegion().getStartAddress(),
-											access->getAccessRegion().getEndAddress());
+						access->getAccessRegion().getEndAddress());
 					lastAccess->setAccessRegion(newrel);
 
 					DataAccessStatusEffects initialStatus(lastAccess);
@@ -578,10 +541,10 @@ namespace DataAccessRegistration {
 				DataAccess *access = &(*position);
 				assert(access != nullptr);
 
-				if (canMergeAccesses(lastAccess, access)) {
+				if (access->canMergeWith(lastAccess)) {
 					/* Combine two contiguous regions into one */
-					DataAccessRegion newrel(lastAccess->getAccessRegion().getStartAddress(), 
-					                        access->getAccessRegion().getEndAddress());
+					DataAccessRegion newrel(lastAccess->getAccessRegion().getStartAddress(),
+						access->getAccessRegion().getEndAddress());
 					lastAccess->setAccessRegion(newrel);
 #ifndef NDEBUG
 					DataAccessStatusEffects initialStatus(lastAccess);
