@@ -21,13 +21,13 @@
 
 namespace ExecutionWorkflow {
 
-	void ClusterDataLinkStep::linkRegion(
-		DataAccessRegion const &region,
-		MemoryPlace const *location,
-		WriteID writeID,
-		bool read,
-		bool write
-	) {
+	void ClusterDataLinkStep::linkRegion(DataAccess const *access, bool read, bool write)
+	{
+		assert(access != nullptr);
+		const DataAccessRegion &region = access->getAccessRegion();
+		const MemoryPlace *location = access->getLocation();
+		const WriteID writeID = access->getWriteID();
+
 		bool deleteStep = false;
 		// This function is occasionally called after creating the
 		// ClusterDataLinkStep (whose constructor sets the data link

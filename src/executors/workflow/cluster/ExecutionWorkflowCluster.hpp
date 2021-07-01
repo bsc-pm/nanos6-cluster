@@ -99,13 +99,7 @@ namespace ExecutionWorkflow {
 			DataAccessRegistration::setNamespaceSelf(access, targetNamespace);
 		}
 
-		void linkRegion(
-			DataAccessRegion const &region,
-			MemoryPlace const *location,
-			WriteID writeID,
-			bool read,
-			bool write
-		) override;
+		void linkRegion(DataAccess const *region, bool read, bool write) override;
 
 		//! Start the execution of the Step
 		void start() override;

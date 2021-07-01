@@ -126,13 +126,9 @@ namespace ExecutionWorkflow {
 		//!		object.
 		DataLinkStep(DataAccess *access);
 
-		virtual inline void linkRegion(
-			DataAccessRegion const &,
-			MemoryPlace const *,
-			WriteID,
-			bool /*read*/,
-			bool /*write*/
-		) {
+		virtual inline void linkRegion(const DataAccess *, bool /*read*/, bool /*write*/)
+		{
+			//clusterCout << "Link: (" << access->getOriginator()->getLabel() <<"): " << region << std::endl;
 		}
 	};
 

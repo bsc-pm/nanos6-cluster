@@ -1026,14 +1026,7 @@ namespace DataAccessRegistration {
 			 * satisfiability.
 			 */
 			if (linksRead || linksWrite) {
-
-				step->linkRegion(
-					access->getAccessRegion(),
-					access->getLocation(),
-					access->getWriteID(),
-					linksRead,  /* propagate change, not the new value */
-					linksWrite  /* propagate change, not the new value */
-				);
+				step->linkRegion(access, linksRead, linksWrite);
 			}
 
 			if (updatedStatus._triggersDataLinkRead && updatedStatus._triggersDataLinkWrite) {
