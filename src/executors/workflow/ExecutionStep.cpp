@@ -8,6 +8,7 @@
 
 #include <DataAccess.hpp>
 #include <tasks/Task.hpp>
+#include "cluster/ClusterUtil.hpp"
 
 namespace ExecutionWorkflow {
 
@@ -17,6 +18,8 @@ namespace ExecutionWorkflow {
 		//! need to link both for Read and Write satisfiability
 		_bytesToLink(2 * access->getAccessRegion().getSize())
 	{
+		// clusterCout << "Create DataLinkStep(" << access->getOriginator()->getLabel() << "): "
+		// 	<< access->getAccessRegion() << std::endl;
 	}
 
 	DataReleaseStep::DataReleaseStep(Task *task)
