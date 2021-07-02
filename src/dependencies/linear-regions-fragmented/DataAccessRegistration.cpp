@@ -500,10 +500,76 @@ namespace DataAccessRegistration {
 		}
 	};
 
-	static void unfragmentTaskAccesses(Task *task, TaskDataAccesses &accessStructures)
-	{
-		(void) task;
 
+	//! Function that return is this access can be merged to other into a single one.
+	//! \param[in] other A DataAccess before this.
+	static bool canMergeWith(
+		const DataAccess *self,
+		const DataAccess *other,
+		bool extra,
+		const std::string &label, const std::string &func
+	) {
+		// Most of the below checks are clearly necessary in order to be able to merge the
+		// accesses. Regarding the previous access' namespace (validNamespacePrevious), this
+		// information is not really needed after the task starts, so it is not needed at any time
+		// that the unfragment functions are called. But each access always receives the namespace
+		// previous exactly once and we cannot delete the access until this information has been
+		// received. We know that it has been received once getValidNamespacePrevious returns
+		// something other than VALID_NAMESPACE_UNKNOWN.  The below check (that in fact both
+		// accesses have the same value of the namespace previous) is slightly more than is
+		// required, but it is simple.
+		bool cond = false;
+		if (other != nullptr) {
+			if (extra) {
+				cond = (self->getValidNamespacePrevious() == other->getValidNamespacePrevious())
+					|| (self->getValidNamespacePrevious() >= 0 && other->getValidNamespacePrevious() >= 0);
+			} else {
+				cond = self->getValidNamespacePrevious() == other->getValidNamespacePrevious();
+			}
+		}
+
+		bool ret = (other != nullptr)
+			&& self->getAccessRegion().getStartAddress() == other->getAccessRegion().getEndAddress()
+			&& self->getStatus() == other->getStatus()
+			&& self->isWeak() == other->isWeak()
+			&& self->getType() == other->getType()
+			// && self->getLocation() && other->getLocation()
+			&& self->getMemoryPlaceNodeIndex() == other->getMemoryPlaceNodeIndex()
+			&& self->getDataLinkStep() == other->getDataLinkStep()
+			&& self->getNext()._task == other->getNext()._task
+			&& self->getNext()._objectType == other->getNext()._objectType
+			&& cond
+			// && self->getValidNamespacePrevious() == other->getValidNamespacePrevious()
+			&& self->getNamespaceSuccessor() == other->getNamespaceSuccessor();
+
+		if (other != nullptr && label == "trick2") {
+			if (!ret) {
+				std::cout << "Nomerged("<< label << "): " << func << "\n"
+					<< "  0 -> " << self->getAccessRegion() << " " << other->getAccessRegion() << " (" << other->getAccessRegion().getEndAddress() << ")\n"
+					<< "  1 -> " << self->getStatus() << " " << other->getStatus() << "\n"
+					<< "  2 -> " << self->isWeak() << " " << other->isWeak() << "\n"
+					<< "  3 -> " << self->getType() << " " << other->getType() << "\n"
+					// << " 4 -> " << self->getLocation() << " " << other->getLocation() << "\n"
+					<< "  6 -> " << self->getMemoryPlaceNodeIndex() << " " << other->getMemoryPlaceNodeIndex() << "\n"
+					<< "  8 -> " << self->getDataLinkStep() << " " << other->getDataLinkStep() << "\n"
+					<< "  9 -> " << self->getNext()._task << " " << other->getNext()._task << "\n"
+					<< " 10 -> " << self->getNext()._objectType << " " << other->getNext()._objectType << "\n"
+					<< " 11 -> " << self->getValidNamespacePrevious() << " " << other->getValidNamespacePrevious() << "\n"
+					<< " 12 -> " << self->getNamespaceSuccessor() << " " << other->getNamespaceSuccessor() << std::endl;
+			} else {
+				std::cout << "Merged(" << label << "): " << func << " " << self->getAccessRegion() << " " << other->getAccessRegion() << std::endl;
+			}
+		}
+
+		return ret;
+	}
+
+	static void unfragmentTaskAccesses(
+		Task *task,
+		TaskDataAccesses &accessStructures,
+		bool cond,
+		const std::string &func
+	) {
 		DataAccess *lastAccess = nullptr;
 		accessStructures._accesses.processAllWithErase(
 			[&](TaskDataAccesses::accesses_t::iterator position) -> bool {
@@ -522,6 +588,10 @@ namespace DataAccessRegistration {
 					if (!initialStatus._isRemovable) {
 						accessStructures._removalBlockers--;
 						assert(accessStructures._removalBlockers > 0);
+					}
+					if (initialStatus._enforcesDependency) {
+						bool dec = task->decreasePredecessors();
+						assert(!dec);
 					}
 					/* true: erase the second region */
 					return true;
