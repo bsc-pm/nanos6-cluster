@@ -451,14 +451,17 @@ namespace DataAccessRegistration {
 					// Read as: If this (reduction) access is part of its predecessor reduction,
 					// it needs to have received the 'ReductionSlotSet' before being removed
 					&& ((access->getType() != REDUCTION_ACCESS_TYPE)
-						|| access->allocatedReductionInfo() || access->receivedReductionSlotSet())
+						|| access->allocatedReductionInfo()
+						|| access->receivedReductionSlotSet())
 					&& access->complete()
-					&& (!access->isInBottomMap() || access->hasNext()
+					&& (!access->isInBottomMap()
+						|| access->hasNext()
 						|| _triggersDataRelease // access->getOriginator()->isRemoteTask()
 						|| (access->getType() == NO_ACCESS_TYPE)
 						|| (access->getObjectType() == taskwait_type)
-						|| (access->getObjectType() == top_level_sink_type)
-					));
+						|| (access->getObjectType() == top_level_sink_type)));
+
+
 			/* Also must have already received the namespace information from previous access */
 			_isRemovable = _isRemovable && ((access->getObjectType() != access_type)
 											|| (access->getValidNamespacePrevious() != VALID_NAMESPACE_UNKNOWN));
