@@ -519,18 +519,26 @@ namespace DataAccessRegistration {
 				assert(access->isRegistered());
 
 				if (access->canMergeWith(lastAccess, enforceSameNamespacePrevious)) {
-					/* Combine two contiguous regions into one */
-					DataAccessRegion newrel(lastAccess->getAccessRegion().getStartAddress(),
-						access->getAccessRegion().getEndAddress());
+					DataAccessRegion newrel(
+						lastAccess->getAccessRegion().getStartAddress(),
+						access->getAccessRegion().getEndAddress()
+					);
 					lastAccess->setAccessRegion(newrel);
 
 					DataAccessStatusEffects initialStatus(lastAccess);
-					if (!initialStatus._isRemovable) {
-						accessStructures._removalBlockers--;
-						assert(accessStructures._removalBlockers > 0);
+					if (initialStatus._isRemovable) {
+						// enforceSameNamespacePrevious is not true during REGISTERING the task.
+						// and during REGISTERING _isRemovable is always true.
+						assert(enforceSameNamespacePrevious);
+					} else {
+						__attribute__((unused)) const int removalBlockers
+							= accessStructures._removalBlockers.fetch_sub(1) - 1;
+						assert(removalBlockers > 0);
 					}
+
 					if (initialStatus._enforcesDependency) {
-						__attribute__((unused)) bool dec = task->decreasePredecessors();
+						assert(!enforceSameNamespacePrevious);
+						__attribute__((unused)) const bool dec = task->decreasePredecessors();
 						assert(!dec);
 					}
 					/* true: erase the second region */
@@ -1594,7 +1602,8 @@ namespace DataAccessRegistration {
 		// assert(!dataAccess->hasBeenDiscounted());
 #ifndef NDEBUG
 		if (dataAccess->hasBeenDiscounted()) {
-			std::cerr << "Warning: dataAccess->hasBeenDiscounted at " << __FILE__ << ":" << __LINE__ << std::endl;
+			std::cerr << "Warning: dataAccess->hasBeenDiscounted at " << __FILE__ << ":" << __LINE__
+				<< " task: " << dataAccess->getOriginator()->getLabel() << std::endl;
 		}
 #endif
 
@@ -3078,6 +3087,8 @@ namespace DataAccessRegistration {
 
 				return true;
 			});
+
+		unfragmentTaskAccesses(task, accessStructures, false);
 	}
 
 
@@ -3941,8 +3952,6 @@ namespace DataAccessRegistration {
 				}
 			}
 
-			unfragmentTaskAccesses(task, task->getDataAccesses(), true);
-
 		} else {
 			/*
 			 * No accesses: so the task is immediately ready.
@@ -4367,8 +4376,7 @@ namespace DataAccessRegistration {
 				/*
 				 * Fragment access, as only part inside region becomes complete.
 				 */
-				access = fragmentAccess(access, region,
-					accessStructures);
+				access = fragmentAccess(access, region, accessStructures);
 
 				/* Set access as complete */
 				DataAccessStatusEffects initialStatus(access);
@@ -4525,7 +4533,7 @@ namespace DataAccessRegistration {
 		// system is the excessive cost of processDelayedOperationsSameTask.
 		{
 			accessStructures._lock.lock();
-			unfragmentTaskAccesses(task, accessStructures, false);
+			unfragmentTaskAccesses(task, accessStructures, true);
 			accessStructures._lock.unlock();
 		}
 
@@ -4929,7 +4937,7 @@ namespace DataAccessRegistration {
 		assert(!accessStructures.hasBeenDeleted());
 		std::lock_guard<TaskDataAccesses::spinlock_t> guard(accessStructures._lock);
 
-		unfragmentTaskAccesses(task, accessStructures, false);
+		unfragmentTaskAccesses(task, accessStructures, true);
 		if (!accessStructures._accesses.empty()) {
 			// Mark all accesses as not having subaccesses (meaning fragments,
 			// as they will all be deleted below
