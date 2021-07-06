@@ -132,7 +132,6 @@ void TaskFinalization::disposeTask(Task *task)
 		// disposable=true.  This is because the last to finish child may
 		// concurrently unlink itself, get disposable=true, and then delete
 		// the parent.
-		const bool parentIsNodeNamespace = (parent != nullptr && parent->isNodeNamespace());
 		disposable = task->unlinkFromParent();
 
 		const bool isTaskfor = task->isTaskfor();
@@ -195,9 +194,7 @@ void TaskFinalization::disposeTask(Task *task)
 				assert(executor != nullptr);
 				executor->decreaseCallbackParticipants(spawnCallback);
 			} else if (NodeNamespace::isEnabled()
-						&& (task->isNodeNamespace()
-							|| parentIsNodeNamespace)
-						   ) {
+				&& (task->isNodeNamespace() || task->isRemoteTaskInNamespace())) {
 
 				NodeNamespace::callbackDecrement();
 			}
