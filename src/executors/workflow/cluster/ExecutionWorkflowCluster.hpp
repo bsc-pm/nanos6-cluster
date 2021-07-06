@@ -191,15 +191,11 @@ namespace ExecutionWorkflow {
 		ClusterNode const *_offloader;
 
 		MessageReleaseAccess::ReleaseAccessInfoVector _releaseInfo;
-		std::atomic<size_t> _releaseInfoSize;
 
 		MessageReleaseAccess *releaseInfoVectorToMessage()
 		{
 #ifndef NDEBUG
-			const size_t size = _releaseInfoSize.load();
-
-			assert(size > 0);
-			assert(size == _releaseInfo.size());
+			assert(_releaseInfo.size() > 0);
 #endif // NDEBUG
 
 			MessageReleaseAccess *msg = new MessageReleaseAccess(
@@ -208,7 +204,6 @@ namespace ExecutionWorkflow {
 				_releaseInfo
 			);
 
-			_releaseInfoSize.store(0);
 			_releaseInfo.clear();
 
 			return msg;
@@ -218,20 +213,14 @@ namespace ExecutionWorkflow {
 		ClusterDataReleaseStep(TaskOffloading::ClusterTaskContext *context, Task *task)
 			: DataReleaseStep(task),
 			_remoteTaskIdentifier(context->getRemoteIdentifier()),
-			_offloader(context->getRemoteNode()),
-			_releaseInfoSize(0)
+			_offloader(context->getRemoteNode())
 		{
 			task->setDataReleaseStep(this);
 		}
 
 		virtual inline ~ClusterDataReleaseStep()
 		{
-			assert(_releaseInfoSize.load() == 0);
-		}
-
-		inline bool hasPendings() const override
-		{
-			return _releaseInfoSize.load() > 0;
+			assert(_releaseInfo.size() == 0);
 		}
 
 		void addAccess(DataAccess *access)
@@ -241,15 +230,16 @@ namespace ExecutionWorkflow {
 
 		void releasePendingAccesses() override
 		{
+			_infoLock.lock();
 			// check atomically without taking the lock in case we can return immediately faster.
-			if (_releaseInfoSize.load() == 0) {
+			if (_releaseInfo.size() == 0) {
+				_infoLock.unlock();
 				return;
 			}
 
 			// releaseInfoVectorToMessage takes the lock, but we don't need it calling sendMessage.
 			// But when_bytesToRelease we call the destructor and both situations are very
 			// frequent.
-			_infoLock.lock();
 			MessageReleaseAccess *msg = releaseInfoVectorToMessage();
 			_infoLock.unlock();
 
@@ -272,8 +262,7 @@ namespace ExecutionWorkflow {
 			// If location is a host device on this node it is a cluster
 			// device from the point of view of the remote node
 			const MemoryPlace * const clusterLocation =
-				(location->getType() == nanos6_cluster_device
-					|| location->isDirectoryMemoryPlace())
+				(location->getType() == nanos6_cluster_device || location->isDirectoryMemoryPlace())
 				? location
 				: ClusterManager::getCurrentMemoryNode();
 
@@ -286,8 +275,6 @@ namespace ExecutionWorkflow {
 						access->getWriteID(),
 						clusterLocation)
 				);
-
-				_releaseInfoSize.fetch_add(1);
 
 				// (var.fetch_sub(arg) - arg) === (var -= arg) I prefer fetch_sub to remember it is
 				// atomic.

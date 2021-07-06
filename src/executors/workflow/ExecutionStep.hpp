@@ -173,11 +173,6 @@ namespace ExecutionWorkflow {
 		virtual inline void releasePendingAccesses()
 		{}
 
-		virtual inline bool hasPendings() const
-		{
-			return false;
-		}
-
 		//! \brief Check if a DataAccess is ready to release data
 		//!
 		//! Whether a DataAccess is ready to release data or not
