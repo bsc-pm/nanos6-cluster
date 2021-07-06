@@ -3322,15 +3322,29 @@ namespace DataAccessRegistration {
 	static void handleRemovableTasks(
 		/* inout */ CPUDependencyData::removable_task_list_t &removableTasks
 	) {
-		// We create a list here to avoid taking the lock too much when the vector is empty.
+		if (removableTasks.empty()) {
+			return;
+		}
+
+		std::set<Task *> offloadedTaskSet;
+
+		// We create a list here to avoid taking the lock too much when the offloadedTask is repeated.
 		for (Task *removableTask : removableTasks) {
-			const Task * offloadedTask = removableTask->getOffloadedPredecesor();
+			Task *offloadedTask = removableTask->getOffloadedPredecesor();
 
 			if (offloadedTask != nullptr && offloadedTask->hasDataReleaseStep()) {
-				offloadedTask->getDataReleaseStep()->releasePendingAccesses();
+				offloadedTaskSet.emplace(offloadedTask);
 			}
+		}
+
+		for (Task *offloadedTask : offloadedTaskSet) {
+			offloadedTask->getDataReleaseStep()->releasePendingAccesses();
+		}
+
+		for (Task *removableTask : removableTasks) {
 			TaskFinalization::disposeTask(removableTask);
 		}
+
 		removableTasks.clear();
 	}
 
