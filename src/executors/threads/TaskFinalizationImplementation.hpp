@@ -208,11 +208,11 @@ void TaskFinalization::disposeTask(Task *task)
 			}
 
 			if (isTaskloop) {
-				((Taskloop *)task)->~Taskloop();
+				dynamic_cast<Taskloop *>(task)->~Taskloop();
 			} else if (isTaskfor) {
-				((Taskfor *)task)->~Taskfor();
+				dynamic_cast<Taskfor *>(task)->~Taskfor();
 			} else if (isStreamExecutor) {
-				((StreamExecutor *)task)->~StreamExecutor();
+				dynamic_cast<StreamExecutor *>(task)->~StreamExecutor();
 			} else {
 				task->~Task();
 			}
