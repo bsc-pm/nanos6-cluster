@@ -35,13 +35,13 @@ NodeNamespace::NodeNamespace(SpawnFunction::function_t mainCallback, void *args)
 	_taskInfo.implementations = &_taskImplementationInfo;
 	_taskInfo.implementation_count = 1;
 	_taskInfo.num_symbols = 0;
-	_taskInfo.destroy_args_block = nullptr;
+	_taskInfo.destroy_args_block = NodeNamespace::destroyArgsBlock;
 	_taskInfo.register_depinfo = nullptr;
 	_taskInfo.get_priority = nullptr;
 
-	size_t flags = (size_t) Task::nanos6_task_runtime_flag_t::nanos6_remote_wrapper_flag
-		| (size_t) Task::nanos6_task_runtime_flag_t::nanos6_polling_flag
-		| (1 << Task::preallocated_args_block_flag);
+	size_t flags = (1 << Task::preallocated_args_block_flag)
+		| (size_t) Task::nanos6_task_runtime_flag_t::nanos6_remote_wrapper_flag
+		| (size_t) Task::nanos6_task_runtime_flag_t::nanos6_polling_flag;
 
 	// create the task and pass this as argument.
 	_namespaceTask = AddTask::createTask(

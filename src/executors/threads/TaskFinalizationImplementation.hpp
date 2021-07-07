@@ -193,10 +193,6 @@ void TaskFinalization::disposeTask(Task *task)
 				StreamExecutor *executor = (StreamExecutor *) parent;
 				assert(executor != nullptr);
 				executor->decreaseCallbackParticipants(spawnCallback);
-			} else if (NodeNamespace::isEnabled()
-				&& (task->isNodeNamespace() || task->isRemoteTaskInNamespace())) {
-
-				NodeNamespace::callbackDecrement();
 			}
 
 			// taskloop and taskfor flags can both be enabled for the same task.

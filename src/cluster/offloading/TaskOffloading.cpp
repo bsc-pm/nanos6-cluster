@@ -220,7 +220,9 @@ namespace TaskOffloading {
 		assert(clusterContext);
 		task->setClusterContext(clusterContext);
 
-		// This is used only in the Namespace
+		// This is used only in the Namespace. The callback is called during the ClusterTaskContext
+		// destructor. And the ClusterTaskContext destructor is called during the ~Task
+		// when set.
 		if (useCallbackInContext) {
 			assert(NodeNamespace::isEnabled());
 
@@ -292,6 +294,11 @@ namespace TaskOffloading {
 
 	void remoteTaskCleanup(void *args)
 	{
+		// The remote task can be discounted from the namespace because it is finishing. This
+		// function remoteTaskCleanup is called in the callback from disposeTask when calling
+		// runHook
+		NodeNamespace::callbackDecrement();
+
 		assert(args != nullptr);
 		MessageTaskNew *msg = static_cast<MessageTaskNew *>(args);
 

@@ -108,6 +108,13 @@ public:
 		_singleton->callbackDecrementPrivate();
 	}
 
+	// This hook runs in disposeTask. It is the simplest addition to execute code there before
+	// deleting the singleton task.
+	static void destroyArgsBlock(void *)
+	{
+		callbackDecrement();
+	}
+
 	static void notifyShutdown()
 	{
 		assert(_singleton != nullptr);
@@ -143,11 +150,9 @@ public:
 		 * MPI rank (="node" within Nanos6) per physical node. This is a hack
 		 * that will serve for now.
 		 */
-		if (_singleton->_callback.getCounterValue() > 0) {
+		while (_singleton->_callback.getCounterValue() > 0) {
 			// clusterCout << "Waiting for NodeNamespace callback counter to become zero...\n";
-			while (_singleton->_callback.getCounterValue() > 0) {
-				sleep(1);
-			}
+			sleep(1);
 		}
 
 		delete _singleton;
