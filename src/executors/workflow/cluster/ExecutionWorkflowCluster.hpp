@@ -339,10 +339,11 @@ namespace ExecutionWorkflow {
 		ClusterExecutionStep(Task *task, ComputePlace *computePlace)
 			: Step(),
 			_satInfo(),
-			_remoteNode(reinterpret_cast<ClusterNode *>(computePlace)),
+			_remoteNode(dynamic_cast<ClusterNode *>(computePlace)),
 			_task(task)
 		{
 			assert(computePlace->getType() == nanos6_cluster_device);
+			assert(_remoteNode != nullptr);   /// the dynamic_cast worked
 
 			TaskOffloading::ClusterTaskContext *clusterContext =
 				new TaskOffloading::ClusterTaskContext((void *)_task, _remoteNode);
