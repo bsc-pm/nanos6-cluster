@@ -71,6 +71,12 @@ public:
 		// a preallocated taskfor
 		taskfor->setTaskloop(false);
 
+		// A taskfor collaborator is never a remote task, even if its parent
+		// (the taskfor source) is.
+		if (taskfor->isRemoteTask()) {
+			taskfor->unmarkAsRemote();
+		}
+
 		// Instrument the task creation
 		Instrument::task_id_t taskInstrumentationId = taskfor->getInstrumentationTaskId();
 		Instrument::exitInitTaskforCollaborator(parentTaskInstrumentationId, taskInstrumentationId);

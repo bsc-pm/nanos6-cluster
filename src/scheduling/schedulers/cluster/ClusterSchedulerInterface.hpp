@@ -96,6 +96,7 @@ public:
 	//! properly.
 	int handleClusterSchedulerConstrains(Task *task, ComputePlace *computePlace, ReadyTaskHint hint)
 	{
+		assert(!task->isTaskforCollaborator());
 		//! We do not offload spawned functions, if0 tasks, remote task
 		//! and tasks that already have an ExecutionWorkflow created for
 		//! them
@@ -104,8 +105,7 @@ public:
 			|| task->isRemoteTask()       // Already offloaded don't re-offload
 			|| task->isIf0()
 			|| task->isPolling()          // Polling tasks
-			|| task->isTaskloop()         // for now don't offload task{loop,for}
-			|| task->isTaskfor()
+			|| task->isTaskloop()         // for now don't offload taskloop
 			|| (task->getNode() == nanos6_cluster_no_offload)
 			|| task->getWorkflow() != nullptr) {
 

@@ -916,6 +916,11 @@ public:
 		_flags[remote_flag] = true;
 	}
 
+	inline void unmarkAsRemote()
+	{
+		_flags[remote_flag] = false;
+	}
+
 	inline void markAsOffloaded()
 	{
 		_flags[offloaded_flag] = true;

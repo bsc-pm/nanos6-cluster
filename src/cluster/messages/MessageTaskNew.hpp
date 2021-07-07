@@ -12,6 +12,7 @@
 #include "Message.hpp"
 
 #include <nanos6/task-instantiation.h>
+#include <nanos6/loop.h>
 #include <SatisfiabilityInfo.hpp>
 
 class MessageTaskNew : public Message {
@@ -19,6 +20,7 @@ class MessageTaskNew : public Message {
 		//! Necessary info for duplicating the task on the remote node
 		nanos6_task_info_t _taskInfo;
 		nanos6_task_invocation_info_t _taskInvocationInfo;
+		nanos6_loop_bounds_t _bounds; // For taskfors
 
 		//! The flags of the task
 		size_t _flags;
@@ -103,6 +105,18 @@ public:
 	inline nanos6_task_info_t *getTaskInfo() const
 	{
 		return &_content->_taskInfo;
+	}
+
+	//! Set loop bounds (for taskfors)
+	void setBounds(const nanos6_loop_bounds_t bounds)
+	{
+		_content->_bounds = bounds;
+	}
+
+	//! Get loop bounds (for taskfors)
+	nanos6_loop_bounds_t getBounds(void) const
+	{
+		return _content->_bounds;
 	}
 
 	//! Get the task_invocation_info_t of the offloaded task

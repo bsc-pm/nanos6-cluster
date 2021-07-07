@@ -15,6 +15,7 @@
 #include "executors/threads/WorkerThread.hpp"
 #include "system/ompss/AddTask.hpp"
 #include "tasks/Task.hpp"
+#include "tasks/Taskfor.hpp"
 
 #include <ClusterManager.hpp>
 #include <RemoteTasksInfoMap.hpp>
@@ -90,6 +91,13 @@ namespace TaskOffloading {
 			argsBlockSize, argsBlock,
 			(void *)task
 		);
+
+		// If this offloaded task is a taskfor, then include the loop
+		// bounds in the message.
+		if (task->isTaskforSource()) {
+			Taskfor *taskfor = static_cast<Taskfor *>(task);
+			msg->setBounds(taskfor->getBounds());
+		}
 
 		ClusterManager::sendMessage(msg, remoteNode);
 	}
@@ -193,6 +201,15 @@ namespace TaskOffloading {
 			msg->getFlags(), 0, true
 		);
 		assert(task != nullptr);
+
+		assert(!task->isTaskloop()); // Taskloops not supported yet
+
+		// If it is a taskfor, then initialize it using the loop bounds in the message
+		if (task->isTaskfor()) {
+			nanos6_loop_bounds_t bounds = msg->getBounds();
+			Taskfor *taskfor = static_cast<Taskfor *>(task);
+			taskfor->initialize(bounds.lower_bound, bounds.upper_bound, bounds.chunksize);
+		}
 
 		// Check satisfiability for noRemotePropagation
 		size_t numSatInfo;
