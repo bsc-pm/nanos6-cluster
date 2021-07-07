@@ -199,12 +199,12 @@ void TaskFinalization::disposeTask(Task *task)
 			// we need some extra conditions to group the finalization messages when nested. The
 			// context destructor is called in the task's destructor so this functions must be
 			// called before it.
-			TaskOffloading::ClusterTaskContext *taskContext = task->getClusterContext();
-			if (taskContext != nullptr) {
+			TaskOffloading::ClusterTaskContext *clusterTaskContext = task->getClusterContext();
+			if (clusterTaskContext != nullptr) {
 				assert(NodeNamespace::isEnabled());
 
 				// This needs to be called BEFORE ~Task because the context is deleted there.
-				taskContext->runHook();
+				clusterTaskContext->runHook();
 			}
 
 			if (isTaskloop) {
