@@ -1939,10 +1939,6 @@ namespace DataAccessRegistration {
 			lastLocked->getDataAccesses()._lock.unlock();
 		}
 
-		if (myOffloadedTask != nullptr && myOffloadedTask->hasDataReleaseStep()) {
-			myOffloadedTask->getDataReleaseStep()->releasePendingAccesses();
-		}
-
 		assert(ClusterManager::inClusterMode() || hpDependencyData._delayedOperations.empty());
 	}
 
@@ -3322,13 +3318,15 @@ namespace DataAccessRegistration {
 	static void handleRemovableTasks(
 		/* inout */ CPUDependencyData::removable_task_list_t &removableTasks
 	) {
+		// Early exit
 		if (removableTasks.empty()) {
 			return;
 		}
 
 		std::set<Task *> offloadedTaskSet;
 
-		// We create a list here to avoid taking the lock too much when the offloadedTask is repeated.
+		// We create a list here to avoid taking the lock too much when the offloadedTask is common
+		// to multiple removableTasks entries.
 		for (Task *removableTask : removableTasks) {
 			Task *offloadedTask = removableTask->getOffloadedPredecesor();
 
