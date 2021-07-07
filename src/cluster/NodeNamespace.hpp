@@ -15,6 +15,7 @@
 #include "messages/MessageTaskNew.hpp"
 #include "tasks/Task.hpp"
 #include <ClusterUtil.hpp>
+#include "system/ompss/AddTask.hpp"
 
 
 class NodeNamespace {
@@ -53,8 +54,6 @@ private:
 
 	void bodyPrivate();
 
-	void submitTask();
-
 	void callbackDecrementPrivate();
 
 	bool tryWakeUp();
@@ -82,14 +81,13 @@ public:
 		assert(_singleton == nullptr);
 
 		_singleton = new NodeNamespace(func, args);
+		assert(_singleton != nullptr);
 
 		// Submit the NodeNamespace task after initializing _singleton in the
 		// above statement. Otherwise it is possible for the body to begin
 		// executing and for NodeNamespace::body to dereference _singleton
 		// before it is written.
-		_singleton->submitTask();
-
-		assert(_singleton != nullptr);
+		AddTask::submitTask(_singleton->_namespaceTask, nullptr, false);
 	}
 
 	static void callbackIncrement()

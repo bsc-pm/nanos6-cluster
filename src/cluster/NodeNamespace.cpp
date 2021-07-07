@@ -53,11 +53,6 @@ NodeNamespace::NodeNamespace(SpawnFunction::function_t mainCallback, void *args)
 	assert(_namespaceTask != nullptr);
 }
 
-void NodeNamespace::submitTask()
-{
-	AddTask::submitTask(_namespaceTask, nullptr, false);
-}
-
 NodeNamespace::~NodeNamespace()
 {
 	// We need to wait until the callback is executed.
@@ -86,12 +81,6 @@ void NodeNamespace::bodyPrivate()
 
 	while (true) {
 		_spinlock.lock();
-		// If we receive the shutdown indication we still need to repeat loops to offload all
-		// the pending tasks. _queue.empty requires to be in the lock;
-		if (_mustShutdown.load() && _queue.empty()) {
-			_spinlock.unlock();
-			break;
-		}
 
 		if (!_queue.empty()) {
 			// Get the first function in the stream's queue
@@ -103,6 +92,13 @@ void NodeNamespace::bodyPrivate()
 			TaskOffloading::remoteTaskCreateAndSubmit(msg, _namespaceTask, true);
 
 		} else {
+
+			if (_mustShutdown.load()) {
+				// If we receive the shutdown indication we still need to repeat loops to offload
+				// all the pending tasks. _queue.empty requires to be in the lock;
+				_spinlock.unlock();
+				break;
+			}
 			// Release the lock and block the task
 			_spinlock.unlock();
 

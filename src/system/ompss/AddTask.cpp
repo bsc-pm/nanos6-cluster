@@ -189,9 +189,6 @@ void AddTask::submitTask(Task *task, Task *parent, bool fromUserCode)
 			//TODO: Make the empty file for conditional compilation OR add #ifdef CLUSTER here.
 			assert(NodeNamespace::isEnabled());
 
-			// In case we need to access to the NodeNamespace directly use:
-			//NodeNamespace *parentNamespace = static_cast<NodeNamespace *>(parent->getArgsBlock());
-
 			// Increment the callback pointer to wait until this task finishes.
 			NodeNamespace::callbackIncrement();
 		}
