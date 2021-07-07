@@ -62,11 +62,25 @@ namespace TaskOffloading {
 
 		~ClusterTaskContext()
 		{
+			// This asserts that the callback was already called. Previously the callback was called
+			// here, but it was moved to TaskFinalization::disposeTask to implement the
+			// task-finalization grouping optimization because it requires some extra conditions.
+			assert(_hook == nullptr);
+		}
+
+
+		//! Call this before the destructor always because it is the function that sends (opr
+		//! prepare to send) the finalization message.
+		bool runHook()
+		{
 			if (_hook != nullptr) {
 				_hook->execute();
 
 				delete _hook;
+				_hook = nullptr;
+				return true;
 			}
+			return false;
 		}
 
 		//! \brief Get the remote task descriptor

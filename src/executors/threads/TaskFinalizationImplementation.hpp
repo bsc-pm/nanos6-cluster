@@ -195,11 +195,18 @@ void TaskFinalization::disposeTask(Task *task)
 				executor->decreaseCallbackParticipants(spawnCallback);
 			}
 
-			// taskloop and taskfor flags can both be enabled for the same task.
-			// If this is the case, it means we are dealing with taskloop for,
-			// which is a taskloop that generates taskfors. Thus, we must treat
-			// the task as a taskloop. It is important to check taskloop condition
-			// before taskfor one, to dispose a taskloop in the case of taskloop for.
+			// This condition was previously handled automatically in the context's destructor, but
+			// we need some extra conditions to group the finalization messages when nested. The
+			// context destructor is called in the task's destructor so this functions must be
+			// called before it.
+			TaskOffloading::ClusterTaskContext *taskContext = task->getClusterContext();
+			if (taskContext != nullptr) {
+				assert(NodeNamespace::isEnabled());
+
+				// This needs to be called BEFORE ~Task because the context is deleted there.
+				taskContext->runHook();
+			}
+
 			if (isTaskloop) {
 				((Taskloop *)task)->~Taskloop();
 			} else if (isTaskfor) {
