@@ -314,7 +314,23 @@ namespace TaskOffloading {
 		void *offloadedTaskId = msg->getOffloadedTaskId();
 		ClusterNode *offloader = ClusterManager::getClusterNode(msg->getSenderId());
 
-		sendRemoteTaskFinished(offloadedTaskId, offloader);
+		// clusterPrintf("Sending taskfinished for: %p %d\n", offloadedTaskId, offloader->getIndex());
+		// Unregister remote tasks first
+		assert(offloadedTaskId != nullptr);
+		assert(offloader != nullptr);
+
+		RemoteTasksInfoMap::eraseRemoteTaskInfo(offloadedTaskId, offloader->getIndex());
+
+		// clusterPrintf("Sending sendRemoteTaskFinished remote task %p %d\n",
+			// offloadedTaskId, offloader->getIndex());
+
+		// The notify back sending message
+		MessageTaskFinished *msgFinish =
+			new MessageTaskFinished(ClusterManager::getCurrentClusterNode(), offloadedTaskId);
+
+		ClusterManager::sendMessage(msgFinish, offloader);
+
+		// sendRemoteTaskFinished(offloadedTaskId, offloader);
 
 		// For the moment, we do not delete the Message since it includes the
 		// buffers that hold the nanos6_task_info_t and the
@@ -324,23 +340,4 @@ namespace TaskOffloading {
 		// binary.
 		// delete msg;
 	}
-
-	void sendRemoteTaskFinished(void *offloadedTaskId, ClusterNode *offloader)
-	{
-		// clusterPrintf("Sending taskfinished for: %p %d\n", offloadedTaskId, offloader->getIndex());
-		// Unregister remote tasks first
-		assert(offloadedTaskId != nullptr);
-		assert(offloader != nullptr);
-		RemoteTasksInfoMap::eraseRemoteTaskInfo(offloadedTaskId, offloader->getIndex());
-
-		// clusterPrintf("Sending sendRemoteTaskFinished remote task %p %d\n",
-			// offloadedTaskId, offloader->getIndex());
-
-		// The notify back sending message
-		MessageTaskFinished *msg =
-			new MessageTaskFinished(ClusterManager::getCurrentClusterNode(), offloadedTaskId);
-
-		ClusterManager::sendMessage(msg, offloader);
-	}
-
 }
