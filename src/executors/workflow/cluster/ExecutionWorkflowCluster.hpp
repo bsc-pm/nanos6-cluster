@@ -220,15 +220,16 @@ namespace ExecutionWorkflow {
 
 		MessageReleaseAccess::ReleaseAccessInfoVector _releaseInfo;
 
-		MessageReleaseAccess *releaseInfoVectorToMessage()
+		MessageReleaseAccess *releaseInfoVectorToMessage(bool releaseTask)
 		{
 #ifndef NDEBUG
-			assert(_releaseInfo.size() > 0);
+			assert(_releaseInfo.size() > 0 || releaseTask);
 #endif // NDEBUG
 
 			MessageReleaseAccess *msg = new MessageReleaseAccess(
 				ClusterManager::getCurrentClusterNode(),
 				_remoteTaskIdentifier,
+				releaseTask,
 				_releaseInfo
 			);
 
@@ -243,11 +244,12 @@ namespace ExecutionWorkflow {
 			_remoteTaskIdentifier(context->getRemoteIdentifier()),
 			_offloader(context->getRemoteNode())
 		{
-			task->setDataReleaseStep(this);
+			_task->setDataReleaseStep(this);
 		}
 
 		virtual inline ~ClusterDataReleaseStep()
 		{
+			_task->unsetDataReleaseStep();
 			assert(_releaseInfo.size() == 0);
 		}
 
@@ -256,22 +258,36 @@ namespace ExecutionWorkflow {
 			_bytesToRelease.fetch_add(access->getAccessRegion().getSize());
 		}
 
-		void releasePendingAccesses() override
+		void releasePendingAccesses(bool releaseTask) override
 		{
 			_infoLock.lock();
 			// check atomically without taking the lock in case we can return immediately faster.
-			if (_releaseInfo.size() == 0) {
+			if (_releaseInfo.size() == 0 && releaseTask == false) {
 				_infoLock.unlock();
 				return;
 			}
 
-			// releaseInfoVectorToMessage takes the lock, but we don't need it calling sendMessage.
-			// But when_bytesToRelease we call the destructor and both situations are very
-			// frequent.
-			MessageReleaseAccess *msg = releaseInfoVectorToMessage();
-			_infoLock.unlock();
+			MessageReleaseAccess *msg = releaseInfoVectorToMessage(releaseTask);
 
-			ClusterManager::sendMessage(msg, _offloader);
+			if (!releaseTask) {
+				// When we are not going to finalize the task we release the lock before calling
+				// mpi. So any other thread in the dependency system can continue storing things in
+				// the container.
+				_infoLock.unlock();
+				ClusterManager::sendMessage(msg, _offloader);
+			} else {
+				// When we are not going to finalize the task then we hold the lock because it is
+				// not expected that other thread add any release region anymore.
+
+				// TODO: When fixed local propagation discount in _bytesToRelease we can enable this
+				// assert. Deleting this fixed the memory leak issue we had before where the release
+				// step was not always deleted.
+				// assert(_bytesToRelease.load() == 0);
+				ClusterManager::sendMessage(msg, _offloader);
+				_infoLock.unlock();
+
+				delete this;
+			}
 		}
 
 		void addToReleaseList(DataAccess const *access) override
@@ -280,7 +296,6 @@ namespace ExecutionWorkflow {
 
 			DataAccessRegion const &region = access->getAccessRegion();
 			MemoryPlace const *location = access->getLocation();
-			const size_t size = region.getSize();
 
 			Instrument::logMessage(
 				Instrument::ThreadInstrumentationContext::getCurrent(),
@@ -294,29 +309,16 @@ namespace ExecutionWorkflow {
 				? location
 				: ClusterManager::getCurrentMemoryNode();
 
-			{  // scope for the lock to avoid errors with lock/unlock calls..
-				std::lock_guard<SpinLock> lck(_infoLock);
+			_infoLock.lock();
 
-				_releaseInfo.push_back(
-					MessageReleaseAccess::ReleaseAccessInfo(
-						region,
-						access->getWriteID(),
-						clusterLocation)
-				);
+			_releaseInfo.push_back(
+				MessageReleaseAccess::ReleaseAccessInfo(
+					region,
+					access->getWriteID(),
+					clusterLocation)
+			);
 
-				// (var.fetch_sub(arg) - arg) === (var -= arg) I prefer fetch_sub to remember it is
-				// atomic.
-				if (_bytesToRelease.fetch_sub(size) - size == 0) {
-					MessageReleaseAccess * msg = releaseInfoVectorToMessage();
-
-					// This is a call to mpi_Isend with the lock taken. We try to avoid this as much
-					// as possible, so we only call it when we intent to call the destructor.
-					ClusterManager::sendMessage(msg, _offloader);
-
-					_task->unsetDataReleaseStep();
-					delete this;
-				}
-			}  // end of locked protected region here.
+			_infoLock.unlock();
 		}
 
 
@@ -374,7 +376,7 @@ namespace ExecutionWorkflow {
 			assert(_remoteNode != nullptr);   /// the dynamic_cast worked
 
 			TaskOffloading::ClusterTaskContext *clusterContext =
-				new TaskOffloading::ClusterTaskContext((void *)_task, _remoteNode);
+				new TaskOffloading::ClusterTaskContext(_task, _remoteNode);
 			_task->setClusterContext(clusterContext);
 		}
 

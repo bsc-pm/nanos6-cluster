@@ -170,7 +170,7 @@ namespace ExecutionWorkflow {
 		virtual inline void addToReleaseList(DataAccess const *)
 		{}
 
-		virtual inline void releasePendingAccesses()
+		virtual inline void releasePendingAccesses(bool)
 		{}
 
 		//! \brief Check if a DataAccess is ready to release data

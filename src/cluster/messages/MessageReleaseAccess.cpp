@@ -14,15 +14,17 @@
 MessageReleaseAccess::MessageReleaseAccess(
 	const ClusterNode *from,
 	void *offloadedTaskId,
+	bool release,
 	ReleaseAccessInfoVector &InfoVector
 ) :
 	Message(RELEASE_ACCESS,
-		sizeof(void*) + sizeof(size_t) + InfoVector.size() * sizeof(ReleaseAccessInfo), from)
+		sizeof(void*) + 2 * sizeof(size_t) + InfoVector.size() * sizeof(ReleaseAccessInfo), from)
 {
 	_content = reinterpret_cast<ReleaseAccessMessageContent *>(_deliverable->payload);
 
 	_content->_offloadedTaskId = offloadedTaskId;
 	_content->_ninfos = InfoVector.size();
+	_content->_release = (size_t) release;
 
 	size_t index = 0;
 	for (ReleaseAccessInfo const &accessinfo : InfoVector) {
@@ -38,6 +40,17 @@ bool MessageReleaseAccess::handleMessage()
 		ReleaseAccessInfo &accessinfo = _content->_regionInfoList[i];
 
 		TaskOffloading::releaseRemoteAccess((Task *)_content->_offloadedTaskId, accessinfo);
+	}
+
+	if (_content->_release == 1) {
+		Task *task = (Task *)_content->_offloadedTaskId;
+		ExecutionWorkflow::Step *step = task->getExecutionStep();
+		assert(step != nullptr);
+		Instrument::offloadedTaskCompletes(task->getInstrumentationTaskId());
+
+		task->setExecutionStep(nullptr);
+		step->releaseSuccessors();
+		delete step;
 	}
 
 	return true;

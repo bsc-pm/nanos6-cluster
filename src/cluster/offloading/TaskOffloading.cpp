@@ -223,10 +223,7 @@ namespace TaskOffloading {
 
 		task->markAsRemote();
 
-		ClusterTaskContext *clusterContext = new TaskOffloading::ClusterTaskContext(
-			remoteTaskIdentifier,
-			remoteNode
-		);
+		ClusterTaskContext *clusterContext = new TaskOffloading::ClusterTaskContext(msg, task);
 		assert(clusterContext);
 		task->setClusterContext(clusterContext);
 
@@ -236,7 +233,7 @@ namespace TaskOffloading {
 		if (useCallbackInContext) {
 			assert(NodeNamespace::isEnabled());
 
-			clusterContext->setCallback(remoteTaskCleanup, msg);
+			clusterContext->setCallback(remoteTaskCleanup, clusterContext);
 		}
 
 		// Register remote Task with TaskOffloading mechanism before
@@ -320,28 +317,26 @@ namespace TaskOffloading {
 		NodeNamespace::callbackDecrement();
 
 		assert(args != nullptr);
-		MessageTaskNew *msg = static_cast<MessageTaskNew *>(args);
+		ClusterTaskContext *clusterContext = static_cast<ClusterTaskContext *>(args);
 
-		void *offloadedTaskId = msg->getOffloadedTaskId();
-		ClusterNode *offloader = ClusterManager::getClusterNode(msg->getSenderId());
-
-		// clusterPrintf("Sending taskfinished for: %p %d\n", offloadedTaskId, offloader->getIndex());
-		// Unregister remote tasks first
-		assert(offloadedTaskId != nullptr);
-		assert(offloader != nullptr);
+		void *offloadedTaskId = clusterContext->getRemoteIdentifier();
+		ClusterNode *offloader = clusterContext->getRemoteNode();
 
 		RemoteTasksInfoMap::eraseRemoteTaskInfo(offloadedTaskId, offloader->getIndex());
+		assert(clusterContext->getOwnerTask()->hasDataReleaseStep());
 
-		// clusterPrintf("Sending sendRemoteTaskFinished remote task %p %d\n",
-			// offloadedTaskId, offloader->getIndex());
+		if (ClusterManager::getMergeReleaseAndFinish()) {
 
-		// The notify back sending message
-		MessageTaskFinished *msgFinish =
-			new MessageTaskFinished(ClusterManager::getCurrentClusterNode(), offloadedTaskId);
+			clusterContext->getOwnerTask()->getDataReleaseStep()->releasePendingAccesses(true);
+		} else {
+			// The notify back sending message
+			clusterContext->getOwnerTask()->getDataReleaseStep()->releasePendingAccesses(false);
 
-		ClusterManager::sendMessage(msgFinish, offloader);
+			MessageTaskFinished *msgFinish =
+				new MessageTaskFinished(ClusterManager::getCurrentClusterNode(), offloadedTaskId);
 
-		// sendRemoteTaskFinished(offloadedTaskId, offloader);
+			ClusterManager::sendMessage(msgFinish, offloader);
+		}
 
 		// For the moment, we do not delete the Message since it includes the
 		// buffers that hold the nanos6_task_info_t and the

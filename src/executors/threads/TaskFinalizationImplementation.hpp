@@ -184,27 +184,11 @@ void TaskFinalization::disposeTask(Task *task)
 				taskInfo->destroy_args_block(task->getArgsBlock());
 			}
 
-			if (task->hasDataReleaseStep()) {
-				task->getDataReleaseStep()->releasePendingAccesses();
-			}
-
 			StreamFunctionCallback *spawnCallback = task->getParentSpawnCallback();
 			if (spawnCallback != nullptr) {
 				StreamExecutor *executor = (StreamExecutor *) parent;
 				assert(executor != nullptr);
 				executor->decreaseCallbackParticipants(spawnCallback);
-			}
-
-			// This condition was previously handled automatically in the context's destructor, but
-			// we need some extra conditions to group the finalization messages when nested. The
-			// context destructor is called in the task's destructor so this functions must be
-			// called before it.
-			TaskOffloading::ClusterTaskContext *clusterTaskContext = task->getClusterContext();
-			if (clusterTaskContext != nullptr) {
-				assert(NodeNamespace::isEnabled());
-
-				// This needs to be called BEFORE ~Task because the context is deleted there.
-				clusterTaskContext->runHook();
 			}
 
 			if (isTaskloop) {

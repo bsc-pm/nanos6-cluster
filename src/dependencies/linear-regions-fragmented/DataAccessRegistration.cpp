@@ -3455,7 +3455,17 @@ namespace DataAccessRegistration {
 		}
 
 		for (Task *offloadedTask : offloadedTaskSet) {
-			offloadedTask->getDataReleaseStep()->releasePendingAccesses();
+			// This extra condition is to releasePendingAccesses for offloadedTask that are not
+			// going to be disposed now. Those accesses need to be released now.
+			// TODO: We may group them by destination node in the future.
+			// TODO: The DataReleaseStep stores the accesses regions in a vector. Using a map may
+			// simplify mergin those acccesses when they are contiguous, reducing the number of
+			// regions, keeping them sorted and reducing the size of the target message.
+			if (std::find(removableTasks.begin(), removableTasks.end(), offloadedTask)
+				== removableTasks.end()) {
+				// The offloadedTask is not going to be deleted, so only releasePendingAccesses.
+				offloadedTask->getDataReleaseStep()->releasePendingAccesses(false);
+			}
 		}
 
 		for (Task *removableTask : removableTasks) {

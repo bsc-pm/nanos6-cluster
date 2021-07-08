@@ -15,9 +15,9 @@
 #include <ClusterManager.hpp>
 #include <TaskOffloading.hpp>
 #include <ClusterShutdownCallback.hpp>
+#include <tasks/Task.hpp>
 
 class ClusterNode;
-class Task;
 
 namespace TaskOffloading {
 
@@ -35,6 +35,8 @@ namespace TaskOffloading {
 	//! task on the remote node. It is opaque so that the user can define
 	//! whatever makes sense as a descriptor on each case.
 	class ClusterTaskContext {
+
+		MessageTaskNew *_msg;
 		//! A descriptro that identifies the remote task at the remote
 		//! node
 		void *_remoteTaskIdentifier;
@@ -42,6 +44,7 @@ namespace TaskOffloading {
 		//! The cluster node on which the remote task is located
 		ClusterNode *_remoteNode;
 
+		Task *_owner;
 		ClusterTaskCallback *_hook;
 
 	public:
@@ -51,52 +54,60 @@ namespace TaskOffloading {
 		//!		on the remote node
 		//! \param[in] remoteNode is the ClusterNode where the remote
 		//!		task is located
-		ClusterTaskContext(
-			void *remoteTaskIdentifier = nullptr,
-			ClusterNode *remoteNode = nullptr
-		) : _remoteTaskIdentifier(remoteTaskIdentifier),
+		ClusterTaskContext(MessageTaskNew *msg, Task *owner)
+			: _msg(msg),
+			_remoteTaskIdentifier(msg->getOffloadedTaskId()),
+			_remoteNode(ClusterManager::getClusterNode(_msg->getSenderId())),
+			_owner(owner),
+			_hook(nullptr)
+		{
+			assert(msg != nullptr);
+			assert(owner != nullptr);
+		}
+
+		ClusterTaskContext(Task *remoteTaskIdentifier, ClusterNode *remoteNode)
+			: _msg(nullptr),
+			_remoteTaskIdentifier((void *)remoteTaskIdentifier),
 			_remoteNode(remoteNode),
+			_owner(remoteTaskIdentifier),
 			_hook(nullptr)
 		{
 		}
 
 		~ClusterTaskContext()
 		{
-			// This asserts that the callback was already called. Previously the callback was called
-			// here, but it was moved to TaskFinalization::disposeTask to implement the
-			// task-finalization grouping optimization because it requires some extra conditions.
-			assert(_hook == nullptr);
-		}
 
-
-		//! Call this before the destructor always because it is the function that sends (opr
-		//! prepare to send) the finalization message.
-		bool runHook()
-		{
 			if (_hook != nullptr) {
 				_hook->execute();
 
 				delete _hook;
-				_hook = nullptr;
-				return true;
 			}
-			return false;
 		}
 
-		//! \brief Get the remote task descriptor
+
+		//! \brief Get the remote task descriptor. A descriptro that identifies the remote task at
+		//! the remote node
 		inline void *getRemoteIdentifier() const
 		{
 			return _remoteTaskIdentifier;
 		}
 
-		//! \brief Get the ClusterNode of the remote task
+		//! \brief Get the ClusterNode of the remote task.
+		//! The cluster node on which the remote task is located
 		inline ClusterNode *getRemoteNode() const
 		{
 			return _remoteNode;
 		}
 
-		inline void setCallback(SpawnFunction::function_t callback, MessageTaskNew *callbackArgs)
+		inline Task *getOwnerTask() const
 		{
+			return _owner;
+		}
+
+		inline void setCallback(
+			SpawnFunction::function_t callback,
+			TaskOffloading::ClusterTaskContext *callbackArgs
+		) {
 			assert(callback != nullptr);
 			assert(callbackArgs != nullptr);
 
