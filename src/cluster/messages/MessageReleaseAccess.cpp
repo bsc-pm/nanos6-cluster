@@ -32,11 +32,13 @@ MessageReleaseAccess::MessageReleaseAccess(
 
 bool MessageReleaseAccess::handleMessage()
 {
-	TaskOffloading::releaseRemoteAccess(
-		(Task *)_content->_offloadedTaskId,
-		_content->_ninfos,
-		_content->_regionInfoList
-	);
+	const size_t nRegions = _content->_ninfos;
+
+	for (size_t i = 0; i < nRegions; ++i) {
+		ReleaseAccessInfo &accessinfo = _content->_regionInfoList[i];
+
+		TaskOffloading::releaseRemoteAccess((Task *)_content->_offloadedTaskId, accessinfo);
+	}
 
 	return true;
 }

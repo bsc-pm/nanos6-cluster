@@ -137,37 +137,29 @@ namespace TaskOffloading {
 		}
 	}
 
-	void releaseRemoteAccess(
-		Task *task,
-		size_t nRegions,
-		MessageReleaseAccess::ReleaseAccessInfo *accessInfoList
-	) {
+	void releaseRemoteAccess(Task *task, MessageReleaseAccess::ReleaseAccessInfo &accessinfo)
+	{
 		assert(task != nullptr);
+		MemoryPlace const *location = ClusterManager::getMemoryNodeOrDirectory(accessinfo._location);
+
+		assert(Directory::isDirectoryMemoryPlace(location)
+			|| location->getType() == nanos6_cluster_device);
 
 		WorkerThread *currentThread = WorkerThread::getCurrentWorkerThread();
+
 		CPU * const cpu = (currentThread == nullptr) ? nullptr : currentThread->getComputePlace();
 
 		CPUDependencyData localDependencyData;
 		CPUDependencyData &hpDependencyData =
-			(cpu == nullptr) ? localDependencyData : cpu->getDependencyData();
+			(cpu != nullptr) ? cpu->getDependencyData() : localDependencyData;
 
-		for (size_t i = 0; i < nRegions; ++i) {
-			MessageReleaseAccess::ReleaseAccessInfo &accessinfo = accessInfoList[i];
-
-			MemoryPlace const *location
-				= ClusterManager::getMemoryNodeOrDirectory(accessinfo._location);
-
-			assert(location->isDirectoryMemoryPlace()
-				|| location->getType() == nanos6_cluster_device);
-
-			DataAccessRegistration::releaseAccessRegion(
-				task, accessinfo._region,
-				/* not relevant as specifyingDependency = false */ NO_ACCESS_TYPE,
-				/* not relevant as specifyingDependency = false */ false,
-				cpu,
-				hpDependencyData, accessinfo._writeID, location, /* specifyingDependency */ false
-			);
-		}
+		DataAccessRegistration::releaseAccessRegion(
+			task, accessinfo._region,
+			/* not relevant as specifyingDependency = false */ NO_ACCESS_TYPE,
+			/* not relevant as specifyingDependency = false */ false,
+			cpu,
+			hpDependencyData, accessinfo._writeID, location, /* specifyingDependency */ false
+		);
 	}
 
 	void remoteTaskCreateAndSubmit(

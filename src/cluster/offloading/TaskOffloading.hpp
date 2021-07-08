@@ -68,8 +68,7 @@ namespace TaskOffloading {
 	//! \param[in] location is the ClusterMemoryPlace on which the access
 	//!		is released
 	void releaseRemoteAccess(Task *task,
-		size_t nRegions,
-		MessageReleaseAccess::ReleaseAccessInfo *releaseInfo
+		MessageReleaseAccess::ReleaseAccessInfo &releaseInfo
 	);
 
 	//! Create and submit a task
