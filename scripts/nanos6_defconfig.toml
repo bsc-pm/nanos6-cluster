@@ -264,7 +264,11 @@ __require_CLUSTER
 	disable_autowait = false
 	# Enable eager fetching of weak dependencies. Default is true
 	eager_weak_fetch = true
-
+	# Merge release and Finish messages when possible. Default
+	# true.  When this is true dataacesses release messages for
+	# different tasks can be merged and finalization into a single
+	# message.
+	merge_release_and_finish = true
 	[cluster.mpi]
 		# Decide if mpi messenger must use a different
 		# communicator for data_raws messages. Default is true

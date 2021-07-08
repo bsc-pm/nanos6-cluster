@@ -89,6 +89,10 @@ ClusterManager::ClusterManager(std::string const &commType)
 
 	ConfigVariable<bool> eagerWeakFetch("cluster.eager_weak_fetch");
 	_eagerWeakFetch = eagerWeakFetch.getValue();
+
+	ConfigVariable<bool> mergeReleaseAndFinish("cluster.merge_release_and_finish");
+	_mergeReleaseAndFinish = mergeReleaseAndFinish.getValue();
+
 }
 
 ClusterManager::~ClusterManager()
