@@ -17,7 +17,10 @@ MessageReleaseAccess::MessageReleaseAccess(
 	bool release,
 	ReleaseAccessInfoVector &InfoVector
 ) :
-	Message(RELEASE_ACCESS,
+	Message(
+		(release && !InfoVector.empty()) ? RELEASE_ACCESS_AND_FINISH
+		: !InfoVector.empty() ? RELEASE_ACCESS
+		: TASK_FINISHED,
 		sizeof(void*) + 2 * sizeof(size_t) + InfoVector.size() * sizeof(ReleaseAccessInfo), from)
 {
 	_content = reinterpret_cast<ReleaseAccessMessageContent *>(_deliverable->payload);
@@ -58,3 +61,9 @@ bool MessageReleaseAccess::handleMessage()
 
 static const bool __attribute__((unused))_registered_release_access =
 	Message::RegisterMSGClass<MessageReleaseAccess>(RELEASE_ACCESS);
+
+static const bool __attribute__((unused))_registered_task_finished =
+	Message::RegisterMSGClass<MessageReleaseAccess>(TASK_FINISHED);
+
+static const bool __attribute__((unused))_registered_release_access_and_finish =
+	Message::RegisterMSGClass<MessageReleaseAccess>(RELEASE_ACCESS_AND_FINISH);

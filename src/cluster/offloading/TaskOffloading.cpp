@@ -22,7 +22,6 @@
 #include <RemoteTasksInfoMap.hpp>
 #include <DataAccessRegistration.hpp>
 #include <Directory.hpp>
-#include <MessageTaskFinished.hpp>
 #include <MessageTaskNew.hpp>
 #include "MessageSatisfiability.hpp"
 #include <NodeNamespace.hpp>
@@ -332,10 +331,7 @@ namespace TaskOffloading {
 			// The notify back sending message
 			clusterContext->getOwnerTask()->getDataReleaseStep()->releasePendingAccesses(false);
 
-			MessageTaskFinished *msgFinish =
-				new MessageTaskFinished(ClusterManager::getCurrentClusterNode(), offloadedTaskId);
-
-			ClusterManager::sendMessage(msgFinish, offloader);
+			clusterContext->getOwnerTask()->getDataReleaseStep()->releasePendingAccesses(true);
 		}
 
 		// For the moment, we do not delete the Message since it includes the

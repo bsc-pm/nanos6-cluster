@@ -470,7 +470,6 @@ cluster_sources += \
 	src/cluster/messages/MessageReleaseAccess.cpp \
 	src/cluster/messages/MessageSatisfiability.cpp \
 	src/cluster/messages/MessageSysFinish.cpp \
-	src/cluster/messages/MessageTaskFinished.cpp \
 	src/cluster/messages/MessageTaskNew.cpp \
 	src/cluster/messages/MessageType.cpp \
 	src/cluster/messenger/mpi/MPIMessenger.cpp \
@@ -1346,7 +1345,6 @@ noinst_HEADERS += \
 	src/cluster/messages/MessageReleaseAccess.hpp \
 	src/cluster/messages/MessageSatisfiability.hpp \
 	src/cluster/messages/MessageSysFinish.hpp \
-	src/cluster/messages/MessageTaskFinished.hpp \
 	src/cluster/messages/MessageTaskNew.hpp \
 	src/cluster/messages/MessageType.hpp \
 	src/cluster/messenger/DataTransfer.hpp \
