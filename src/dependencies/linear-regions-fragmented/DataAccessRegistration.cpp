@@ -4712,11 +4712,11 @@ namespace DataAccessRegistration {
 	 * implementation may send MessageTaskFinished out of order.
 	 */
 	void unregisterTaskDataAccesses1(Task *task,
-									ComputePlace *computePlace,
-									CPUDependencyData &hpDependencyData,
-									MemoryPlace *location,
-									bool fromBusyThread)
-	{
+		ComputePlace *computePlace,
+		CPUDependencyData &hpDependencyData,
+		MemoryPlace *location,
+		bool fromBusyThread
+	) {
 		(void)computePlace;
 		(void)fromBusyThread;
 		assert(task != nullptr);
