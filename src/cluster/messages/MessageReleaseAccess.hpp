@@ -65,8 +65,7 @@ public:
 		ReleaseAccessInfoVector &vector
 	);
 
-	MessageReleaseAccess(Deliverable *dlv)
-		: Message(dlv)
+	MessageReleaseAccess(Deliverable *dlv) : Message(dlv)
 	{
 		_content = reinterpret_cast<ReleaseAccessMessageContent *>(_deliverable->payload);
 	}
@@ -78,11 +77,12 @@ public:
 		std::stringstream ss;
 
 		const size_t nRegions = _content->_ninfos;
+		ss << "ReleaseAccess:" << nRegions;
 
 		for (size_t i = 0; i < nRegions; ++i) {
 			ReleaseAccessInfo &accessinfo = _content->_regionInfoList[i];
 
-			ss << "[region:" << accessinfo._region << " location:" << accessinfo._location << "]";
+			ss << "[RelReg:" << accessinfo._region << " location:" << accessinfo._location << "]";
 		}
 
 		return ss.str();
