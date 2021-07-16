@@ -23,8 +23,8 @@
 
 
 #ifdef USE_CLUSTER
-#include "cluster/WriteID.hpp"
-#endif
+#include <SatisfiabilityInfo.hpp>  // Already includes WriteID.hpp
+#endif // USE_CLUSTER
 
 struct DataAccess;
 class Task;
@@ -46,7 +46,7 @@ struct CPUDependencyData {
 		MemoryPlace const *_location;
 #ifdef USE_CLUSTER
 		WriteID _writeID;
-#endif
+#endif // USE_CLUSTER
 		bool _setReductionInfo; // Note: Both this and next field are required, as a null ReductionInfo can be propagated
 		ReductionInfo *_reductionInfo;
 		int _validNamespace;
@@ -64,7 +64,7 @@ struct CPUDependencyData {
 			_location(nullptr),
 #ifdef USE_CLUSTER
 			_writeID(0),
-#endif
+#endif // USE_CLUSTER
 			_setReductionInfo(false), _reductionInfo(nullptr),
 			_validNamespace(-1),
 			_namespacePredecessor(nullptr),
@@ -81,7 +81,7 @@ struct CPUDependencyData {
 			_location(nullptr),
 #ifdef USE_CLUSTER
 			_writeID(0),
-#endif
+#endif // USE_CLUSTER
 			_setReductionInfo(false), _reductionInfo(nullptr),
 			_validNamespace(-1),
 			_namespacePredecessor(nullptr),
@@ -155,10 +155,12 @@ struct CPUDependencyData {
 	acquired_commutative_scoreboard_entries_t _acquiredCommutativeScoreboardEntries;
 	released_commutative_regions_t _releasedCommutativeRegions;
 	satisfied_taskwait_accesses_t _completedTaskwaits;
-
 #ifndef NDEBUG
 	std::atomic<bool> _inUse;
-#endif
+#endif // NDEBUG
+#ifdef USE_CLUSTER
+	TaskOffloading::SatisfiabilityInfoMap _satisfiabilityMap; // Node's: list of satisfiabilities to send.
+#endif // USE_CLUSTER
 
 	CPUDependencyData()
 		: _satisfiedOriginators(), _satisfiedCommutativeOriginators(),
@@ -167,7 +169,10 @@ struct CPUDependencyData {
 		_completedTaskwaits()
 #ifndef NDEBUG
 		, _inUse(false)
-#endif
+#endif // NDEBUG
+#ifdef USE_CLUSTER
+		, _satisfiabilityMap() // Node's: list of satisfiabilities to send.
+#endif // USE_CLUSTER
 	{
 	}
 
@@ -181,7 +186,11 @@ struct CPUDependencyData {
 		return _satisfiedOriginators.empty() && _satisfiedCommutativeOriginators.empty()
 			&& _delayedOperations.empty() && _removableTasks.empty()
 			&& _acquiredCommutativeScoreboardEntries.empty()
-			&& _completedTaskwaits.empty();
+			&& _completedTaskwaits.empty()
+#ifdef USE_CLUSTER
+			&& _satisfiabilityMap.empty()
+#endif // USE_CLUSTER
+			;
 	}
 };
 

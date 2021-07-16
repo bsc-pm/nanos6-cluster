@@ -127,7 +127,11 @@ namespace ExecutionWorkflow {
 			DataAccessRegistration::setNamespaceSelf(access, targetNamespace, hpDependencyData);
 		}
 
-		void linkRegion(DataAccess const *region, bool read, bool write) override;
+		void linkRegion(
+			DataAccess const *region,
+			bool read,
+			bool write,
+			TaskOffloading::SatisfiabilityInfoMap &satisfiabilityMap) override;
 
 		//! Start the execution of the Step
 		void start() override;
@@ -361,7 +365,7 @@ namespace ExecutionWorkflow {
 
 	class ClusterExecutionStep : public Step {
 	private:
-		std::vector<TaskOffloading::SatisfiabilityInfo> _satInfo;
+		TaskOffloading::SatisfiabilityInfoVector _satInfo;
 		ClusterNode *_remoteNode;
 		Task *_task;
 

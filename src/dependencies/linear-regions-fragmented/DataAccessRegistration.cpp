@@ -1093,7 +1093,7 @@ namespace DataAccessRegistration {
 			 * satisfiability.
 			 */
 			if (linksRead || linksWrite) {
-				step->linkRegion(access, linksRead, linksWrite);
+				step->linkRegion(access, linksRead, linksWrite, hpDependencyData._satisfiabilityMap);
 			}
 
 			if (updatedStatus._triggersDataLinkRead && updatedStatus._triggersDataLinkWrite) {
@@ -1113,7 +1113,7 @@ namespace DataAccessRegistration {
 			 */
 			if (access->getObjectType() != taskwait_type) {
 				access->markAsDiscounted();
-				newRemovalBlockers = (accessStructures._removalBlockers.fetch_sub(1, std::memory_order_relaxed) - 1);
+				newRemovalBlockers = accessStructures._removalBlockers.fetch_sub(1, std::memory_order_relaxed) - 1;
 				assert(newRemovalBlockers >= 0);
 			} else {
 				newRemovalBlockers = accessStructures._removalBlockers;
@@ -1749,7 +1749,10 @@ namespace DataAccessRegistration {
 				// of updateOperation._validNamespace).
 				access->setValidNamespacePrevious(VALID_NAMESPACE_NONE, nullptr);
 			} else {
-				access->setValidNamespacePrevious(updateOperation._validNamespace, updateOperation._namespacePredecessor);
+				access->setValidNamespacePrevious(
+					updateOperation._validNamespace,
+					updateOperation._namespacePredecessor
+				);
 			}
 		}
 
@@ -2125,6 +2128,10 @@ namespace DataAccessRegistration {
 
 		processSatisfiedOriginators(hpDependencyData, computePlace, fromBusyThread);
 		assert(hpDependencyData._satisfiedOriginators.empty());
+
+#ifdef USE_CLUSTER
+		TaskOffloading::sendSatisfiability(hpDependencyData._satisfiabilityMap);
+#endif // USE_CLUSTER
 
 		handleRemovableTasks(hpDependencyData._removableTasks);
 	}

@@ -9,26 +9,34 @@
 #include <ClusterManager.hpp>
 #include <TaskOffloading.hpp>
 
-MessageSatisfiability::MessageSatisfiability(const ClusterNode *from,
-		void *offloadedTaskId,
-		TaskOffloading::SatisfiabilityInfo const &satInfo)
-	: Message(SATISFIABILITY, sizeof(SatisfiabilityMessageContent), from)
+MessageSatisfiability::MessageSatisfiability(
+	const ClusterNode *from,
+	TaskOffloading::SatisfiabilityInfoVector &satInfoVector
+)
+	: Message(SATISFIABILITY,
+		sizeof(size_t) + satInfoVector.size() * sizeof(TaskOffloading::SatisfiabilityInfo),
+		from)
 {
 	_content = reinterpret_cast<SatisfiabilityMessageContent *>(_deliverable->payload);
-	_content->_offloadedTaskId = offloadedTaskId;
-	_content->_satInfo = satInfo;
+	_content->_nSatisfiabilities = satInfoVector.size();
+
+	size_t index = 0;
+	for (TaskOffloading::SatisfiabilityInfo const &satInfo : satInfoVector) {
+		assert(index < satInfoVector.size());
+		_content->_SatisfiabilityInfo[index++] = satInfo;
+	}
+
+	satInfoVector.clear();
 }
 
 bool MessageSatisfiability::handleMessage()
 {
-	ClusterNode *offloader = ClusterManager::getClusterNode(getSenderId());
+	ClusterNode const *from = ClusterManager::getClusterNode(this->getSenderId());
 
-	TaskOffloading::propagateSatisfiabilityForHandler(
-		_content->_offloadedTaskId,
-		offloader,
-		_content->_satInfo
-	);
-
+	const size_t nSatisfiabilities = _content->_nSatisfiabilities;
+	for (size_t i = 0; i < nSatisfiabilities; ++i) {
+		TaskOffloading::propagateSatisfiabilityForHandler(from, _content->_SatisfiabilityInfo[i]);
+	}
 	return true;
 }
 

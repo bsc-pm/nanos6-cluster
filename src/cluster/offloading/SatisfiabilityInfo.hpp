@@ -7,13 +7,14 @@
 #ifndef SATISFIABILITY_INFO_HPP
 #define SATISFIABILITY_INFO_HPP
 
-
+#include <map>
+#include <vector>
 #include "WriteID.hpp"
+
+class ClusterNode;
 
 namespace TaskOffloading {
 
-	//! Type to describe satisfiability info that we communicate between
-	//! two cluster nodes
 	struct SatisfiabilityInfo {
 		//! The region related with the satisfiability info
 		DataAccessRegion _region;
@@ -23,43 +24,41 @@ namespace TaskOffloading {
 		//! -1 means nullptr (only if sending write satisfiability before read satisfiability: very rare)
 		int _src;
 
-		//! makes access read satisfied
-		bool _readSat;
+		//! makes access read/write satisfied
+		bool _readSat, _writeSat;
 
-		//! makes access write satisfied
-		bool _writeSat;
-
-		//! predecessor remote task ID expected for remote namespace propagation
-		void *_namespacePredecessor;
-
+		// The unique writeID
 		WriteID _writeID;
 
-		SatisfiabilityInfo(DataAccessRegion region, int src, bool read, bool write, WriteID writeID, void *namespacePredecessor)
-			: _region(region), _src(src), _readSat(read), _writeSat(write), _namespacePredecessor(namespacePredecessor), _writeID(writeID)
+		//! predecessor remote task ID expected for remote namespace propagation
+		//! this is will play two roles.
+		//! a) When used in a tasknew it will be the namespacePredecessor
+		//! b) When used in a satisfiability message it will be the task id (access originator)
+		void *_id;
+
+
+		SatisfiabilityInfo(
+			DataAccessRegion const &region, int src,
+			bool read, bool write,
+			WriteID writeID, void *id
+		) : _region(region), _src(src),
+			_readSat(read), _writeSat(write),
+			_writeID(writeID), _id(id)
 		{
 			// std::cout << "construct SatisfiabilityInfo with nrp = " << namespacePredecessor << "\n";
 		}
 
-		bool empty() const
+		// TODO: Add code to differentiate when in a tasknew or satisfiability-message
+		friend std::ostream& operator<<(std::ostream &o, SatisfiabilityInfo const &satInfo)
 		{
-			return false; // never empty !_readSat && !_writeSat && !_noRemotePropagation;
+			return o << "[SatReg:" << satInfo._region
+				<< " r:" << satInfo._readSat << " w:" << satInfo._writeSat
+				<< " loc:" << satInfo._src << " task: " << satInfo._id << "]";
 		}
-
-		friend std::ostream& operator<<(std::ostream &o,
-				TaskOffloading::SatisfiabilityInfo const &satInfo);
 	};
 
-	inline std::ostream& operator<<(
-		std::ostream &o,
-		TaskOffloading::SatisfiabilityInfo const &satInfo
-	) {
-		return o << "Satisfiability info for region:" << satInfo._region <<
-			" read:" << satInfo._readSat <<
-			" write:" << satInfo._writeSat <<
-			" location:" << satInfo._src <<
-			" namespace-predecessor: " << satInfo._namespacePredecessor;
-	}
-
+	typedef std::vector<SatisfiabilityInfo> SatisfiabilityInfoVector;
+	typedef std::map<ClusterNode *, std::vector<SatisfiabilityInfo>> SatisfiabilityInfoMap;
 }
 
 

@@ -33,10 +33,8 @@ namespace TaskOffloading {
 	void propagateSatisfiability(Task *localTask, SatisfiabilityInfo const &satInfo)
 	{
 		assert(localTask != nullptr);
-		assert(!satInfo.empty());
 
 		WorkerThread *currentThread = WorkerThread::getCurrentWorkerThread();
-
 		CPU * const cpu = (currentThread == nullptr) ? nullptr : currentThread->getComputePlace();
 
 		CPUDependencyData localDependencyData;
@@ -44,13 +42,10 @@ namespace TaskOffloading {
 			(cpu != nullptr) ? cpu->getDependencyData() : localDependencyData;
 
 		// Convert integer source id to a pointer to the relevant MemoryPlace
-		MemoryPlace const *loc;
-		if (satInfo._src == -1) {
-			 // -1 means nullptr: see comment in ClusterDataLinkStep::linkRegion(). It
-			 // happens for race conditions when write satisfiability is propagated
-			 // before read satisfiability.
-			loc = nullptr;
-		} else	{
+		MemoryPlace const *loc = nullptr;
+		// -1 means nullptr: see comment in ClusterDataLinkStep::linkRegion(). It happens for race
+		// conditions when write satisfiability is propagated before read satisfiability.
+		if (satInfo._src != -1) {
 			// Otherwise it is either the node index or the directory (which is used
 			// for uninitialized memory regions).
 			loc = ClusterManager::getMemoryNodeOrDirectory(satInfo._src);
@@ -58,14 +53,14 @@ namespace TaskOffloading {
 
 		DataAccessRegistration::propagateSatisfiability(
 			localTask, satInfo._region, cpu,
-			hpDependencyData, satInfo._readSat,
-			satInfo._writeSat, satInfo._writeID, loc
+			hpDependencyData,
+			satInfo._readSat, satInfo._writeSat, satInfo._writeID, loc
 		);
 	}
 
 	void offloadTask(
 		Task *task,
-		std::vector<SatisfiabilityInfo> const &satInfo,
+		SatisfiabilityInfoVector const &satInfo,
 		ClusterNode const *remoteNode
 	) {
 		assert(task != nullptr);
@@ -79,6 +74,7 @@ namespace TaskOffloading {
 		size_t argsBlockSize = task->getArgsBlockSize();
 		size_t nrSatInfo = satInfo.size();
 		SatisfiabilityInfo const *satInfoPtr = (nrSatInfo == 0) ? nullptr : satInfo.data();
+		void *taskId = (void *)task;
 
 		Instrument::taskIsOffloaded(task->getInstrumentationTaskId());
 		task->markAsOffloaded();
@@ -89,11 +85,10 @@ namespace TaskOffloading {
 			taskInfo->implementation_count, taskInfo->implementations,
 			nrSatInfo, satInfoPtr,
 			argsBlockSize, argsBlock,
-			(void *)task
+			taskId
 		);
 
-		// If this offloaded task is a taskfor, then include the loop
-		// bounds in the message.
+		// If this offloaded task is a taskfor, then include the loop bounds in the message.
 		if (task->isTaskforSource()) {
 			Taskfor *taskfor = static_cast<Taskfor *>(task);
 			msg->setBounds(taskfor->getBounds());
@@ -102,25 +97,33 @@ namespace TaskOffloading {
 		ClusterManager::sendMessage(msg, remoteNode);
 	}
 
-	void sendSatisfiability(Task *task, ClusterNode *remoteNode, SatisfiabilityInfo const &satInfo)
+	void sendSatisfiability(SatisfiabilityInfoMap &satInfoMap)
 	{
-		assert(task != nullptr);
-		assert(remoteNode != nullptr);
-		assert(!satInfo.empty());
+		if (satInfoMap.empty()) {
+			return;
+		}
 
 		ClusterNode *current = ClusterManager::getCurrentClusterNode();
-		MessageSatisfiability *msg = new MessageSatisfiability(current, (void *)task, satInfo);
 
-		ClusterManager::sendMessage(msg, remoteNode);
+		for (auto &it: satInfoMap) {
+			assert(it.first != nullptr);
+			assert(it.first != current);
+			MessageSatisfiability *msg = new MessageSatisfiability(current, it.second);
+			ClusterManager::sendMessage(msg, it.first);
+		}
+
+		satInfoMap.clear();
 	}
 
 	void propagateSatisfiabilityForHandler(
-		void *offloadedTaskId,
-		ClusterNode *offloader,
+		ClusterNode const *offloader,
 		SatisfiabilityInfo const &satInfo
 	) {
+		// This is called from the MessageSatisfiability::handleMessage.
+		// In Satisfiability messages the satInfo._id contains the remote task identifier (not the
+		// predecessor like in tasknew)
 		RemoteTaskInfo &taskInfo
-			= RemoteTasksInfoMap::getRemoteTaskInfo(offloadedTaskId, offloader->getIndex());
+			= RemoteTasksInfoMap::getRemoteTaskInfo(satInfo._id, offloader->getIndex());
 
 		taskInfo._lock.lock();
 		if (taskInfo._localTask == nullptr) {
@@ -204,6 +207,7 @@ namespace TaskOffloading {
 		}
 
 		// Check satisfiability for noRemotePropagation
+		// When CreateAndSubmit the satInfo._id member contains the namespace predecessor.
 		size_t numSatInfo;
 		TaskOffloading::SatisfiabilityInfo *satInfo = msg->getSatisfiabilityInfo(numSatInfo);
 		for (size_t i = 0; i < numSatInfo; ++i) {
@@ -212,7 +216,7 @@ namespace TaskOffloading {
 				parent,
 				satInfo[i]._region,
 				remoteNode,
-				satInfo[i]._namespacePredecessor);
+				satInfo[i]._id);
 		}
 
 		void *argsBlockPtr = task->getArgsBlock();

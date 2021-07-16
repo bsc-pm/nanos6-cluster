@@ -17,9 +17,12 @@
 #include <DataAccessRegion.hpp>
 #include "WriteID.hpp"
 
+#include <SatisfiabilityInfo.hpp>
+
 struct DataAccess;
 class MemoryPlace;
 class Task;
+class SatisfiabilityInfoMap;
 
 namespace ExecutionWorkflow {
 
@@ -126,8 +129,12 @@ namespace ExecutionWorkflow {
 		//!		object.
 		DataLinkStep(DataAccess *access);
 
-		virtual inline void linkRegion(const DataAccess *, bool /*read*/, bool /*write*/)
-		{
+		virtual inline void linkRegion(
+			const DataAccess *,
+			bool /*read*/,
+			bool /*write*/,
+			TaskOffloading::SatisfiabilityInfoMap & /*hpDependencyData*/
+		) {
 			//clusterCout << "Link: (" << access->getOriginator()->getLabel() <<"): " << region << std::endl;
 		}
 	};

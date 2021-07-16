@@ -7,30 +7,25 @@
 #ifndef MESSAGE_SATISFIABILITY_HPP
 #define MESSAGE_SATISFIABILITY_HPP
 
-#include <sstream>
-
 #include "Message.hpp"
 
-#include <SatisfiabilityInfo.hpp>
-
 class MessageSatisfiability : public Message {
+private:
 	struct SatisfiabilityMessageContent {
-		//! The opaque id identifying the offloaded task
-		void *_offloadedTaskId;
-
-		//! Satisfiability information we are sending
-		TaskOffloading::SatisfiabilityInfo _satInfo;
+		size_t _nSatisfiabilities;
+		TaskOffloading::SatisfiabilityInfo _SatisfiabilityInfo[];
 	};
 
 	//! pointer to message payload
 	SatisfiabilityMessageContent *_content;
 
 public:
-	MessageSatisfiability(const ClusterNode *from, void *offloadedTaskId,
-			TaskOffloading::SatisfiabilityInfo const &satInfo);
+	MessageSatisfiability(
+		const ClusterNode *from,
+		TaskOffloading::SatisfiabilityInfoVector &satInfo
+	);
 
-	MessageSatisfiability(Deliverable *dlv)
-		: Message(dlv)
+	MessageSatisfiability(Deliverable *dlv) : Message(dlv)
 	{
 		_content = reinterpret_cast<SatisfiabilityMessageContent *>(_deliverable->payload);
 	}
@@ -41,7 +36,12 @@ public:
 	{
 		std::stringstream ss;
 
-		ss << "[SatInfo:" << _content->_satInfo << "]";
+		const size_t nRegions = _content->_nSatisfiabilities;
+		ss << "Satisfiability :" << nRegions;
+
+		for (size_t i = 0; i < nRegions; ++i) {
+			ss << _content->_SatisfiabilityInfo[i];
+		}
 
 		return ss.str();
 	}

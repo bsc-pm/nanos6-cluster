@@ -21,9 +21,14 @@
 
 namespace ExecutionWorkflow {
 
-	void ClusterDataLinkStep::linkRegion(DataAccess const *access, bool read, bool write)
-	{
+	void ClusterDataLinkStep::linkRegion(
+		DataAccess const *access,
+		bool read,
+		bool write,
+		TaskOffloading::SatisfiabilityInfoMap &satisfiabilityMap
+	) {
 		assert(access != nullptr);
+		assert(_task->getClusterContext() != nullptr);
 		const DataAccessRegion &region = access->getAccessRegion();
 		const MemoryPlace *location = access->getLocation();
 		const WriteID writeID = access->getWriteID();
@@ -59,10 +64,15 @@ namespace ExecutionWorkflow {
 			// task is created, not when a satisfiability message is sent (which is what is
 			// happening now). Nevertheless, this only happens when propagation does not happen
 			// in the namespace; so send the value nullptr.
-			TaskOffloading::SatisfiabilityInfo satInfo(region, locationIndex, read, write, writeID, /* namespacePredecessor */ nullptr);
+			ClusterNode *destNode = _task->getClusterContext()->getRemoteNode();
 
-			TaskOffloading::ClusterTaskContext *clusterTaskContext = _task->getClusterContext();
-			TaskOffloading::sendSatisfiability(_task, clusterTaskContext->getRemoteNode(), satInfo);
+			satisfiabilityMap[destNode].push_back(
+				TaskOffloading::SatisfiabilityInfo(
+					region, locationIndex,
+					read, write,
+					writeID, _task)
+			);
+
 			size_t linkedBytes = region.getSize();
 
 			//! We need to account for linking both read and write satisfiability
@@ -132,7 +142,12 @@ namespace ExecutionWorkflow {
 			// Will have a pointer in ClusterMemoryNode to the ClusterNode and will get the
 			// Commindex from there with getCommIndex.
 			// assert(_sourceMemoryPlace->getIndex() == _sourceMemoryPlace->getCommIndex());
-			execStep->addDataLink(location, _region, _writeID, _read, _write, (void *)_namespacePredecessor);
+			execStep->addDataLink(
+				location, _region,
+				_writeID,
+				_read, _write,
+				(void *)_namespacePredecessor
+			);
 
 			const size_t linkedBytes = _region.getSize();
 			//! If at the moment of offloading the access is not both

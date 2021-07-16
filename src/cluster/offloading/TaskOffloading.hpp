@@ -29,8 +29,11 @@ namespace TaskOffloading {
 	//! \param[in] satInfo is the sastisfiability info that we already know
 	//		about the task already
 	//! \param[in] remoteNode is the ClusterNode to which we are offloading
-	void offloadTask(Task *task, std::vector<SatisfiabilityInfo> const &satInfo,
-			ClusterNode const *remoteNode);
+	void offloadTask(
+		Task *task,
+		SatisfiabilityInfoVector const &satInfo,
+		ClusterNode const *remoteNode
+	);
 
 	//! \brief Send satisfiability information to an offloaded Task
 	//!
@@ -39,7 +42,7 @@ namespace TaskOffloading {
 	//!		remote task
 	//! \param[in] satInfo is the Satisfiability information we are
 	//!		sending
-	void sendSatisfiability(Task *task, ClusterNode *remoteNode, SatisfiabilityInfo const &satInfo);
+	void sendSatisfiability(SatisfiabilityInfoMap &satInfoMap);
 
 	//! \brief Propagate satisfiability information for a remote task
 	//!
@@ -48,8 +51,7 @@ namespace TaskOffloading {
 	//! \param[in] offloader is the clusterNode that offloaded the task
 	//! \param[in] satInfo is satisfiability info we are propagating
 	void propagateSatisfiabilityForHandler(
-		void *offloadedTaskId,
-		ClusterNode *offloader,
+		ClusterNode const *offloader,
 		SatisfiabilityInfo const &satInfo
 	);
 
