@@ -67,6 +67,9 @@ namespace ExecutionWorkflow {
 		// for instance that the data will not be eagerly fetched (as
 		// controlled by cluster.eager_weak_fetch) and the registration will be
 		// done when we receive MessageSatisfiability.
+		if (sourceMemoryPlace == nullptr) {
+			assert(access->isWeak());
+		}
 		const nanos6_device_t sourceType =
 			(sourceMemoryPlace == nullptr) ? nanos6_host_device : sourceMemoryPlace->getType();
 
