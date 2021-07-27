@@ -66,7 +66,7 @@ namespace ExecutionWorkflow {
 			_read(access->readSatisfied()),
 			_write(access->writeSatisfied()),
 			_namespacePredecessor(nullptr),
-			_writeID(access->getWriteID()),
+			_writeID((access->getType() == COMMUTATIVE_ACCESS_TYPE) ? 0 : access->getWriteID()),
 			_started(false)
 		{
 			access->setDataLinkStep(this);
@@ -80,7 +80,25 @@ namespace ExecutionWorkflow {
 				if (_read) {
 					_write = true;
 				}
+			} else if (access->getType() == COMMUTATIVE_ACCESS_TYPE) {
+				// A commutative access is sent with pseudowrite and pseudoread
+				assert (access->satisfied()); // must be satisfied already as weakcommutative not offloaded
+				_write = true;
+				_read = true;
 			}
+			// We do not support weakcommutative accesses on offloaded tasks.  Since
+			// the scoreboard is local to each node, we have to treat a weakcommutative
+			// access as a strong one if the task is offloaded. We don't know whether it
+			// is will actually be offloaded until it is scheduled, so we need to be
+			// conservative (do so for all potentially offloadable tasks). But the runtime
+			// does not seem to support nested strong commutative accesses, which could
+			// happen in two ways: (1) a task with a weakcommutative access (which becomes
+			// strong) is not offloaded in the end and (2) it is offloaded but then a
+			// strong subtask (or subsubtask, etc.) is offloaded back to the original node.
+			// There is a single scoreboard per node, which does not support a potentially
+			// arbitrary number of nesting levels.
+			FatalErrorHandler::failIf(access->getType() == COMMUTATIVE_ACCESS_TYPE && access->isWeak(),
+									  "weakcommutative accesses are not supported for offloaded tasks");
 
 			assert(targetMemoryPlace->getType() == nanos6_device_t::nanos6_cluster_device);
 			const int targetNamespace = targetMemoryPlace->getIndex();
@@ -90,6 +108,7 @@ namespace ExecutionWorkflow {
 				_namespacePredecessor = nullptr;
 			} else {
 				if (access->getValidNamespacePrevious() == targetNamespace) {
+					assert(access->getType() != COMMUTATIVE_ACCESS_TYPE);
 					_namespacePredecessor = access->getNamespacePredecessor(); // remote propagation valid if predecessor task and offloading node matches
 				} else {
 					_namespacePredecessor = nullptr;

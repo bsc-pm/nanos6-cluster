@@ -16,12 +16,14 @@
 
 class Task;
 struct CPUDependencyData;
+struct MemoryPlace;
 
 
 struct CommutativeScoreboard {
 	struct entry_t {
 		DataAccessRegion _region;
 		bool _available;
+		const MemoryPlace *_location;
 		Container::set<Task *> _participants;
 
 		entry_t(DataAccessRegion const &region) :
@@ -49,6 +51,7 @@ struct CommutativeScoreboard {
 
 	static bool addAndEvaluateTask(Task *task, CPUDependencyData &hpDependencyData);
 	static void processReleasedCommutativeRegions(CPUDependencyData &hpDependencyData);
+	static void endCommutative(const DataAccessRegion region);
 
 private:
 	typedef Container::set<Task *> candidate_set_t;

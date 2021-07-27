@@ -49,7 +49,6 @@ namespace ExecutionWorkflow {
 			* of the following types. This essentially mean that devices,
 			* e.g. Cluster, CUDA, do not support these accesses. */
 		if (access->getType() == REDUCTION_ACCESS_TYPE ||
-			access->getType() == COMMUTATIVE_ACCESS_TYPE ||
 			access->getType() == CONCURRENT_ACCESS_TYPE
 		) {
 			step = new Step();

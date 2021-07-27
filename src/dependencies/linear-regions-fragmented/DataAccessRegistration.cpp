@@ -826,7 +826,7 @@ namespace DataAccessRegistration {
 		// Release of commutative region
 		if (initialStatus._releasesCommutativeRegion != updatedStatus._releasesCommutativeRegion) {
 			assert(!initialStatus._releasesCommutativeRegion);
-			hpDependencyData._releasedCommutativeRegions.emplace_back(task, access->getAccessRegion());
+			hpDependencyData._releasedCommutativeRegions.emplace_back(task, access->getAccessRegion(), access->getLocation());
 		}
 
 		// Propagation to Next
@@ -835,6 +835,7 @@ namespace DataAccessRegistration {
 			 * Prepare an update operation that will affect the next task.
 			 */
 			UpdateOperation updateOperation(access->getNext(), access->getAccessRegion());
+			updateOperation._location = access->getLocation();
 
 			if (initialStatus._propagatesReadSatisfiabilityToNext != updatedStatus._propagatesReadSatisfiabilityToNext) {
 				assert(!initialStatus._propagatesReadSatisfiabilityToNext);
@@ -848,7 +849,6 @@ namespace DataAccessRegistration {
 					WriteIDManager::registerWriteIDasLocal(access->getWriteID(), access->getAccessRegion());
 				}
 #endif
-				updateOperation._location = access->getLocation();
 			}
 
 			// Note: do not pass namespace propagation info to taskwaits
@@ -876,6 +876,7 @@ namespace DataAccessRegistration {
 				 */
 				// assert(!access->canPropagateReductionInfo() || updatedStatus._propagatesReductionInfoToNext);
 				updateOperation._makeWriteSatisfied = true;
+				updateOperation._previousIsCommutative = (access->getType() == COMMUTATIVE_ACCESS_TYPE);
 			}
 
 			if (initialStatus._propagatesConcurrentSatisfiabilityToNext != updatedStatus._propagatesConcurrentSatisfiabilityToNext) {
@@ -915,6 +916,7 @@ namespace DataAccessRegistration {
 		// Propagation to Fragments
 		if (access->hasSubaccesses()) {
 			UpdateOperation updateOperation(DataAccessLink(task, fragment_type), access->getAccessRegion());
+			updateOperation._location = access->getLocation();
 
 			if (initialStatus._propagatesReadSatisfiabilityToFragments != updatedStatus._propagatesReadSatisfiabilityToFragments) {
 				assert(!initialStatus._propagatesReadSatisfiabilityToFragments);
@@ -923,7 +925,6 @@ namespace DataAccessRegistration {
 				updateOperation._writeID = access->getWriteID();
 #endif
 				assert(access->hasLocation());
-				updateOperation._location = access->getLocation();
 			}
 
 			if (initialStatus._propagatesWriteSatisfiabilityToFragments != updatedStatus._propagatesWriteSatisfiabilityToFragments) {
@@ -1016,6 +1017,12 @@ namespace DataAccessRegistration {
 				// This adds the access to the ClusterDataReleaseStep::_releaseInfo vector.
 				// The accesses will be released latter.
 				access->getOriginator()->getDataReleaseStep()->addToReleaseList(access);
+				if (access->getType() == COMMUTATIVE_ACCESS_TYPE) {
+					// This is the last commutative task here, so delete the scoreboard entry.
+					CommutativeScoreboard::_lock.lock();
+					CommutativeScoreboard::endCommutative(access->getAccessRegion());
+					CommutativeScoreboard::_lock.unlock();
+				}
 			}
 		}
 
@@ -1028,7 +1035,7 @@ namespace DataAccessRegistration {
 		 *     1    (has DataLinkStep and read satisfied locally) => linkRegion
 		 *     0    (DataLinkStep unset and read satisfied again remotely) => nothing
 		 */
-		const bool linksRead = initialStatus._triggersDataLinkRead < updatedStatus._triggersDataLinkRead;
+		bool linksRead = initialStatus._triggersDataLinkRead < updatedStatus._triggersDataLinkRead;
 		bool linksWrite = initialStatus._triggersDataLinkWrite < updatedStatus._triggersDataLinkWrite;
 		if (linksRead || linksWrite) {
 			assert(access->hasDataLinkStep());
@@ -1044,6 +1051,13 @@ namespace DataAccessRegistration {
 					// never happens from an in to an inout or out access.
 					linksWrite = true;
 				}
+			} else if (access->getType() == COMMUTATIVE_ACCESS_TYPE) {
+				// Commutative accesses of offloaded tasks get pseudowrite and pseudoread
+				// Note: they are ready when they have commutative satisfiability. Read
+				// and write satisfiability is passed when all predecessors have completed.
+				assert(!access->isWeak()); // Weak commutative accesses not supported yet
+				linksRead = false;
+				linksWrite = false;
 			}
 
 			/*
@@ -1764,6 +1778,15 @@ namespace DataAccessRegistration {
 			 */
 			if (updateOperation._makeWriteSatisfied) {
 				access->setWriteSatisfied();
+
+				if (updateOperation._previousIsCommutative
+					&& (access->getType() != COMMUTATIVE_ACCESS_TYPE)) {
+					// This is a normal access following one or more commutative accesses to the same region.
+					// Delete the scoreboard entry.
+					CommutativeScoreboard::_lock.lock();
+					CommutativeScoreboard::endCommutative(access->getAccessRegion());
+					CommutativeScoreboard::_lock.unlock();
+				}
 			}
 
 			// Concurrent Satisfiability
@@ -1774,6 +1797,10 @@ namespace DataAccessRegistration {
 			// Commutative Satisfiability
 			if (updateOperation._makeCommutativeSatisfied) {
 				access->setCommutativeSatisfied();
+				assert(updateOperation._location);
+				if (!access->hasLocation()) {
+					access->setLocation(updateOperation._location);
+				}
 			}
 		} else {
 			// If it is propagated in the namespace, we should only
@@ -1782,6 +1809,12 @@ namespace DataAccessRegistration {
 			// should still be ignored.
 			if (updateOperation._makeWriteSatisfied) {
 				assert(access->getType() == READ_ACCESS_TYPE);
+			}
+
+			// Also, commutative satisfiability for commutative accesses
+			// should never be in the namespace to begin with.
+			if (updateOperation._makeCommutativeSatisfied) {
+				assert(access->getType() != COMMUTATIVE_ACCESS_TYPE);
 			}
 		}
 
@@ -2849,7 +2882,6 @@ namespace DataAccessRegistration {
 							DataAccessStatusEffects initialStatusT(targetAccess);
 
 							targetAccess->setConcurrentSatisfied(); // ?
-							targetAccess->setCommutativeSatisfied(); // ?
 							targetAccess->setValidNamespacePrevious(VALID_NAMESPACE_NONE, nullptr);
 
 							targetAccess->setReceivedReductionInfo();
@@ -2922,7 +2954,7 @@ namespace DataAccessRegistration {
 #ifdef USE_CLUSTER
 				// The current implementation does not properly handle the case
 				// when a subtask's accesses are not a subset of its parent's
-				// accesses (unless the parent is main). The problem is in
+				// accesses (unless the parent is main or the namespace). The problem is in
 				// unregisterTaskDataAccesses1 for the parent, as it ignores
 				// any bottom map entries that are not part of the task's
 				// accesses. So the child's accesses continue to be flagged as
@@ -2977,9 +3009,9 @@ namespace DataAccessRegistration {
 							/* TBD? Is this an access from e.g. a malloc inside the parent task? */
 							targetAccess->setReadSatisfied(Directory::getDirectoryMemoryPlace());
 							targetAccess->setWriteSatisfied();
+							targetAccess->setConcurrentSatisfied();
+							targetAccess->setCommutativeSatisfied();
 						}
-						targetAccess->setConcurrentSatisfied();
-						targetAccess->setCommutativeSatisfied();
 
 						targetAccess->setReceivedReductionInfo();
 						targetAccess->setValidNamespacePrevious(VALID_NAMESPACE_NONE, nullptr);
@@ -3271,7 +3303,8 @@ namespace DataAccessRegistration {
 
 				if (location != nullptr) {
 
-					if (isReleaseAccess && accessOrFragment->hasDataLinkStep()) {
+					if (isReleaseAccess && accessOrFragment->hasDataLinkStep()
+						&& (accessOrFragment->getType() != COMMUTATIVE_ACCESS_TYPE) ) {
 						bool notSat = false;
 						if (!accessOrFragment->readSatisfied()) {
 							accessOrFragment->setReadSatisfied(location);
@@ -4786,6 +4819,10 @@ namespace DataAccessRegistration {
 		updateOperation._makeReadSatisfied = readSatisfied;
 		updateOperation._makeWriteSatisfied = writeSatisfied;
 
+		if (updateOperation._makeReadSatisfied && updateOperation._makeWriteSatisfied) {
+			updateOperation._makeCommutativeSatisfied = true;
+		}
+
 		updateOperation._location = location;
 		updateOperation._writeID = writeID;
 		updateOperation._propagateSatisfiability = true;
@@ -5165,6 +5202,7 @@ namespace DataAccessRegistration {
 
 		accessStructures._lock.unlock();
 		processDelayedOperations(hpDependencyData);
+		handleRemovableTasks(hpDependencyData._removableTasks);
 		accessStructures._lock.lock();
 	}
 }; // namespace DataAccessRegistration

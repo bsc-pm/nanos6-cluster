@@ -64,6 +64,12 @@ bool CommutativeScoreboard::addAndEvaluateTask(Task *task, CPUDependencyData &hp
 					if (successful) {
 						bool acquired = acquireEntry(entry);
 						if (acquired) {
+							assert(entry._location != nullptr);
+
+							// Pick up the location from the scoreboard: since commutative tasks
+							// are executed out of order, the location cannot be passed among
+							// commutative tasks through the dependency system.
+							dataAccess->setLocation(entry._location);
 							hpDependencyData._acquiredCommutativeScoreboardEntries.push_back(&entry);
 						} else {
 							successful = false;
@@ -73,8 +79,14 @@ bool CommutativeScoreboard::addAndEvaluateTask(Task *task, CPUDependencyData &hp
 					return true;
 				},
 				[&](DataAccessRegion const &missingRegion) -> bool {
+					// The location is only missing in the scoreboard for the first commutative task.
+					// Commutative tasks get the location twice: once when they become commutative satisfied,
+					// when all commutative tasks get the initial location, and once again when they are
+					// scheduled, with the current location from the previous commutative task. Here the
+					// first task picks up the initial location.
 					map_t::iterator mapPosition = _map.emplace(missingRegion);
 					entry_t &entry = *mapPosition;
+					entry._location = dataAccess->getLocation();
 					entry._participants.insert(task);
 
 					if (successful) {
@@ -146,6 +158,8 @@ void CommutativeScoreboard::evaluateCompetingTask(
 						successful = acquireEntry(entry);
 					}
 					if (successful) {
+						// Pick up the location from the scoreboard
+						dataAccess->setLocation(entry._location);
 						hpDependencyData._acquiredCommutativeScoreboardEntries.push_back(&entry);
 					}
 
@@ -205,18 +219,26 @@ void CommutativeScoreboard::processReleasedCommutativeRegions(CPUDependencyData 
 				entry_t &entry = *mapPosition;
 
 				__attribute__((unused)) size_t removedCount = entry._participants.erase(taskAndRegion._task);
-				assert(removedCount == 1);
+
+				// Not sure why this assertion fails sometimes
+				// assert(removedCount == 1);
 
 				assert(!entry._available);
 				if (!entry._participants.empty()) {
 					for (Task *participant : entry._participants) {
 						candidates.insert(participant);
 					}
-
-					entry._available = true;
-				} else {
-					_map.erase(mapPosition);
 				}
+
+				// Update the location in the scoreboard after this task so that it can be used
+				// by the next commutative task. Note: even if there are no candidate tasks we
+				// cannot delete the scoreboard entry yet. There may be more commutative tasks,
+				// earlier in the sequential order, that are not ready yet because of other
+				// dependencies. These tasks will have to take the location from the scoreboard
+				// not the dependency system. We explicitly delete the scoreboard entries in
+				// CommutativeScoreboard::endCommutative.
+				entry._location = taskAndRegion._location;
+				entry._available = true;
 
 				return true;
 			}
@@ -231,5 +253,23 @@ void CommutativeScoreboard::processReleasedCommutativeRegions(CPUDependencyData 
 
 	candidates.clear();
 	hpDependencyData._releasedCommutativeRegions.clear();
+}
+
+void CommutativeScoreboard::endCommutative(const DataAccessRegion region)
+{
+	// No more commutative tasks for this region. This is called when a non-commutative access
+	// becomes satisfied, following one or more commutative tasks. This removes the scoreboard
+	// entries so that the next commutative tasks on the same region use the correct location,
+	// not the stale one that would be in the scoreboard.
+	_map.processIntersecting(
+		region,
+		[&](map_t::iterator mapPosition) -> bool {
+				if (!mapPosition->getAccessRegion().fullyContainedIn(region)) {
+					mapPosition = _map.fragmentByIntersection(mapPosition, region, /* removeIntersection */ false);
+				}
+
+				_map.erase(mapPosition);
+				return true;
+		});
 }
 

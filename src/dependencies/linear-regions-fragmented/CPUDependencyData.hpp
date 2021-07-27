@@ -53,6 +53,7 @@ struct CPUDependencyData {
 		Task *_namespacePredecessor;
 
 		boost::dynamic_bitset<> _reductionSlotSet;
+		bool _previousIsCommutative;
 
 		UpdateOperation()
 			: _target(), _region(),
@@ -66,7 +67,8 @@ struct CPUDependencyData {
 #endif
 			_setReductionInfo(false), _reductionInfo(nullptr),
 			_validNamespace(-1),
-			_namespacePredecessor(nullptr)
+			_namespacePredecessor(nullptr),
+			_previousIsCommutative(false)
 		{
 		}
 
@@ -82,7 +84,8 @@ struct CPUDependencyData {
 #endif
 			_setReductionInfo(false), _reductionInfo(nullptr),
 			_validNamespace(-1),
-			_namespacePredecessor(nullptr)
+			_namespacePredecessor(nullptr),
+			_previousIsCommutative(false)
 		{
 		}
 
@@ -100,9 +103,10 @@ struct CPUDependencyData {
 	struct TaskAndRegion {
 		Task *_task;
 		DataAccessRegion _region;
+		const MemoryPlace *_location;
 
-		TaskAndRegion(Task *task, DataAccessRegion const &region)
-			: _task(task), _region(region)
+		TaskAndRegion(Task *task, DataAccessRegion const &region, const MemoryPlace *location)
+			: _task(task), _region(region), _location(location)
 		{
 		}
 
