@@ -159,7 +159,16 @@ struct CPUDependencyData {
 	std::atomic<bool> _inUse;
 #endif // NDEBUG
 #ifdef USE_CLUSTER
+	bool _autoSendSatisfiability;
 	TaskOffloading::SatisfiabilityInfoMap _satisfiabilityMap; // Node's: list of satisfiabilities to send.
+
+	inline void restoreAutoSendSatisfiability()
+	{
+		assert(_autoSendSatisfiability == false);
+		assert(_satisfiabilityMap.empty());
+
+		_autoSendSatisfiability = true;
+	}
 #endif // USE_CLUSTER
 
 	CPUDependencyData()
@@ -171,6 +180,7 @@ struct CPUDependencyData {
 		, _inUse(false)
 #endif // NDEBUG
 #ifdef USE_CLUSTER
+		, _autoSendSatisfiability(true)
 		, _satisfiabilityMap() // Node's: list of satisfiabilities to send.
 #endif // USE_CLUSTER
 	{
@@ -188,7 +198,7 @@ struct CPUDependencyData {
 			&& _acquiredCommutativeScoreboardEntries.empty()
 			&& _completedTaskwaits.empty()
 #ifdef USE_CLUSTER
-			&& _satisfiabilityMap.empty()
+			&& (!_autoSendSatisfiability || _satisfiabilityMap.empty())
 #endif // USE_CLUSTER
 			;
 	}

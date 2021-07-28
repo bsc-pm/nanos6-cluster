@@ -31,12 +31,12 @@ MessageSatisfiability::MessageSatisfiability(
 
 bool MessageSatisfiability::handleMessage()
 {
-	ClusterNode const *from = ClusterManager::getClusterNode(this->getSenderId());
+	TaskOffloading::propagateSatisfiabilityForHandler(
+		ClusterManager::getClusterNode(this->getSenderId()),
+		_content->_nSatisfiabilities,
+		_content->_SatisfiabilityInfo
+	);
 
-	const size_t nSatisfiabilities = _content->_nSatisfiabilities;
-	for (size_t i = 0; i < nSatisfiabilities; ++i) {
-		TaskOffloading::propagateSatisfiabilityForHandler(from, _content->_SatisfiabilityInfo[i]);
-	}
 	return true;
 }
 

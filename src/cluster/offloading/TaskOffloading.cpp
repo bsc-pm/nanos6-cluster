@@ -30,26 +30,21 @@
 
 namespace TaskOffloading {
 
-	void propagateSatisfiability(Task *localTask, SatisfiabilityInfo const &satInfo)
-	{
+	static void propagateSatisfiability(
+		Task *localTask,
+		SatisfiabilityInfo const &satInfo,
+		CPU * const cpu,
+		CPUDependencyData &hpDependencyData
+	) {
 		assert(localTask != nullptr);
+		assert(hpDependencyData._autoSendSatisfiability == false);
 
-		WorkerThread *currentThread = WorkerThread::getCurrentWorkerThread();
-		CPU * const cpu = (currentThread == nullptr) ? nullptr : currentThread->getComputePlace();
-
-		CPUDependencyData localDependencyData;
-		CPUDependencyData &hpDependencyData =
-			(cpu != nullptr) ? cpu->getDependencyData() : localDependencyData;
-
-		// Convert integer source id to a pointer to the relevant MemoryPlace
-		MemoryPlace const *loc = nullptr;
-		// -1 means nullptr: see comment in ClusterDataLinkStep::linkRegion(). It happens for race
-		// conditions when write satisfiability is propagated before read satisfiability.
-		if (satInfo._src != -1) {
-			// Otherwise it is either the node index or the directory (which is used
-			// for uninitialized memory regions).
-			loc = ClusterManager::getMemoryNodeOrDirectory(satInfo._src);
-		}
+		// Convert integer source id to a pointer to the relevant MemoryPlace -1 means nullptr: see
+		// comment in ClusterDataLinkStep::linkRegion().  It happens for race conditions when write
+		// satisfiability is propagated before read satisfiability.  Otherwise it is either the node
+		// index or the directory (which is used for uninitialized memory regions).
+		MemoryPlace const *loc =
+			(satInfo._src == -1) ? nullptr : ClusterManager::getMemoryNodeOrDirectory(satInfo._src);
 
 		DataAccessRegistration::propagateSatisfiability(
 			localTask, satInfo._region, cpu,
@@ -115,30 +110,52 @@ namespace TaskOffloading {
 		satInfoMap.clear();
 	}
 
-	void propagateSatisfiabilityForHandler(
-		ClusterNode const *offloader,
-		SatisfiabilityInfo const &satInfo
-	) {
-		// This is called from the MessageSatisfiability::handleMessage.
-		// In Satisfiability messages the satInfo._id contains the remote task identifier (not the
-		// predecessor like in tasknew)
-		RemoteTaskInfo &taskInfo
-			= RemoteTasksInfoMap::getRemoteTaskInfo(satInfo._id, offloader->getIndex());
 
-		taskInfo._lock.lock();
-		if (taskInfo._localTask == nullptr) {
-			// The remote task has not been created yet, so we
-			// just add the info to the temporary vector
-			taskInfo._satInfo.push_back(satInfo);
-			taskInfo._lock.unlock();
-		} else {
-			// We *HAVE* to leave the lock now, because propagating
-			// satisfiability might lead to unregistering the remote
-			// task
-			taskInfo._lock.unlock();
-			propagateSatisfiability(taskInfo._localTask, satInfo);
+	void propagateSatisfiabilityForHandler(
+		ClusterNode const *from,
+		const size_t nSatisfiabilities,
+		TaskOffloading::SatisfiabilityInfo *_satisfiabilityInfo
+	) {
+		WorkerThread *currentThread = WorkerThread::getCurrentWorkerThread();
+		CPU * const cpu = (currentThread == nullptr) ? nullptr : currentThread->getComputePlace();
+
+		CPUDependencyData localDependencyData;
+		CPUDependencyData &hpDependencyData =
+			(cpu != nullptr) ? cpu->getDependencyData() : localDependencyData;
+
+		// Inhibit auto sending satisfiabilities.
+		hpDependencyData._autoSendSatisfiability = false;
+
+		for (size_t i = 0; i < nSatisfiabilities; ++i) {
+			SatisfiabilityInfo const &satInfo = _satisfiabilityInfo[i];
+
+			// This is called from the MessageSatisfiability::handleMessage.
+			// In Satisfiability messages the satInfo._id contains the remote task identifier (not the
+			// predecessor like in tasknew)
+			RemoteTaskInfo &taskInfo
+				= RemoteTasksInfoMap::getRemoteTaskInfo(satInfo._id, from->getIndex());
+
+			taskInfo._lock.lock();
+			if (taskInfo._localTask == nullptr) {
+				// The remote task has not been created yet, so we just add the info to the
+				// temporary vector.
+				taskInfo._satInfo.push_back(satInfo);
+				taskInfo._lock.unlock();
+			} else {
+				// We *HAVE* to leave the lock now, because propagating satisfiability might lead to
+				// unregistering the remote task.
+				taskInfo._lock.unlock();
+				propagateSatisfiability(taskInfo._localTask, satInfo, cpu, hpDependencyData);
+			}
 		}
+
+		// Send all the satisfiabilities when processed the nSatisfiabilities.
+		sendSatisfiability(hpDependencyData._satisfiabilityMap);
+
+		// Restore auto sending satisfiabilities.
+		hpDependencyData.restoreAutoSendSatisfiability();
 	}
+
 
 	void releaseRemoteAccess(Task *task, MessageReleaseAccess::ReleaseAccessInfo &accessinfo)
 	{
@@ -279,18 +296,40 @@ namespace TaskOffloading {
 			// Submit the task
 			AddTask::submitTask(task, parent, true);
 
-			// Propagate satisfiability embedded in the Message
-			for (size_t i = 0; i < numSatInfo; ++i) {
-				if (satInfo[i]._readSat || satInfo[i]._writeSat) {
-					propagateSatisfiability(task, satInfo[i]);
-				}
-			}
+			// If there are some satisfiabilities already arrived OR the task has some accesses in the
+			// satinfo. the process all them.
+			if (numSatInfo > 0 || !remoteTaskInfo._satInfo.empty()) {
+				WorkerThread *currentThread = WorkerThread::getCurrentWorkerThread();
+				CPU * const cpu =
+					(currentThread == nullptr) ? nullptr : currentThread->getComputePlace();
 
-			// Propagate also any satisfiability that has already arrived
-			for (SatisfiabilityInfo const &sat : remoteTaskInfo._satInfo) {
-				propagateSatisfiability(task, sat);
+				CPUDependencyData localDependencyData;
+				CPUDependencyData &hpDependencyData =
+					(cpu != nullptr) ? cpu->getDependencyData() : localDependencyData;
+
+				// Inhibit auto sending satisfiabilities.
+				hpDependencyData._autoSendSatisfiability = false;
+
+				// Propagate satisfiability embedded in the Message
+				for (size_t i = 0; i < numSatInfo; ++i) {
+					if (satInfo[i]._readSat || satInfo[i]._writeSat) {
+						propagateSatisfiability(task, satInfo[i], cpu, hpDependencyData);
+					}
+				}
+
+				// Propagate also any satisfiability that has already arrived
+				for (SatisfiabilityInfo const &sat : remoteTaskInfo._satInfo) {
+					propagateSatisfiability(task, sat, cpu, hpDependencyData);
+				}
+				remoteTaskInfo._satInfo.clear();
+
+				// Send all the satisfiabilities at the end of the loops. At this point there shouldn't
+				// bee too many, but we propagate here just in case.
+				sendSatisfiability(hpDependencyData._satisfiabilityMap);
+
+				// Restore auto sending satisfiabilities.
+				hpDependencyData.restoreAutoSendSatisfiability();
 			}
-			remoteTaskInfo._satInfo.clear();
 		}
 
 		if (task->decreaseRemovalBlockingCount()) {

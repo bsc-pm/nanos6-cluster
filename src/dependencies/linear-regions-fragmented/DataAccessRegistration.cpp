@@ -2130,7 +2130,9 @@ namespace DataAccessRegistration {
 		assert(hpDependencyData._satisfiedOriginators.empty());
 
 #ifdef USE_CLUSTER
-		TaskOffloading::sendSatisfiability(hpDependencyData._satisfiabilityMap);
+		if (hpDependencyData._autoSendSatisfiability) {
+			TaskOffloading::sendSatisfiability(hpDependencyData._satisfiabilityMap);
+		}
 #endif // USE_CLUSTER
 
 		handleRemovableTasks(hpDependencyData._removableTasks);

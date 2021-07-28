@@ -51,15 +51,10 @@ namespace TaskOffloading {
 	//! \param[in] offloader is the clusterNode that offloaded the task
 	//! \param[in] satInfo is satisfiability info we are propagating
 	void propagateSatisfiabilityForHandler(
-		ClusterNode const *offloader,
-		SatisfiabilityInfo const &satInfo
+		ClusterNode const *from,
+		const size_t nSatisfiabilities,
+		TaskOffloading::SatisfiabilityInfo *_satisfiabilityInfo
 	);
-
-	//! \brief Propagate satisfiability information to a local task
-	//!
-	//! \param[in] task the local Task to which we propagate satisfiability
-	//! \param[in] satInfo the satisfiability updates we propagate
-	void propagateSatisfiability(Task *task, SatisfiabilityInfo const &satInfo);
 
 	//! \brief Release a region of an offloaded Task
 	//!
