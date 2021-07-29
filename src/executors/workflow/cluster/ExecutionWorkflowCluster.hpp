@@ -80,11 +80,13 @@ namespace ExecutionWorkflow {
 				if (_read) {
 					_write = true;
 				}
-			} else if (access->getType() == COMMUTATIVE_ACCESS_TYPE) {
-				// A commutative access is sent with pseudowrite and pseudoread
-				assert (access->satisfied()); // must be satisfied already as weakcommutative not offloaded
-				_write = true;
-				_read = true;
+			} else if (access->getType() == COMMUTATIVE_ACCESS_TYPE
+						|| access->getType() == CONCURRENT_ACCESS_TYPE) {
+				// A satisfied commutative or concurrent access is sent with pseudowrite and pseudoread
+				if (access->satisfied()) {
+					_write = true;
+					_read = true;
+				}
 			}
 			// We do not support weakcommutative accesses on offloaded tasks.  Since
 			// the scoreboard is local to each node, we have to treat a weakcommutative
@@ -495,9 +497,10 @@ namespace ExecutionWorkflow {
 				//! and if it is not in the directory (which would mean
 				//! that the data is not yet initialized)
 				&& !source->isDirectoryMemoryPlace()
-				//! and, if it is a weak access, then only
-				//! if cluster.eager_weak_fetch == true
-				&& (!isWeak || ClusterManager::getEagerWeakFetch())
+				//! and, if it is a weak access, then only if cluster.eager_weak_fetch == true.
+				//! Also don't eagerly fetch weak concurrent accesses, as usually we will
+				//! only access part of them.
+				&& (!isWeak || (ClusterManager::getEagerWeakFetch() && access->getType() != CONCURRENT_ACCESS_TYPE))
 			);
 
 		//! If no data transfer is needed, then register the new location if

@@ -213,6 +213,7 @@ namespace DataAccessRegistration {
 		bool _triggersDataRelease: 1 ;
 		bool _triggersDataLinkRead: 1 ;
 		bool _triggersDataLinkWrite: 1 ;
+		bool _triggersDataLinkConcurrent: 1 ;
 
 		bool _allowNamespacePropagation : 1;
 
@@ -250,6 +251,7 @@ namespace DataAccessRegistration {
 			_triggersDataRelease(false),
 			_triggersDataLinkRead(false),
 			_triggersDataLinkWrite(false),
+			_triggersDataLinkConcurrent(false),
 			_allowNamespacePropagation(true)
 		{
 		}
@@ -482,7 +484,8 @@ namespace DataAccessRegistration {
 			_triggersDataLinkWrite = access->hasDataLinkStep()
 									 && access->writeSatisfied();
 
-
+			_triggersDataLinkConcurrent = access->hasDataLinkStep()
+									      && access->concurrentSatisfied();
 
 			_releasesCommutativeRegion =
 				(access->getType() == COMMUTATIVE_ACCESS_TYPE)
@@ -1013,7 +1016,15 @@ namespace DataAccessRegistration {
 			assert(access->getOriginator() == task);
 			assert(task->hasDataReleaseStep());
 
-			if (access->getLocation() != nullptr) {
+			// Don't release a concurrent access if the location hasn't changed. That happens
+			// either (a) because we didn't write to it (it must have been weakconcurrent) or (b)
+			// because we did write to it, but on the same node that it was on before the concurrent tasks.
+			// By sending no message we will not change the location, which in case (a) will let
+			// another concurrent task do the write and in case (b) gives the correct location already.
+			bool dontRelease = (access->getType() == CONCURRENT_ACCESS_TYPE)
+								&& (access->getLocation() == access->getConcurrentInitialLocation());
+
+			if (access->getLocation() != nullptr && !dontRelease) {
 				// This adds the access to the ClusterDataReleaseStep::_releaseInfo vector.
 				// The accesses will be released latter.
 				access->getOriginator()->getDataReleaseStep()->addToReleaseList(access);
@@ -1037,7 +1048,8 @@ namespace DataAccessRegistration {
 		 */
 		bool linksRead = initialStatus._triggersDataLinkRead < updatedStatus._triggersDataLinkRead;
 		bool linksWrite = initialStatus._triggersDataLinkWrite < updatedStatus._triggersDataLinkWrite;
-		if (linksRead || linksWrite) {
+		bool linksConcurrent = initialStatus._triggersDataLinkConcurrent < updatedStatus._triggersDataLinkConcurrent;
+		if (linksRead || linksWrite || linksConcurrent) {
 			assert(access->hasDataLinkStep());
 
 			ExecutionWorkflow::DataLinkStep *step = access->getDataLinkStep();
@@ -1058,6 +1070,11 @@ namespace DataAccessRegistration {
 				assert(!access->isWeak()); // Weak commutative accesses not supported yet
 				linksRead = false;
 				linksWrite = false;
+			} else if (access->getType() == CONCURRENT_ACCESS_TYPE) {
+				// Concurrent accesses of offloaded tasks get pseudowrite and pseudoread
+				// when they are concurrent satisfied.
+				linksRead = linksConcurrent;
+				linksWrite = linksConcurrent;
 			}
 
 			/*
@@ -1745,7 +1762,33 @@ namespace DataAccessRegistration {
 					// Actually there are other circumstances when this happens (TBD)
 					// assert(access->getOriginator()->isRemoteTask());
 				} else {
-					access->setReadSatisfied(updateOperation._location);
+					bool updateLocation;
+					if (access->getObjectType() == access_type
+						&& access->getType() == CONCURRENT_ACCESS_TYPE) {
+						// Special handling for concurrent accesses
+						if (updateOperation._location != access->getConcurrentInitialLocation()) {
+							// Either this is not the same as the original location, so somebody must have
+							// written to it on a different node, or this is the first concurrent task, which
+							// immediately gets read satisfiability. In either case update the location.
+							updateLocation = true;
+						} else {
+							// The location is the same as the original location. Either (a) it hasn't been
+							// written to by any of the tasks earlier in sequential order, or (b) it has been
+							// written to, but on the same node as the original location. Don't update the
+							// location because in case (a) maybe it was this task that did the write and
+							// already updated the location to the correct one and in case (b) there is no
+							// change to make.
+							updateLocation = false;
+						}
+					} else {
+						updateLocation = true;
+					}
+
+					if (updateLocation) {
+						access->setReadSatisfied(updateOperation._location);
+					} else {
+						access->setReadSatisfied(access->getLocation());
+					}
 					if (!access->isWeak()
 						&& !access->getOriginator()->isOffloadedTask()) {
 							access->setDisableReadPropagationUntilHere();
@@ -1792,6 +1835,11 @@ namespace DataAccessRegistration {
 			// Concurrent Satisfiability
 			if (updateOperation._makeConcurrentSatisfied) {
 				access->setConcurrentSatisfied();
+				assert(updateOperation._location);
+				if (access->getType() == CONCURRENT_ACCESS_TYPE) {
+					access->setLocation(updateOperation._location);
+					access->setConcurrentInitialLocation(updateOperation._location);
+				}
 			}
 
 			// Commutative Satisfiability
@@ -2881,7 +2929,6 @@ namespace DataAccessRegistration {
 
 							DataAccessStatusEffects initialStatusT(targetAccess);
 
-							targetAccess->setConcurrentSatisfied(); // ?
 							targetAccess->setValidNamespacePrevious(VALID_NAMESPACE_NONE, nullptr);
 
 							targetAccess->setReceivedReductionInfo();
@@ -3304,7 +3351,8 @@ namespace DataAccessRegistration {
 				if (location != nullptr) {
 
 					if (isReleaseAccess && accessOrFragment->hasDataLinkStep()
-						&& (accessOrFragment->getType() != COMMUTATIVE_ACCESS_TYPE) ) {
+						&& accessOrFragment->getType() != COMMUTATIVE_ACCESS_TYPE
+						&& accessOrFragment->getType() != CONCURRENT_ACCESS_TYPE) {
 						bool notSat = false;
 						if (!accessOrFragment->readSatisfied()) {
 							accessOrFragment->setReadSatisfied(location);
@@ -4652,13 +4700,15 @@ namespace DataAccessRegistration {
 			if (task->isOffloadedTask()) {
 
 				/* This task was executed on another node. All non-complete
-				 * accesses that remain at this point must have been propagated
-				 * on the remote node. Otherwise they would have been set to
-				 * complete by releaseAccessRegion, which is called on receipt
-				 * of MessageReleaseAccess.  There should also be no fragments,
-				 * since the task was not executed here. All accesses can
-				 * therefore simply be removed, since they will never be
-				 * accessed again on the current node.
+				 * accesses that remain at this point are either (1) accesses
+				 * that were propagated on the remote node or (2) part of a
+				 * weakconcurrent access that was not accessed by a strong
+				 * subtask.  Otherwise they would have been set to complete by
+				 * releaseAccessRegion, which is called on receipt of
+				 * MessageReleaseAccess.  There should also be no fragments,
+				 * since the task was not executed here. All non-concurrent
+				 * accesses can therefore simply be removed, since they will
+				 * never be accessed again on the current node.
 				 */
 				 assert(accessStructures._accessFragments.empty());
 				 accesses.processAll(
@@ -4666,9 +4716,12 @@ namespace DataAccessRegistration {
 						DataAccess *dataAccess = &(*position);
 						assert(dataAccess != nullptr);
 						if (!dataAccess->complete()) {
-							assert(dataAccess->hasNext()); // if propagated remotely there must be a next access
+							// If propagated remotely (i.e. not concurrent) there must be a next access
+							assert(dataAccess->getType() == CONCURRENT_ACCESS_TYPE
+									|| dataAccess->hasNext());
 
-							if (!dataAccess->remoteHasPseudowrite()) {
+							if (!dataAccess->remoteHasPseudowrite()
+								&& dataAccess->getType() != CONCURRENT_ACCESS_TYPE) {
 								// The remote end is propagating true write satisfiability
 								// We will only get this far if the remote task has received true
 								// write satisfiability, so we will never receive write satisfiability
@@ -4696,7 +4749,8 @@ namespace DataAccessRegistration {
 								// this node have completed. Just set the complete bit and
 								// let the normal mechanism check whether the access can be
 								// deleted already.
-								assert(dataAccess->getType() == READ_ACCESS_TYPE);
+								assert(dataAccess->getType() == READ_ACCESS_TYPE
+										|| dataAccess->getType() == CONCURRENT_ACCESS_TYPE);
 
 								DataAccessStatusEffects initialStatus(dataAccess);
 								dataAccess->setComplete();
@@ -4821,6 +4875,7 @@ namespace DataAccessRegistration {
 
 		if (updateOperation._makeReadSatisfied && updateOperation._makeWriteSatisfied) {
 			updateOperation._makeCommutativeSatisfied = true;
+			updateOperation._makeConcurrentSatisfied = true;
 		}
 
 		updateOperation._location = location;

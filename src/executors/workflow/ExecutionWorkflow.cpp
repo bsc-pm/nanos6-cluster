@@ -48,9 +48,7 @@ namespace ExecutionWorkflow {
 		/* At the moment we do not support data copies for accesses
 			* of the following types. This essentially mean that devices,
 			* e.g. Cluster, CUDA, do not support these accesses. */
-		if (access->getType() == REDUCTION_ACCESS_TYPE ||
-			access->getType() == CONCURRENT_ACCESS_TYPE
-		) {
+		if (access->getType() == REDUCTION_ACCESS_TYPE) {
 			step = new Step();
 			Instrument::exitCreateDataCopyStep(isTaskwait);
 			return step;

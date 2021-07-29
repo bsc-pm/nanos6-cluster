@@ -126,6 +126,9 @@ private:
 	//! Location of the DataAccess
 	MemoryPlace const *_location;
 
+	//! Initial location for a set of concurrent accesses
+	MemoryPlace const *_concurrentInitialLocation;
+
 	//! Output memory location of the access
 	MemoryPlace const *_outputLocation;
 
@@ -165,6 +168,7 @@ public:
 		_reductionInfo(nullptr),
 		_previousReductionInfo(nullptr),
 		_location(location),
+		_concurrentInitialLocation(nullptr),
 		_outputLocation(outputLocation),
 		_dataLinkStep(dataLinkStep),
 		_validNamespacePrevious(VALID_NAMESPACE_UNKNOWN),
@@ -199,6 +203,7 @@ public:
 		_previousReductionInfo(other.getPreviousReductionInfo()),
 		_reductionSlotSet(other.getReductionSlotSet()),
 		_location(other.getLocation()),
+		_concurrentInitialLocation(other.getConcurrentInitialLocation()),
 		_outputLocation(other.getOutputLocation()),
 		_dataLinkStep(other.getDataLinkStep()),
 		_validNamespacePrevious(other.getValidNamespacePrevious()),
@@ -849,17 +854,31 @@ public:
 		_status[DISABLE_READ_PROPAGATION_UNTIL_HERE] = true;
 	}
 
-
-	int getMemoryPlaceNodeIndex() const
+	// Get and set the initial location to a group of concurrent accesses.
+	const MemoryPlace *getConcurrentInitialLocation() const
 	{
-		if (_location == nullptr) {
+		return _concurrentInitialLocation;
+	}
+
+	void setConcurrentInitialLocation(const MemoryPlace *location)
+	{
+		_concurrentInitialLocation = location;
+	}
+
+
+	int getMemoryPlaceNodeIndex(const MemoryPlace *location = nullptr) const
+	{
+		if (location == nullptr) {
+			location = _location;
+		}
+		if (location == nullptr) {
 			return -1;
 		}
-		if (_location->isDirectoryMemoryPlace()) {
+		if (location->isDirectoryMemoryPlace()) {
 			return -42;
 		}
-		if (_location->getType() == nanos6_cluster_device) {
-			return _location->getIndex();
+		if (location->getType() == nanos6_cluster_device) {
+			return location->getIndex();
 		}
 
 		// All the other devices are supposed to be in this node so we assume that.
@@ -886,6 +905,7 @@ public:
 			&& this->isWeak() == other->isWeak()
 			&& this->getType() == other->getType()
 			&& this->getMemoryPlaceNodeIndex() == other->getMemoryPlaceNodeIndex()
+			&& this->getMemoryPlaceNodeIndex(this->getConcurrentInitialLocation()) == other->getMemoryPlaceNodeIndex(other->getConcurrentInitialLocation())
 			&& this->getDataLinkStep() == other->getDataLinkStep()
 			&& this->getNext()._task == other->getNext()._task
 			&& this->getNext()._objectType == other->getNext()._objectType
