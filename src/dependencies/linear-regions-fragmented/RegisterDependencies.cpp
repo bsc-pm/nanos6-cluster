@@ -97,6 +97,11 @@ void nanos6_register_weak_commutative_depinfo(void *handler, void *start, size_t
 	register_access<COMMUTATIVE_ACCESS_TYPE, true>(handler, start, length, symbolIndex);
 }
 
+void nanos6_register_weak_concurrent_depinfo(void *handler, void *start, size_t length, int symbolIndex)
+{
+	register_access<CONCURRENT_ACCESS_TYPE, true>(handler, start, length, symbolIndex);
+}
+
 void nanos6_register_region_reduction_depinfo1(
 		int reduction_operation,
 		int reduction_index,

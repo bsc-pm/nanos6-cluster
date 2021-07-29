@@ -37,7 +37,7 @@ lib_suffix = $(lib_major).$(lib_age).$(lib_revision)
 
 
 MAX_REGION_DIMENSIONS = 8
-MULTIDIMENSIONAL_REGION_API_TYPES = read write readwrite weak_read weak_write weak_readwrite concurrent commutative weak_commutative reduction weak_reduction
+MULTIDIMENSIONAL_REGION_API_TYPES = read write readwrite weak_read weak_write weak_readwrite concurrent commutative weak_commutative reduction weak_reduction weak_concurrent
 SUPPORTED_MULTIDIMENSIONAL_REGION_API_TYPES =
 
 LINT_MAX_REGION_DIMENSIONS = 8
@@ -549,7 +549,7 @@ discrete_dependency_flags = -I$(srcdir)/src/dependencies/linear-regions -I$(srcd
 
 dist_dependency_sources = $(regions_dependency_sources) $(discrete_dependency_sources)
 
-SUPPORTED_MULTIDIMENSIONAL_REGION_API_TYPES += read write readwrite weak_read weak_write weak_readwrite concurrent commutative weak_commutative reduction weak_reduction
+SUPPORTED_MULTIDIMENSIONAL_REGION_API_TYPES += read write readwrite weak_read weak_write weak_readwrite concurrent commutative weak_commutative reduction weak_reduction weak_concurrent
 
 introspection_sources = \
 	src/instrument/support/introspection/CodeAddressInfoBase.cpp \

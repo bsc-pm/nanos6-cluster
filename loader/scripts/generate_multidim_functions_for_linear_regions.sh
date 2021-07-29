@@ -56,6 +56,9 @@ for type in $* ; do
 		commutative)
 			registration_function="register_data_access<COMMUTATIVE_ACCESS_TYPE, false>"
 		;;
+		weak_concurrent)
+			registration_function="register_data_access<CONCURRENT_ACCESS_TYPE, true>"
+		;;
 		weak_commutative)
 			registration_function="register_data_access<COMMUTATIVE_ACCESS_TYPE, true>"
 		;;
