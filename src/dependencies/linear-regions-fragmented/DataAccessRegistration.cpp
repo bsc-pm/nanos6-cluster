@@ -1703,11 +1703,16 @@ namespace DataAccessRegistration {
 			access->setValidNamespacePrevious(updateOperation._validNamespace, updateOperation._namespacePredecessor);
 		}
 
-		if (updateOperation._makeReadSatisfied) {
+		/* Take read, commutative and concurrent satisfiability from the update
+		 * operation, unless it is for propagate satisfiability into a task
+		 * that is propagated in the namespace instead. These flags are set
+		 * exactly once, and trying to set them a second time risks a
+		 * use-after-free error, because the task may already be deleted.
+		 */
+		if ( !(access->getPropagateFromNamespace()
+				&& updateOperation._propagateSatisfiability)) {
 
-			if (access->getPropagateFromNamespace() && updateOperation._propagateSatisfiability) {
-			} else {
-
+			if (updateOperation._makeReadSatisfied) {
 				if (access->readSatisfied()) {
 					/*
 					 * If two tasks A and B are offloaded to the same namespace,
@@ -1747,9 +1752,9 @@ namespace DataAccessRegistration {
 				access->setWriteID(id);
 #endif // USE_CLUSTER
 			}
-		}
-		if (updateOperation._makeWriteSatisfied) {
+
 			/*
+			 * Write Satisfiability.
 			 * NOTE: although normally an access becomes read satisified before
 			 * (or at the same time as) it becomes write satisfied, it is valid
 			 * for the write satisfiability to arrive first. This reordering
@@ -1757,25 +1762,27 @@ namespace DataAccessRegistration {
 			 * _make{Read/Write}Satisfied and calling
 			 * applyUpdateOperationOnAccess as a delayed operation.
 			 */
-			if (updateOperation._propagateSatisfiability  // It is satisfiability info from the offloader...
-				&& access->getType() == READ_ACCESS_TYPE  // for a read access
-				&& access->getPropagateFromNamespace()) { // and we are propagating from the predecessor in the namespace
-
-				// Ignore the initial pseudowrite satisfiability that comes with the MessageTaskNew for
-				// all read-satisfied read-only accesses. We will use the pseudowrite satisfiability that
-				// arrives at our end. Otherwise this task will receive (pseudo)write satisfiability twice,
-				// and therefore the second one may be after the task has been deleted (use-after-free).
-			} else {
+			if (updateOperation._makeWriteSatisfied) {
 				access->setWriteSatisfied();
 			}
-		}
 
-		// Concurrent Satisfiability
-		if (updateOperation._makeConcurrentSatisfied) {
-			access->setConcurrentSatisfied();
-		}
-		if (updateOperation._makeCommutativeSatisfied) {
-			access->setCommutativeSatisfied();
+			// Concurrent Satisfiability
+			if (updateOperation._makeConcurrentSatisfied) {
+				access->setConcurrentSatisfied();
+			}
+
+			// Commutative Satisfiability
+			if (updateOperation._makeCommutativeSatisfied) {
+				access->setCommutativeSatisfied();
+			}
+		} else {
+			// If it is propagated in the namespace, we should only
+			// get write satisfiability if it is actually pseudowrite
+			// satisfiability for a read-only access. In this case it
+			// should still be ignored.
+			if (updateOperation._makeWriteSatisfied) {
+				assert(access->getType() == READ_ACCESS_TYPE);
+			}
 		}
 
 		if (updateOperation._setPropagateFromNamespace) {
