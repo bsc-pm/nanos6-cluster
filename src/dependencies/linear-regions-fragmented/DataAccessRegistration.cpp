@@ -4346,6 +4346,11 @@ namespace DataAccessRegistration {
 				assert(region.fullyContainedIn(access->getAccessRegion()));
 				access = fragmentAccess(access, region, accessStructures);
 
+				// Note: it is tempting to change the access, if it is weak,
+				// into a strong one (calling access->upgrade). But there is no
+				// need, and there is no logic in the dependency system to deal
+				// with accesses changing from weak to strong (e.g. the value
+				// of disableReadPropagationUntilHere might need changing).
 				DataAccessStatusEffects initialStatus(access);
 				if (location) {
 					access->setLocation(location);
@@ -4452,54 +4457,26 @@ namespace DataAccessRegistration {
 
 		std::lock_guard<spinlock_t> guard(accessStructures._lock);
 
-		//! Mark all the access fragments intersecting the given region as complete
-		accessStructures._accessFragments.processIntersecting(region,
-			[&](access_fragments_t::iterator position) -> bool {
-				DataAccess *fragment = &(*position);
-				assert(fragment != nullptr);
-				assert(fragment->getType() == NO_ACCESS_TYPE);
-
-				/* Fragment the access (if not fully contained inside the region).
-				   Given that the use case is dmalloc/dfree it seems unlikely. */
-				fragment = fragmentAccess(fragment, region,
-					accessStructures);
-
-				/* Set access as complete */
-				DataAccessStatusEffects initialStatus(fragment);
-				fragment->setComplete();
-				DataAccessStatusEffects updatedStatus(fragment);
-
-				/* Handle consequences of access becoming complete */
-				CPUDependencyData hpDependencyData;
-				handleDataAccessStatusChanges(initialStatus,
-					updatedStatus, fragment, accessStructures,
-					task, hpDependencyData);
-
-				/* Do not expect any delayed operations */
-				assert (hpDependencyData.empty());
-				return true;
-			});
-
-		// If at this point there are still any fragments overlapping this
-		// region, then we are calling lfree or dfree without doing a taskwait
-		// first, which is unsafe. The above loop may have caused the fragments
-		// to become removable and therefore be discounted, but they are only
-		// actually deleted in handleExitTaskwait. This code will unfortunately
-		// raise an error even if the code has done a 'taskwait on' covering
-		// the whole region, which would actually be safe. If it ever becomes a
-		// problem we may have to remove this error or rethink how to do it.
-		FatalErrorHandler::failIf(accessStructures._accessFragments.contains(region),
-			"lfree or dfree without preceding taskwait");
-		assert(!accessStructures._accessFragments.contains(region));
-
 		//! Mark all the accesses intersecting the given region as complete
+		bool containedInAccess = false;
 		accessStructures._accesses.processIntersecting(region,
 			[&](accesses_t::iterator position) -> bool {
 				DataAccess *access = &(*position);
 				assert(access != nullptr);
 				assert(!access->hasBeenDiscounted());
-				assert(access->getType() == NO_ACCESS_TYPE);
 
+				if (access->getType() != NO_ACCESS_TYPE) {
+					// A local access is typically registered as NO_ACCESS_TYPE. The
+					// only way it can be otherwise if the local access is part of a
+					// larger access, such as an allmemory access. In this case, we
+					// do nothing here . The access still needs to be handled in the
+					// normal way as part of the larger access.
+					containedInAccess = true;
+					return true;
+				}
+
+				// A local access (that is not part of a larger access) is created weak.
+				assert(!access->isWeak());
 				/*
 				 * Fragment access, as only part inside region becomes complete.
 				 */
@@ -4521,8 +4498,56 @@ namespace DataAccessRegistration {
 				return true;
 			});
 
-		//! By now all accesses intersecting the local region should be removed
-		assert(!accessStructures._accesses.contains(region));
+		
+		if (!containedInAccess) {
+			//! If this local access is not covered by an "all memory" access, then
+			//! Mark all the access fragments intersecting the given region as complete
+			accessStructures._accessFragments.processIntersecting(region,
+				[&](access_fragments_t::iterator position) -> bool {
+					DataAccess *fragment = &(*position);
+					assert(fragment != nullptr);
+					// assert(fragment->getType() == NO_ACCESS_TYPE);
+
+					/* Fragment the access (if not fully contained inside the region).
+					   Given that the use case is dmalloc/dfree it seems unlikely. */
+					fragment = fragmentAccess(fragment, region,
+						accessStructures);
+
+					/* Set access as complete */
+					DataAccessStatusEffects initialStatus(fragment);
+					fragment->setComplete();
+					DataAccessStatusEffects updatedStatus(fragment);
+
+					/* Handle consequences of access becoming complete */
+					CPUDependencyData hpDependencyData;
+					handleDataAccessStatusChanges(initialStatus,
+						updatedStatus, fragment, accessStructures,
+						task, hpDependencyData);
+
+					/* Do not expect any delayed operations */
+					assert (hpDependencyData.empty());
+					return true;
+				});
+
+			//! By now all accesses and fragments intersecting the local region
+			//! should be removed (unless the local region is covered by an "all
+			//! region" access).
+			assert(!accessStructures._accesses.contains(region));
+			assert(!accessStructures._accessFragments.contains(region));
+
+			// If at this point there are still any fragments overlapping this
+			// region, then we are calling lfree or dfree without doing a taskwait
+			// first, which is unsafe. The above loop may have caused the fragments
+			// to become removable and therefore be discounted, but they are only
+			// actually deleted in handleExitTaskwait. This code will unfortunately
+			// raise an error even if the code has done a 'taskwait on' covering
+			// the whole region, which would actually be safe. Also, this check
+			// cannot be done in a task with an "all memory" access, as the access
+			// will remain anyway. We may have to remove this error or rethink how
+			// to do it.
+			FatalErrorHandler::failIf(accessStructures._accessFragments.contains(region),
+				"lfree or dfree without preceding taskwait");
+		}
 	}
 
 	void combineTaskReductions(Task *task, ComputePlace *computePlace)
