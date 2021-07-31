@@ -35,7 +35,10 @@ public:
 			_writeID(writeID),
 			_location(location->getIndex())
 		{
-			assert(location->getType() == nanos6_cluster_device);
+			// The location should be either a cluster node or the
+			// directory (which would mean uninitialized data, maybe "all memory")
+			assert(location->getType() == nanos6_cluster_device
+					|| location->isDirectoryMemoryPlace());
 		}
 	};
 
