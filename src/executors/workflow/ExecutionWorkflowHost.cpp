@@ -89,11 +89,25 @@ namespace ExecutionWorkflow {
 				// Runtime Tracking Point - A task starts its execution
 				TrackingPoints::taskIsExecuting(_task);
 
-				// Register the stack
+				// Register the stack unless it is the node namespace.
+				// We should not register the stack for the node namespace because
+				// (1) The node namespace is part of the runtime, so not even
+				//     an allmemory access should be sharing data with it. We
+				//     would be pointlessly adding two accesses to every task with
+				//     an all memory region.
+				// (2) All memory accesses would then be subaccesses of the stack,
+				//     creating fragments of the node namespace's stack in the
+				//     node namespace. The node namespace normally never gets any
+				//     fragments because it never normally has any accesses. Creating
+				//     these fragments would create a load of problems, including
+				//     having to recognise and delete them when an offloaded task
+				//     completes and removes itself from the bottom map.
 				size_t stackSize;
 				void *stackPtr = currentThread->getStackAndSize(/* OUT */ stackSize);
 				DataAccessRegion stackRegion(stackPtr, stackSize);
-				DataAccessRegistration::registerLocalAccess(_task, stackRegion, ClusterManager::getCurrentMemoryNode(), /* isStack */ true);
+				if (!_task->isNodeNamespace()) {
+					DataAccessRegistration::registerLocalAccess(_task, stackRegion, ClusterManager::getCurrentMemoryNode(), /* isStack */ true);
+				}
 
 				// Run the task
 				std::atomic_thread_fence(std::memory_order_acquire);
@@ -104,7 +118,9 @@ namespace ExecutionWorkflow {
 				std::atomic_thread_fence(std::memory_order_release);
 
 				// Unregister the stack
-				DataAccessRegistration::unregisterLocalAccess(_task, stackRegion);
+				if (!_task->isNodeNamespace()) {
+					DataAccessRegistration::unregisterLocalAccess(_task, stackRegion);
+				}
 
 				// Update the CPU since the thread may have migrated
 				cpu = currentThread->getComputePlace();
