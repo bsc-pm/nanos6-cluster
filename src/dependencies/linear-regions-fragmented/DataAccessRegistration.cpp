@@ -99,6 +99,7 @@ namespace DataAccessRegistration {
 					<< access->getAccessRegion().getSize()
 					<< " rw: " << access->readSatisfied() << access->writeSatisfied()
 					<< " loc: " << access->getMemoryPlaceNodeIndex()
+					<< " orig: " << access->getMemoryPlaceNodeIndex(access->getConcurrentInitialLocation())
 					<< "\n";
 				return true; /* always continue, don't stop here */
 			}
@@ -1448,7 +1449,7 @@ namespace DataAccessRegistration {
 			removeIntersection,
 			[&](BottomMapEntry const &toBeDuplicated) -> BottomMapEntry * {
 				return ObjectAllocator<BottomMapEntry>::newObject(DataAccessRegion(), toBeDuplicated._link,
-					toBeDuplicated._accessType, toBeDuplicated._reductionTypeAndOperatorIndex);
+					toBeDuplicated._accessType, toBeDuplicated._isWeak, toBeDuplicated._reductionTypeAndOperatorIndex);
 			},
 			[&](__attribute__((unused)) BottomMapEntry *fragment, __attribute__((unused)) BottomMapEntry *originalBottomMapEntry) {
 			});
@@ -2164,6 +2165,7 @@ namespace DataAccessRegistration {
 						excludedSubregion,
 						DataAccessLink(dataAccess->getOriginator(), fragment_type),
 						dataAccess->getType(),
+						dataAccess->isWeak(),
 						dataAccess->getReductionTypeAndOperatorIndex());
 					accessStructures._subaccessBottomMap.insert(*bottomMapEntry);
 				},
@@ -2360,6 +2362,7 @@ namespace DataAccessRegistration {
 						BottomMapEntryContents bmeContents(
 							DataAccessLink(parent, fragment_type),
 							previous->getType(),
+							previous->isWeak(),
 							previous->getReductionTypeAndOperatorIndex());
 
 						{
@@ -2446,6 +2449,7 @@ namespace DataAccessRegistration {
 						BottomMapEntryContents bmeContents(
 							DataAccessLink(parent, fragment_type),
 							previous->getType(),
+							previous->isWeak(),
 							previous->getReductionTypeAndOperatorIndex()
 						);
 
@@ -2760,6 +2764,7 @@ namespace DataAccessRegistration {
 #endif
 
 		DataAccessType parentAccessType = NO_ACCESS_TYPE;
+		bool parentAccessIsWeak = false;
 		reduction_type_and_operator_index_t parentReductionTypeAndOperatorIndex = no_reduction_type_and_operator;
 
 		/*
@@ -2798,6 +2803,7 @@ namespace DataAccessRegistration {
 				assert(previousTask != nullptr);
 
 				parentAccessType = bottomMapEntryContents._accessType;
+				parentAccessIsWeak = bottomMapEntryContents._isWeak;
 				parentReductionTypeAndOperatorIndex = bottomMapEntryContents._reductionTypeAndOperatorIndex;
 				local = (bottomMapEntryContents._accessType == NO_ACCESS_TYPE);
 
@@ -3093,7 +3099,7 @@ namespace DataAccessRegistration {
 
 		// Add the entry to the bottom map
 		BottomMapEntry *bottomMapEntry = ObjectAllocator<BottomMapEntry>::newObject(
-			region, next, parentAccessType, parentReductionTypeAndOperatorIndex);
+			region, next, parentAccessType, parentAccessIsWeak, parentReductionTypeAndOperatorIndex);
 		parentAccessStructures._subaccessBottomMap.insert(*bottomMapEntry);
 	}
 
@@ -3470,6 +3476,7 @@ namespace DataAccessRegistration {
 	{
 		DataAccessLink previous = bottomMapEntry->_link;
 		DataAccessType accessType = bottomMapEntry->_accessType;
+		bool accessIsWeak = bottomMapEntry->_isWeak;
 		reduction_type_and_operator_index_t reductionTypeAndOperatorIndex =
 		bottomMapEntry->_reductionTypeAndOperatorIndex;
 		{
@@ -3485,8 +3492,17 @@ namespace DataAccessRegistration {
 			taskwaitFragment->setNewInstrumentationId(task->getInstrumentationTaskId());
 			taskwaitFragment->setInBottomMap();
 			taskwaitFragment->setRegistered();
-			if (computePlace != nullptr && !noflush) {
-				taskwaitFragment->setOutputLocation(computePlace->getMemoryPlace(0));
+
+			if (computePlace != nullptr) {
+				/* Fetch the data for a taskwait noflush  with same conditions as an
+				 * ordinary access: see clusterFetchData.
+				 */
+				bool fetchData = !noflush
+								&& (!accessIsWeak || (ClusterManager::getEagerWeakFetch() && accessType != CONCURRENT_ACCESS_TYPE));
+
+				if (fetchData) {
+					taskwaitFragment->setOutputLocation(computePlace->getMemoryPlace(0));
+				}
 			}
 			// taskwaitFragment->setComplete();
 
@@ -3608,6 +3624,7 @@ namespace DataAccessRegistration {
 
 							DataAccessRegion region = access->getAccessRegion();
 							DataAccessType accessType = access->getType();
+							bool accessIsWeak = access->isWeak();
 							// access->setLocation(ClusterManager::getCurrentMemoryNode());
 							bool foundGap = false;
 
@@ -3642,7 +3659,7 @@ namespace DataAccessRegistration {
 							if (foundGap) {
 								DataAccessLink next = DataAccessLink(task, fragment_type);
 								BottomMapEntry *bottomMapEntry = ObjectAllocator<BottomMapEntry>::newObject(
-										region, next, accessType, no_reduction_type_and_operator);
+										region, next, accessType, accessIsWeak, no_reduction_type_and_operator);
 								accessStructures._subaccessBottomMap.insert(*bottomMapEntry);
 							}
 						}
@@ -5036,6 +5053,7 @@ namespace DataAccessRegistration {
 			createTaskwait(task, accessStructures, computePlace, hpDependencyData, noflush, nonLocalOnly);
 
 			finalizeFragments(task, accessStructures, hpDependencyData);
+
 		}
 		processDelayedOperationsSatisfiedOriginatorsAndRemovableTasks(hpDependencyData, computePlace, true);
 

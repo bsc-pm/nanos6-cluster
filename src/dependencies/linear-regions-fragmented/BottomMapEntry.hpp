@@ -44,11 +44,12 @@ struct BottomMapEntryLinkingArtifacts {
 struct BottomMapEntryContents {
 	DataAccessLink _link;
 	DataAccessType _accessType;
+	bool _isWeak;
 	reduction_type_and_operator_index_t _reductionTypeAndOperatorIndex;
 
-	BottomMapEntryContents(DataAccessLink link, DataAccessType accessType,
+	BottomMapEntryContents(DataAccessLink link, DataAccessType accessType, bool isWeak,
 		reduction_type_and_operator_index_t reductionTypeAndOperatorIndex)
-		: _link(link), _accessType(accessType),
+		: _link(link), _accessType(accessType), _isWeak(isWeak),
 		_reductionTypeAndOperatorIndex(reductionTypeAndOperatorIndex)
 	{
 	}
@@ -60,9 +61,9 @@ struct BottomMapEntry : public BottomMapEntryContents {
 
 	DataAccessRegion _region;
 
-	BottomMapEntry(DataAccessRegion region, DataAccessLink link, DataAccessType accessType,
+	BottomMapEntry(DataAccessRegion region, DataAccessLink link, DataAccessType accessType, bool isWeak,
 		reduction_type_and_operator_index_t reductionTypeAndOperatorIndex)
-		: BottomMapEntryContents(link, accessType, reductionTypeAndOperatorIndex),
+		: BottomMapEntryContents(link, accessType, isWeak, reductionTypeAndOperatorIndex),
 		_links(), _region(region)
 	{
 	}
