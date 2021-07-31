@@ -866,7 +866,14 @@ namespace DataAccessRegistration {
 				&& (access->getNext()._objectType == access_type)
 				&& (access->getValidNamespaceSelf() != VALID_NAMESPACE_UNKNOWN)) {
 
-				updateOperation._validNamespace = access->getValidNamespaceSelf();
+				// Do not propagate in the namespace from a concurrent or commutative
+				// access, as the synchronization is done at the offloader's side.
+				if (access->getType() == CONCURRENT_ACCESS_TYPE
+					|| access->getType() == COMMUTATIVE_ACCESS_TYPE) {
+					updateOperation._validNamespace = VALID_NAMESPACE_NONE;
+				} else {
+					updateOperation._validNamespace = access->getValidNamespaceSelf();
+				}
 				updateOperation._namespacePredecessor = access->getOriginator();
 				access->setPropagatedNamespaceInfo();
 			}
@@ -1732,7 +1739,18 @@ namespace DataAccessRegistration {
 			// Must not receive namespace information more than once. Propagating it
 			// more than once may result in a use-after-free.
 			assert(access->getValidNamespacePrevious() == VALID_NAMESPACE_UNKNOWN);
-			access->setValidNamespacePrevious(updateOperation._validNamespace, updateOperation._namespacePredecessor);
+			if (access->getType() == CONCURRENT_ACCESS_TYPE
+				|| access->getType() == COMMUTATIVE_ACCESS_TYPE) {
+				// Do not support namespace propagation into a concurrent or commutative access
+				// This is for simplicity as both are currently synchronized on the node on which
+				// the tasks are created. But it might be worth figuring out if and how namespace
+				// propagation of these accesses could work. We have a similar condition to
+				// disable namespace propagation out of these accesses (in the calculation
+				// of updateOperation._validNamespace).
+				access->setValidNamespacePrevious(VALID_NAMESPACE_NONE, nullptr);
+			} else {
+				access->setValidNamespacePrevious(updateOperation._validNamespace, updateOperation._namespacePredecessor);
+			}
 		}
 
 		/* Take read, commutative and concurrent satisfiability from the update
@@ -5036,6 +5054,10 @@ namespace DataAccessRegistration {
 				void *prevRemoteTaskIdentifier = prevContext->getRemoteIdentifier();
 				if (offloader == remoteNode && prevRemoteTaskIdentifier == namespacePredecessor) {
 					// Match, so set the namespace successor
+					// Namespace propagation from a concurrent or commutative access is
+					// not allowed. Check this.
+					assert(access->getType() != CONCURRENT_ACCESS_TYPE
+							&& access->getType() != COMMUTATIVE_ACCESS_TYPE);
 					access->setNamespaceSuccessor(task);
 					found = true;
 				}
