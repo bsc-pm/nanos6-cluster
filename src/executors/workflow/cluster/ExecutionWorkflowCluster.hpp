@@ -91,6 +91,9 @@ namespace ExecutionWorkflow {
 					_read = true;
 				}
 			}
+
+			assert(targetMemoryPlace->getType() == nanos6_device_t::nanos6_cluster_device);
+
 			// We do not support weakcommutative accesses on offloaded tasks.  Since
 			// the scoreboard is local to each node, we have to treat a weakcommutative
 			// access as a strong one if the task is offloaded. We don't know whether it
@@ -102,10 +105,11 @@ namespace ExecutionWorkflow {
 			// strong subtask (or subsubtask, etc.) is offloaded back to the original node.
 			// There is a single scoreboard per node, which does not support a potentially
 			// arbitrary number of nesting levels.
-			FatalErrorHandler::failIf(access->getType() == COMMUTATIVE_ACCESS_TYPE && access->isWeak(),
+			FatalErrorHandler::failIf(access->getType() == COMMUTATIVE_ACCESS_TYPE
+								      && access->isWeak()
+									  && targetMemoryPlace != ClusterManager::getCurrentMemoryNode(),
 									  "weakcommutative accesses are not supported for offloaded tasks");
 
-			assert(targetMemoryPlace->getType() == nanos6_device_t::nanos6_cluster_device);
 			const int targetNamespace = targetMemoryPlace->getIndex();
 
 			/* Starting workflow on another node: set the namespace and predecessor task */
