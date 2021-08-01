@@ -16,6 +16,7 @@
 #include "system/ompss/AddTask.hpp"
 #include "tasks/Task.hpp"
 #include "tasks/Taskfor.hpp"
+#include "executors/threads/TaskFinalization.hpp"
 
 #include <ClusterManager.hpp>
 #include <RemoteTasksInfoMap.hpp>
@@ -245,47 +246,57 @@ namespace TaskOffloading {
 			remoteNode->getIndex()
 		);
 
-		std::lock_guard<PaddedSpinLock<>> lock(remoteTaskInfo._lock);
-		// assert(remoteTaskInfo._localTask == nullptr);
-		remoteTaskInfo._localTask = task;
+		{
+			std::lock_guard<PaddedSpinLock<>> lock(remoteTaskInfo._lock);
+			// assert(remoteTaskInfo._localTask == nullptr);
+			remoteTaskInfo._localTask = task;
 
-		// TODO: This is a workaround for the case where the task actually
-		// executes and finishes before we leave this function (and release
-		// remoteTaskInfo._lock). When this happens the remoteTaskInfo is
-		// actually destroyed inside the same thread (i.e. as a nested function
-		// call inside AddTask::submitTask or propagateSatisfiability). This
-		// raises an assertion in the debug build (lock destroyed while held by
-		// the same thread) and would be potential memory corruption otherwise.
-		// This is a workaround that stops this happening, but it does cause
-		// a memory leak on the remoteTaskInfos.
-		remoteTaskInfo._taskBeingConstructed = true;
+			// Increase the blocking count for the task while it is being constructed.
+			// This is for two reasons:
+			//
+			// (1) If the offloaded task has a weak access, and no strong subtask
+			//     accesses the region, then as soon as we submit the task, another task
+			//     may execute it to completion. We increase the blocking count to make
+			//     sure it doesn't get disposed. Otherwise, when we propagate the
+			//     satisfiabilities (below), we would get a use-after-free error.
+			// (2) If a read-only task is propagated in our namespace, then it
+			//     may pick up the read and write (actually pseudowrite)
+			//     satisfiability, as it should, from the namespace. As above, we
+			//     do not want it to run to completion and dispose the task. In this
+			//     case, read and write satisfiability may be included in the
+			//     task new message, which would be a use-after-free error.
+			task->increaseRemovalBlockingCount();
 
-		// If the task does not have the wait flag then, unless
-		// cluster.disable_autowait=false, set the "autowait" flag, which will
-		// enable early release for accesses ("locally") propagated in the namespace
-		// and use delayed release for the ("non-local") accesses that require a
-		// message back to the offloader.
-		if (!task->mustDelayRelease() && !ClusterManager::getDisableAutowait()) {
-			task->setDelayedNonLocalRelease();
-		}
-
-		// Submit the task
-		AddTask::submitTask(task, parent, true);
-
-		// Propagate satisfiability embedded in the Message
-		for (size_t i = 0; i < numSatInfo; ++i) {
-			if (satInfo[i]._readSat || satInfo[i]._writeSat) {
-				propagateSatisfiability(task, satInfo[i]);
+			// If the task does not have the wait flag then, unless
+			// cluster.disable_autowait=false, set the "autowait" flag, which will
+			// enable early release for accesses ("locally") propagated in the namespace
+			// and use delayed release for the ("non-local") accesses that require a
+			// message back to the offloader.
+			if (!task->mustDelayRelease() && !ClusterManager::getDisableAutowait()) {
+				task->setDelayedNonLocalRelease();
 			}
+
+			// Submit the task
+			AddTask::submitTask(task, parent, true);
+
+			// Propagate satisfiability embedded in the Message
+			for (size_t i = 0; i < numSatInfo; ++i) {
+				if (satInfo[i]._readSat || satInfo[i]._writeSat) {
+					propagateSatisfiability(task, satInfo[i]);
+				}
+			}
+
+			// Propagate also any satisfiability that has already arrived
+			for (SatisfiabilityInfo const &sat : remoteTaskInfo._satInfo) {
+				propagateSatisfiability(task, sat);
+			}
+			remoteTaskInfo._satInfo.clear();
 		}
 
-		// Propagate also any satisfiability that has already arrived
-		for (SatisfiabilityInfo const &sat : remoteTaskInfo._satInfo) {
-			propagateSatisfiability(task, sat);
+		if (task->decreaseRemovalBlockingCount()) {
+			// The task must have run to completion so we can dispose it now.
+			TaskFinalization::disposeTask(task);
 		}
-
-		remoteTaskInfo._taskBeingConstructed = false;
-		remoteTaskInfo._satInfo.clear();
 	}
 
 	void remoteTaskWrapper(void *args)

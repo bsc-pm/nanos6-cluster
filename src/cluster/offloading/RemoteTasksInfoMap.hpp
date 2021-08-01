@@ -23,7 +23,6 @@ namespace TaskOffloading {
 	//! creation of the actual task.
 	struct RemoteTaskInfo {
 		Task *_localTask;
-		bool _taskBeingConstructed;
 		std::vector<SatisfiabilityInfo> _satInfo;
 		PaddedSpinLock<> _lock;
 
@@ -88,11 +87,7 @@ namespace TaskOffloading {
 			remote_map_t::iterator it = _taskMap.find(key);
 			assert(it != _taskMap.end());
 
-			// TODO: See comment in TaskOffloading::remoteTaskCreateAndSubmit
-			// where _taskBeingConstructed is set to true.
-			if (!it->second._taskBeingConstructed) {
-				_taskMap.erase(it);
-			}
+			_taskMap.erase(it);
 		}
 
 	public:
@@ -112,9 +107,7 @@ namespace TaskOffloading {
 			// TODO: Assert that the map is empty before deleting this.
 			assert(_singleton != nullptr);
 
-			// TODO: See comment in TaskOffloading::remoteTaskCreateAndSubmit
-			// where _taskBeingConstructed is set to true. The workaround causes
-			// a memory leak.
+			// There is a memory leak somewhere
 			// assert(_singleton->_taskMap.empty());
 			delete _singleton;
 			_singleton = nullptr;
