@@ -1851,8 +1851,14 @@ namespace DataAccessRegistration {
 				}
 			}
 
+			bool propagateSatisfiabilityMakesConcurrentAndCommutative
+					= updateOperation._propagateSatisfiability
+					&& access->readSatisfied()
+					&& access->writeSatisfied();
+
 			// Concurrent Satisfiability
-			if (updateOperation._makeConcurrentSatisfied) {
+			if (updateOperation._makeConcurrentSatisfied
+				|| propagateSatisfiabilityMakesConcurrentAndCommutative) {
 				access->setConcurrentSatisfied();
 				assert(updateOperation._location);
 				if (access->getType() == CONCURRENT_ACCESS_TYPE) {
@@ -1862,7 +1868,8 @@ namespace DataAccessRegistration {
 			}
 
 			// Commutative Satisfiability
-			if (updateOperation._makeCommutativeSatisfied) {
+			if (updateOperation._makeCommutativeSatisfied
+				|| propagateSatisfiabilityMakesConcurrentAndCommutative) {
 				access->setCommutativeSatisfied();
 				assert(updateOperation._location);
 				if (!access->hasLocation()) {
@@ -4945,11 +4952,6 @@ namespace DataAccessRegistration {
 
 		updateOperation._makeReadSatisfied = readSatisfied;
 		updateOperation._makeWriteSatisfied = writeSatisfied;
-
-		if (updateOperation._makeReadSatisfied && updateOperation._makeWriteSatisfied) {
-			updateOperation._makeCommutativeSatisfied = true;
-			updateOperation._makeConcurrentSatisfied = true;
-		}
 
 		updateOperation._location = location;
 		updateOperation._writeID = writeID;
