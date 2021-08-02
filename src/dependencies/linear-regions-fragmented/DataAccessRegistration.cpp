@@ -4484,12 +4484,25 @@ namespace DataAccessRegistration {
 				assert(!access->hasBeenDiscounted());
 
 				if (access->getType() != NO_ACCESS_TYPE) {
+
 					// A local access is typically registered as NO_ACCESS_TYPE. The
 					// only way it can be otherwise if the local access is part of a
 					// larger access, such as an allmemory access. In this case, we
-					// do nothing here . The access still needs to be handled in the
-					// normal way as part of the larger access.
+					// only have to change the location of the unregistered region to
+					// the directory, which indicates that the data is uninitialized.
+					// This is needed for correctness, not just performance! If we
+					// don't do this, every task with an all memory access would release
+					// its own stack to its parent, and we may start copying this freed
+					// stack among the nodes. Concretely, assume task A is offloaded from
+					// node 0 to 1, then it offloads subtask B back to node 0. If B
+					// releases its stack and indicates that it's on node 0, then if A
+					// does a taskwait with eager-weak-fetch, the free'd stack will get
+					// copied to node 1. Finally, after the taskwait on node 0, the stack
+					// will get copied from node 1 to node 0, causing a use-after-free on
+					// node 0.
+					access->setLocation(Directory::getDirectoryMemoryPlace());
 					containedInAccess = true;
+					// Now the region in handled in the normal way as part of the larger access.
 					return true;
 				}
 
