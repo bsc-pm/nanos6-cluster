@@ -431,7 +431,7 @@ namespace Instrument {
 			return;
 
 		const int value = chunk + 1;
-		assert(chunk >= 0);
+		assert(value >= 0);
 
 		ExtraeAPI::emit_SimpleEvent(
 			(extrae_type_t) EventType::RUNNING_TASKFOR_CHUNK, 
