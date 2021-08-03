@@ -5316,12 +5316,13 @@ namespace DataAccessRegistration {
 		accessStruct._lock.unlock();
 	}
 
-	void setNamespaceSelf(DataAccess *access, int targetNamespace)
+	// NOTE: you must call setNamespaceSelf with the lock on the data structures
+	// Then call setNamespaceSelfDone without the lock
+	void setNamespaceSelf(DataAccess *access, int targetNamespace, CPUDependencyData &hpDependencyData)
 	{
 		// This is called with the lock on the task accesses already taken
 		Task *task = access->getOriginator();
 		TaskDataAccesses &accessStructures = task->getDataAccesses();
-		CPUDependencyData hpDependencyData;
 		assert(!accessStructures.hasBeenDeleted());
 
 		DataAccessStatusEffects initialStatus(access);
@@ -5332,11 +5333,12 @@ namespace DataAccessRegistration {
 			initialStatus, updatedStatus,
 			access, accessStructures, access->getOriginator(),
 			hpDependencyData);
+	}
 
-		accessStructures._lock.unlock();
+	void setNamespaceSelfDone(CPUDependencyData &hpDependencyData)
+	{
 		processDelayedOperations(hpDependencyData);
 		handleRemovableTasks(hpDependencyData._removableTasks);
-		accessStructures._lock.lock();
 	}
 }; // namespace DataAccessRegistration
 

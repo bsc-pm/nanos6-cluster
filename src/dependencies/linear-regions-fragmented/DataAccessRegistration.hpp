@@ -210,7 +210,8 @@ namespace DataAccessRegistration {
 	void translateReductionAddresses(Task *task, ComputePlace *computePlace,
 		nanos6_address_translation_entry_t * translationTable, int totalSymbols);
 
-	void setNamespaceSelf(DataAccess *access, int targetNamespace);
+	void setNamespaceSelf(DataAccess *access, int targetNamespace, CPUDependencyData &hpDependencyData);
+	void setNamespaceSelfDone(CPUDependencyData &hpDependencyData);
 } // namespace DataAccessRegistration
 
 

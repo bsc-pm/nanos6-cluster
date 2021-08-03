@@ -25,6 +25,8 @@
 
 #include <MessageReleaseAccess.hpp>
 
+#include "executors/threads/WorkerThread.hpp"
+
 class ComputePlace;
 class MemoryPlace;
 
@@ -57,7 +59,8 @@ namespace ExecutionWorkflow {
 		ClusterDataLinkStep(
 			MemoryPlace const *sourceMemoryPlace,
 			MemoryPlace const *targetMemoryPlace,
-			DataAccess *access
+			DataAccess *access,
+			CPUDependencyData &hpDependencyData
 		) : DataLinkStep(access),
 			_sourceMemoryPlace(sourceMemoryPlace),
 			_targetMemoryPlace(targetMemoryPlace),
@@ -117,7 +120,7 @@ namespace ExecutionWorkflow {
 				}
 			}
 
-			DataAccessRegistration::setNamespaceSelf(access, targetNamespace);
+			DataAccessRegistration::setNamespaceSelf(access, targetNamespace, hpDependencyData);
 		}
 
 		void linkRegion(DataAccess const *region, bool read, bool write) override;
@@ -527,7 +530,8 @@ namespace ExecutionWorkflow {
 		MemoryPlace const *source,
 		MemoryPlace const *target,
 		DataAccessRegion const &region,
-		DataAccess *access
+		DataAccess *access,
+		CPUDependencyData &hpDependencyData
 	) {
 		assert(target != nullptr);
 		assert(access != nullptr);
@@ -556,7 +560,7 @@ namespace ExecutionWorkflow {
 		}
 
 		assert(access->getObjectType() == access_type);
-		return new ClusterDataLinkStep(source, target, access);
+		return new ClusterDataLinkStep(source, target, access, hpDependencyData);
 	}
 }
 

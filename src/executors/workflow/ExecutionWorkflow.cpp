@@ -24,6 +24,7 @@
 #include <ExecutionWorkflowCluster.hpp>
 #include <ClusterManager.hpp>
 #include <InstrumentDependencySubsystemEntryPoints.hpp>
+#include "CPUDependencyData.hpp"
 
 namespace ExecutionWorkflow {
 
@@ -40,7 +41,8 @@ namespace ExecutionWorkflow {
 		MemoryPlace const *targetMemoryPlace,
 		DataAccessRegion const &region,
 		DataAccess *access,
-		bool isTaskwait
+		bool isTaskwait,
+		CPUDependencyData &hpDependencyData
 	) {
 		Step *step;
 		Instrument::enterCreateDataCopyStep(isTaskwait);
@@ -84,13 +86,14 @@ namespace ExecutionWorkflow {
 			// clusterCopy. The data doesn't need copying, since being in the
 			// directory implies that the data is uninitialized. But the new
 			// location may need registering in the remote dependency system.
-			step = clusterCopy(sourceMemoryPlace, targetMemoryPlace, region, access);
+			step = clusterCopy(sourceMemoryPlace, targetMemoryPlace, region, access, hpDependencyData);
 		} else {
 			step = _transfersMap[sourceType][targetType](
 				sourceMemoryPlace,
 				targetMemoryPlace,
 				region,
-				access
+				access,
+				hpDependencyData
 			);
 		}
 
@@ -261,6 +264,10 @@ namespace ExecutionWorkflow {
 
 		Step *notificationStep = nullptr;
 
+		// Thread and CPU while creating the workflow (not when executing the lambda functions)
+		WorkerThread *createCurrThread = WorkerThread::getCurrentWorkerThread();
+		CPU * const createCpu = (createCurrThread == nullptr) ? nullptr : createCurrThread->getComputePlace();
+
 		if (task->isTaskforCollaborator()) {
 			// Now we only support host's taskfor because they are not offloaded (yet).
 			assert(targetComputePlace->getType() == nanos6_host_device);
@@ -331,6 +338,9 @@ namespace ExecutionWorkflow {
 		workflow->enforceOrder(executionStep, releaseStep);
 		workflow->enforceOrder(releaseStep, notificationStep);
 
+		CPUDependencyData localDependencyData2;
+		CPUDependencyData &hpDependencyData2 =
+			(createCpu == nullptr) ? localDependencyData2 : createCpu->getDependencyData();
 		DataAccessRegistration::processAllDataAccesses(
 			task,
 			[&](DataAccess *dataAccess) -> bool {
@@ -369,7 +379,8 @@ namespace ExecutionWorkflow {
 					targetMemoryPlace,
 					region,
 					dataAccess,
-					false
+					false,
+					hpDependencyData2
 				);
 
 				workflow->enforceOrder(dataCopyRegionStep, executionStep);
@@ -380,6 +391,13 @@ namespace ExecutionWorkflow {
 				return true;
 			}
 		);
+
+		// Setting the namespace for this task's accesses may require passing
+		// the valid namespace information to the successor accesses. We
+		// couldn't do it while holding the lock on our task's access
+		// structures (taken by DataAccessRegistration::processAllDataAccesses),
+		// so do it now.
+		DataAccessRegistration::setNamespaceSelfDone(hpDependencyData2);
 
 		if (executionStep->ready()) {
 			workflow->enforceOrder(executionStep, notificationStep);
@@ -464,7 +482,8 @@ namespace ExecutionWorkflow {
 			targetLocation,
 			region,
 			taskwaitFragment,
-			true
+			true,
+			hpDependencyData
 		);
 
 		workflow->addRootStep(copyStep);
