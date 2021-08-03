@@ -80,7 +80,8 @@ MPIMessenger::MPIMessenger()
 	assert(_mpi_ub_tag > 0);
 }
 
-MPIMessenger::~MPIMessenger()
+
+void MPIMessenger::shutdown()
 {
 	int ret;
 
@@ -104,8 +105,25 @@ MPIMessenger::~MPIMessenger()
 	ret = MPI_Finalize();
 	MPIErrorHandler::handle(ret, MPI_COMM_WORLD);
 
+	// After MPI finalization there shouldn't be any pending message. But we don't actually know if
+	// some delayed message has arrived from a third remote node. So we clear here and the latter
+	// assert may be fine.
 	RequestContainer<Message>::clear();
 	RequestContainer<DataTransfer>::clear();
+}
+
+
+MPIMessenger::~MPIMessenger()
+{
+#ifndef NDEBUG
+	int finalized = 0;
+	int ret = MPI_Finalized(&finalized);
+	assert(ret == MPI_SUCCESS);
+	assert(finalized == 1);
+
+	assert(RequestContainer<Message>::isCleared());
+	assert(RequestContainer<DataTransfer>::isCleared());
+#endif // NDEBUG
 }
 
 void MPIMessenger::sendMessage(Message *msg, ClusterNode const *toNode, bool block)

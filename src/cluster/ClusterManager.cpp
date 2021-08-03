@@ -100,10 +100,13 @@ ClusterManager::~ClusterManager()
 	for (auto &node : _clusterNodes) {
 		delete node;
 	}
+	_clusterNodes.clear();
 
 	delete _msn;
+	_msn = nullptr;
 
 	delete _callback;
+	_callback = nullptr;
 }
 
 // Cluster is initialized before the memory allocator.
@@ -191,17 +194,25 @@ void ClusterManager::shutdownPhase1()
 		}
 		assert(ClusterServicesPolling::_activeClusterPollingServices == 0);
 
-		if (NodeNamespace::isEnabled()) {
-			NodeNamespace::deallocate();
-		}
-		assert(!NodeNamespace::isEnabled());
-
 		TaskOffloading::RemoteTasksInfoMap::shutdown();
 	}
+
+	// Finalize MPI BEFORE the instrumentation because the extrae finalization accesses to some data
+	// structures throw extrae_nanos6_get_thread_id when finalizing MPI.
+	_singleton->_msn->shutdown();
 }
 
 void ClusterManager::shutdownPhase2()
 {
+
+	// To avoid some issues with the instrumentation shutdown this must be called after finalizing
+	// the instrumentation. The extrae instrumentation accesses to the taskInfo->implementations[0]
+	// during finalization so if the taskinfo is deleted the access may be corrupt.
+	if (NodeNamespace::isEnabled()) {
+		NodeNamespace::deallocate();
+	}
+	assert(!NodeNamespace::isEnabled());
+
 
 	assert(_singleton != nullptr);
 

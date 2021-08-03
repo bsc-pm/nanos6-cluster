@@ -106,6 +106,14 @@ private:
 			}
 		}
 
+		static bool isCleared()
+		{
+			return maxCount == 0
+				&& requests == nullptr
+				&& finished == nullptr
+				&& status == nullptr;
+		}
+
 		friend class MPIMessenger;
 	};
 
@@ -116,6 +124,8 @@ public:
 
 	MPIMessenger();
 	~MPIMessenger();
+
+	void shutdown() override;
 
 	void sendMessage(Message *msg, ClusterNode const *toNode, bool block = false) override;
 
