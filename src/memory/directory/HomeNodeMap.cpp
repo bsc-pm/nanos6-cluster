@@ -22,8 +22,7 @@ void HomeNodeMap::insert(
 		[&] (HomeNodeMap::iterator pos) -> bool {
 			HomeMapEntry *entry = &(*pos);
 
-			FatalErrorHandler::failIf(
-				true,
+			FatalErrorHandler::fail(
 				"We do not support updating the home node of a region. (Region: ",
 				entry->getAccessRegion(),
 				")"
@@ -35,7 +34,6 @@ void HomeNodeMap::insert(
 		[&] (DataAccessRegion missingRegion) -> bool {
 			HomeMapEntry *entry = new HomeMapEntry(missingRegion, homeNode);
 			BaseType::insert(*entry);
-
 			return true;
 		}
 	);
@@ -75,8 +73,7 @@ void HomeNodeMap::erase(DataAccessRegion const &region)
 			return true;
 		},
 		[&] (DataAccessRegion missingRegion) -> bool {
-			FatalErrorHandler::failIf(
-				true,
+			FatalErrorHandler::fail(
 				"Trying to erase an unknown home node mapping for region: ",
 				missingRegion
 			);

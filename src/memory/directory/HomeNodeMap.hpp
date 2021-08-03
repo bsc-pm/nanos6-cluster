@@ -18,7 +18,12 @@
 class DataAccessRegion;
 class MemoryPlace;
 
-class HomeNodeMap : public IntrusiveLinearRegionMap<HomeMapEntry, boost::intrusive::function_hook< HomeMapEntryLinkingArtifacts > > {
+class HomeNodeMap : public
+	IntrusiveLinearRegionMap<
+		HomeMapEntry,
+		boost::intrusive::function_hook<HomeMapEntryLinkingArtifacts>
+	>
+{
 
 	typedef IntrusiveLinearRegionMap<
 		HomeMapEntry,
@@ -38,6 +43,15 @@ public:
 
 	~HomeNodeMap()
 	{
+		processAll(
+			[&](__attribute__((unused)) HomeNodeMap::iterator pos) -> bool
+			{
+				HomeMapEntry *entry = &(*pos);
+				BaseType::erase(entry);
+				delete entry;
+				return true;
+			}
+		);
 	}
 
 	//! \brief Insert a region in the map
