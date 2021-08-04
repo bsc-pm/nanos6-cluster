@@ -55,11 +55,7 @@ namespace Instrument {
 	struct task_id_t {
 		Extrae::TaskInfo *_taskInfo;
 
-		task_id_t() : _taskInfo(nullptr)
-		{
-		}
-
-		task_id_t(Extrae::TaskInfo *taskInfo) : _taskInfo(taskInfo)
+		task_id_t(Extrae::TaskInfo *taskInfo = nullptr) : _taskInfo(taskInfo)
 		{
 		}
 

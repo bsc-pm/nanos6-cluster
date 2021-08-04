@@ -365,41 +365,8 @@ namespace Instrument {
 	{
 		{
 			std::lock_guard<SpinLock> guard(_userFunctionMapLock);
-			for (nanos6_task_info_t *taskInfo : _userFunctionMap) {
-				std::string codeLocation = taskInfo->implementations[0].declaration_source;
-
-				// Remove column
-				codeLocation = codeLocation.substr(0, codeLocation.find_last_of(':'));
-
-				std::string label;
-				if (taskInfo->implementations[0].task_label != nullptr) {
-					label = taskInfo->implementations[0].task_label;
-				} else {
-					label = codeLocation;
-				}
-
-				// Splice off the line number
-				int lineNumber = 0;
-				size_t linePosition = codeLocation.find_last_of(':');
-				if (linePosition != std::string::npos) {
-					std::istringstream iss(codeLocation.substr(linePosition+1));
-					iss >> lineNumber;
-
-					codeLocation.substr(0, linePosition);
-				}
-
-				void *runFunction = (void *) taskInfo->implementations[0].run;
-
-				// Use the unique taskInfo address in case it is a spawned task
-				if (SpawnFunction::isSpawned(taskInfo)) {
-					runFunction = taskInfo;
-				}
-
-				ExtraeAPI::register_function_address (
-					runFunction,
-					label.c_str(),
-					codeLocation.c_str(), lineNumber
-				);
+			for (const Extrae::user_fct_t &taskInfo : _userFunctionMap) {
+				taskInfo.registerFunction();
 			}
 		}
 

@@ -99,8 +99,10 @@ namespace Instrument {
 
 		assert(taskInfo != nullptr);
 		{
-			std::lock_guard<SpinLock> guard(_userFunctionMapLock);
-			_userFunctionMap.insert(taskInfo);
+			Extrae::user_fct_t user_fct(taskInfo);
+
+			std::lock_guard<SpinLock> guard(Extrae::_userFunctionMapLock);
+			Extrae::_userFunctionMap.insert(user_fct);
 		}
 
 		ExtraeAPI::emit_CombinedEvents ( &ce );

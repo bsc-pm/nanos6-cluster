@@ -41,6 +41,69 @@ namespace Instrument {
 
 		extern bool _initialized;
 
+		class user_fct_t {
+			std::string _declaration_source;
+			std::string _task_label;
+			void *_runFunction;
+
+		public:
+			user_fct_t(nanos6_task_info_t *taskInfo)
+				: _declaration_source(taskInfo->implementations[0].declaration_source),
+				  _task_label(taskInfo->implementations[0].task_label),
+				  _runFunction(SpawnFunction::isSpawned(taskInfo)
+					  ? taskInfo
+					  : (void *)taskInfo->implementations[0].run)
+			{
+				assert(taskInfo != nullptr);
+			}
+
+			// The operator < is required for the insertion in the std::set. The ideal may be to use
+			// a tuple. But comparison operator will be removed for tuples in C++-20.
+			// This is the code suggested for comparison in:
+			// https://en.cppreference.com/w/cpp/utility/tuple/operator_cmp
+			bool operator <(const user_fct_t &other) const
+			{
+				return (_declaration_source < other._declaration_source) ? true
+					: (_declaration_source > other._declaration_source) ? false
+					: (_task_label < other._task_label) ? true
+					: (_task_label > other._task_label) ? false
+					: (_runFunction < other._runFunction) ? true
+					: (_runFunction > other._runFunction) ? false
+					: false;  // This means they are equal.
+			}
+
+			void registerFunction() const
+			{
+				// Remove column
+				std::string codeLocation = _declaration_source.substr(
+					0,
+					_declaration_source.find_last_of(':')
+				);
+				std::string label = _task_label.empty() ? codeLocation : _task_label;
+
+				// Splice off the line number
+				int lineNumber = 0;
+				size_t linePosition = codeLocation.find_last_of(':');
+				if (linePosition != std::string::npos) {
+					std::istringstream iss(codeLocation.substr(linePosition + 1));
+					iss >> lineNumber;
+
+					codeLocation.substr(0, linePosition);
+				}
+
+				// Use the unique taskInfo address in case it is a spawned task
+				ExtraeAPI::register_function_address(
+					_runFunction,
+					label.c_str(),
+					codeLocation.c_str(), lineNumber
+				);
+			}
+		};
+
+		typedef std::set<user_fct_t> user_fct_map_t;
+
+		extern SpinLock _userFunctionMapLock;
+		extern user_fct_map_t _userFunctionMap;
 	}
 
 	enum {
@@ -50,8 +113,6 @@ namespace Instrument {
 	struct ExtraeTaskInfoCompare {
 		inline bool operator()(nanos6_task_info_t *a, nanos6_task_info_t *b) const;
 	};
-
-	typedef std::set<nanos6_task_info_t *> user_fct_map_t;
 
 	struct scope_tracing_point_info_t {
 		std::string _name;
@@ -178,9 +239,6 @@ namespace Instrument {
 
 	extern char const *_reductionStateValueStr[];
 	extern char const *_dependencySubsystemStateValueStr[];
-
-	extern SpinLock _userFunctionMapLock;
-	extern user_fct_map_t _userFunctionMap;
 
 	extern std::atomic<size_t> _nextTaskId;
 	extern std::atomic<size_t> _readyTasks;

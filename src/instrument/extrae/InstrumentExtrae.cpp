@@ -23,6 +23,9 @@ namespace Instrument {
 		bool _traceAsThreads = false;
 
 		bool _initialized = false;
+
+		SpinLock _userFunctionMapLock;
+		user_fct_map_t _userFunctionMap;
 	}
 
 	std::map<tracing_point_type_t, std::string> _delayedNumericTracingPoints;
@@ -49,9 +52,6 @@ namespace Instrument {
 		"HANDLECOMPLETEDTASKWAITS", "SETUPTASKWAITWORKFLOW", "RELEASETASKWAITFRAGMENT",
 		"CREATEDATACOPYSTEP_TASK", "CREATEDATACOPYSTEP_TASKWAIT", "TASKDATAACCESSLOCATION"
 	};
-
-	SpinLock _userFunctionMapLock;
-	user_fct_map_t _userFunctionMap;
 
 	std::atomic<size_t> _nextTaskId(1);
 	std::atomic<size_t> _readyTasks(0);

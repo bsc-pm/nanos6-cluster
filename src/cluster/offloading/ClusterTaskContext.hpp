@@ -82,6 +82,10 @@ namespace TaskOffloading {
 
 				delete _hook;
 			}
+
+			if (_msg != nullptr) {
+				delete _msg;
+			}
 		}
 
 
