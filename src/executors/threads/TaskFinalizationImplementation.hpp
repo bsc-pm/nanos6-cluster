@@ -207,7 +207,7 @@ void TaskFinalization::disposeTask(Task *task)
 			// implementation, the reordering introduced by
 			// unregisterTaskDataAccesses with a Callback causes a use-after-poison
 			// error which is found by ASan.
-			// MemoryAllocator::free(disposableBlock, disposableBlockSize);
+			MemoryAllocator::free(disposableBlock, disposableBlockSize);
 
 		} else {
 			// Although collaborators cannot be disposed, they must destroy their
