@@ -21,13 +21,7 @@ namespace Instrument {
 
 		contents_t _contents;
 
-		task_id_t()
-			: _contents(nullptr)
-		{
-		}
-
-		task_id_t(Stats::TaskTypeAndTimes *other)
-			: _contents(other)
+		task_id_t(Stats::TaskTypeAndTimes *other = nullptr) : _contents(other)
 		{
 		}
 

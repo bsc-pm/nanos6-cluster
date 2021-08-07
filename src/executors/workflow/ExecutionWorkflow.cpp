@@ -327,6 +327,7 @@ namespace ExecutionWorkflow {
 								}
 							}
 						);
+
 					}
 				}
 			);
@@ -352,26 +353,25 @@ namespace ExecutionWorkflow {
 #ifndef NDEBUG
 				// In debug mode, raise an error if the task has a non-weak access to
 				// an unknown region.
-				if (!dataAccess->isWeak()) {
-					if (ClusterManager::inClusterMode()
-						&& Directory::isDirectoryMemoryPlace(currLocation)
-						&& targetComputePlace->getType() == nanos6_host_device) {
+				if (!dataAccess->isWeak()
+					&& ClusterManager::inClusterMode()
+					&& Directory::isDirectoryMemoryPlace(currLocation)
+					&& targetComputePlace->getType() == nanos6_host_device) {
 
-						// This isn't perfect, because the homeNodes list is only empty if the whole
-						// region is missing from the directory whereas we would prefer to raise an
-						// error even if just a part of it is missing. But this test does a good job
-						// of finding blatantly wrong accesses.
-						Directory::HomeNodesArray const *homeNodes = Directory::find(region);
-						FatalErrorHandler::failIf(
-							homeNodes->empty(),
-							"Non-weak access ",
-							region,
-							" of ",
-							task->getLabel(),
-							" is an unknown region not from lmalloc, dmalloc or the stack");
+					// This isn't perfect, because the homeNodes list is only empty if the whole
+					// region is missing from the directory whereas we would prefer to raise an
+					// error even if just a part of it is missing. But this test does a good job
+					// of finding blatantly wrong accesses.
+					Directory::HomeNodesArray const *homeNodes = Directory::find(region);
+					FatalErrorHandler::failIf(
+						homeNodes->empty(),
+						"Non-weak access ",
+						region,
+						" of ",
+						task->getLabel(),
+						" is an unknown region not from lmalloc, dmalloc or the stack");
 
-						delete homeNodes;
-					}
+					delete homeNodes;
 				}
 #endif
 				Step *dataCopyRegionStep = workflow->createDataCopyStep(
