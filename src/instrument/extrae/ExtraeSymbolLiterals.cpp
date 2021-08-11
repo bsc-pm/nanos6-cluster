@@ -16,6 +16,7 @@ namespace Instrument {
 	StringLiteral const _Extrae_fini_symbolName("Extrae_fini");
 	StringLiteral const _Extrae_get_version_symbolName("Extrae_get_version");
 	StringLiteral const _Extrae_init_symbolName("Extrae_init");
+	StringLiteral const _Extrae_is_initialized_symbolName("Extrae_is_initialized");
 	StringLiteral const _Extrae_init_UserCommunication_symbolName("Extrae_init_UserCommunication");
 	StringLiteral const _Extrae_init_CombinedEvents_symbolName("Extrae_init_CombinedEvents");
 	StringLiteral const _Extrae_register_codelocation_type_symbolName("Extrae_register_codelocation_type");

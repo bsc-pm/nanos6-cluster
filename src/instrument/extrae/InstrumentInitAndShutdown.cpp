@@ -167,8 +167,11 @@ namespace Instrument {
 			RuntimeInfo::addEntry("extrae_tracing_target", "Extrae Tracing Target", "cpu");
 		}
 
-		// Initialize extrae library
-		ExtraeAPI::init();
+		if (ExtraeAPI::is_initialized() == EXTRAE_NOT_INITIALIZED) {
+			// Initialize extrae library. It may be already initialized by the MPI_Init. So we
+			// condition here to avoid the warning.
+			ExtraeAPI::init();
+		}
 
 		ExtraeAPI::register_codelocation_type(
 			(extrae_type_t) EventType::RUNNING_FUNCTION_NAME,

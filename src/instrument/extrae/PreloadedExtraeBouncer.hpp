@@ -58,6 +58,11 @@ namespace ExtraeAPI {
 		ExtraeSymbolResolver<void, &Instrument::_Extrae_init_symbolName>::call();
 	}
 
+	static inline extrae_init_type_t is_initialized (void)
+	{
+		return ExtraeSymbolResolver<extrae_init_type_t, &Instrument::_Extrae_is_initialized_symbolName>::call();
+	}
+
 
 	static inline void init_UserCommunication (struct extrae_UserCommunication *uc)
 	{

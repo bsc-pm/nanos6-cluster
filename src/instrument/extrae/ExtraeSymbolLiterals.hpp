@@ -20,6 +20,7 @@ namespace Instrument {
 	extern const StringLiteral _Extrae_fini_symbolName;
 	extern const StringLiteral _Extrae_get_version_symbolName;
 	extern const StringLiteral _Extrae_init_symbolName;
+	extern const StringLiteral _Extrae_is_initialized_symbolName;
 	extern const StringLiteral _Extrae_init_UserCommunication_symbolName;
 	extern const StringLiteral _Extrae_init_CombinedEvents_symbolName;
 	extern const StringLiteral _Extrae_register_codelocation_type_symbolName;
