@@ -19,11 +19,10 @@ Task *HostUnsyncScheduler::getReadyTask(ComputePlace *computePlace)
 	assert(_readyTasks != nullptr);
 
 	Task *result = nullptr;
-	Taskfor *groupTaskfor = nullptr;
 
-	long cpuId = computePlace->getIndex();
-	long groupId = ((CPU *)computePlace)->getGroupId();
-	long immediateSuccessorGroupId = groupId*2;
+	const long cpuId = computePlace->getIndex();
+	const long groupId = ((CPU *)computePlace)->getGroupId();
+	const long immediateSuccessorGroupId = groupId * 2;
 
 	// 1. Try to get a task with a satisfied deadline
 	result = _deadlineTasks->getReadyTask(computePlace);
@@ -33,7 +32,9 @@ Task *HostUnsyncScheduler::getReadyTask(ComputePlace *computePlace)
 
 	// 2. Try to get work from the current group taskfor
 	if (groupId != -1) {
-		if ((groupTaskfor = _groupSlots[groupId]) != nullptr) {
+		Taskfor *groupTaskfor = _groupSlots[groupId];
+
+		if (groupTaskfor != nullptr) {
 
 			groupTaskfor->notifyCollaboratorHasStarted();
 			bool remove = false;
