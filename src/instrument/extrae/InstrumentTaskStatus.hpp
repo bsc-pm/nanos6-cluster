@@ -80,8 +80,7 @@ namespace Instrument {
 		task_id_t taskId,
 		__attribute__((unused)) InstrumentationContext const &context
 	) {
-		delete(taskId._taskInfo);
-		taskId._taskInfo = nullptr;
+		taskId = Instrument::task_id_t();
 	}
 
 	inline void taskHasNewPriority(

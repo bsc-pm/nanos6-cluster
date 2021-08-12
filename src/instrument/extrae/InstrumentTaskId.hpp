@@ -25,19 +25,35 @@ namespace Instrument {
 	}
 
 	struct task_id_t {
+	private:
+		void inc();
+		void dec();
+	public:
 		Extrae::TaskInfo *_taskInfo;
 
 		task_id_t(Extrae::TaskInfo *taskInfo = nullptr) : _taskInfo(taskInfo)
 		{
+			inc();
 		}
 
 		task_id_t(task_id_t const &other) : _taskInfo(other._taskInfo)
 		{
+			inc();
+		}
+
+		~task_id_t()
+		{
+			dec();
 		}
 
 		task_id_t& operator=(const task_id_t& other)
 		{
-			_taskInfo = other._taskInfo;
+			if (_taskInfo != other._taskInfo) {
+				task_id_t tmp = *this;        // trick to avoid early collection.
+				dec();
+				_taskInfo = other._taskInfo;
+				inc();
+			}
 			return *this;
 		}
 
@@ -63,6 +79,13 @@ namespace Instrument {
 		typedef std::pair<size_t, dependency_tag_t> predecessor_entry_t; // Task and strength
 
 		struct TaskInfo {
+		private:
+			std::atomic<int> _refCount;
+			friend class Instrument::task_id_t;
+
+		public:
+			TaskInfo &operator=(const TaskInfo &) = delete;
+
 			nanos6_task_info_t *_taskInfo;
 			size_t _taskId;
 			int _nestingLevel;
@@ -75,8 +98,9 @@ namespace Instrument {
 			std::set<predecessor_entry_t> _predecessors;
 
 			TaskInfo()
-				: _taskInfo(nullptr), _taskId(~0UL), _nestingLevel(-1), _priority(0), _parent(),
-				  _inTaskwait(false), _lock(), _predecessors()
+				: _refCount(0), _taskInfo(nullptr), _taskId(~0UL),
+				  _nestingLevel(-1), _priority(0),
+				  _parent(), _inTaskwait(false), _lock(), _predecessors()
 			{
 			}
 
@@ -84,11 +108,13 @@ namespace Instrument {
 				nanos6_task_info_t *taskInfo,
 				int nestingLevel,
 				const Instrument::task_id_t &parent
-			) : _taskInfo(taskInfo), _nestingLevel(nestingLevel), _priority(0), _parent(parent),
-				_inTaskwait(false), _lock(), _predecessors()
+			) : _refCount(0), _taskInfo(taskInfo), _taskId(_nextTaskId++),
+				_nestingLevel(nestingLevel), _priority(0),
+				_parent(parent), _inTaskwait(false), _lock(), _predecessors()
 			{
-				_taskId = _nextTaskId++;
 			}
+
+			TaskInfo(const TaskInfo&) = delete;
 		};
 	}
 
@@ -100,6 +126,28 @@ namespace Instrument {
 		}
 		return 0;
 	}
+
+	inline void task_id_t::inc()
+	{
+		if (_taskInfo != nullptr) {
+			const __attribute__((unused)) int var = _taskInfo->_refCount.fetch_add(1);
+			assert(var >= 0);
+		}
+	}
+
+	inline void task_id_t::dec()
+	{
+		if (_taskInfo != nullptr) {
+			const int var = _taskInfo->_refCount.fetch_sub(1) - 1;
+			assert(var >= 0);
+			if (var == 0) {
+				delete _taskInfo;
+				_taskInfo = nullptr;
+			}
+		}
+	}
+
+
 }
 
 
