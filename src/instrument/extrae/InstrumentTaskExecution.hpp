@@ -142,15 +142,22 @@ namespace Instrument {
 		// Generate control dependency information
 		size_t parentInTaskwait = 0;
 		if (Extrae::_detailLevel >= 8) {
-			if ((taskId._taskInfo->_parent != nullptr) && taskId._taskInfo->_parent->_inTaskwait) {
-				taskId._taskInfo->_parent->_lock.lock();
-				if (taskId._taskInfo->_parent->_inTaskwait) {
-					parentInTaskwait = taskId._taskInfo->_parent->_taskId;
+			if (taskId._taskInfo->_parent._taskInfo != nullptr
+				&& taskId._taskInfo->_parent._taskInfo->_inTaskwait) {
+
+				taskId._taskInfo->_parent._taskInfo->_lock.lock();
+
+				if (taskId._taskInfo->_parent._taskInfo->_inTaskwait) {
+					parentInTaskwait = taskId._taskInfo->_parent._taskInfo->_taskId;
 					ce.nCommunications++;
 
-					taskId._taskInfo->_parent->_predecessors.emplace(taskId._taskInfo->_taskId, control_dependency_tag);
+					taskId._taskInfo->_parent._taskInfo->_predecessors.emplace(
+						taskId._taskInfo->_taskId,
+						control_dependency_tag
+					);
 				}
-				taskId._taskInfo->_parent->_lock.unlock();
+
+				taskId._taskInfo->_parent._taskInfo->_lock.unlock();
 			}
 		}
 
@@ -158,7 +165,8 @@ namespace Instrument {
 		ce.Values = (extrae_value_t *) alloca (ce.nEvents * sizeof (extrae_value_t));
 
 		if (ce.nCommunications > 0) {
-			ce.Communications = (extrae_user_communication_t *) alloca(sizeof(extrae_user_communication_t) * ce.nCommunications);
+			ce.Communications
+				= (extrae_user_communication_t *) alloca(sizeof(extrae_user_communication_t) * ce.nCommunications);
 		}
 
 		ce.Types[0] = (extrae_type_t) EventType::RUNTIME_STATE;
@@ -347,18 +355,20 @@ namespace Instrument {
 
 			// Generate control dependency information
 			if (Extrae::_detailLevel >= 8) {
-				if ((taskforId._taskInfo->_parent != nullptr) && taskforId._taskInfo->_parent->_inTaskwait) {
-					taskforId._taskInfo->_parent->_lock.lock();
-					if (taskforId._taskInfo->_parent->_inTaskwait) {
-						parentInTaskwait = taskforId._taskInfo->_parent->_taskId;
+				if (taskforId._taskInfo->_parent._taskInfo != nullptr
+					&& taskforId._taskInfo->_parent._taskInfo->_inTaskwait) {
+
+					taskforId._taskInfo->_parent._taskInfo->_lock.lock();
+					if (taskforId._taskInfo->_parent._taskInfo->_inTaskwait) {
+						parentInTaskwait = taskforId._taskInfo->_parent._taskInfo->_taskId;
 						ce.nCommunications++;
 
-						taskforId._taskInfo->_parent->_predecessors.emplace(
+						taskforId._taskInfo->_parent._taskInfo->_predecessors.emplace(
 							taskforId._taskInfo->_taskId,
 							control_dependency_tag
 						);
 					}
-					taskforId._taskInfo->_parent->_lock.unlock();
+					taskforId._taskInfo->_parent._taskInfo->_lock.unlock();
 				}
 			}
 
