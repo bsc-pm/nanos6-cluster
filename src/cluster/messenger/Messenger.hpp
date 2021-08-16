@@ -30,9 +30,7 @@ public:
 	{
 	}
 
-	virtual void shutdown()
-	{
-	}
+	virtual void shutdown() = 0;
 
 	template<typename T>
 	static bool RegisterMSNClass(const std::string &name)

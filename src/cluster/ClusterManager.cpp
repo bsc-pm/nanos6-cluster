@@ -41,12 +41,12 @@ ClusterManager::ClusterManager()
 }
 
 ClusterManager::ClusterManager(std::string const &commType)
-	:_msn(nullptr), _disableRemote(false), _disableAutowait(false), _callback(nullptr)
+	:_msn(GenericFactory<std::string, Messenger*>::getInstance().create(commType)),
+	 _disableRemote(false), _disableAutowait(false), _callback(nullptr)
 {
-	TaskOffloading::RemoteTasksInfoMap::init();
-
-	_msn = GenericFactory<std::string, Messenger*>::getInstance().create(commType);
 	assert(_msn);
+
+	TaskOffloading::RemoteTasksInfoMap::init();
 
 	/** These are communicator-type indices. At the moment we have an
 	 * one-to-one mapping between communicator-type and runtime-type
@@ -112,7 +112,6 @@ ClusterManager::~ClusterManager()
 // Cluster is initialized before the memory allocator.
 void ClusterManager::initialize()
 {
-
 	assert(_singleton == nullptr);
 	ConfigVariable<std::string> commType("cluster.communication");
 
@@ -144,14 +143,11 @@ void ClusterManager::postinitialize()
 			ClusterServicesPolling::initialize();
 		}
 	}
-
 }
 
 
-void ClusterManager::initClusterNamespaceOrSetCallback(
-	void (*func)(void *),
-	void *args
-) {
+void ClusterManager::initClusterNamespaceOrSetCallback(void (*func)(void *), void *args)
+{
 	assert(_singleton != nullptr);
 
 	if (_singleton->_usingNamespace) {
@@ -197,9 +193,11 @@ void ClusterManager::shutdownPhase1()
 		TaskOffloading::RemoteTasksInfoMap::shutdown();
 	}
 
-	// Finalize MPI BEFORE the instrumentation because the extrae finalization accesses to some data
-	// structures throw extrae_nanos6_get_thread_id when finalizing MPI.
-	_singleton->_msn->shutdown();
+	if (_singleton->_msn != nullptr) {
+		// Finalize MPI BEFORE the instrumentation because the extrae finalization accesses to some
+		// data structures throw extrae_nanos6_get_thread_id when finalizing MPI.
+		_singleton->_msn->shutdown();
+	}
 }
 
 void ClusterManager::shutdownPhase2()
