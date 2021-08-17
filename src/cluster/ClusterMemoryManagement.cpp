@@ -27,9 +27,8 @@ namespace ClusterMemoryManagement {
 		void *dptr = nullptr;
 		const bool isMaster = ClusterManager::isMasterNode();
 
-		//! We allocate distributed memory only on the master node, so
-		//! that we serialize the allocations across all cluster
-		//! nodes
+		//! We allocate distributed memory only on the master node, so that we serialize the
+		//! allocations across all cluster nodes
 		if (isMaster) {
 			dptr = VirtualMemoryManagement::allocDistrib(size);
 			if (dptr == nullptr) {
@@ -48,16 +47,16 @@ namespace ClusterMemoryManagement {
 
 			DataAccessRegion allocatedRegion(dptr, size);
 
-			//! The home node of the new allocated region is the
-			//! current node
+			//! The home node of the new allocated region is the current node
 			Directory::insert(allocatedRegion, ClusterManager::getCurrentMemoryNode());
-			DataAccessRegistration::registerLocalAccess(task, allocatedRegion, ClusterManager::getCurrentMemoryNode(), /* isStack */ false);
+			DataAccessRegistration::registerLocalAccess(
+				task, allocatedRegion, ClusterManager::getCurrentMemoryNode(), /* isStack */ false
+			);
 
 			return dptr;
 		}
 
-		//! Send a message to everyone else to let them know about the
-		//! allocation
+		//! Send a message to everyone else to let them know about the allocation
 		ClusterNode *current = ClusterManager::getCurrentClusterNode();
 		std::vector<ClusterNode *> const &world = ClusterManager::getClusterNodes();
 
@@ -79,18 +78,18 @@ namespace ClusterMemoryManagement {
 			}
 		}
 
-		//! We are not the master node. The master node will send the
-		//! allocated address
+		//! We are not the master node. The master node will send the allocated address
 		if (!isMaster) {
 			ClusterNode *master = ClusterManager::getMasterNode();
 			DataAccessRegion region(&dptr, sizeof(void *));
 			ClusterManager::fetchDataRaw(region, master->getMemoryNode(), msg.getId(), true);
 		}
 
-		//! Register the newly allocated region with the Directory
-		//! of home nodes
+		//! Register the newly allocated region with the Directory of home nodes
 		DataAccessRegion allocatedRegion(dptr, size);
-		ClusterDirectory::registerAllocation(allocatedRegion, policy, numDimensions, dimensions, task);
+		ClusterDirectory::registerAllocation(
+			allocatedRegion, policy, numDimensions, dimensions, task
+		);
 
 		//! Register the new 'local' access
 
@@ -120,16 +119,13 @@ namespace ClusterMemoryManagement {
 
 		//! We do not need to send any Messages here
 		if (!ClusterManager::inClusterMode()) {
-			//! Here we should deallocate the memory once we fix
-			//! the memory allocator API
+			//! Here we should deallocate the memory once we fix the memory allocator API
 			return;
 		}
 
-		//! Send a message to everyone else to let them know about the
-		//! deallocation
-		ClusterNode *current = ClusterManager::getCurrentClusterNode();
-		std::vector<ClusterNode *> const &world =
-			ClusterManager::getClusterNodes();
+		//! Send a message to everyone else to let them know about the deallocation
+		const ClusterNode * const current = ClusterManager::getCurrentClusterNode();
+		std::vector<ClusterNode *> const &world = ClusterManager::getClusterNodes();
 
 		MessageDfree msg(current);
 		msg.setAddress(ptr);
@@ -145,26 +141,28 @@ namespace ClusterMemoryManagement {
 
 		ClusterManager::synchronizeAll();
 
-		//! TODO: We need to fix the way we allocate distributed memory so that
-		//! we do allocate it from the MemoryAllocator instead of the
-		//! VirtualMemoryManagement layer, which is what we do now. The
-		//! VirtualMemoryManagement layer does not allow (at the moment)
-		//! deallocation of memory, so for now we do not free distributed
-		//! memory
+		//! TODO: We need to fix the way we allocate distributed memory so that we do allocate it
+		//! from the MemoryAllocator instead of the VirtualMemoryManagement layer, which is what we
+		//! do now. The VirtualMemoryManagement layer does not allow (at the moment) deallocation of
+		//! memory, so for now we do not free distributed memory
 	}
 
 	void *lmalloc(size_t size)
 	{
-		// Register the lmalloc in the task's dependency system.
-		// This is needed for taskwait noflush, as a place to put the
-		// location information. Ideally we should register the whole local
-		// region all at once. At the moment the lmalloc and lfree have to
-		// be in the same task, which is a bit restrictive.
+		// Register the lmalloc in the task's dependency system.  This is needed for taskwait
+		// noflush, as a place to put the location information. Ideally we should register the whole
+		// local region all at once. At the moment the lmalloc and lfree have to be in the same
+		// task, which is a bit restrictive.
 		void *lptr = MemoryAllocator::alloc(size);
 		WorkerThread *currentThread = WorkerThread::getCurrentWorkerThread();
 		Task *task = currentThread->getTask();
 		DataAccessRegion allocatedRegion(lptr, size);
-		DataAccessRegistration::registerLocalAccess(task, allocatedRegion, ClusterManager::getCurrentMemoryNode(), /* isStack */ false);
+		DataAccessRegistration::registerLocalAccess(
+			task,
+			allocatedRegion,
+			ClusterManager::getCurrentMemoryNode(),
+			/* isStack */ false
+		);
 		return lptr;
 	}
 
