@@ -55,21 +55,20 @@ namespace Instrument {
 
 		assert(!globallySatisfied || (dataAccessId._originator == targetTaskId));
 
-		if ((context._taskId == targetTaskId) || (context._taskId._taskInfo == nullptr)) {
-			return;
-		}
-
-		if (context._taskId._taskInfo->_parent == context._taskId._taskInfo) {
+		if (context._taskId == targetTaskId
+			|| context._taskId._taskInfo == nullptr
+			|| context._taskId._taskInfo->_parent == context._taskId._taskInfo) {
 			// The access is ready during its instantiation
 			return;
 		}
 
-		if ((dataAccessId._objectType != regular_access_type) && (dataAccessId._objectType != taskwait_type)) {
+		if (dataAccessId._objectType != regular_access_type
+			&& dataAccessId._objectType != taskwait_type) {
 			return;
 		}
 
 		// Taskwait control dependencies are only emitted when the detail level is at least 8
-		if ((dataAccessId._objectType == taskwait_type) && (Extrae::_detailLevel < 8)) {
+		if (dataAccessId._objectType == taskwait_type && Extrae::_detailLevel < 8) {
 			return;
 		}
 
@@ -111,13 +110,16 @@ namespace Instrument {
 		ce.nEvents = 0;
 		ce.nCommunications = 1;
 
-		ce.Communications = (extrae_user_communication_t *) alloca(sizeof(extrae_user_communication_t) * ce.nCommunications);
+		ce.Communications =
+			(extrae_user_communication_t *) alloca(sizeof(extrae_user_communication_t) * ce.nCommunications);
 
 		ce.Communications[0].type = EXTRAE_USER_SEND;
 		ce.Communications[0].tag = (extrae_comm_tag_t) emitTag;
-		ce.Communications[0].size = (context._taskId._taskInfo->_taskId << 32) + targetTaskId._taskInfo->_taskId;
+		ce.Communications[0].size
+			= (context._taskId._taskInfo->_taskId << 32) + targetTaskId._taskInfo->_taskId;
 		ce.Communications[0].partner = EXTRAE_COMM_PARTNER_MYSELF;
-		ce.Communications[0].id = (context._taskId._taskInfo->_taskId << 32) + targetTaskId._taskInfo->_taskId;
+		ce.Communications[0].id
+			= (context._taskId._taskInfo->_taskId << 32) + targetTaskId._taskInfo->_taskId;
 
 		if (Extrae::_traceAsThreads) {
 			_extraeThreadCountLock.readLock();

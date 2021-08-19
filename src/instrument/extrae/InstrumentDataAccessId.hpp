@@ -14,24 +14,31 @@
 
 
 namespace Instrument {
-	//! This is the default data access identifier for the instrumentation.
-	//! It should be redefined in an identically named file within each instrumentation implementation.
+	//! This is the default data access identifier for the instrumentation.  It should be redefined
+	//! in an identically named file within each instrumentation implementation.
 	struct data_access_id_t {
 		DataAccessType _accessType;
 		bool _weak;
 		access_object_type_t _objectType;
 		task_id_t _originator;
-		
+
 		data_access_id_t()
 			: _originator()
 		{
 		}
-		
-		data_access_id_t(DataAccessType accessType, bool weak, access_object_type_t objectType, task_id_t originatorTaskId)
-			: _accessType(accessType), _weak(weak), _objectType(objectType), _originator(originatorTaskId)
+
+		data_access_id_t(
+			DataAccessType accessType,
+			bool weak,
+			access_object_type_t objectType,
+			task_id_t originatorTaskId
+		) : _accessType(accessType),
+			_weak(weak),
+			_objectType(objectType),
+			_originator(originatorTaskId)
 		{
 		}
-		
+
 		bool operator==(__attribute__((unused)) data_access_id_t const &other) const
 		{
 			return true;

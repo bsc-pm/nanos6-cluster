@@ -165,8 +165,8 @@ namespace Instrument {
 		ce.Values = (extrae_value_t *) alloca (ce.nEvents * sizeof (extrae_value_t));
 
 		if (ce.nCommunications > 0) {
-			ce.Communications
-				= (extrae_user_communication_t *) alloca(sizeof(extrae_user_communication_t) * ce.nCommunications);
+			const size_t allocsize = sizeof(extrae_user_communication_t) * ce.nCommunications;
+			ce.Communications = (extrae_user_communication_t *) alloca(allocsize);
 		}
 
 		ce.Types[0] = (extrae_type_t) EventType::RUNTIME_STATE;
@@ -281,10 +281,12 @@ namespace Instrument {
 				ce.nCommunications += taskforId._taskInfo->_predecessors.size();
 
 				if (ce.nCommunications > 0) {
+					const size_t allocsize = sizeof(extrae_user_communication_t) * ce.nCommunications;
+
 					if (ce.nCommunications < 100) {
-						ce.Communications = (extrae_user_communication_t *) alloca(sizeof(extrae_user_communication_t) * ce.nCommunications);
+						ce.Communications = (extrae_user_communication_t *) alloca(allocsize);
 					} else {
-						ce.Communications = (extrae_user_communication_t *) malloc(sizeof(extrae_user_communication_t) * ce.nCommunications);
+						ce.Communications = (extrae_user_communication_t *) malloc(allocsize);
 					}
 				}
 
@@ -292,9 +294,11 @@ namespace Instrument {
 				for (auto const &taskAndTag : taskforId._taskInfo->_predecessors) {
 					ce.Communications[index].type = EXTRAE_USER_RECV;
 					ce.Communications[index].tag = (extrae_comm_tag_t) taskAndTag.second;
-					ce.Communications[index].size = (taskAndTag.first << 32) + taskforId._taskInfo->_taskId;
+					ce.Communications[index].size
+						= (taskAndTag.first << 32) + taskforId._taskInfo->_taskId;
 					ce.Communications[index].partner = EXTRAE_COMM_PARTNER_MYSELF;
-					ce.Communications[index].id = (taskAndTag.first << 32) + taskforId._taskInfo->_taskId;
+					ce.Communications[index].id
+						= (taskAndTag.first << 32) + taskforId._taskInfo->_taskId;
 					index++;
 				}
 				taskforId._taskInfo->_predecessors.clear();
@@ -321,7 +325,7 @@ namespace Instrument {
 		if (Extrae::_traceAsThreads) {
 			_extraeThreadCountLock.readLock();
 		}
-		ExtraeAPI::emit_CombinedEvents ( &ce );
+		ExtraeAPI::emit_CombinedEvents(&ce);
 		if (Extrae::_traceAsThreads) {
 			_extraeThreadCountLock.readUnlock();
 		}
@@ -444,7 +448,7 @@ namespace Instrument {
 		assert(value >= 0);
 
 		ExtraeAPI::emit_SimpleEvent(
-			(extrae_type_t) EventType::RUNNING_TASKFOR_CHUNK, 
+			(extrae_type_t) EventType::RUNNING_TASKFOR_CHUNK,
 			(extrae_value_t) value
 		);
 	}
