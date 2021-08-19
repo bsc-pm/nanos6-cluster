@@ -115,10 +115,12 @@ public:
 		if (task->hasConstrains()) {
 			const int nodeId = task->getNode();
 
-			if (nodeId >= 0) {                       // Id is a node number.
+			if (nodeId >= 0) {                            // Id is a node number.
 				FatalErrorHandler::failIf(
 					nodeId >= ClusterManager::clusterSize(),
-					"node in node() constraint out of range"
+					"node in node() clause is out of range (",
+					nodeId, " >= ", ClusterManager::clusterSize(),
+					") in task: ", task->getLabel()
 				);
 
 				return nodeId;
@@ -140,7 +142,10 @@ public:
 				return policy->getScheduledNode(task, computePlace, hint);
 			}
 
-			FatalErrorHandler::fail("hint value in node() constraint is out of range");
+			FatalErrorHandler::fail(
+				"hint value in node() constraint is out of range. nodeId:",
+				nodeId, " in task: ", task->getLabel()
+			);
 		}
 
 		return nanos6_cluster_no_hint;
