@@ -3393,6 +3393,20 @@ namespace DataAccessRegistration {
 				assert(dataAccess != nullptr);
 				assert(!dataAccess->hasBeenDiscounted());
 
+				if (dataAccess->getType() == NO_ACCESS_TYPE) {
+
+					/* Remove any data accesses of type NO_ACCESS_TYPE that result from a non-upgraded
+					 * none() pragma clause. Note: other accesses of NO_ACCESS_TYPE may be added later,
+					 * for various reasons, but the ones that result from the none() pragma clause do
+					 * not need to be kept.
+					 */
+
+					dataAccess->markAsDiscounted();
+					accessStructures._accesses.erase(dataAccess);
+					ObjectAllocator<DataAccess>::deleteObject(dataAccess);
+					return true;
+				}
+
 				DataAccessStatusEffects initialStatus(dataAccess);
 				dataAccess->setNewInstrumentationId(task->getInstrumentationTaskId());
 
