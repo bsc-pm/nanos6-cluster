@@ -258,6 +258,25 @@ static _AI_ void register_reduction_access(
 	}
 }
 
+template<>
+_AI_ void register_data_access_base<NO_ACCESS_TYPE, true>(
+	void *handler, _UU_ int symbolIndex, _UU_ char const *regionText, void *baseAddress,
+	_UU_ long currentDimSize, long currentDimStart, long currentDimEnd
+) {
+	size_t start = (size_t) baseAddress;
+	start += currentDimStart;
+	nanos6_register_none_depinfo(handler, (void *) start, currentDimEnd - currentDimStart, symbolIndex);
+}
+
+template<>
+_AI_ void register_data_access_base<AUTO_ACCESS_TYPE, true>(
+	void *handler, _UU_ int symbolIndex, _UU_ char const *regionText, void *baseAddress,
+	_UU_ long currentDimSize, long currentDimStart, long currentDimEnd
+) {
+	size_t start = (size_t) baseAddress;
+	start += currentDimStart;
+	nanos6_register_auto_depinfo(handler, (void *) start, currentDimEnd - currentDimStart, symbolIndex);
+}
 
 template <bool WEAK, typename... TS>
 static _AI_ void register_reduction_access_skip_next(
