@@ -1367,16 +1367,17 @@ namespace DataAccessRegistration {
 				newDataAccessType = COMMUTATIVE_ACCESS_TYPE;
 			} else {
 				/*
-				 * Every other remaining case is READWRITE
-				 *    (# means same, X means invalid, commutative handled above
+				 * Every other remaining case is READWRITE. The rules are summarized
+				 * in the below table. Only the upper triangle is shown, as the table
+				 * is symmetric. The entries on the diagonal are indicated by "#".
 				 *
 				 *  		        READ WRITE READWRITE  CONCURRENT COMMUTATIVE REDUCTION
-				 *  READ               #    RW        RW         RW?         RW?         X
-				 *  WRITE             RW     #        RW         RW?         RW?         X
-				 *  READWRITE         RW    RW         #         RW?         RW?         X
-				 *  CONCURRENT       RW?   RW?       RW?           # commutative         X
-				 *  COMMUTATIVE      RW?   RW?       RW? commutative           #         X
-				 *  REDUCTION          X     X         X           X           X         #
+				 *  READ            #    RW    RW         RW         RW          Invalid
+				 *  WRITE                #     RW         RW         RW          Invalid
+				 *  READWRITE                  #          RW         RW          Invalid
+				 *  CONCURRENT                            #          commutative Invalid
+				 *  COMMUTATIVE                                      #           Invalid
+				 *  REDUCTION                                                    #
 				 */
 				newDataAccessType = READWRITE_ACCESS_TYPE;
 			}
