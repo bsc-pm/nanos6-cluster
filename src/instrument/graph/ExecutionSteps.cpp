@@ -340,6 +340,9 @@ namespace Instrument {
 				case CONCURRENT_ACCESS_TYPE:
 					oss << " CRR";
 					break;
+				case AUTO_ACCESS_TYPE:
+					oss << " ALL";
+					break;
 				case REDUCTION_ACCESS_TYPE:
 					oss << " RED";
 					break;
@@ -417,6 +420,9 @@ namespace Instrument {
 					break;
 				case CONCURRENT_ACCESS_TYPE:
 					oss << " CRR";
+					break;
+				case AUTO_ACCESS_TYPE:
+					oss << " ALL";
 					break;
 				case REDUCTION_ACCESS_TYPE:
 					oss << " RED";

@@ -222,6 +222,10 @@ namespace Instrument {
 					text << (access.weak() ? "c" : "C");
 					color = "#FFFF00";
 					break;
+				case AUTO_ACCESS_TYPE:
+					text << "m";
+					color = "#FFFF80";
+					break;
 				case COMMUTATIVE_ACCESS_TYPE:
 					text << (access.weak() ? "cm" : "CM");
 					color = "#FF00FF";

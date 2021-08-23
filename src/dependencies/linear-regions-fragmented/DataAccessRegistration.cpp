@@ -53,7 +53,7 @@
 #pragma GCC visibility push(hidden)
 
 const char *dataAccessTypeNames[] = {
-	"none", "read", "write", "readwrite", "concurrent", "commutative", "reduction"};
+	"none", "read", "write", "readwrite", "concurrent", "commutative", "reduction", "auto"};
 
 namespace DataAccessRegistration {
 
@@ -323,7 +323,8 @@ namespace DataAccessRegistration {
 						&& (access->receivedReductionInfo() || access->allocatedReductionInfo())
 						// For 'write' and 'readwrite' accesses we need to propagate the ReductionInfo through fragments only,
 						// in order to be able to propagate a nested reduction ReductionInfo outside
-						&& ((access->getType() != WRITE_ACCESS_TYPE) && (access->getType() != READWRITE_ACCESS_TYPE));
+						&& ((access->getType() != WRITE_ACCESS_TYPE) && (access->getType() != READWRITE_ACCESS_TYPE)
+							&& (access->getType() != AUTO_ACCESS_TYPE));
 					_propagatesReductionSlotSetToNext = false; // ReductionSlotSet is propagated through the fragments
 					// Occasionally data release step needs to be propagated here
 				} else if (
@@ -389,7 +390,8 @@ namespace DataAccessRegistration {
 						&& (access->receivedReductionInfo() || access->allocatedReductionInfo())
 						// For 'write' and 'readwrite' accesses we need to propagate the ReductionInfo to next only when
 						// complete, otherwise subaccesses can still appear
-						&& (((access->getType() != WRITE_ACCESS_TYPE) && (access->getType() != READWRITE_ACCESS_TYPE))
+						&& (((access->getType() != WRITE_ACCESS_TYPE) && (access->getType() != READWRITE_ACCESS_TYPE)
+							&& (access->getType() != AUTO_ACCESS_TYPE))
 							|| access->complete());
 					_propagatesReductionSlotSetToNext =
 						(access->getType() == REDUCTION_ACCESS_TYPE)
@@ -1023,7 +1025,7 @@ namespace DataAccessRegistration {
 				// Subaccesses of an access that can't have a nested reduction which is visible outside
 				// should never propagate the ReductionInfo (it is already propagated by the parent access)
 				bottomMapUpdateOperation._inhibitReductionInfoPropagation =
-					(access->getType() != WRITE_ACCESS_TYPE) && (access->getType() != READWRITE_ACCESS_TYPE);
+					(access->getType() != WRITE_ACCESS_TYPE) && (access->getType() != READWRITE_ACCESS_TYPE) && (access->getType() != AUTO_ACCESS_TYPE);
 
 				bottomMapUpdateOperation._setCloseReduction = (access->getType() != REDUCTION_ACCESS_TYPE) || access->closesReduction();
 
@@ -1074,10 +1076,10 @@ namespace DataAccessRegistration {
 			// because we did write to it, but on the same node that it was on before the concurrent tasks.
 			// By sending no message we will not change the location, which in case (a) will let
 			// another concurrent task do the write and in case (b) gives the correct location already.
-			bool dontUpdateConcurrentLocation = (access->getType() == CONCURRENT_ACCESS_TYPE)
+			bool dontRelease = access->getType() == CONCURRENT_ACCESS_TYPE
 								&& (access->getLocation() == access->getConcurrentInitialLocation());
 
-			if (!dontUpdateConcurrentLocation) {
+			if (access->getLocation() != nullptr && !dontRelease) {
 				// This adds the access to the ClusterDataReleaseStep::_releaseInfo vector.
 				// The accesses will be released latter.
 				assert(access->getObjectType() != taskwait_type); // Never release a taskwait fragment
@@ -1421,6 +1423,40 @@ namespace DataAccessRegistration {
 	}
 
 	/*
+	 * The upgrade rules are summarized in the below table. Only the upper triangle is shown,
+	 * as the table is symmetric. The entries on the diagonal are indicated by "#".
+	 *
+	 *  		     NONE READ WRITE READWRITE  CONCURRENT COMMUTATIVE REDUCTION ALLMEMORY
+	 *  NONE         #    R    W     RW         concurrent commutative reduction None
+	 *  READ              #    RW    RW         RW         RW          Invalid   R
+	 *  WRITE                  #     RW         RW         RW          Invalid   W
+	 *  READWRITE                    #          RW         RW          Invalid   RW
+	 *  CONCURRENT                              #          commutative Invalid   concurrent
+	 *  COMMUTATIVE                                        #           Invalid   commutative
+	 *  REDUCTION                                                      #         reduction
+	 *  ALLMEMORY                                                                #
+	 */
+
+	static DataAccessType upgradeAccessTable[AUTO_ACCESS_TYPE+1][AUTO_ACCESS_TYPE+1] = {
+		/* NO_ACCESS_TYPE */
+			{ NO_ACCESS_TYPE, READ_ACCESS_TYPE, WRITE_ACCESS_TYPE, READWRITE_ACCESS_TYPE, CONCURRENT_ACCESS_TYPE, COMMUTATIVE_ACCESS_TYPE, REDUCTION_ACCESS_TYPE, NO_ACCESS_TYPE },
+		/* READ_ACCESS_TYPE */
+			{ READ_ACCESS_TYPE, READ_ACCESS_TYPE, READWRITE_ACCESS_TYPE, READWRITE_ACCESS_TYPE, READWRITE_ACCESS_TYPE, READWRITE_ACCESS_TYPE, NO_ACCESS_TYPE, READ_ACCESS_TYPE },
+		/* WRITE_ACCESS_TYPE */
+			{ WRITE_ACCESS_TYPE, READWRITE_ACCESS_TYPE, WRITE_ACCESS_TYPE, READWRITE_ACCESS_TYPE, READWRITE_ACCESS_TYPE, READWRITE_ACCESS_TYPE, NO_ACCESS_TYPE, WRITE_ACCESS_TYPE },
+		/* READWRITE_ACCESS_TYPE */
+			{ READWRITE_ACCESS_TYPE, READWRITE_ACCESS_TYPE, READWRITE_ACCESS_TYPE, READWRITE_ACCESS_TYPE, READWRITE_ACCESS_TYPE, READWRITE_ACCESS_TYPE, NO_ACCESS_TYPE, READWRITE_ACCESS_TYPE },
+		/* CONCURRENT_ACCESS_TYPE */
+			{ CONCURRENT_ACCESS_TYPE, READWRITE_ACCESS_TYPE, READWRITE_ACCESS_TYPE, READWRITE_ACCESS_TYPE, READWRITE_ACCESS_TYPE, COMMUTATIVE_ACCESS_TYPE, NO_ACCESS_TYPE, CONCURRENT_ACCESS_TYPE },
+		/* COMMUTATIVE_ACCESS_TYPE */
+			{ COMMUTATIVE_ACCESS_TYPE, READWRITE_ACCESS_TYPE, READWRITE_ACCESS_TYPE, READWRITE_ACCESS_TYPE, COMMUTATIVE_ACCESS_TYPE, CONCURRENT_ACCESS_TYPE, NO_ACCESS_TYPE, COMMUTATIVE_ACCESS_TYPE },
+		/* REDUCTION_ACCESS_TYPE */
+			{ REDUCTION_ACCESS_TYPE, NO_ACCESS_TYPE, NO_ACCESS_TYPE, NO_ACCESS_TYPE, NO_ACCESS_TYPE, NO_ACCESS_TYPE, REDUCTION_ACCESS_TYPE, REDUCTION_ACCESS_TYPE },
+		/* AUTO_ACCESS_TYPE */
+			{ NO_ACCESS_TYPE, READ_ACCESS_TYPE, WRITE_ACCESS_TYPE, READWRITE_ACCESS_TYPE, CONCURRENT_ACCESS_TYPE, COMMUTATIVE_ACCESS_TYPE, REDUCTION_ACCESS_TYPE, AUTO_ACCESS_TYPE },
+	};
+
+	/*
 	 * Upgrade an access: called by registerTaskDataAccess when a task's access
 	 * intersects a previously-registered access of the same task.
 	 */
@@ -1443,26 +1479,12 @@ namespace DataAccessRegistration {
 				"Task ",
 				(dataAccess->getOriginator()->getTaskInfo()->implementations[0].task_label != nullptr ? dataAccess->getOriginator()->getTaskInfo()->implementations[0].task_label : dataAccess->getOriginator()->getTaskInfo()->implementations[0].declaration_source),
 				" has non-reduction accesses that overlap a reduction");
-			if (
-				((accessType == COMMUTATIVE_ACCESS_TYPE) && (dataAccess->getType() == CONCURRENT_ACCESS_TYPE))
-				|| ((accessType == CONCURRENT_ACCESS_TYPE) && (dataAccess->getType() == COMMUTATIVE_ACCESS_TYPE))) {
-				newDataAccessType = COMMUTATIVE_ACCESS_TYPE;
-			} else {
-				/*
-				 * Every other remaining case is READWRITE. The rules are summarized
-				 * in the below table. Only the upper triangle is shown, as the table
-				 * is symmetric. The entries on the diagonal are indicated by "#".
-				 *
-				 *  		        READ WRITE READWRITE  CONCURRENT COMMUTATIVE REDUCTION
-				 *  READ            #    RW    RW         RW         RW          Invalid
-				 *  WRITE                #     RW         RW         RW          Invalid
-				 *  READWRITE                  #          RW         RW          Invalid
-				 *  CONCURRENT                            #          commutative Invalid
-				 *  COMMUTATIVE                                      #           Invalid
-				 *  REDUCTION                                                    #
-				 */
-				newDataAccessType = READWRITE_ACCESS_TYPE;
-			}
+
+			assert(accessType <= AUTO_ACCESS_TYPE);
+			assert(dataAccess->getType() <= AUTO_ACCESS_TYPE);
+			newDataAccessType = upgradeAccessTable[accessType][dataAccess->getType()];
+			assert(newDataAccessType == upgradeAccessTable[dataAccess->getType()][accessType]);
+
 		} else {
 			FatalErrorHandler::failIf(
 				(accessType == REDUCTION_ACCESS_TYPE)
@@ -3731,13 +3753,13 @@ namespace DataAccessRegistration {
 		// task's accesses.  So if a child task covers multiple task accesses
 		// of different type, then bottomMapEntry->_accessType may not be
 		// correct for all. We keep it for now since this access type is only
-		// used (1) in the workflow to not fetch dmallocs in non-allmemory
+		// used (1) in the workflow to not fetch dmallocs in non-auto
 		// tasks (i.e. accesses of NO_ACCESS_TYPE in the distributed region),
 		// which will not be in the same dependency as accesses of a different
 		// type, and (2) in createTaskwait to not fetch weakconcurrent or
-		// allmemory accesses when cluster.eager_weak_fetch=true, which may
+		// auto accesses when cluster.eager_weak_fetch=true, which may
 		// cause a few redundant eager fetches but not in the problematic case
-		// of allmemory tasks (for which cluster.eager_weak_fetch=false).
+		// of auto tasks (for which cluster.eager_weak_fetch=false).
 		DataAccessType accessType = bottomMapEntry->_accessType;
 
 		reduction_type_and_operator_index_t reductionTypeAndOperatorIndex =
@@ -3943,11 +3965,11 @@ namespace DataAccessRegistration {
 							createTaskwaitFragment(task, bottomMapEntry, computePlace, region, accessStructures, hpDependencyData, /* fetchData */ false);
 						} else if (ClusterManager::getEagerWeakFetch()
 									&& bottomMapEntry->_accessType != CONCURRENT_ACCESS_TYPE) {
-							// Eager weak fetch and not concurrent or allmemory, so always fetch, even if weak
+							// Eager weak fetch and not concurrent or auto, so always fetch, even if weak
 							// **WARNING**: bottomMapEntry->_accessType might not be correct if a single bottom map entry
 							// covers multiple task accesses, as bottom map entries are not fragmented for task accesses.
-							// So we might do some unnecessary eager fetches of weakconcurrent or allmemory accesses. This
-							// is only likely to be problematic for allmemory tasks, but in that case
+							// So we might do some unnecessary eager fetches of weakconcurrent or auto accesses. This
+							// is only likely to be problematic for auto tasks, but in that case
 							// cluster.eager_weak_fetch=false.
 							createTaskwaitFragment(task, bottomMapEntry, computePlace, region, accessStructures, hpDependencyData, /* fetchData */ true);
 						 } else {
@@ -4792,7 +4814,7 @@ namespace DataAccessRegistration {
 
 					// A local access is typically registered as NO_ACCESS_TYPE. The
 					// only way it can be otherwise if the local access is part of a
-					// larger access, such as an allmemory access. In this case, we
+					// larger access, such as an auto access. In this case, we
 					// only have to change the location of the unregistered region to
 					// the directory, which indicates that the data is uninitialized.
 					// This is needed for correctness, not just performance! If we

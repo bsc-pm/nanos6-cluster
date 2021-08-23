@@ -657,6 +657,7 @@ public:
 			return writeSatisfied()
 				&& (allocatedReductionInfo() || (receivedReductionInfo() && receivedReductionSlotSet()));
 		} else {
+			// NO_ACCESS_TYPE, WRITE_ACCESS_TYPE, READWRITE_ACCESS_TYPE or AUTO_ACCESS_TYPE
 			return readSatisfied() && writeSatisfied();
 		}
 	}

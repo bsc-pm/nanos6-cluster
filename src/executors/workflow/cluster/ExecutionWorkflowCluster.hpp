@@ -559,9 +559,11 @@ namespace ExecutionWorkflow {
 				//! that the data is not yet initialized)
 				&& !source->isDirectoryMemoryPlace()
 				//! and, if it is a weak access, then only if cluster.eager_weak_fetch == true.
-				//! Also don't eagerly fetch weak concurrent accesses, as usually we will
+				//! Also don't eagerly fetch weak concurrent or auto accesses, as usually we will
 				//! only access part of them.
-				&& (!isWeak || (ClusterManager::getEagerWeakFetch() && access->getType() != CONCURRENT_ACCESS_TYPE))
+				&& (!isWeak || (ClusterManager::getEagerWeakFetch()
+				                && access->getType() != CONCURRENT_ACCESS_TYPE
+				                && access->getType() != AUTO_ACCESS_TYPE))
 			);
 
 		//! If no data transfer is needed, then register the new location if
