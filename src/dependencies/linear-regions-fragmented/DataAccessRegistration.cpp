@@ -1454,7 +1454,7 @@ namespace DataAccessRegistration {
 			removeIntersection,
 			[&](BottomMapEntry const &toBeDuplicated) -> BottomMapEntry * {
 				return ObjectAllocator<BottomMapEntry>::newObject(DataAccessRegion(), toBeDuplicated._link,
-					toBeDuplicated._accessType, toBeDuplicated._isWeak, toBeDuplicated._reductionTypeAndOperatorIndex);
+					toBeDuplicated._accessType, toBeDuplicated._reductionTypeAndOperatorIndex);
 			},
 			[&](__attribute__((unused)) BottomMapEntry *fragment, __attribute__((unused)) BottomMapEntry *originalBottomMapEntry) {
 			});
@@ -2200,7 +2200,6 @@ namespace DataAccessRegistration {
 						excludedSubregion,
 						DataAccessLink(dataAccess->getOriginator(), fragment_type),
 						dataAccess->getType(),
-						dataAccess->isWeak(),
 						dataAccess->getReductionTypeAndOperatorIndex());
 					accessStructures._subaccessBottomMap.insert(*bottomMapEntry);
 				},
@@ -2397,7 +2396,6 @@ namespace DataAccessRegistration {
 						BottomMapEntryContents bmeContents(
 							DataAccessLink(parent, fragment_type),
 							previous->getType(),
-							previous->isWeak(),
 							previous->getReductionTypeAndOperatorIndex());
 
 						{
@@ -2484,7 +2482,6 @@ namespace DataAccessRegistration {
 						BottomMapEntryContents bmeContents(
 							DataAccessLink(parent, fragment_type),
 							previous->getType(),
-							previous->isWeak(),
 							previous->getReductionTypeAndOperatorIndex()
 						);
 
@@ -2799,7 +2796,6 @@ namespace DataAccessRegistration {
 #endif
 
 		DataAccessType parentAccessType = NO_ACCESS_TYPE;
-		bool parentAccessIsWeak = false;
 		reduction_type_and_operator_index_t parentReductionTypeAndOperatorIndex = no_reduction_type_and_operator;
 
 		/*
@@ -2838,7 +2834,6 @@ namespace DataAccessRegistration {
 				assert(previousTask != nullptr);
 
 				parentAccessType = bottomMapEntryContents._accessType;
-				parentAccessIsWeak = bottomMapEntryContents._isWeak;
 				parentReductionTypeAndOperatorIndex = bottomMapEntryContents._reductionTypeAndOperatorIndex;
 				local = (bottomMapEntryContents._accessType == NO_ACCESS_TYPE);
 
@@ -3163,7 +3158,7 @@ namespace DataAccessRegistration {
 
 		// Add the entry to the bottom map
 		BottomMapEntry *bottomMapEntry = ObjectAllocator<BottomMapEntry>::newObject(
-			region, next, parentAccessType, parentAccessIsWeak, parentReductionTypeAndOperatorIndex);
+			region, next, parentAccessType, parentReductionTypeAndOperatorIndex);
 		parentAccessStructures._subaccessBottomMap.insert(*bottomMapEntry);
 	}
 
@@ -3543,14 +3538,26 @@ namespace DataAccessRegistration {
 		Task *task,
 		BottomMapEntry *bottomMapEntry,
 		ComputePlace *computePlace,
-		bool noflush,
 		DataAccessRegion region,
 		TaskDataAccesses &accessStructures,
-		CPUDependencyData &hpDependencyData)
+		CPUDependencyData &hpDependencyData,
+		bool fetchData)
 	{
 		DataAccessLink previous = bottomMapEntry->_link;
+
+		// **WARNING**: Bottom map entries are not fragmented by the parent
+		// task's accesses.  So if a child task covers multiple task accesses
+		// of different type, then bottomMapEntry->_accessType may not be
+		// correct for all. We keep it for now since this access type is only
+		// used (1) in the workflow to not fetch dmallocs in non-allmemory
+		// tasks (i.e. accesses of NO_ACCESS_TYPE in the distributed region),
+		// which will not be in the same dependency as accesses of a different
+		// type, and (2) in createTaskwait to not fetch weakconcurrent or
+		// allmemory accesses when cluster.eager_weak_fetch=true, which may
+		// cause a few redundant eager fetches but not in the problematic case
+		// of allmemory tasks (for which cluster.eager_weak_fetch=false).
 		DataAccessType accessType = bottomMapEntry->_accessType;
-		bool accessIsWeak = bottomMapEntry->_isWeak;
+
 		reduction_type_and_operator_index_t reductionTypeAndOperatorIndex =
 		bottomMapEntry->_reductionTypeAndOperatorIndex;
 		{
@@ -3567,16 +3574,9 @@ namespace DataAccessRegistration {
 			taskwaitFragment->setInBottomMap();
 			taskwaitFragment->setRegistered();
 
-			if (computePlace != nullptr) {
-				/* Fetch the data for a taskwait noflush  with same conditions as an
-				 * ordinary access: see clusterFetchData.
-				 */
-				bool fetchData = !noflush
-								&& (!accessIsWeak || (ClusterManager::getEagerWeakFetch() && accessType != CONCURRENT_ACCESS_TYPE));
-
-				if (fetchData) {
-					taskwaitFragment->setOutputLocation(computePlace->getMemoryPlace(0));
-				}
+			if (fetchData) {
+				assert(computePlace != nullptr);
+				taskwaitFragment->setOutputLocation(computePlace->getMemoryPlace(0));
 			}
 			// taskwaitFragment->setComplete();
 
@@ -3698,7 +3698,6 @@ namespace DataAccessRegistration {
 
 							DataAccessRegion region = access->getAccessRegion();
 							DataAccessType accessType = access->getType();
-							bool accessIsWeak = access->isWeak();
 							// access->setLocation(ClusterManager::getCurrentMemoryNode());
 							bool foundGap = false;
 
@@ -3733,7 +3732,7 @@ namespace DataAccessRegistration {
 							if (foundGap) {
 								DataAccessLink next = DataAccessLink(task, fragment_type);
 								BottomMapEntry *bottomMapEntry = ObjectAllocator<BottomMapEntry>::newObject(
-										region, next, accessType, accessIsWeak, no_reduction_type_and_operator);
+										region, next, accessType, no_reduction_type_and_operator);
 								accessStructures._subaccessBottomMap.insert(*bottomMapEntry);
 							}
 						}
@@ -3750,12 +3749,51 @@ namespace DataAccessRegistration {
 		 */
 		if (!nonLocalOnly) {
 			// Normal case: make a taskwait fragment for each entry on the bottom map
+
 		  	accessStructures._subaccessBottomMap.processAll(
 				   [&](TaskDataAccesses::subaccess_bottom_map_t::iterator bottomMapPosition) -> bool {
 						BottomMapEntry *bottomMapEntry = &(*bottomMapPosition);
 						assert(bottomMapEntry != nullptr);
+
 						DataAccessRegion region = bottomMapEntry->_region;
-						createTaskwaitFragment(task, bottomMapEntry, computePlace, noflush, region, accessStructures, hpDependencyData);
+						if (noflush || computePlace == nullptr) {
+							// Taskwait noflush: so don't flush
+							createTaskwaitFragment(task, bottomMapEntry, computePlace, region, accessStructures, hpDependencyData, /* fetchData */ false);
+						} else if (ClusterManager::getEagerWeakFetch()
+									&& bottomMapEntry->_accessType != CONCURRENT_ACCESS_TYPE) {
+							// Eager weak fetch and not concurrent or allmemory, so always fetch, even if weak
+							// **WARNING**: bottomMapEntry->_accessType might not be correct if a single bottom map entry
+							// covers multiple task accesses, as bottom map entries are not fragmented for task accesses.
+							// So we might do some unnecessary eager fetches of weakconcurrent or allmemory accesses. This
+							// is only likely to be problematic for allmemory tasks, but in that case
+							// cluster.eager_weak_fetch=false.
+							createTaskwaitFragment(task, bottomMapEntry, computePlace, region, accessStructures, hpDependencyData, /* fetchData */ true);
+						 } else {
+							// Not eager weak fetch: so fetch data only for strong accesses. We need to check the accesses
+							// to find out which parts are parts of strong accesses. Note a single bottom map entry may
+							// cover multiple accesses.
+							accessStructures._accesses.processIntersectingAndMissing(region,
+								[&](TaskDataAccesses::accesses_t::iterator position) -> bool {
+									// Create taskwait fragment for an access, fetching the data if the access is strong
+									DataAccess *dataAccess = &(*position);
+									assert(dataAccess != nullptr);
+									bool fetchData = !dataAccess->isWeak();
+									DataAccessRegion subregion = region.intersect(dataAccess->getAccessRegion());
+									bottomMapEntry = fragmentBottomMapEntry(bottomMapEntry, subregion, accessStructures);
+									createTaskwaitFragment(task, bottomMapEntry, computePlace, subregion, accessStructures, hpDependencyData, fetchData);
+									bottomMapEntry = &(*(++bottomMapPosition));
+									return true;
+								},
+								[&](DataAccessRegion missingRegion) -> bool {
+									// Create taskwait fragment for a missing region, never fetching the data
+									DataAccessRegion subregion = region.intersect(missingRegion);
+									bottomMapEntry = fragmentBottomMapEntry(bottomMapEntry, subregion, accessStructures);
+									createTaskwaitFragment(task, bottomMapEntry, computePlace, subregion, accessStructures, hpDependencyData, /*fetchData*/ false);
+									bottomMapEntry = &(*(++bottomMapPosition));
+									return true;
+									}
+							);
+						 }
 						mustWait = true;
 						return true;
 					});
@@ -3802,7 +3840,7 @@ namespace DataAccessRegistration {
 																	region.getEndAddress()));
 										// Non early-released access that needs a taskwait fragment
 										bottomMapEntry = fragmentBottomMapEntry(bottomMapEntry, subregion, accessStructures);
-										createTaskwaitFragment(task, bottomMapEntry, computePlace, noflush, subregion, accessStructures, hpDependencyData);
+										createTaskwaitFragment(task, bottomMapEntry, computePlace, subregion, accessStructures, hpDependencyData, /* fetchData */ false);
 										mustWait = true;
 										continueWithoutRestart = false;
 										bottomMapEntry = &(*(++bottomMapPosition));
@@ -3819,7 +3857,7 @@ namespace DataAccessRegistration {
 							});
 							if (!done) {
 								bottomMapEntry = fragmentBottomMapEntry(bottomMapEntry, region, accessStructures);
-								createTaskwaitFragment(task, bottomMapEntry, computePlace, noflush, region, accessStructures, hpDependencyData);
+								createTaskwaitFragment(task, bottomMapEntry, computePlace, region, accessStructures, hpDependencyData, /* fetchData */ false);
 								mustWait = true;
 							}
 						/* Always continue with the rest of the accesses */
