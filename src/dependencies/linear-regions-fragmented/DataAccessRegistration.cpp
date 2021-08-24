@@ -4591,7 +4591,6 @@ namespace DataAccessRegistration {
 			//! should be removed (unless the local region is covered by an "all
 			//! region" access).
 			assert(!accessStructures._accesses.contains(region));
-			assert(!accessStructures._accessFragments.contains(region));
 
 			// If at this point there are still any fragments overlapping this
 			// region, then we are calling lfree or dfree without doing a taskwait
@@ -4605,6 +4604,7 @@ namespace DataAccessRegistration {
 			// to do it.
 			FatalErrorHandler::failIf(accessStructures._accessFragments.contains(region),
 				"lfree or dfree without preceding taskwait");
+			assert(!accessStructures._accessFragments.contains(region));
 		}
 	}
 
