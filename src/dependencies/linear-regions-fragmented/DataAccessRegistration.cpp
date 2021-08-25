@@ -3989,13 +3989,14 @@ namespace DataAccessRegistration {
 						 } else {
 							// Not eager weak fetch: so fetch data only for strong accesses. We need to check the accesses
 							// to find out which parts are parts of strong accesses. Note a single bottom map entry may
-							// cover multiple accesses.
+							// cover multiple accesses. We also fetch lmalloc and stack local accesses even if they are
+							// covered by a weak (auto) access.
 							accessStructures._accesses.processIntersectingAndMissing(region,
 								[&](TaskDataAccesses::accesses_t::iterator position) -> bool {
 									// Create taskwait fragment for an access, fetching the data if the access is strong
 									DataAccess *dataAccess = &(*position);
 									assert(dataAccess != nullptr);
-									bool fetchData = !dataAccess->isWeak();
+									bool fetchData = !dataAccess->isWeak() || dataAccess->isStrongLocalAccess();
 									DataAccessRegion subregion = region.intersect(dataAccess->getAccessRegion());
 									bottomMapEntry = fragmentBottomMapEntry(bottomMapEntry, subregion, accessStructures);
 									createTaskwaitFragment(task, bottomMapEntry, computePlace, subregion, accessStructures, hpDependencyData, fetchData);
@@ -4696,11 +4697,34 @@ namespace DataAccessRegistration {
 				// with accesses changing from weak to strong.
 				DataAccessStatusEffects initialStatus(access);
 				if (location) {
+
+					// Set the location. If it is the current node, then we
+					// have to ensure that taskwaits fetch the data (it could
+					// be an lmalloc or stack).  We do this by setting the
+					// "strong local access" bit in the original access.  It is
+					// tempting to instead change the existing access, if it is
+					// weak, into a strong one (calling access->upgrade). But
+					// there is no logic in the dependency system to deal with
+					// accesses changing from weak to strong (e.g. a dependency
+					// that previously wasn't enforcing a dependency may now be
+					// enforcing one, but the task has already started).
+
+					// Note: dmallocs pass a location of nullptr, so taskwaits
+					// in the same auto task will not fetch dmalloc'ed
+					// data, even if the home is the current node. Check that
+					// this is the case, otherwise we may end up fetching the
+					// parts of a dmalloc that are on this node.
+					assert(location->isClusterLocalMemoryPlace());
+
 					access->setLocation(location);
-					if (location->isClusterLocalMemoryPlace() && !location->isDirectoryMemoryPlace()) {
-						access->setNewLocalWriteID();
+					if (location->isClusterLocalMemoryPlace()) {
+						access->setIsStrongLocalAccess();
+						if (!location->isDirectoryMemoryPlace()) {
+							access->setNewLocalWriteID();
+						}
 					}
 				}
+
 				// access->setValidNamespacePrevious(VALID_NAMESPACE_NONE, nullptr);
 				// access->setValidNamespaceSelf(VALID_NAMESPACE_NONE);
 				DataAccessStatusEffects updatedStatus(access);
@@ -4740,7 +4764,9 @@ namespace DataAccessRegistration {
 			// 	task->getLabel(),
 			// 	" without a weakinout \"all memory\" access");
 
-			/* Create a new access */
+			/* Create a new access. It will be of NO_ACCESS_TYPE, so the
+			 * workflow will determine whether taskwaits fetch the data or not.
+			 */
 			DataAccess *newLocalAccess = createAccess(
 				task,
 				access_type,
@@ -4754,6 +4780,9 @@ namespace DataAccessRegistration {
 			newLocalAccess->setNewInstrumentationId(task->getInstrumentationTaskId());
 
 			const MemoryPlace *loc = location ? location : Directory::getDirectoryMemoryPlace();
+			if (location) {
+				newLocalAccess->setIsStrongLocalAccess();
+			}
 			newLocalAccess->setReadSatisfied(loc);
 			if (location && location->isClusterLocalMemoryPlace() && !location->isDirectoryMemoryPlace()) {
 				newLocalAccess->setNewLocalWriteID();
@@ -4818,6 +4847,9 @@ namespace DataAccessRegistration {
 				DataAccess *access = &(*position);
 				assert(access != nullptr);
 				assert(!access->hasBeenDiscounted());
+				if (access->isStrongLocalAccess()) {
+					access->unsetIsStrongLocalAccess();
+				}
 
 				/*
 				 * Fragment access, as only part inside region becomes complete.

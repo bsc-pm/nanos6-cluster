@@ -86,6 +86,7 @@ private:
 		DATA_RELEASED_BIT,
 		DISABLE_EAGER_SEND_BIT,
 		NAMESPACE_NEXT_IS_IN_BIT,
+		IS_STRONG_LOCAL_ACCESS,
 		TOTAL_STATUS_BITS
 	};
 
@@ -622,6 +623,9 @@ public:
 			setComplete();
 		}
 		setWriteID(other->getWriteID());
+		if (other->isStrongLocalAccess()) {
+			setIsStrongLocalAccess();
+		}
 		setValidNamespaceSelf(other->getValidNamespaceSelf());
 		setValidNamespacePrevious(VALID_NAMESPACE_NONE,
 			OffloadedTaskIdManager::InvalidOffloadedTaskId);
@@ -869,6 +873,21 @@ public:
 	void setNamespaceNextIsIn()
 	{
 		_status[NAMESPACE_NEXT_IS_IN_BIT] = true;
+	}
+
+	bool isStrongLocalAccess() const
+	{
+		return _status[IS_STRONG_LOCAL_ACCESS];
+	}
+
+	void setIsStrongLocalAccess()
+	{
+		_status[IS_STRONG_LOCAL_ACCESS] = true;
+	}
+
+	void unsetIsStrongLocalAccess()
+	{
+		_status[IS_STRONG_LOCAL_ACCESS] = false;
 	}
 
 	// Get and set the initial location to a group of concurrent accesses.
