@@ -15,7 +15,7 @@
 
 
 namespace ClusterDirectory {
-	static void registerAllocationEqupart(DataAccessRegion const &region, Task *task)
+	static void registerAllocationEqupart(DataAccessRegion const &region)
 	{
 		void *address = region.getStartAddress();
 		size_t size = region.getSize();
@@ -30,9 +30,6 @@ namespace ClusterDirectory {
 			DataAccessRegion newRegion((void *)ptr, blockSize);
 			ClusterMemoryNode *homeNode = ClusterManager::getMemoryNode(i);
 			Directory::insert(newRegion, homeNode);
-			if (task) {
-				DataAccessRegistration::registerLocalAccess(task, newRegion, homeNode, /* isStack */ false);
-			}
 			ptr += blockSize;
 		}
 
@@ -44,9 +41,6 @@ namespace ClusterDirectory {
 			assert(homeNode != nullptr);
 
 			Directory::insert(newRegion, homeNode);
-			if (task) {
-				DataAccessRegistration::registerLocalAccess(task, newRegion, homeNode, /* isStack */ false);
-			}
 		}
 	}
 
@@ -56,12 +50,18 @@ namespace ClusterDirectory {
 			__attribute__((unused)) size_t *dimensions,
 			Task *task)
 	{
+		if (task) {
+			// Register local access. A location of nullptr means that the data is currently
+			// uninitialized so the first access doesn't need a copy.
+			DataAccessRegistration::registerLocalAccess(task, region, /* location */ nullptr, /* isStack */ false);
+		}
+
 		switch (policy) {
 			case nanos6_equpart_distribution:
 				assert(nrDimensions == 0);
 				assert(dimensions == nullptr);
 
-				registerAllocationEqupart(region, task);
+				registerAllocationEqupart(region);
 				break;
 			case nanos6_block_distribution:
 			case nanos6_cyclic_distribution:
