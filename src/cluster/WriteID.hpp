@@ -62,7 +62,7 @@ private:
 		V value;
 	};
 
-	static constexpr int cacheSize = 256;
+	static constexpr int cacheSize = 8192;
 	std::vector<keypair> _buffer;
 
 public:
@@ -122,7 +122,11 @@ private:
 	{
 		size_t addr = (size_t)region.getStartAddress();
 		size_t size = (size_t)region.getSize();
-		return id + addr * 1234567 + size * 7654321;
+		// Based on https://xorshift.di.unimi.it/splitmix64.c
+		uint64_t z =  id + addr * 1234567 + size * 7654321;
+		z = (z ^ (z >> 30)) * 0xbf58476d1ce4e5b9;
+		z = (z ^ (z >> 27)) * 0x94d049bb133111eb;
+		return z ^ (z >> 31);
 	}
 
 public:

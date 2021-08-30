@@ -245,6 +245,8 @@ namespace ExecutionWorkflow {
 					_targetMemoryPlace,
 					_isTaskwait
 				);
+
+				WriteIDManager::registerWriteIDasLocal(_writeID, _fullRegion);
 				this->releaseSuccessors();
 				delete this;
 			}
