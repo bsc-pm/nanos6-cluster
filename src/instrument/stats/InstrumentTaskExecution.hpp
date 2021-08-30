@@ -44,7 +44,7 @@ namespace Instrument {
 	{
 	}
 
-	inline void taskforChunk(int chunk)
+	inline void taskforChunk(__attribute__((unused)) int chunk)
 	{
 	}
 
