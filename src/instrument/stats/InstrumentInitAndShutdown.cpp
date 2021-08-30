@@ -214,7 +214,6 @@ if (0) {
 			}
 			// Wait for filesystem to synchronize
 			sleep(1);
-			ClusterManager::synchronizeAll();
 		}
 	}
 }
