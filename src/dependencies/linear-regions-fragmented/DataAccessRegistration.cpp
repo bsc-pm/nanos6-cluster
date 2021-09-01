@@ -272,8 +272,10 @@ namespace DataAccessRegistration {
 			if (access->hasSubaccesses()) {
 				_propagatesReadSatisfiabilityToFragments = access->readSatisfied();
 				_propagatesWriteSatisfiabilityToFragments = access->writeSatisfied();
-				_propagatesConcurrentSatisfiabilityToFragments = access->concurrentSatisfied();
-				_propagatesCommutativeSatisfiabilityToFragments = access->commutativeSatisfied();
+				_propagatesConcurrentSatisfiabilityToFragments =
+						access->concurrentSatisfied() && access->satisfied();
+				_propagatesCommutativeSatisfiabilityToFragments =
+						access->commutativeSatisfied() && access->satisfied();
 				// If an access allocates a ReductionInfo, its fragments will have the ReductionInfo
 				// set as soon as they are created (being created as a copy of the parent access)
 				// For this, this trigger is used to propagate to the fragments the information of

@@ -593,10 +593,10 @@ public:
 		if (other->writeSatisfied()) {
 			setWriteSatisfied();
 		}
-		if (other->concurrentSatisfied()) {
+		if (other->concurrentSatisfied() && other->satisfied()) {
 			setConcurrentSatisfied();
 		}
-		if (other->commutativeSatisfied()) {
+		if (other->commutativeSatisfied() && other->satisfied()) {
 			setCommutativeSatisfied();
 		}
 		if (other->receivedReductionInfo()) {
