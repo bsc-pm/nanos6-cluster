@@ -15,8 +15,9 @@ typedef enum __attribute__((__packed__)) {
 	READWRITE_ACCESS_TYPE,
 	CONCURRENT_ACCESS_TYPE,
 	COMMUTATIVE_ACCESS_TYPE,
-	REDUCTION_ACCESS_TYPE
+	REDUCTION_ACCESS_TYPE,
 } DataAccessType;
 
+extern const char *dataAccessTypeNames[7];
 
 #endif // DATA_ACCESS_TYPE_HPP

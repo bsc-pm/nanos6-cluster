@@ -51,6 +51,9 @@
 
 #pragma GCC visibility push(hidden)
 
+const char *dataAccessTypeNames[] = {
+	"none", "read", "write", "readwrite", "concurrent", "commutative", "reduction"};
+
 namespace DataAccessRegistration {
 
 	/*
@@ -2886,6 +2889,35 @@ namespace DataAccessRegistration {
 				first = false;
 				lastWasLocal = local;
 #endif
+
+				// Generate an error if there is a weak non-concurrent access inside a concurrent
+				// one. In the following example, d becomes concurrent satisfied twice (and the same
+				// for the reduction info).
+				//
+				// (1) When a becomes concurrent satisfied, it will pass concurrent satisfiability to d
+				// (2) When task a finishes, it sets the next of b to d (inhibiting the passing of
+				//     concurrent satisfiability)
+				// (3) When task b finishes, it sets the next of c to d (NOT inhibiting the passing
+				//     of concurrent satisfiability)
+				// (4) c passes concurrent satisfiability to d a second time
+				//
+				// #pragma oss task weakconcurrent(u) node(nanos6_cluster_no_offload) label("a")
+				// {
+				// 		#pragma oss task weakinout(u) node(nanos6_cluster_no_offload) label("b")
+				// 		{
+				// 			#pragma oss task inout(u) node(nanos6_cluster_no_offload) label("c")
+				// 		    { sleep(1); }
+				// 		}
+				// 	}
+				// #pragma oss task inout(u) label("d")
+				// {}
+				FatalErrorHandler::failIf(dataAccess->isWeak()
+										&& bottomMapEntryContents._accessType == CONCURRENT_ACCESS_TYPE
+										&& dataAccess->getType() != bottomMapEntryContents._accessType,
+										"Warning: Weak access type ", dataAccessTypeNames[dataAccess->getType()],
+										" nested inside access type ", dataAccessTypeNames[bottomMapEntryContents._accessType],
+										" for task ", dataAccess->getOriginator()->getLabel(),
+										" is not supported");
 
 				TaskDataAccesses &previousAccessStructures = previousTask->getDataAccesses();
 				assert(!previousAccessStructures.hasBeenDeleted());
