@@ -114,7 +114,7 @@ namespace TaskOffloading {
 	void propagateSatisfiabilityForHandler(
 		ClusterNode const *from,
 		const size_t nSatisfiabilities,
-		TaskOffloading::SatisfiabilityInfo *_satisfiabilityInfo
+		TaskOffloading::SatisfiabilityInfo *_satisfiabilityInfoList
 	) {
 		WorkerThread *currentThread = WorkerThread::getCurrentWorkerThread();
 		CPU * const cpu = (currentThread == nullptr) ? nullptr : currentThread->getComputePlace();
@@ -127,7 +127,7 @@ namespace TaskOffloading {
 		hpDependencyData._autoSendSatisfiability = false;
 
 		for (size_t i = 0; i < nSatisfiabilities; ++i) {
-			SatisfiabilityInfo const &satInfo = _satisfiabilityInfo[i];
+			SatisfiabilityInfo const &satInfo = _satisfiabilityInfoList[i];
 
 			// This is called from the MessageSatisfiability::handleMessage.
 			// In Satisfiability messages the satInfo._id contains the remote task identifier (not the
@@ -157,29 +157,41 @@ namespace TaskOffloading {
 	}
 
 
-	void releaseRemoteAccess(Task *task, MessageReleaseAccess::ReleaseAccessInfo &accessinfo)
-	{
+	void releaseRemoteAccessForHandler(
+		Task *task,
+		const size_t nRegions,
+		MessageReleaseAccess::ReleaseAccessInfo *regionInfoList
+	) {
+		if (nRegions == 0) {
+			return;
+		}
 		assert(task != nullptr);
-		MemoryPlace const *location = ClusterManager::getMemoryNodeOrDirectory(accessinfo._location);
-
-		assert(Directory::isDirectoryMemoryPlace(location)
-			|| location->getType() == nanos6_cluster_device);
+		assert(regionInfoList != nullptr);
 
 		WorkerThread *currentThread = WorkerThread::getCurrentWorkerThread();
-
 		CPU * const cpu = (currentThread == nullptr) ? nullptr : currentThread->getComputePlace();
 
 		CPUDependencyData localDependencyData;
 		CPUDependencyData &hpDependencyData =
 			(cpu != nullptr) ? cpu->getDependencyData() : localDependencyData;
 
-		DataAccessRegistration::releaseAccessRegion(
-			task, accessinfo._region,
-			/* not relevant as specifyingDependency = false */ NO_ACCESS_TYPE,
-			/* not relevant as specifyingDependency = false */ false,
-			cpu,
-			hpDependencyData, accessinfo._writeID, location, /* specifyingDependency */ false
-		);
+		for (size_t i = 0; i < nRegions; ++i) {
+			MessageReleaseAccess::ReleaseAccessInfo &accessinfo = regionInfoList[i];
+			MemoryPlace const *location
+				= ClusterManager::getMemoryNodeOrDirectory(accessinfo._location);
+
+			assert(Directory::isDirectoryMemoryPlace(location)
+				|| location->getType() == nanos6_cluster_device);
+
+			DataAccessRegistration::releaseAccessRegion(
+				task, accessinfo._region,
+				NO_ACCESS_TYPE,            // not relevant as specifyingDependency = false
+				false,                     // not relevant as specifyingDependency = false
+				cpu, hpDependencyData,
+				accessinfo._writeID, location,
+				false                      // specifyingDependency
+			);
+		}
 	}
 
 	void remoteTaskCreateAndSubmit(
@@ -296,8 +308,8 @@ namespace TaskOffloading {
 			// Submit the task
 			AddTask::submitTask(task, parent, true);
 
-			// If there are some satisfiabilities already arrived OR the task has some accesses in the
-			// satinfo. the process all them.
+			// If there are some satisfiabilities already arrived OR the task has some accesses in
+			// the satinfo. the process all them.
 			if (numSatInfo > 0 || !remoteTaskInfo._satInfo.empty()) {
 				WorkerThread *currentThread = WorkerThread::getCurrentWorkerThread();
 				CPU * const cpu =

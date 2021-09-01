@@ -37,13 +37,11 @@ MessageReleaseAccess::MessageReleaseAccess(
 
 bool MessageReleaseAccess::handleMessage()
 {
-	const size_t nRegions = _content->_ninfos;
-
-	for (size_t i = 0; i < nRegions; ++i) {
-		ReleaseAccessInfo &accessinfo = _content->_regionInfoList[i];
-
-		TaskOffloading::releaseRemoteAccess((Task *)_content->_offloadedTaskId, accessinfo);
-	}
+	TaskOffloading::releaseRemoteAccessForHandler(
+		(Task *)_content->_offloadedTaskId,
+		_content->_ninfos,
+		_content->_regionInfoList
+	);
 
 	if (_content->_release == 1) {
 		Task *task = (Task *)_content->_offloadedTaskId;
