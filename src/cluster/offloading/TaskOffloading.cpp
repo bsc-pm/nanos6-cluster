@@ -175,6 +175,9 @@ namespace TaskOffloading {
 		CPUDependencyData &hpDependencyData =
 			(cpu != nullptr) ? cpu->getDependencyData() : localDependencyData;
 
+		// Inhibit auto sending satisfiabilities.
+		hpDependencyData._autoSendSatisfiability = false;
+
 		for (size_t i = 0; i < nRegions; ++i) {
 			MessageReleaseAccess::ReleaseAccessInfo &accessinfo = regionInfoList[i];
 			MemoryPlace const *location
@@ -192,6 +195,13 @@ namespace TaskOffloading {
 				false                      // specifyingDependency
 			);
 		}
+
+		// Send all the satisfiabilities when processed the nSatisfiabilities.
+		sendSatisfiability(hpDependencyData._satisfiabilityMap);
+
+		// Restore auto sending satisfiabilities.
+		hpDependencyData.restoreAutoSendSatisfiability();
+
 	}
 
 	void remoteTaskCreateAndSubmit(
