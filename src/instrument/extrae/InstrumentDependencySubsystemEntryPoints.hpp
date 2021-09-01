@@ -176,6 +176,19 @@ namespace Instrument {
 	{
 		popDependency(NANOS_TASKDATAACCESSLOCATION);
 	}
+
+	inline void enterProcessDelayedOperationsSatisfiedOriginatorsAndRemovableTasks()
+	{
+		pushDependency(NANOS_PROCESSDELAYEDOPERATIONSSATISFIEDORIGINATORSANDREMOVABLETASKS);
+	}
+
+	inline void exitProcessDelayedOperationsSatisfiedOriginatorsAndRemovableTasks()
+	{
+		popDependency(NANOS_PROCESSDELAYEDOPERATIONSSATISFIEDORIGINATORSANDREMOVABLETASKS);
+	}
+
+
+
 }
 
 #endif //INSTRUMENT_EXTRAE_DEPENDENCY_SUBSYTEM_ENTRY_POINTS_HPP

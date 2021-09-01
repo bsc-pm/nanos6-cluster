@@ -74,6 +74,10 @@ namespace Instrument {
 	inline void enterTaskDataAccessLocation() {}
 
 	inline void exitTaskDataAccessLocation() {}
+
+	inline void enterProcessDelayedOperationsSatisfiedOriginatorsAndRemovableTasks() {};
+
+	inline void exitProcessDelayedOperationsSatisfiedOriginatorsAndRemovableTasks() {};
 }
 
 #endif //INSTRUMENT_CTF_DEPENDENCY_SUBSYTEM_ENTRY_POINTS_HPP

@@ -112,6 +112,16 @@ namespace Instrument {
 	inline void exitTaskDataAccessLocation()
 	{
 	}
+
+	inline void enterProcessDelayedOperationsSatisfiedOriginatorsAndRemovableTasks()
+	{
+		pushDependency(Stats::NANOS_PROCESSDELAYEDOPERATIONSSATISFIEDORIGINATORSANDREMOVABLETASKS);
+	}
+
+	inline void exitProcessDelayedOperationsSatisfiedOriginatorsAndRemovableTasks()
+	{
+	}
+
 }
 
 #endif //INSTRUMENT_VERBOSE_DEPENDENCY_SUBSYTEM_ENTRY_POINTS_HPP

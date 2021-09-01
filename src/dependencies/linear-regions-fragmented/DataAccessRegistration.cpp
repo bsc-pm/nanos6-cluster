@@ -2113,6 +2113,8 @@ namespace DataAccessRegistration {
 		ComputePlace *computePlace,
 		bool fromBusyThread
 	) {
+		Instrument::enterProcessDelayedOperationsSatisfiedOriginatorsAndRemovableTasks();
+
 		processReleasedCommutativeRegions(hpDependencyData);
 
 #if NO_DEPENDENCY_DELAYED_OPERATIONS
@@ -2135,6 +2137,8 @@ namespace DataAccessRegistration {
 #endif // USE_CLUSTER
 
 		handleRemovableTasks(hpDependencyData._removableTasks);
+
+		Instrument::exitProcessDelayedOperationsSatisfiedOriginatorsAndRemovableTasks();
 	}
 
 

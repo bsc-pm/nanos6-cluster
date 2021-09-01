@@ -64,6 +64,11 @@ namespace Instrument {
 	void enterTaskDataAccessLocation();
 
 	void exitTaskDataAccessLocation();
+
+	void enterProcessDelayedOperationsSatisfiedOriginatorsAndRemovableTasks();
+
+	void exitProcessDelayedOperationsSatisfiedOriginatorsAndRemovableTasks();
+
 }
 
 #endif //INSTRUMENT_DEPENDENCY_SUBSYTEM_ENTRY_POINTS_HPP
