@@ -2108,11 +2108,11 @@ namespace DataAccessRegistration {
 	}
 
 
-	static void processDelayedOperationsSatisfiedOriginatorsAndRemovableTasks(
+	void processDelayedOperationsSatisfiedOriginatorsAndRemovableTasks(
 		CPUDependencyData &hpDependencyData,
 		ComputePlace *computePlace,
-		bool fromBusyThread)
-	{
+		bool fromBusyThread
+	) {
 		processReleasedCommutativeRegions(hpDependencyData);
 
 #if NO_DEPENDENCY_DELAYED_OPERATIONS
@@ -2131,9 +2131,7 @@ namespace DataAccessRegistration {
 		assert(hpDependencyData._satisfiedOriginators.empty());
 
 #ifdef USE_CLUSTER
-		if (hpDependencyData._autoSendSatisfiability) {
-			TaskOffloading::sendSatisfiability(hpDependencyData._satisfiabilityMap);
-		}
+		TaskOffloading::sendSatisfiability(hpDependencyData._satisfiabilityMap);
 #endif // USE_CLUSTER
 
 		handleRemovableTasks(hpDependencyData._removableTasks);
@@ -4223,7 +4221,6 @@ namespace DataAccessRegistration {
 					return true;
 				});
 		}
-		processDelayedOperationsSatisfiedOriginatorsAndRemovableTasks(hpDependencyData, computePlace, true);
 
 #ifndef NDEBUG
 		{

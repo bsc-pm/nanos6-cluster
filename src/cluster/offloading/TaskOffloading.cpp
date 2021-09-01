@@ -37,7 +37,6 @@ namespace TaskOffloading {
 		CPUDependencyData &hpDependencyData
 	) {
 		assert(localTask != nullptr);
-		assert(hpDependencyData._autoSendSatisfiability == false);
 
 		// Convert integer source id to a pointer to the relevant MemoryPlace -1 means nullptr: see
 		// comment in ClusterDataLinkStep::linkRegion().  It happens for race conditions when write
@@ -123,9 +122,6 @@ namespace TaskOffloading {
 		CPUDependencyData &hpDependencyData =
 			(cpu != nullptr) ? cpu->getDependencyData() : localDependencyData;
 
-		// Inhibit auto sending satisfiabilities.
-		hpDependencyData._autoSendSatisfiability = false;
-
 		for (size_t i = 0; i < nSatisfiabilities; ++i) {
 			SatisfiabilityInfo const &satInfo = _satisfiabilityInfoList[i];
 
@@ -149,11 +145,9 @@ namespace TaskOffloading {
 			}
 		}
 
-		// Send all the satisfiabilities when processed the nSatisfiabilities.
-		sendSatisfiability(hpDependencyData._satisfiabilityMap);
-
-		// Restore auto sending satisfiabilities.
-		hpDependencyData.restoreAutoSendSatisfiability();
+		DataAccessRegistration::processDelayedOperationsSatisfiedOriginatorsAndRemovableTasks(
+			hpDependencyData, cpu, true
+		);
 	}
 
 
@@ -175,9 +169,6 @@ namespace TaskOffloading {
 		CPUDependencyData &hpDependencyData =
 			(cpu != nullptr) ? cpu->getDependencyData() : localDependencyData;
 
-		// Inhibit auto sending satisfiabilities.
-		hpDependencyData._autoSendSatisfiability = false;
-
 		for (size_t i = 0; i < nRegions; ++i) {
 			MessageReleaseAccess::ReleaseAccessInfo &accessinfo = regionInfoList[i];
 			MemoryPlace const *location
@@ -188,20 +179,17 @@ namespace TaskOffloading {
 
 			DataAccessRegistration::releaseAccessRegion(
 				task, accessinfo._region,
-				NO_ACCESS_TYPE,            // not relevant as specifyingDependency = false
-				false,                     // not relevant as specifyingDependency = false
+				NO_ACCESS_TYPE,                 // not relevant as specifyingDependency = false
+				false,                          // not relevant as specifyingDependency = false
 				cpu, hpDependencyData,
 				accessinfo._writeID, location,
-				false                      // specifyingDependency
+				false                           // specifyingDependency
 			);
 		}
 
-		// Send all the satisfiabilities when processed the nSatisfiabilities.
-		sendSatisfiability(hpDependencyData._satisfiabilityMap);
-
-		// Restore auto sending satisfiabilities.
-		hpDependencyData.restoreAutoSendSatisfiability();
-
+		DataAccessRegistration::processDelayedOperationsSatisfiedOriginatorsAndRemovableTasks(
+			hpDependencyData, cpu, true
+		);
 	}
 
 	void remoteTaskCreateAndSubmit(
@@ -329,9 +317,6 @@ namespace TaskOffloading {
 				CPUDependencyData &hpDependencyData =
 					(cpu != nullptr) ? cpu->getDependencyData() : localDependencyData;
 
-				// Inhibit auto sending satisfiabilities.
-				hpDependencyData._autoSendSatisfiability = false;
-
 				// Propagate satisfiability embedded in the Message
 				for (size_t i = 0; i < numSatInfo; ++i) {
 					if (satInfo[i]._readSat || satInfo[i]._writeSat) {
@@ -345,12 +330,9 @@ namespace TaskOffloading {
 				}
 				remoteTaskInfo._satInfo.clear();
 
-				// Send all the satisfiabilities at the end of the loops. At this point there shouldn't
-				// bee too many, but we propagate here just in case.
-				sendSatisfiability(hpDependencyData._satisfiabilityMap);
-
-				// Restore auto sending satisfiabilities.
-				hpDependencyData.restoreAutoSendSatisfiability();
+				DataAccessRegistration::processDelayedOperationsSatisfiedOriginatorsAndRemovableTasks(
+					hpDependencyData, cpu, true
+				);
 			}
 		}
 

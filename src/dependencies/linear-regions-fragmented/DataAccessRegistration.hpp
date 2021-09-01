@@ -51,6 +51,13 @@ namespace DataAccessRegistration {
 		CPUDependencyData &dependencyData
 	);
 
+
+	void processDelayedOperationsSatisfiedOriginatorsAndRemovableTasks(
+		CPUDependencyData &hpDependencyData,
+		ComputePlace *computePlace,
+		bool fromBusyThread
+	);
+
 	void releaseAccessRegion(
 		Task *task, DataAccessRegion region,
 		DataAccessType accessType,
