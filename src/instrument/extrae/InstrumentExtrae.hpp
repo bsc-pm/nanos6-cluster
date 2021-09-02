@@ -49,7 +49,8 @@ namespace Instrument {
 		public:
 			user_fct_t(nanos6_task_info_t *taskInfo)
 				: _declaration_source(taskInfo->implementations[0].declaration_source),
-				  _task_label(taskInfo->implementations[0].task_label),
+				  _task_label(taskInfo->implementations[0].task_label ?  taskInfo->implementations[0].task_label
+									: ""),
 				  _runFunction(SpawnFunction::isSpawned(taskInfo)
 					  ? taskInfo
 					  : (void *)taskInfo->implementations[0].run)
