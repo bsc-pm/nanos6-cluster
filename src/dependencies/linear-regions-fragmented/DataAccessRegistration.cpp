@@ -5074,6 +5074,7 @@ namespace DataAccessRegistration {
 		assert(!parentAccessStructures.hasBeenDeleted());
 		std::lock_guard<TaskDataAccesses::spinlock_t> parentGuard(parentAccessStructures._lock);
 		bool found = false;
+		bool foundWrong = false;
 		foreachBottomMapMatch(
 			region,
 			parentAccessStructures, parent,
@@ -5096,12 +5097,16 @@ namespace DataAccessRegistration {
 							&& access->getType() != COMMUTATIVE_ACCESS_TYPE);
 					access->setNamespaceSuccessor(task);
 					found = true;
+				} else {
+					foundWrong = true;
 				}
 			},
 			[] (BottomMapEntry *) {}
 		);
 		if (!found) {
-			if (namespacePredecessor) {
+			if (namespacePredecessor && foundWrong) {
+				Instrument::namespacePropagation(Instrument::NamespaceWrongPredecessor, region);
+			} else if (namespacePredecessor && !foundWrong) {
 				Instrument::namespacePropagation(Instrument::NamespacePredecessorFinished, region);
 			} else {
 				Instrument::namespacePropagation(Instrument::NamespaceNotHintedNoPredecessor, region);
