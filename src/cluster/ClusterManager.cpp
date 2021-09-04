@@ -245,11 +245,11 @@ void ClusterManager::fetchVector(
 
 	for (ExecutionWorkflow::ClusterDataCopyStep const *step : copySteps) {
 
-		const std::vector<DataAccessRegion> &fragments = step->getFragments();
+		const std::vector<ExecutionWorkflow::FragmentInfo> &fragments = step->getFragments();
 
-		for (__attribute__((unused)) DataAccessRegion const &region : fragments) {
+		for (__attribute__((unused)) ExecutionWorkflow::FragmentInfo const &fragment : fragments) {
 			assert(index < nFragments);
-			assert(content->_remoteRegionInfo[index]._remoteRegion == region);
+			assert(content->_remoteRegionInfo[index]._remoteRegion == fragment._region);
 			//_content->_remoteRegionInfo[index] = region;
 			//_content->_remoteRegionInfo[index]._id
 			//	= (index == 0 ? getId() : MessageId::nextMessageId());

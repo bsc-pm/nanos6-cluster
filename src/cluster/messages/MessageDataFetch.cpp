@@ -25,11 +25,11 @@ MessageDataFetch::MessageDataFetch(
 
 	for (ExecutionWorkflow::ClusterDataCopyStep const *step : copySteps) {
 
-		const std::vector<DataAccessRegion> fragments = step->getFragments();
+		const std::vector<ExecutionWorkflow::FragmentInfo> fragments = step->getFragments();
 
-		for (DataAccessRegion const &region : fragments) {
+		for (ExecutionWorkflow::FragmentInfo const &fragment : fragments) {
 			assert(index < numFragments);
-			_content->_remoteRegionInfo[index]._remoteRegion = region;
+			_content->_remoteRegionInfo[index]._remoteRegion = fragment._region;
 			_content->_remoteRegionInfo[index]._id
 				= (index == 0 ? getId() : MessageId::nextMessageId());
 

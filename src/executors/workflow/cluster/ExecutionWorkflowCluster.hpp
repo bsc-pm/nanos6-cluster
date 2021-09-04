@@ -138,6 +138,10 @@ namespace ExecutionWorkflow {
 		void start() override;
 	};
 
+	struct FragmentInfo {
+		DataAccessRegion _region;
+	};
+
 	class ClusterDataCopyStep : public Step {
 		//! The MemoryPlace that the data will be copied from.
 		MemoryPlace const * const _sourceMemoryPlace;
@@ -147,7 +151,7 @@ namespace ExecutionWorkflow {
 
 		//! A mapping of the address range in the source node to the target node.
 		DataAccessRegion const _fullRegion;
-		std::vector<DataAccessRegion> _regionsFragments;
+		std::vector<FragmentInfo> _regionsFragments;
 
 		//! The task on behalf of which we perform the data copy
 		Task * const _task;
@@ -205,7 +209,7 @@ namespace ExecutionWorkflow {
 			return _nFragments;
 		}
 
-		const std::vector<DataAccessRegion> &getFragments() const
+		const std::vector<FragmentInfo> &getFragments() const
 		{
 			return _regionsFragments;
 		}

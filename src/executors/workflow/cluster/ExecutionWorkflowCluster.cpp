@@ -267,7 +267,9 @@ namespace ExecutionWorkflow {
 				end = start + ClusterManager::getMessageMaxSize();
 			}
 
-			_regionsFragments.push_back(DataAccessRegion(start, end));
+			FragmentInfo fragment;
+			fragment._region = DataAccessRegion(start, end);
+			_regionsFragments.push_back(fragment);
 
 			start = end;
 		}
