@@ -9,7 +9,6 @@
 
 #include <atomic>
 #include <vector>
-#include <algorithm>
 
 #include "InstrumentCluster.hpp"
 #include "lowlevel/PaddedSpinLock.hpp"
@@ -91,32 +90,6 @@ namespace ClusterPollingServices {
 				Instrument::emitClusterEvent(_singleton._eventTypeBytes, _singleton._queueBytes);
 			}
 			return count;
-		}
-
-		// Run a lambda function on the pending queue (with the lock taken)
-		static bool checkPendingQueueInternal(std::function<bool(T*)>  checkPending,
-		                                      PaddedSpinLock<> &lock,
-											  std::vector<T *> &queue)
-		{
-			std::lock_guard<PaddedSpinLock<>> guard(lock);
-			for (T *t: queue) {
-				bool done = checkPending(t);
-				if (done) {
-					/* Return done flag */
-					return true;
-				}
-			}
-			/* Return not done */
-			return false;
-		}
-
-		static bool checkPendingQueue(std::function<bool(T*)>  checkPending)
-		{
-			bool ret = checkPendingQueueInternal(checkPending, _singleton._incomingLock, _singleton._incomingPendings);
-			if (!ret) {
-				ret = checkPendingQueueInternal(checkPending, _singleton._lock, _singleton._pendings);
-			}
-			return ret;
 		}
 
 		// When the function returns false the service stops.

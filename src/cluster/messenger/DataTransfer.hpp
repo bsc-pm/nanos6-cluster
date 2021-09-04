@@ -15,6 +15,8 @@
 
 #include <InstrumentCluster.hpp>
 
+#include "LiveDataTransfers.hpp"
+
 class MemoryPlace;
 
 class DataTransfer {
@@ -112,6 +114,12 @@ public:
 			Instrument::clusterDataReceived(_region.getStartAddress(), _region.getSize(), _MPISource, _id);
 		}
 
+		// Important: remove from live data transfers before calling the callbacks (otherwise callbacks
+		// could potentially be lost)
+		if (_isFetch) {
+			LiveDataTransfers::remove(this);
+		}
+
 		for(data_transfer_callback_t callback : _callbacks) {
 			callback();
 		}
@@ -121,7 +129,6 @@ public:
 		if (_isFetch) {
 			Instrument::clusterDataReceived(_region.getStartAddress(), _region.getSize(), _MPISource, -1);
 		}
-
 	}
 
 	//! \brief Check if the DataTransfer is completed

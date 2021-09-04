@@ -472,6 +472,7 @@ cluster_sources += \
 	src/cluster/messages/MessageSysFinish.cpp \
 	src/cluster/messages/MessageTaskNew.cpp \
 	src/cluster/messages/MessageType.cpp \
+	src/cluster/messenger/LiveDataTransfers.cpp \
 	src/cluster/messenger/mpi/MPIMessenger.cpp \
 	src/cluster/offloading/TaskOffloading.cpp \
 	src/executors/workflow/cluster/ExecutionWorkflowCluster.cpp \
@@ -1348,6 +1349,7 @@ noinst_HEADERS += \
 	src/cluster/messages/MessageTaskNew.hpp \
 	src/cluster/messages/MessageType.hpp \
 	src/cluster/messenger/DataTransfer.hpp \
+	src/cluster/messenger/LiveDataTransfers.hpp \
 	src/cluster/messenger/Messenger.hpp \
 	src/cluster/messenger/mpi/MPIDataTransfer.hpp \
 	src/cluster/messenger/mpi/MPIMessenger.hpp \

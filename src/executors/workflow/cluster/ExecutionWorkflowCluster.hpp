@@ -30,6 +30,7 @@
 
 class ComputePlace;
 class MemoryPlace;
+class DataTransfer;
 
 namespace ExecutionWorkflow {
 	class ClusterDataLinkStep : public DataLinkStep {
@@ -140,6 +141,8 @@ namespace ExecutionWorkflow {
 
 	struct FragmentInfo {
 		DataAccessRegion _region;
+		int _id;
+		DataTransfer *_dataTransfer;
 	};
 
 	class ClusterDataCopyStep : public Step {

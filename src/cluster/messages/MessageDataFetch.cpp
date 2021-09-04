@@ -30,8 +30,7 @@ MessageDataFetch::MessageDataFetch(
 		for (ExecutionWorkflow::FragmentInfo const &fragment : fragments) {
 			assert(index < numFragments);
 			_content->_remoteRegionInfo[index]._remoteRegion = fragment._region;
-			_content->_remoteRegionInfo[index]._id
-				= (index == 0 ? getId() : MessageId::nextMessageId());
+			_content->_remoteRegionInfo[index]._id = fragment._id;
 
 			++index;
 		}

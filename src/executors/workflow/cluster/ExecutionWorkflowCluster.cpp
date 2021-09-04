@@ -18,6 +18,7 @@
 #include <InstrumentLogMessage.hpp>
 #include <TaskOffloading.hpp>
 #include "InstrumentCluster.hpp"
+#include "LiveDataTransfers.hpp"
 
 namespace ExecutionWorkflow {
 
@@ -254,8 +255,10 @@ namespace ExecutionWorkflow {
 		assert(_sourceMemoryPlace->getType() == nanos6_cluster_device);
 		assert(_sourceMemoryPlace != _targetMemoryPlace);
 
-		// Now fragment the data transfers
+		// First fragment the data transfers into regions, each of which
+		// is of size <= cluster.message_max_size.
 		_nFragments = ClusterManager::getMPIFragments(_fullRegion);
+		std::vector<DataAccessRegion> regions;
 
 		char *start = (char *)_fullRegion.getStartAddress();
 		for (size_t i = 0; start < _fullRegion.getEndAddress(); ++i) {
@@ -267,9 +270,7 @@ namespace ExecutionWorkflow {
 				end = start + ClusterManager::getMessageMaxSize();
 			}
 
-			FragmentInfo fragment;
-			fragment._region = DataAccessRegion(start, end);
-			_regionsFragments.push_back(fragment);
+			regions.emplace_back(start, end);
 
 			start = end;
 		}
@@ -296,56 +297,67 @@ namespace ExecutionWorkflow {
 		// (or one fully containing it) may already be pending. An example
 		// would be when several tasks with an "in" dependency on the same
 		// data region are offloaded at a similar time.
-		bool handled = ClusterPollingServices::PendingQueue<DataTransfer>::checkPendingQueue(
+		bool allHandled = true;
+		for (DataAccessRegion region : regions) {
 
-			// This lambda is called for all pending data transfers (with the lock taken)
-			[&](DataTransfer *dtPending) {
+			int id = 0;
+			bool handled = LiveDataTransfers::check(
 
-				// Check whether the pending data transfer has the same target
-				// (this node) and that it fully contains the current region.
-				// Note: it is important to check that the target matches
-				// because outgoing and incoming data transfers are held in the
-				// same queue.  It is possible for an outgoing message transfer
-				// to still be in the queue because of the race condition
-				// between (a) remote task completion and triggering incoming
-				// data fetches and (b) completing the outgoing data transfer.
+				// This lambda is called for all pending data transfers (with the lock taken)
+				[&](DataTransfer *dtPending) {
 
-				const DataAccessRegion pendingRegion = dtPending->getDataAccessRegion();
-				const MemoryPlace *pendingTarget = dtPending->getTarget();
-				assert(pendingTarget->getType() == nanos6_cluster_device);
+					// Check whether the pending data transfer has the same target
+					// (this node) and that it fully contains the current region.
+					// Note: it is important to check that the target matches
+					// because outgoing and incoming data transfers are held in the
+					// same queue.  It is possible for an outgoing message transfer
+					// to still be in the queue because of the race condition
+					// between (a) remote task completion and triggering incoming
+					// data fetches and (b) completing the outgoing data transfer.
 
-				if (pendingTarget->getIndex() == _targetMemoryPlace->getIndex()
-					&& _fullRegion.fullyContainedIn(pendingRegion)) {
+					const MemoryPlace *pendingTarget = dtPending->getTarget();
+					assert(pendingTarget->getType() == nanos6_cluster_device);
 
-					// Yes, the pending data transfer contains this region: so add a callback
-					// for this task
-					Instrument::dataFetch(Instrument::FoundInPending, _fullRegion);
-					dtPending->addCompletionCallback(
-						[&]() {
-							//! If this data copy is performed for a taskwait we
-							//! don't need to update the location here.
-							DataAccessRegistration::updateTaskDataAccessLocation(
-								_task,
-								_fullRegion,
-								_targetMemoryPlace,
-								_isTaskwait
-							);
-							this->releaseSuccessors();
-							delete this;
-						});
-					// Done, so return true: do not check any more pending transfers and
-					// also return true to the caller
-					return true;
+					if (pendingTarget->getIndex() == _targetMemoryPlace->getIndex()
+						&& region.fullyContainedIn(dtPending->getDataAccessRegion())) {
+
+						// The pending data transfer contains this region: so add our callback.
+						// Return true as do not need to check any more pending transfers.
+						// Add the callback inside the lambda (with the lock taken).
+						dtPending->addCompletionCallback(_postcallback);
+						return true;
+					}
+					// Not a match: continue checking pending data transfers
+					return false;
+				},
+
+				// This lambda is called if a new data transfer is needed
+				[&]() -> DataTransfer * {
+					// Create the DataTransfer
+					id = MessageId::nextMessageId();
+					DataTransfer *dataTransfer = ClusterManager::fetchDataRaw(
+						region,
+						_sourceMemoryPlace,
+						id,
+						/* block */ false);
+					// Add the callback
+					dataTransfer->addCompletionCallback(_postcallback);
+
+					// Append the data transfer
+					_regionsFragments.emplace_back(FragmentInfo{region, id, dataTransfer});
+					allHandled = false;
+					return dataTransfer;
 				}
-				// Not a match: continue checking pending data transfers
-				return false;
-			}
-		);
+			);
 
-		if (!handled) {
-			Instrument::dataFetch(Instrument::FetchRequired, _fullRegion);
+			if (handled) {
+				Instrument::dataFetch(Instrument::FoundInPending, region);
+			} else {
+				Instrument::dataFetch(Instrument::FetchRequired, region);
+			}
 		}
-		return (handled == false);
+
+		return (allHandled == false);
 	}
 
 };

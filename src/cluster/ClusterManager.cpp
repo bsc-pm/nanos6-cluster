@@ -237,7 +237,7 @@ void ClusterManager::fetchVector(
 	//! the same as the local one
 	MessageDataFetch *msg = new MessageDataFetch(_singleton->_thisNode, nFragments, copySteps);
 
-	MessageDataFetch::DataFetchMessageContent *content = msg->getContent();
+	__attribute__((unused)) MessageDataFetch::DataFetchMessageContent *content = msg->getContent();
 
 	size_t index = 0;
 
@@ -250,18 +250,7 @@ void ClusterManager::fetchVector(
 		for (__attribute__((unused)) ExecutionWorkflow::FragmentInfo const &fragment : fragments) {
 			assert(index < nFragments);
 			assert(content->_remoteRegionInfo[index]._remoteRegion == fragment._region);
-			//_content->_remoteRegionInfo[index] = region;
-			//_content->_remoteRegionInfo[index]._id
-			//	= (index == 0 ? getId() : MessageId::nextMessageId());
-
-
-			temporal[index] = fetchDataRaw(
-				content->_remoteRegionInfo[index]._remoteRegion,
-				from,
-				content->_remoteRegionInfo[index]._id,
-				false);  // block
-
-			temporal[index]->addCompletionCallback(step->getPostCallback());
+			temporal[index] = fragment._dataTransfer;
 
 			++index;
 		}
