@@ -24,6 +24,14 @@ namespace Instrument {
 		MaxNamespacePropagation
 	};
 
+	enum DataFetch {
+		FetchRequired = 0,
+		FoundInPending,
+		EarlyWriteID,
+		LateWriteID,
+		MaxDataFetch
+	};
+
 	/* NOTE: this must match the order of the clusterEventType array */
 	enum ClusterEventType {
 		OffloadedTasksWaiting = 0,
@@ -92,6 +100,12 @@ namespace Instrument {
 	void namespacePropagation(
 		NamespacePropagation,
 		DataAccessRegion region,
+		InstrumentationContext const &context = ThreadInstrumentationContext::getCurrent()
+	);
+
+	void dataFetch(
+		DataFetch,
+		DataAccessRegion,
 		InstrumentationContext const &context = ThreadInstrumentationContext::getCurrent()
 	);
 }

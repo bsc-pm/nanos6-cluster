@@ -27,6 +27,13 @@ namespace Instrument {
 	inline void namespacePropagation(NamespacePropagation, DataAccessRegion, InstrumentationContext const &)
 	{
 	}
+
+	inline void dataFetch(
+		DataFetch,
+		DataAccessRegion,
+		InstrumentationContext const &)
+	{
+	}
 }
 
 #endif //! INSTRUMENT_EXTRAE_CLUSTER_HPP

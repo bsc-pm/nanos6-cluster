@@ -284,6 +284,7 @@ namespace ExecutionWorkflow {
 		assert(_sourceMemoryPlace != _targetMemoryPlace);
 
 		if (WriteIDManager::checkWriteIDLocal(_writeID, _fullRegion)) {
+			Instrument::dataFetch(Instrument::LateWriteID, _fullRegion);
 			releaseSuccessors();
 			delete this;
 			return false;
@@ -316,6 +317,7 @@ namespace ExecutionWorkflow {
 
 					// Yes, the pending data transfer contains this region: so add a callback
 					// for this task
+					Instrument::dataFetch(Instrument::FoundInPending, _fullRegion);
 					dtPending->addCompletionCallback(
 						[&]() {
 							//! If this data copy is performed for a taskwait we
@@ -338,6 +340,9 @@ namespace ExecutionWorkflow {
 			}
 		);
 
+		if (!handled) {
+			Instrument::dataFetch(Instrument::FetchRequired, _fullRegion);
+		}
 		return (handled == false);
 	}
 

@@ -18,6 +18,7 @@ namespace Instrument {
 	std::atomic<size_t> bytesMessagesSent[TOTAL_MESSAGE_TYPES];
 	std::atomic<size_t> bytesMessagesReceived[TOTAL_MESSAGE_TYPES];
 	std::atomic<size_t> namespaceCounter[MaxNamespacePropagation];
+	std::atomic<size_t> dataFetchCounter[MaxDataFetch];
 
 	// Must match definition of enum NamespacePropagation
 	const char *namespaceNames[MaxNamespacePropagation] =
@@ -27,6 +28,15 @@ namespace Instrument {
 		"Predecessor finished",
 		"Not hinted ancestor present",
 		"Not hinted no ancestor"
+	};
+
+	// Must match definition of enum DataFetch
+	const char *dataFetchNames[MaxDataFetch] =
+	{
+		"Fetch required",
+		"Found in pending",
+		"Early Write ID",
+		"Late Write ID"
 	};
 
 	void initClusterCounters()
@@ -107,11 +117,32 @@ namespace Instrument {
 			}
 		}
 		output << std::endl;
+
+		int dataFetchCounterSum = 0;
+		output << "Data fetches by access: ";
+		for(int i=0; i< MaxDataFetch; i++) {
+			output << dataFetchNames[i] << ": " << dataFetchCounter[i] << " ";
+			dataFetchCounterSum += dataFetchCounter[i];
+		}
+		output << std::endl;
+		if (dataFetchCounterSum > 0) {
+			for(int i=0; i< MaxDataFetch; i++) {
+				output << dataFetchNames[i] << ": " << std::fixed << std::setprecision(2)
+				       << (100.0 * dataFetchCounter[i] / dataFetchCounterSum) << "\% ";
+			}
+		}
+		output << std::endl;
 	}
 
 	void namespacePropagation(NamespacePropagation prop, DataAccessRegion, InstrumentationContext const &)
 	{
 		assert(prop < MaxNamespacePropagation);
 		namespaceCounter[prop] += 1;
+	}
+
+	void dataFetch(DataFetch df, DataAccessRegion, InstrumentationContext const &)
+	{
+		assert(df < MaxDataFetch);
+		dataFetchCounter[df] += 1;
 	}
 }

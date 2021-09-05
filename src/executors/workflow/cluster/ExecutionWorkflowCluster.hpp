@@ -22,6 +22,7 @@
 #include <tasks/Task.hpp>
 #include <ClusterUtil.hpp>
 #include <DataAccessRegistration.hpp>
+#include <InstrumentCluster.hpp>
 
 #include <MessageReleaseAccess.hpp>
 
@@ -440,8 +441,13 @@ namespace ExecutionWorkflow {
 		//! DataTransfer
 		//! || The source and the destination is the same
 		//! || I already have the data.
-		if (source->isClusterLocalMemoryPlace()
-			|| WriteIDManager::checkWriteIDLocal(access->getWriteID(), region)) {
+		if (source->isClusterLocalMemoryPlace()) {
+			// NULL copy (do nothing, just release succesor and delete itself.)
+			return new Step();
+		}
+
+		if (WriteIDManager::checkWriteIDLocal(access->getWriteID(), region)) {
+			Instrument::dataFetch(Instrument::EarlyWriteID, region);
 
 			// NULL copy (do nothing, just release succesor and delete itself.)
 			return new Step();

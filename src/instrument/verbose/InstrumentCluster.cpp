@@ -200,4 +200,12 @@ namespace Instrument {
 
 		addLogEntry(logEntry);
 	}
+
+	void dataFetch(
+		DataFetch,
+		DataAccessRegion,
+		InstrumentationContext const &)
+	{
+	}
+
 }
