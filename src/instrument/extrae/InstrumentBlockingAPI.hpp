@@ -25,7 +25,7 @@ namespace Instrument {
 		ce.HardwareCounters = 1;
 		ce.Callers = 0;
 		ce.UserFunction = EXTRAE_USER_FUNCTION_NONE;
-		ce.nEvents = 5;
+		ce.nEvents = 6;
 		ce.nCommunications = 0;
 
 		// Generate control dependency information
@@ -55,6 +55,9 @@ namespace Instrument {
 
 		ce.Types[4] = (extrae_type_t) EventType::PRIORITY;
 		ce.Values[4] = (extrae_value_t) nullptr;
+
+		ce.Types[5] = (extrae_type_t) EventType::RUNNING_FUNCTION_NAME;
+		ce.Values[5] = (extrae_value_t) nullptr;
 
 		// Generate control dependency information
 		// At level 1 we show "explicit" blocking calls but not taskwait dependencies

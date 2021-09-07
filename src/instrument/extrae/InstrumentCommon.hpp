@@ -22,7 +22,7 @@ namespace Instrument {
 		ce.HardwareCounters = 1;
 		ce.Callers = 0;
 		ce.UserFunction = EXTRAE_USER_FUNCTION_NONE;
-		ce.nEvents = 5;
+		ce.nEvents = 6;
 		ce.nCommunications = 0;
 
 		// Precise task count (not sampled)
@@ -70,16 +70,19 @@ namespace Instrument {
 		ce.Types[4] = (extrae_type_t) EventType::PRIORITY;
 		ce.Values[4] = (extrae_value_t) taskId._taskInfo->_priority;
 
+		ce.Types[5] = (extrae_type_t) EventType::RUNNING_FUNCTION_NAME;
+		ce.Values[5] = (extrae_value_t) taskInfo->implementations[0].run;
+
 		size_t readyTasks = --_readyTasks;
 
 		// Precise task count (not sampled)
 		if (Extrae::_detailLevel >= 1) {
-			ce.Types[5] = (extrae_type_t) EventType::READY_TASKS;
-			ce.Values[5] = (extrae_value_t) readyTasks;
+			ce.Types[6] = (extrae_type_t) EventType::READY_TASKS;
+			ce.Values[6] = (extrae_value_t) readyTasks;
 
 			// This counter is not so reliable, so try to skip underflows
 			if (((signed long long) ce.Values[5]) < 0) {
-				ce.Values[5] = 0;
+				ce.Values[6] = 0;
 			}
 		}
 

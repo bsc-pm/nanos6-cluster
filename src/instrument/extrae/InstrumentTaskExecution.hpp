@@ -26,7 +26,7 @@ namespace Instrument {
 		ce.HardwareCounters = 1;
 		ce.Callers = 0;
 		ce.UserFunction = EXTRAE_USER_FUNCTION_NONE;
-		ce.nEvents = 5;
+		ce.nEvents = 6;
 		ce.nCommunications = 0;
 
 		// Precise task count (not sampled)
@@ -78,6 +78,9 @@ namespace Instrument {
 		ce.Types[4] = (extrae_type_t) EventType::PRIORITY;
 		ce.Values[4] = (extrae_value_t) taskId._taskInfo->_priority;
 
+		ce.Types[5] = (extrae_type_t) EventType::RUNNING_FUNCTION_NAME;
+		ce.Values[5] = (extrae_value_t) taskInfo->implementations[0].run;
+
 		// Generate graph information
 		if (Extrae::_detailTaskGraph) {
 			int index = 0;
@@ -97,12 +100,12 @@ namespace Instrument {
 
 		// Precise task count (not sampled)
 		if (Extrae::_detailTaskCount) {
-			ce.Types[5] = (extrae_type_t) EventType::READY_TASKS;
-			ce.Values[5] = (extrae_value_t) readyTasks;
+			ce.Types[6] = (extrae_type_t) EventType::READY_TASKS;
+			ce.Values[6] = (extrae_value_t) readyTasks;
 
 			// This counter is not so reliable, so try to skip underflows
-			if (((signed long long) ce.Values[5]) < 0) {
-				ce.Values[5] = 0;
+			if (((signed long long) ce.Values[6]) < 0) {
+				ce.Values[6] = 0;
 			}
 		}
 
@@ -131,7 +134,7 @@ namespace Instrument {
 		ce.HardwareCounters = 1;
 		ce.Callers = 0;
 		ce.UserFunction = EXTRAE_USER_FUNCTION_NONE;
-		ce.nEvents = 5;
+		ce.nEvents = 6;
 		ce.nCommunications = 0;
 
 		// Precise task count (not sampled)
@@ -184,6 +187,9 @@ namespace Instrument {
 		ce.Types[4] = (extrae_type_t) EventType::PRIORITY;
 		ce.Values[4] = (extrae_value_t) nullptr;
 
+		ce.Types[5] = (extrae_type_t) EventType::RUNNING_FUNCTION_NAME;
+		ce.Values[5] = (extrae_value_t) nullptr;
+
 		if (parentInTaskwait != 0) {
 			ce.Communications[0].type = EXTRAE_USER_SEND;
 			ce.Communications[0].tag = (extrae_comm_tag_t) control_dependency_tag;
@@ -196,12 +202,12 @@ namespace Instrument {
 
 		// Precise task count (not sampled)
 		if (Extrae::_detailTaskCount) {
-			ce.Types[5] = (extrae_type_t) EventType::LIVE_TASKS;
-			ce.Values[5] = (extrae_value_t) liveTasks;
+			ce.Types[6] = (extrae_type_t) EventType::LIVE_TASKS;
+			ce.Values[6] = (extrae_value_t) liveTasks;
 
 			// This counter is not so reliable, so try to skip underflows
 			if (((signed long long) ce.Values[5]) < 0) {
-				ce.Values[5] = 0;
+				ce.Values[6] = 0;
 			}
 		}
 
@@ -237,7 +243,7 @@ namespace Instrument {
 		ce.HardwareCounters = 1;
 		ce.Callers = 0;
 		ce.UserFunction = EXTRAE_USER_FUNCTION_NONE;
-		ce.nEvents = 5;
+		ce.nEvents = 6;
 		ce.nCommunications = 0;
 
 		if (first) {
@@ -274,6 +280,9 @@ namespace Instrument {
 		ce.Types[4] = (extrae_type_t) EventType::PRIORITY;
 		ce.Values[4] = (extrae_value_t) taskforId._taskInfo->_priority;
 
+		ce.Types[5] = (extrae_type_t) EventType::RUNNING_FUNCTION_NAME;
+		ce.Values[5] = (extrae_value_t) taskInfo->implementations[0].run;
+
 		if (first) {
 			// Generate graph information
 			if (Extrae::_detailLevel >= 1) {
@@ -309,12 +318,12 @@ namespace Instrument {
 
 			// Precise task count (not sampled)
 			if (Extrae::_detailTaskCount) {
-				ce.Types[5] = (extrae_type_t) EventType::READY_TASKS;
-				ce.Values[5] = (extrae_value_t) readyTasks;
+				ce.Types[6] = (extrae_type_t) EventType::READY_TASKS;
+				ce.Values[6] = (extrae_value_t) readyTasks;
 
 				// This counter is not so reliable, so try to skip underflows
-				if (((signed long long) ce.Values[5]) < 0) {
-					ce.Values[5] = 0;
+				if (((signed long long) ce.Values[6]) < 0) {
+					ce.Values[6] = 0;
 				}
 			}
 		}
@@ -347,7 +356,7 @@ namespace Instrument {
 		ce.HardwareCounters = 1;
 		ce.Callers = 0;
 		ce.UserFunction = EXTRAE_USER_FUNCTION_NONE;
-		ce.nEvents = 5;
+		ce.nEvents = 6;
 		ce.nCommunications = 0;
 
 		size_t parentInTaskwait = 0;
@@ -402,6 +411,9 @@ namespace Instrument {
 		ce.Types[4] = (extrae_type_t) EventType::PRIORITY;
 		ce.Values[4] = (extrae_value_t) nullptr;
 
+		ce.Types[5] = (extrae_type_t) EventType::RUNNING_FUNCTION_NAME;
+		ce.Values[5] = (extrae_value_t) nullptr;
+
 		if (last) {
 			if (parentInTaskwait != 0) {
 				ce.Communications[0].type = EXTRAE_USER_SEND;
@@ -415,12 +427,12 @@ namespace Instrument {
 
 			// Precise task count (not sampled)
 			if (Extrae::_detailTaskCount) {
-				ce.Types[5] = (extrae_type_t) EventType::LIVE_TASKS;
-				ce.Values[5] = (extrae_value_t) liveTasks;
+				ce.Types[6] = (extrae_type_t) EventType::LIVE_TASKS;
+				ce.Values[6] = (extrae_value_t) liveTasks;
 
 				// This counter is not so reliable, so try to skip underflows
-				if (((signed long long) ce.Values[5]) < 0) {
-					ce.Values[5] = 0;
+				if (((signed long long) ce.Values[6]) < 0) {
+					ce.Values[6] = 0;
 				}
 			}
 		}
