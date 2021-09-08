@@ -143,7 +143,7 @@ public:
 		assert(clusterSize < (1 << logMaxNodes));
 		assert(_singleton == nullptr);
 
-		WriteID initCounter = ((size_t)nodeIndex) << (64 - logMaxNodes);
+		WriteID initCounter = 1 + (((size_t)nodeIndex) << (64 - logMaxNodes));
 
 		_singleton = new WriteIDManager(initCounter);
 		//std::cout << "construct WriteIDManager " << nodeIndex << " with counter: " << initCounter << "\n";
