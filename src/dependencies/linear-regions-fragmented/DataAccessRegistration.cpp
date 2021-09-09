@@ -851,11 +851,6 @@ namespace DataAccessRegistration {
 				updateOperation._makeReadSatisfied = true; /* make next task read satisfied */
 				assert(access->hasLocation());
 				updateOperation._writeID = access->getWriteID();
-				const MemoryPlace *location = access->getLocation();
-				if ( (location->getType() == nanos6_host_device && !Directory::isDirectoryMemoryPlace(location))
-						|| location == ClusterManager::getCurrentMemoryNode()) {
-					WriteIDManager::registerWriteIDasLocal(access->getWriteID(), access->getAccessRegion());
-				}
 			}
 
 			// Note: do not pass namespace propagation info to taskwaits
@@ -1233,8 +1228,9 @@ namespace DataAccessRegistration {
 					|| !access->getLocation()->isClusterLocalMemoryPlace()) {
 					// Either the original access was already local or the new location
 					// is non-local. In either case, we only need to update the location
-					// of the original access.
+					// and writeID of the original access.
 					originalAccess->setLocation(access->getLocation());
+					originalAccess->setWriteID(access->getWriteID());
 				} else {
 					// Updating the location of the original access from a non-local to
 					// a local location may cause read satisfiability to be propagated to
@@ -1246,13 +1242,13 @@ namespace DataAccessRegistration {
 					// disableReadPropagationToNext.
 					DataAccessStatusEffects initialStatus(originalAccess);
 					originalAccess->setLocation(access->getLocation());
+					originalAccess->setWriteID(access->getWriteID());
 					DataAccessStatusEffects updatedStatus(originalAccess);
 					handleDataAccessStatusChanges(
 						initialStatus, updatedStatus,
 						originalAccess, accessStructures, originalAccess->getOriginator(),
 						hpDependencyData);
 				}
-
 				return true;
 			},
 			[&](DataAccessRegion missingRegion) -> bool {
@@ -1818,18 +1814,19 @@ namespace DataAccessRegistration {
 							access->setDisableReadPropagationUntilHere();
 					}
 				}
-				WriteID id = 0;
-				// Take previous write ID if reading exactly the same region
-				// (note it will be zero if it's reading a subregion)
-				if (access->getType() == READ_ACCESS_TYPE &&
-					access->getAccessRegion() == updateOperation._region) {
-					id = updateOperation._writeID;
+				if (access->getAccessRegion() == updateOperation._region) {
+					// Access exactly matches the old one: so take the WriteID
+					access->setWriteID(updateOperation._writeID);
+				} else {
+					// The access has fragmented: create a new WriteID
+					if (!access->isWeak()) {
+						access->setNewWriteID();
+					}
+					// and if already read satisfied and here, then register it as local
+					if (access->readSatisfied() && access->getLocation() && access->getLocation()->isClusterLocalMemoryPlace()) {
+						WriteIDManager::registerWriteIDasLocal(access->getWriteID(), access->getAccessRegion());
+					}
 				}
-				// Create a new write ID if currently zero
-				if (id == 0) {
-					id = WriteIDManager::createWriteID();
-				}
-				access->setWriteID(id);
 			}
 
 			/*
@@ -1866,6 +1863,7 @@ namespace DataAccessRegistration {
 				assert(updateOperation._location);
 				if (access->getType() == CONCURRENT_ACCESS_TYPE) {
 					access->setLocation(updateOperation._location);
+					access->setWriteID(updateOperation._writeID);
 					access->setConcurrentInitialLocation(updateOperation._location);
 				}
 			}
@@ -1877,6 +1875,7 @@ namespace DataAccessRegistration {
 				assert(updateOperation._location);
 				if (!access->hasLocation()) {
 					access->setLocation(updateOperation._location);
+					access->setWriteID(updateOperation._writeID);
 				}
 			}
 		} else {
@@ -3391,6 +3390,11 @@ namespace DataAccessRegistration {
 		// (which is done first). This only happens when disable_autowait=true.
 		bool dataAccessEarlyReleaseInNamespace = dataAccess->getEarlyReleaseInNamespace();
 
+		// Set the writeID of the finalized access if we are given one
+		if (writeID != 0) {
+			dataAccess->setWriteID(writeID);
+		}
+
 		/*
 		 * Set complete and update location for the access itself and all
 		 * (child task) fragments.
@@ -3455,9 +3459,6 @@ namespace DataAccessRegistration {
 						// This happens for strong subtasks of a weak task when cluster.eager_weak_fetch is false
 						accessOrFragment->setLocation(ClusterManager::getCurrentMemoryNode());
 					}
-				}
-				if (writeID != 0 && accessOrFragment->getAccessRegion() == region) {
-					accessOrFragment->setWriteID(writeID);
 				}
 				DataAccessStatusEffects updatedStatus(accessOrFragment);
 
@@ -4377,6 +4378,21 @@ namespace DataAccessRegistration {
 						access = fragmentAccess(access, region, accessStructures);
 						DataAccessStatusEffects initialStatus(access);
 						access->setLocation(location);
+
+						/* If it is a local location */
+						if (location && location->isClusterLocalMemoryPlace()) {
+
+							if (access->isWeak() || access->getType() == READ_ACCESS_TYPE) {
+								// Weak or read-only access: register the existing Write ID
+								// as local
+								WriteIDManager::registerWriteIDasLocal(access->getWriteID(), access->getAccessRegion());
+							} else {
+								// Otherwise make a new write ID for our updated
+								// version and register it as local.
+								access->setNewLocalWriteID();
+							}
+						}
+
 						DataAccessStatusEffects updatedStatus(access);
 
 						/* Setting the location may cause read satisfiability to be
@@ -4446,6 +4462,9 @@ namespace DataAccessRegistration {
 				DataAccessStatusEffects initialStatus(access);
 				if (location) {
 					access->setLocation(location);
+					if (location->isClusterLocalMemoryPlace() && !location->isDirectoryMemoryPlace()) {
+						access->setNewLocalWriteID();
+					}
 				}
 				// access->setValidNamespacePrevious(VALID_NAMESPACE_NONE, nullptr);
 				// access->setValidNamespaceSelf(VALID_NAMESPACE_NONE);
@@ -4499,6 +4518,9 @@ namespace DataAccessRegistration {
 
 			const MemoryPlace *loc = location ? location : Directory::getDirectoryMemoryPlace();
 			newLocalAccess->setReadSatisfied(loc);
+			if (location && location->isClusterLocalMemoryPlace() && !location->isDirectoryMemoryPlace()) {
+				newLocalAccess->setNewLocalWriteID();
+			}
 			newLocalAccess->setWriteSatisfied();
 			newLocalAccess->setConcurrentSatisfied();
 			newLocalAccess->setCommutativeSatisfied();
@@ -4575,6 +4597,7 @@ namespace DataAccessRegistration {
 					// will get copied from node 1 to node 0, causing a use-after-free on
 					// node 0.
 					access->setLocation(Directory::getDirectoryMemoryPlace());
+					access->setWriteID(0);
 					containedInAccess = true;
 					// Now the region in handled in the normal way as part of the larger access.
 					return true;

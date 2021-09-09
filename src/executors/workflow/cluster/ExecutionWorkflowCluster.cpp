@@ -246,7 +246,6 @@ namespace ExecutionWorkflow {
 					_isTaskwait
 				);
 
-				WriteIDManager::registerWriteIDasLocal(_writeID, _fullRegion);
 				this->releaseSuccessors();
 				delete this;
 			}

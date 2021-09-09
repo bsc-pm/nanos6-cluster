@@ -85,6 +85,14 @@ namespace ExecutionWorkflow {
 			access->setValidNamespaceSelf( ClusterManager::getCurrentMemoryNode()->getIndex());
 		}
 
+		if (sourceType == nanos6_host_device || sourceMemoryPlace == ClusterManager::getCurrentMemoryNode()) {
+			if (access->getObjectType() == access_type && !access->isWeak() && access->getType() != READ_ACCESS_TYPE) {
+				// Access already present, and the task will not modify the data (is weak or read-only access),
+				// then register it as local in case it isn't already.
+				access->setNewLocalWriteID();
+			}
+		}
+
 		if (ClusterManager::inClusterMode() && sourceMemoryPlace->isDirectoryMemoryPlace()) {
 			// In cluster mode, if it's in the directory, always use
 			// clusterCopy. The data doesn't need copying, since being in the
@@ -341,7 +349,7 @@ namespace ExecutionWorkflow {
 		workflow->enforceOrder(releaseStep, notificationStep);
 
 		// We must use local dependency data here, not the CPU's dependency data. This is because
-		// we may currently be creating the workflow for an offloaded task, which happens inside 
+		// we may currently be creating the workflow for an offloaded task, which happens inside
 		// functions called (indirectly) by DataRegistration::processSatisfiedOriginators.
 		// Note: it is only creating the workflow for an offloaded task that happens immediately,
 		// never the execution of a non-offloaded task. So the CPU dependency data may still be
@@ -349,7 +357,7 @@ namespace ExecutionWorkflow {
 		// originators that are still in use, but (1) we need these, because if the task's data
 		// is found by the WriteID, then the data copy step will call setLocationFromWorkflow,
 		// which may indeed create satisfied originators; and (2) it is dangerous to rely on the
-		// fact that DataRegistration::processSatisfiedOriginators is the last to be called in 
+		// fact that DataRegistration::processSatisfiedOriginators is the last to be called in
 		// DataAccessRegistration::processDelayedOperationsSatisfiedOriginatorsAndRemovableTasks,
 		// and therefore the rest of the CPU dependency data isn't needed.
 		CPUDependencyData localDependencyData2;

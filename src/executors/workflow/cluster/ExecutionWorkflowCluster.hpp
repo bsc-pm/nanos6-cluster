@@ -455,6 +455,9 @@ namespace ExecutionWorkflow {
 			// may create delayed operations (passing the read satisfiability, which is
 			// why this function needs hpDependencyData).
 			Instrument::dataFetch(Instrument::EarlyWriteID, region);
+			if (!access->isWeak() && access->getType() != READ_ACCESS_TYPE) {
+				access->setNewLocalWriteID();
+			}
 			if (access->readSatisfied()) {
 				DataAccessRegistration::setLocationFromWorkflow(access, ClusterManager::getCurrentMemoryNode(), hpDependencyData);
 			}

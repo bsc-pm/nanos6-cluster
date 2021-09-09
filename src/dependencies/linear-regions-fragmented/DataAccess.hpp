@@ -287,6 +287,21 @@ public:
 		_writeID = id;
 	}
 
+	// Create a new write ID
+	void setNewWriteID()
+	{
+		WriteID id = WriteIDManager::createWriteID();
+		setWriteID(id);
+	}
+
+	// Create a new write ID and register it as present locally
+	void setNewLocalWriteID()
+	{
+		WriteID id = WriteIDManager::createWriteID();
+		WriteIDManager::registerWriteIDasLocal(id, getAccessRegion());
+		setWriteID(id);
+	}
+
 	void setRegistered()
 	{
 		assert(!isRegistered());
@@ -605,6 +620,7 @@ public:
 		if (other->complete()) {
 			setComplete();
 		}
+		setWriteID(other->getWriteID());
 		setValidNamespaceSelf(other->getValidNamespaceSelf());
 		setValidNamespacePrevious(VALID_NAMESPACE_NONE, nullptr);
 	}

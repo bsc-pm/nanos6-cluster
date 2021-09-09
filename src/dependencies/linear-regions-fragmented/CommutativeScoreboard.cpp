@@ -68,8 +68,11 @@ bool CommutativeScoreboard::addAndEvaluateTask(Task *task, CPUDependencyData &hp
 
 							// Pick up the location from the scoreboard: since commutative tasks
 							// are executed out of order, the location cannot be passed among
-							// commutative tasks through the dependency system.
+							// commutative tasks through the dependency system. Also, clear the
+							// write ID because if the location changes between two commutative
+							// accesses, then the data has been modified, so WriteID will never help.
 							dataAccess->setLocation(entry._location);
+							dataAccess->setNewWriteID();
 							hpDependencyData._acquiredCommutativeScoreboardEntries.push_back(&entry);
 						} else {
 							successful = false;
@@ -160,6 +163,7 @@ void CommutativeScoreboard::evaluateCompetingTask(
 					if (successful) {
 						// Pick up the location from the scoreboard
 						dataAccess->setLocation(entry._location);
+						dataAccess->setNewWriteID();
 						hpDependencyData._acquiredCommutativeScoreboardEntries.push_back(&entry);
 					}
 
