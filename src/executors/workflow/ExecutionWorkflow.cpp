@@ -69,15 +69,19 @@ namespace ExecutionWorkflow {
 		if (sourceMemoryPlace == nullptr) {
 			assert(access->isWeak());
 		}
-		const nanos6_device_t sourceType =
-			(sourceMemoryPlace == nullptr) ? nanos6_host_device : sourceMemoryPlace->getType();
 
-		const nanos6_device_t targetType = targetMemoryPlace->getType();
+		// Take the source memory type, except nullptr and the current memory node both
+		// count as nanos6_host_device.
+		MemoryPlace const *currentMemoryPlace = ClusterManager::getCurrentMemoryNode();
+		nanos6_device_t sourceType =
+			(sourceMemoryPlace == nullptr || sourceMemoryPlace == currentMemoryPlace)
+					? nanos6_host_device : sourceMemoryPlace->getType();
+		const nanos6_device_t targetType =
+				(targetMemoryPlace == currentMemoryPlace)
+					? nanos6_host_device : targetMemoryPlace->getType();
 
 		/* Starting workflow for a task on the host: not in a namespace */
-		if (targetType == nanos6_host_device
-			|| targetMemoryPlace == ClusterManager::getCurrentMemoryNode()) {
-
+		if (targetType == nanos6_host_device) {
 			access->setValidNamespaceSelf( ClusterManager::getCurrentMemoryNode()->getIndex());
 		}
 
