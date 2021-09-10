@@ -193,7 +193,8 @@ namespace ExecutionWorkflow {
 		_isTaskwait(isTaskwait),
 		_isWeak(isWeak),
 		_needsTransfer(needsTransfer),
-		_registerLocation(registerLocation)
+		_registerLocation(registerLocation),
+		_nFragments(0)
 	{
 #ifndef NDEBUG
 		assert(ClusterManager::getCurrentMemoryNode() == _targetMemoryPlace);
@@ -213,43 +214,6 @@ namespace ExecutionWorkflow {
 			assert(_sourceMemoryPlace->getType() == nanos6_cluster_device);
 		}
 #endif
-
-		// We fragment the transfers here.
-		// TODO: If this affects performance, we can do the fragmentation on demand.
-		// So only when the fragmentation is going to take place.
-		_nFragments = ClusterManager::getMPIFragments(region);
-
-		char *start = (char *)region.getStartAddress();
-
-		for (size_t i = 0; start < region.getEndAddress(); ++i) {
-
-			assert(i < _nFragments);
-			// Note: this calculation still works when the maximum message size is SIZE_MAX.
-			char *end = (char *) region.getEndAddress();
-			if ((size_t)(end-start) > ClusterManager::getMessageMaxSize()) {
-				end = start + ClusterManager::getMessageMaxSize();
-			}
-
-			_regionsFragments.push_back(DataAccessRegion(start, end));
-
-			start = end;
-		}
-
-		_postcallback = [&]() {
-			if (--_nFragments == 0) {
-				//! If this data copy is performed for a taskwait we don't need to update the
-				//! location here.
-				DataAccessRegistration::updateTaskDataAccessLocation(
-					_task,
-					_fullRegion,
-					_targetMemoryPlace,
-					_isTaskwait
-				);
-
-				this->releaseSuccessors();
-				delete this;
-			}
-		};
 	}
 
 
@@ -290,6 +254,41 @@ namespace ExecutionWorkflow {
 		assert(_sourceMemoryPlace->getType() == nanos6_cluster_device);
 		assert(_sourceMemoryPlace != _targetMemoryPlace);
 
+		// Now fragment the data transfers
+		_nFragments = ClusterManager::getMPIFragments(_fullRegion);
+
+		char *start = (char *)_fullRegion.getStartAddress();
+		for (size_t i = 0; start < _fullRegion.getEndAddress(); ++i) {
+
+			assert(i < _nFragments);
+			// Note: this calculation still works when the maximum message size is SIZE_MAX.
+			char *end = (char *) _fullRegion.getEndAddress();
+			if ((size_t)(end-start) > ClusterManager::getMessageMaxSize()) {
+				end = start + ClusterManager::getMessageMaxSize();
+			}
+
+			_regionsFragments.push_back(DataAccessRegion(start, end));
+
+			start = end;
+		}
+		assert(start == _fullRegion.getEndAddress());
+
+		// Set the callback
+		_postcallback = [&]() {
+			if (--_nFragments == 0) {
+				//! If this data copy is performed for a taskwait we don't need to update the
+				//! location here.
+				DataAccessRegistration::updateTaskDataAccessLocation(
+					_task,
+					_fullRegion,
+					_targetMemoryPlace,
+					_isTaskwait
+				);
+
+				this->releaseSuccessors();
+				delete this;
+			}
+		};
 
 		// Now check pending data transfers because the same data transfer
 		// (or one fully containing it) may already be pending. An example
