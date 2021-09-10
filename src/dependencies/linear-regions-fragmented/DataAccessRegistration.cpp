@@ -850,14 +850,12 @@ namespace DataAccessRegistration {
 				assert(!initialStatus._propagatesReadSatisfiabilityToNext);
 				updateOperation._makeReadSatisfied = true; /* make next task read satisfied */
 				assert(access->hasLocation());
-#ifdef USE_CLUSTER
 				updateOperation._writeID = access->getWriteID();
 				const MemoryPlace *location = access->getLocation();
 				if ( (location->getType() == nanos6_host_device && !Directory::isDirectoryMemoryPlace(location))
 						|| location == ClusterManager::getCurrentMemoryNode()) {
 					WriteIDManager::registerWriteIDasLocal(access->getWriteID(), access->getAccessRegion());
 				}
-#endif
 			}
 
 			// Note: do not pass namespace propagation info to taskwaits
@@ -937,9 +935,7 @@ namespace DataAccessRegistration {
 			if (initialStatus._propagatesReadSatisfiabilityToFragments != updatedStatus._propagatesReadSatisfiabilityToFragments) {
 				assert(!initialStatus._propagatesReadSatisfiabilityToFragments);
 				updateOperation._makeReadSatisfied = true;
-#ifdef USE_CLUSTER
 				updateOperation._writeID = access->getWriteID();
-#endif
 				assert(access->hasLocation());
 			}
 
@@ -1822,7 +1818,6 @@ namespace DataAccessRegistration {
 							access->setDisableReadPropagationUntilHere();
 					}
 				}
-#ifdef USE_CLUSTER
 				WriteID id = 0;
 				// Take previous write ID if reading exactly the same region
 				// (note it will be zero if it's reading a subregion)
@@ -1835,7 +1830,6 @@ namespace DataAccessRegistration {
 					id = WriteIDManager::createWriteID();
 				}
 				access->setWriteID(id);
-#endif // USE_CLUSTER
 			}
 
 			/*
@@ -3462,11 +3456,9 @@ namespace DataAccessRegistration {
 						accessOrFragment->setLocation(ClusterManager::getCurrentMemoryNode());
 					}
 				}
-#ifdef USE_CLUSTER
 				if (writeID != 0 && accessOrFragment->getAccessRegion() == region) {
 					accessOrFragment->setWriteID(writeID);
 				}
-#endif // USE_CLUSTER
 				DataAccessStatusEffects updatedStatus(accessOrFragment);
 
 				handleDataAccessStatusChanges(

@@ -97,9 +97,7 @@ private:
 
 	status_t _status;
 
-#ifdef USE_CLUSTER
 	WriteID _writeID;
-#endif
 
 	//! Direct next access
 	DataAccessLink _next;
@@ -159,9 +157,7 @@ public:
 		_objectType(objectType),
 		_region(accessRegion),
 		_status(status),
-#ifdef USE_CLUSTER
 		_writeID(0),
-#endif
 		_next(next),
 		_reductionTypeAndOperatorIndex(reductionTypeAndOperatorIndex),
 		_reductionIndex(reductionIndex),
@@ -193,9 +189,7 @@ public:
 		_objectType(other.getObjectType()),
 		_region(other.getAccessRegion()),
 		_status(other.getStatus()),
-#ifdef USE_CLUSTER
 		_writeID(other._writeID),
-#endif // USE_CLUSTER
 		_next(other.getNext()),
 		_reductionTypeAndOperatorIndex(other.getReductionTypeAndOperatorIndex()),
 		_reductionIndex(other.getReductionIndex()),
@@ -283,7 +277,6 @@ public:
 		return _status;
 	}
 
-#ifdef USE_CLUSTER
 	WriteID getWriteID() const
 	{
 		return _writeID;
@@ -293,13 +286,6 @@ public:
 	{
 		_writeID = id;
 	}
-#else
-	WriteID getWriteID() const
-	{
-		return 0;
-	}
-
-#endif // USE_CLUSTER
 
 	void setRegistered()
 	{

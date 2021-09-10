@@ -44,9 +44,7 @@ struct CPUDependencyData {
 		bool _propagateSatisfiability;
 		bool _setPropagateFromNamespace;
 		MemoryPlace const *_location;
-#ifdef USE_CLUSTER
 		WriteID _writeID;
-#endif // USE_CLUSTER
 		bool _setReductionInfo; // Note: Both this and next field are required, as a null ReductionInfo can be propagated
 		ReductionInfo *_reductionInfo;
 		int _validNamespace;
@@ -62,9 +60,7 @@ struct CPUDependencyData {
 			 _propagateSatisfiability(false),
 			 _setPropagateFromNamespace(false),
 			_location(nullptr),
-#ifdef USE_CLUSTER
 			_writeID(0),
-#endif // USE_CLUSTER
 			_setReductionInfo(false), _reductionInfo(nullptr),
 			_validNamespace(-1),
 			_namespacePredecessor(nullptr),
@@ -79,9 +75,7 @@ struct CPUDependencyData {
 			 _propagateSatisfiability(false),
 			 _setPropagateFromNamespace(false),
 			_location(nullptr),
-#ifdef USE_CLUSTER
 			_writeID(0),
-#endif // USE_CLUSTER
 			_setReductionInfo(false), _reductionInfo(nullptr),
 			_validNamespace(-1),
 			_namespacePredecessor(nullptr),
