@@ -269,6 +269,10 @@ __require_CLUSTER
 	# different tasks can be merged and finalization into a single
 	# message.
 	merge_release_and_finish = true
+	# Number of spawned tasks to help with message handling, in addition to the polling service
+	# itself. Default is 2.
+	num_message_handler_workers = 2
+
 	[cluster.mpi]
 		# Decide if mpi messenger must use a different
 		# communicator for data_raws messages. Default is true

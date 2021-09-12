@@ -72,6 +72,11 @@ public:
 
 	bool handleMessage();
 
+	Task *getTask() const
+	{
+		return (Task *)_content->_offloadedTaskId;
+	}
+
 	inline std::string toString() const
 	{
 		std::stringstream ss;

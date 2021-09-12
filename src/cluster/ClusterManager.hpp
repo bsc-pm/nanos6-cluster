@@ -63,6 +63,8 @@ private:
 
 	bool _mergeReleaseAndFinish;
 
+	int _numMessageHandlerWorkers;
+
 	//! The ShutdownCallback for this ClusterNode.
 	//! At the moment this is an atomic variable, because we might have
 	//! to poll for this, until it's set from external code. For example,
@@ -424,6 +426,12 @@ public:
 	{
 		assert(_singleton != nullptr);
 		return _singleton->_mergeReleaseAndFinish;
+	}
+
+	static bool getNumMessageHandlerWorkers()
+	{
+		assert(_singleton != nullptr);
+		return _singleton->_numMessageHandlerWorkers;
 	}
 
 };

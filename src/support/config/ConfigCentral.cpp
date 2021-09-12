@@ -24,6 +24,7 @@ void ConfigCentral::initialize()
 	registerOption<bool_t>("cluster.use_namespace", false);
 	registerOption<bool_t>("cluster.disable_remote", false);
 	registerOption<bool_t>("cluster.disable_autowait", false);
+	registerOption<integer_t>("cluster.num_message_handler_workers", 2);
 
 	registerOption<bool_t>("cluster.mpi.comm_data_raw", true);
 

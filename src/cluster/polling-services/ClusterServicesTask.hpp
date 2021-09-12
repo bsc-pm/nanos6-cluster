@@ -9,7 +9,7 @@
 
 #include "MessageHandler.hpp"
 #include "MessageDelivery.hpp"
-
+#include "ClusterWorker.hpp"
 
 namespace ClusterServicesTask {
 
@@ -83,6 +83,14 @@ namespace ClusterServicesTask {
 																		  Instrument::ClusterEventType::PendingDataTransferBytes);
 	}
 
+	inline void initializeWorkers(int numWorkers)
+	{
+		for(int i=0; i< numWorkers; i++) {
+			registerService<ClusterPollingServices::ClusterWorker>("ClusterWorker");
+		}
+	}
+
+
 	//! \brief Shutdown the Cluster polling services-
 	//!
 	//! This method will be called during ClusterManager
@@ -108,6 +116,13 @@ namespace ClusterServicesTask {
 		// // To assert shitdown the services before the CPUManager
 		while (_activeClusterTaskServices.load() > 0) {
 			// Wait for cluster polling services before returning
+		}
+	}
+
+	inline void shutdownWorkers(__attribute__((unused)) int numWorkers)
+	{
+		for(int i=0; i< numWorkers; i++) {
+			unregisterService<ClusterPollingServices::ClusterWorker>();
 		}
 	}
 }

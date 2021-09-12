@@ -93,6 +93,8 @@ ClusterManager::ClusterManager(std::string const &commType)
 	ConfigVariable<bool> mergeReleaseAndFinish("cluster.merge_release_and_finish");
 	_mergeReleaseAndFinish = mergeReleaseAndFinish.getValue();
 
+	ConfigVariable<int> numMessageHandlerWorkers("cluster.num_message_handler_workers");
+	_numMessageHandlerWorkers = numMessageHandlerWorkers.getValue();
 }
 
 ClusterManager::~ClusterManager()
@@ -139,8 +141,10 @@ void ClusterManager::postinitialize()
 
 		if (_singleton->_taskInPoolins) {
 			ClusterServicesTask::initialize();
+			ClusterServicesTask::initializeWorkers(_singleton->_numMessageHandlerWorkers);
 		} else {
 			ClusterServicesPolling::initialize();
+			ClusterServicesTask::initializeWorkers(_singleton->_numMessageHandlerWorkers);
 		}
 	}
 }
@@ -185,8 +189,10 @@ void ClusterManager::shutdownPhase1()
 
 		if (_singleton->_taskInPoolins) {
 			ClusterServicesTask::shutdown();
+			ClusterServicesTask::shutdownWorkers(_singleton->_numMessageHandlerWorkers);
 		} else {
 			ClusterServicesPolling::shutdown();
+			ClusterServicesTask::shutdownWorkers(_singleton->_numMessageHandlerWorkers);
 		}
 		assert(ClusterServicesPolling::_activeClusterPollingServices == 0);
 
