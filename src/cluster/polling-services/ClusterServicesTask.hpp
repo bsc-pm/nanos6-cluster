@@ -113,16 +113,17 @@ namespace ClusterServicesTask {
 		unregisterService<ClusterPollingServices::PendingQueue<Message>>();
 		unregisterService<ClusterPollingServices::MessageHandler<Message>>();
 
-		// // To assert shitdown the services before the CPUManager
-		while (_activeClusterTaskServices.load() > 0) {
-			// Wait for cluster polling services before returning
-		}
+		// Note: shutdownWorkers is always called afterwards
 	}
 
 	inline void shutdownWorkers(__attribute__((unused)) int numWorkers)
 	{
 		for(int i=0; i< numWorkers; i++) {
 			unregisterService<ClusterPollingServices::ClusterWorker>();
+		}
+		// // To assert shutdown the services before the CPUManager
+		while (_activeClusterTaskServices.load() > 0) {
+			// Wait for cluster polling services before returning
 		}
 	}
 }
