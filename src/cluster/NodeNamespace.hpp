@@ -168,6 +168,12 @@ public:
 	{
 		return (_singleton != nullptr);
 	}
+
+	static Task *getNamespaceTask()
+	{
+		assert (_singleton != nullptr);
+		return _singleton->_namespaceTask;
+	}
 };
 
 

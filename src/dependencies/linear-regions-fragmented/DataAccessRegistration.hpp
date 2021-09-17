@@ -229,6 +229,10 @@ namespace DataAccessRegistration {
 		nanos6_address_translation_entry_t * translationTable, int totalSymbols);
 
 	void setNamespaceSelf(DataAccess *access, int targetNamespace, CPUDependencyData &hpDependencyData);
+
+	typedef std::vector<DataAccessRegion> DataAccessRegionVector;
+	void checkNamespacePropagation(DataAccessRegionVector regions, Task *offloadedTask);
+
 } // namespace DataAccessRegistration
 
 

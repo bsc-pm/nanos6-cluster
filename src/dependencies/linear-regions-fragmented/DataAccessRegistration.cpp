@@ -47,6 +47,7 @@
 #ifdef USE_CLUSTER
 #include "ClusterTaskContext.hpp"
 #include <ClusterUtil.hpp>
+#include "cluster/NodeNamespace.hpp"
 #endif
 
 #pragma GCC visibility push(hidden)
@@ -464,7 +465,6 @@ namespace DataAccessRegistration {
 					&& access->complete()
 					&& (!access->isInBottomMap()
 						|| access->hasNext()
-						|| _triggersDataRelease // access->getOriginator()->isRemoteTask()
 						|| (access->getType() == NO_ACCESS_TYPE)
 						|| (access->getObjectType() == taskwait_type)
 						|| (access->getObjectType() == top_level_sink_type)));
@@ -695,6 +695,7 @@ namespace DataAccessRegistration {
 		ExecutionWorkflow::DataLinkStep *dataLinkStep = nullptr,
 		DataAccess::status_t status = 0, DataAccessLink next = DataAccessLink()
 	);
+	static void removeFromNamespaceBottomMap(CPUDependencyData &hpDependencyData);
 
 	/*
 	 * Make the changes to the data access implied by the differences between
@@ -1035,18 +1036,67 @@ namespace DataAccessRegistration {
 			assert(access->getOriginator() == task);
 			assert(task->hasDataReleaseStep());
 
-			// Don't release a concurrent access if the location hasn't changed. That happens
-			// either (a) because we didn't write to it (it must have been weakconcurrent) or (b)
-			// because we did write to it, but on the same node that it was on before the concurrent tasks.
-			// By sending no message we will not change the location, which in case (a) will let
-			// another concurrent task do the write and in case (b) gives the correct location already.
-			bool dontRelease = (access->getType() == CONCURRENT_ACCESS_TYPE)
-								&& (access->getLocation() == access->getConcurrentInitialLocation());
+			// We are about to perform the data release (from the original access or top-level
+			// sink). Before releasing the lock on the task, we must set the dataReleased flag
+			// for the original access, which will prevent propagation on the namespace. This
+			// cannot be delayed, since another thread may be just about to link the original
+			// access to its successor in the namespace, as soon as it gets the lock. If
+			// this is the original access, then we know that it has not already been connected
+			// to the successor in the namespace, since _triggersDataRelease cannot be true if
+			// the access has a next access. But if it is a top-level sink, we need to check
+			// the original access to make sure that it does not already have a next access. If
+			// it does, then we set dontRelease = true to abandon the data release and proceed
+			// with namespace propagation.
+			bool dontRelease = false;
+			if (access->getObjectType() == top_level_sink_type) {
+				DataAccessRegion region = access->getAccessRegion();
+				accessStructures._accesses.processIntersecting(
+					region,
+					[&](TaskDataAccesses::accesses_t::iterator position) -> bool {
+						DataAccess *originalAccess = &(*position);
+						assert(originalAccess != nullptr);
+						assert(!originalAccess->hasBeenDiscounted());
+						originalAccess = fragmentAccess(originalAccess, region, accessStructures);
+						assert(originalAccess->getAccessRegion().fullyContainedIn(region));
+						if (originalAccess->hasNext()) {
+							dontRelease = true;
+						} else {
+							originalAccess->setDataReleased();
+						}
+						return true;
+					}
+				);
+			} else {
+				assert(!access->hasNext());
+				access->setDataReleased();
+			}
 
 			if (access->getLocation() != nullptr && !dontRelease) {
-				// This adds the access to the ClusterDataReleaseStep::_releaseInfo vector.
-				// The accesses will be released latter.
-				access->getOriginator()->getDataReleaseStep()->addToReleaseList(access);
+
+				// Unmap the task's access from the namespace bottom map. This can be
+				// done as a delayed operation, because the dataReleased flag is now
+				// set, so despite the access still being on the bottom map, the
+				// namespace propagation will fail. We must, however, ensure that it is
+				// removed from the bottom map (by removeFromNamespaceBottomMap) before the
+				// task is deleted.
+				assert(access->getOriginator()->getParent() == NodeNamespace::getNamespaceTask());
+				hpDependencyData._namespaceRegionsToRemove.emplace_back(CPUDependencyData::TaskAndRegion(access->getOriginator(), access->getAccessRegion(), /* location not needed */ nullptr));
+
+				// Don't release a concurrent access if the location hasn't changed. That happens
+				// either (a) because we didn't write to it (it must have been weakconcurrent) or (b)
+				// because we did write to it, but on the same node that it was on before the concurrent tasks.
+				// By sending no message we will not change the location, which in case (a) will let
+				// another concurrent task do the write and in case (b) gives the correct location already.
+				bool dontUpdateConcurrentLocation = ((access->getType() == CONCURRENT_ACCESS_TYPE)
+									&& (access->getLocation() == access->getConcurrentInitialLocation()))
+									|| access->getLocation() == nullptr; // necessary?
+
+				if (!dontUpdateConcurrentLocation) {
+					// This adds the access to the ClusterDataReleaseStep::_releaseInfo vector.
+					// The accesses will be released latter.
+					access->getOriginator()->getDataReleaseStep()->addToReleaseList(access);
+				}
+
 				if (access->getType() == COMMUTATIVE_ACCESS_TYPE) {
 					// This is the last commutative task here, so delete the scoreboard entry.
 					CommutativeScoreboard::_lock.lock();
@@ -2151,6 +2201,7 @@ namespace DataAccessRegistration {
 
 		handleRemovableTasks(hpDependencyData._removableTasks);
 
+		removeFromNamespaceBottomMap(hpDependencyData);
 		Instrument::exitProcessDelayedOperationsSatisfiedOriginatorsAndRemovableTasks();
 	}
 
@@ -2954,7 +3005,9 @@ namespace DataAccessRegistration {
 #ifdef USE_CLUSTER
 				bool canPropagateInNamespace = false;
 				if (parent->isNodeNamespace()) {
-					if (previous->getNamespaceSuccessor() == dataAccess->getOriginator()) {
+					if (previous->getDataReleased()) {
+						Instrument::namespacePropagation(Instrument::NamespacePredecessorFinished, dataAccess->getAccessRegion());
+					} else if (previous->getNamespaceSuccessor() == dataAccess->getOriginator()) {
 						if ((previous->getType() == READ_ACCESS_TYPE) != (dataAccess->getType() == READ_ACCESS_TYPE)) {
 							// When the access type of an offloaded task is READ_ACCESS_TYPE, then write satisfiability
 							// means pseudowrite satisfiability. We cannot propagate in the namespace from pseudowrite
@@ -4883,40 +4936,14 @@ namespace DataAccessRegistration {
 		}
 #endif
 
-		// Needed for namespace support. If a remote task completes before one
-		// or all of its accesses have a successor (either due to timing or
-		// because it is the very last task using this array), then some or all
-		// of its accesses may still be in the bottom map, even though these
-		// accesses will have already been deleted. These accesses are removed
-		// from the bottom map here. This definitely needs to be done  before
-		// the task is destroyed (otherwise a dangling pointer to the task
-		// would be left in the bottom map).
-		Task *parent = task->getParent();
-		if (parent && parent->isNodeNamespace()) {
-			TaskDataAccesses &parentAccessStructures = parent->getDataAccesses();
-			std::lock_guard<TaskDataAccesses::spinlock_t> guard(parentAccessStructures._lock);
-
-			parentAccessStructures._subaccessBottomMap.processAll(
-				[&](TaskDataAccesses::subaccess_bottom_map_t::iterator bottomMapPosition) -> bool {
-					BottomMapEntry *bottomMapEntry = &(*bottomMapPosition);
-					assert(bottomMapEntry != nullptr);
-
-					if (bottomMapEntry->_link._task == task) {
-						parentAccessStructures._subaccessBottomMap.erase(bottomMapEntry);
-						ObjectAllocator<BottomMapEntry>::deleteObject(bottomMapEntry);
-					}
-
-					return true;
-				}
-			);
-		}
-
 		{
 			accessStructures._lock.lock();
 
 			if (task->isRemoteTask()) {
-				// Remote tasks require a top-level sink for all accesses to collect
-				// the release regions to send back to the offloader.
+				// Remote tasks without wait or autowait require a top-level sink for
+				// all accesses to collect the release regions to send back to the offloader.
+				// If the task has wait or autowait, then the bottom map will already
+				// be empty, so no top-level sinks will be created.
 				createTopLevelSink(task, accessStructures, hpDependencyData);
 			}
 
@@ -5005,10 +5032,6 @@ namespace DataAccessRegistration {
 							return true;
 						}
 
-						/* Finish work of above loop: remove from bottom map when offloaded task ends */
-						if (parent && parent->isNodeNamespace() && dataAccess->isInBottomMap()) {
-							dataAccess->unsetInBottomMap();
-						}
 						finalizeAccess(
 							task, dataAccess,
 							dataAccess->getAccessRegion(), 0,
@@ -5483,6 +5506,89 @@ namespace DataAccessRegistration {
 			initialStatus, updatedStatus,
 			access, accessStructures, access->getOriginator(),
 			hpDependencyData);
+	}
+
+	// Remove a list of regions from the namespace's bottom map.
+	// This must be done before the tasks are deleted. Note: some
+	// of the tasks may already be deleted! We can only know they
+	// are still alive if they have entries on the bottom map.
+	static void removeFromNamespaceBottomMap(CPUDependencyData &hpDependencyData)
+	{
+		if (hpDependencyData._namespaceRegionsToRemove.empty()) {
+			return;
+		}
+		Task *parent = NodeNamespace::getNamespaceTask();
+		Task *lastLocked = nullptr;
+
+		{
+			TaskDataAccesses &parentAccessStructures = parent->getDataAccesses();
+			std::lock_guard<TaskDataAccesses::spinlock_t> guardParent(parentAccessStructures._lock);
+
+			for(CPUDependencyData::TaskAndRegion taskAndRegion : hpDependencyData._namespaceRegionsToRemove) {
+				DataAccessRegion region = taskAndRegion._region;
+
+				// We must not dereference the task unless it is still in the bottom map!
+				// If it is, then remove it from the namespace bottom map
+				bool wasInBottomMap = false;
+				parentAccessStructures._subaccessBottomMap.processIntersecting(
+					region,
+					/* processor: called with each part of the bottom map that intersects region */
+					[&](TaskDataAccesses::subaccess_bottom_map_t::iterator bottomMapPosition) -> bool {
+						BottomMapEntry *bottomMapEntry = &(*bottomMapPosition);
+						assert(bottomMapEntry != nullptr);
+						bottomMapEntry = fragmentBottomMapEntry(bottomMapEntry, region, parentAccessStructures);
+						DataAccessLink target = bottomMapEntry->_link;
+						if (target._task == taskAndRegion._task) {
+							wasInBottomMap = true;
+							parentAccessStructures._subaccessBottomMap.erase(bottomMapEntry);
+							ObjectAllocator<BottomMapEntry>::deleteObject(bottomMapEntry);
+						}
+						return true;
+					}
+				);
+				if (!wasInBottomMap) {
+					continue;
+				}
+
+				Task *task = taskAndRegion._task;
+				assert(task != nullptr);
+				assert(task->isRemoteTask());
+				TaskDataAccesses &accessStructures = task->getDataAccesses();
+
+				if (task != lastLocked) {
+					if (lastLocked) {
+						lastLocked->getDataAccesses()._lock.unlock();
+					}
+					accessStructures._lock.lock();
+					lastLocked = task;
+				}
+				accessStructures._accesses.processIntersecting(
+					region,
+					[&](TaskDataAccesses::accesses_t::iterator position) -> bool {
+						DataAccess *access = &(*position);
+						assert(access != nullptr);
+						assert (!access->hasNext());
+
+						if (access->isInBottomMap()) {
+							access = fragmentAccess(access, region, accessStructures);
+							DataAccessStatusEffects initialStatus(access);
+							access->unsetInBottomMap();
+							DataAccessStatusEffects updatedStatus(access);
+							handleDataAccessStatusChanges(
+								initialStatus, updatedStatus,
+								access, accessStructures, task,
+								hpDependencyData);
+						}
+						return true;
+					}
+				);
+			}
+		}
+		if (lastLocked != nullptr) {
+			lastLocked->getDataAccesses()._lock.unlock();
+		}
+		hpDependencyData._namespaceRegionsToRemove.clear();
+		processDelayedOperationsSatisfiedOriginatorsAndRemovableTasks(hpDependencyData, nullptr, false);
 	}
 }; // namespace DataAccessRegistration
 

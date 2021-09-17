@@ -140,6 +140,7 @@ struct CPUDependencyData {
 	typedef Container::deque<CommutativeScoreboard::entry_t *> acquired_commutative_scoreboard_entries_t;
 	typedef Container::deque<TaskAndRegion> released_commutative_regions_t;
 	typedef Container::deque<DataAccess *> satisfied_taskwait_accesses_t;
+	typedef std::vector<TaskAndRegion> namespace_regions_to_remove_t;
 
 	//! Tasks whose accesses have been satisfied after ending a task
 	satisfied_originator_list_t _satisfiedOriginators;
@@ -149,6 +150,7 @@ struct CPUDependencyData {
 	acquired_commutative_scoreboard_entries_t _acquiredCommutativeScoreboardEntries;
 	released_commutative_regions_t _releasedCommutativeRegions;
 	satisfied_taskwait_accesses_t _completedTaskwaits;
+	namespace_regions_to_remove_t _namespaceRegionsToRemove;
 #ifndef NDEBUG
 	std::atomic<bool> _inUse;
 #endif // NDEBUG

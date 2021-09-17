@@ -82,6 +82,7 @@ private:
 		EARLY_RELEASE_IN_NAMESPACE_BIT,
 		REMOTE_HAS_PSEUDOWRITE_BIT,
 		DISABLE_READ_PROPAGATION_UNTIL_HERE,
+		DATA_RELEASED_BIT,
 		TOTAL_STATUS_BITS
 	};
 
@@ -854,6 +855,16 @@ public:
 	void setDisableReadPropagationUntilHere()
 	{
 		_status[DISABLE_READ_PROPAGATION_UNTIL_HERE] = true;
+	}
+
+	bool getDataReleased() const
+	{
+		return _status[DATA_RELEASED_BIT];
+	}
+
+	void setDataReleased()
+	{
+		_status[DATA_RELEASED_BIT] = true;
 	}
 
 	// Get and set the initial location to a group of concurrent accesses.
