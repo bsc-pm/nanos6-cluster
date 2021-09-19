@@ -906,6 +906,7 @@ public:
 			&& this->getStatus() == other->getStatus()
 			&& this->isWeak() == other->isWeak()
 			&& this->getType() == other->getType()
+			&& this->getWriteID() == other->getWriteID()
 			&& this->getMemoryPlaceNodeIndex() == other->getMemoryPlaceNodeIndex()
 			&& this->getMemoryPlaceNodeIndex(this->getConcurrentInitialLocation()) == other->getMemoryPlaceNodeIndex(other->getConcurrentInitialLocation())
 			&& this->getDataLinkStep() == other->getDataLinkStep()
