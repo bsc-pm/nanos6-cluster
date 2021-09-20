@@ -89,6 +89,10 @@ namespace TaskOffloading {
 		}
 
 		ClusterManager::sendMessage(msg, remoteNode);
+
+		// Offloaded tasks do not need the "wait" clause, since any waiting will be handled
+		// already at the remote side.
+		task->setDelayedRelease(false);
 	}
 
 	void sendSatisfiability(SatisfiabilityInfoMap &satInfoMap)
