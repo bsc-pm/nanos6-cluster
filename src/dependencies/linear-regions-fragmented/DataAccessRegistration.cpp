@@ -540,6 +540,13 @@ namespace DataAccessRegistration {
 					);
 					lastAccess->setAccessRegion(newrel);
 
+					if (access->getWriteID() != lastAccess->getWriteID()) {
+						lastAccess->setNewWriteID();
+						if (lastAccess->getLocation()->isClusterLocalMemoryPlace()) {
+							WriteIDManager::registerWriteIDasLocal(lastAccess->getWriteID(), newrel);
+						}
+					}
+
 					DataAccessStatusEffects initialStatus(lastAccess);
 					if (initialStatus._isRemovable) {
 						// enforceSameNamespacePrevious is not true during REGISTERING the task.
@@ -583,6 +590,14 @@ namespace DataAccessRegistration {
 						access->getAccessRegion().getEndAddress()
 					);
 					lastAccess->setAccessRegion(newrel);
+
+					if (access->getWriteID() != lastAccess->getWriteID()) {
+						lastAccess->setNewWriteID();
+						if (lastAccess->getLocation()->isClusterLocalMemoryPlace()) {
+							WriteIDManager::registerWriteIDasLocal(lastAccess->getWriteID(), newrel);
+						}
+					}
+
 #ifndef NDEBUG
 					DataAccessStatusEffects initialStatus(lastAccess);
 					assert (initialStatus._isRemovable);
