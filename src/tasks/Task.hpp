@@ -649,6 +649,7 @@ public:
 	inline void setDelayedRelease(bool delayedReleaseValue)
 	{
 		_flags[wait_flag] = delayedReleaseValue;
+		_flags[nonlocal_wait_flag] = false;
 	}
 	//! \brief Check if the task has the wait clause
 	bool mustDelayRelease() const

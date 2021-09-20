@@ -32,6 +32,17 @@ typedef enum {
 	nanos6_cyclic_distribution
 } nanos6_data_distribution_t;
 
+typedef enum {
+	//! No wait clause (cannot currently be specified with pragma clause)
+	nanos6_no_wait = 0,
+
+	//! Autowait (default for offloaded tasks if disable_autowait=false)
+	nanos6_autowait,
+
+	//! Wait (same as wait clause)
+	nanos6_wait
+} nanos6_early_release_t;
+
 //! \brief Determine whether we are on cluster mode
 //!
 //! \returns true if we are on cluster mode
@@ -92,6 +103,12 @@ void *nanos6_lmalloc(size_t size);
 //! \param[in] ptr is a pointer to memory previously allocated with nanos6_lmalloc
 //! \param[in] size is the size of the local memory allocation
 void nanos6_lfree(void *ptr, size_t size);
+
+
+//! \brief Set early release.  Temporary until pragma clauses defined
+//!
+//! \param[in] early_release controls early release
+void nanos6_set_early_release(nanos6_early_release_t early_release);
 
 #ifdef __cplusplus
 }

@@ -434,6 +434,8 @@ public:
 		return _singleton->_numMessageHandlerWorkers;
 	}
 
+	static void setEarlyRelease(nanos6_early_release_t early_release);
+
 };
 
 

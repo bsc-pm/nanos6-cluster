@@ -69,3 +69,8 @@ extern "C" void nanos6_lfree(void *ptr, size_t size)
 {
 	ClusterMemoryManagement::lfree(ptr, size);
 }
+
+extern "C" void nanos6_set_early_release(nanos6_early_release_t early_release)
+{
+	ClusterManager::setEarlyRelease(early_release);
+}

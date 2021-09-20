@@ -19,8 +19,10 @@
 #include "ClusterUtil.hpp"
 #include "WriteID.hpp"
 #include "MessageId.hpp"
+#include "tasks/Task.hpp"
 
 #include "executors/workflow/cluster/ExecutionWorkflowCluster.hpp"
+#include "executors/threads/WorkerThread.hpp"
 
 
 TaskOffloading::RemoteTasksInfoMap *TaskOffloading::RemoteTasksInfoMap::_singleton = nullptr;
@@ -267,4 +269,24 @@ void ClusterManager::fetchVector(
 	ClusterPollingServices::PendingQueue<DataTransfer>::addPendingVector(temporal);
 
 	_singleton->_msn->sendMessage(msg, remoteNode);
+}
+
+void ClusterManager::setEarlyRelease(nanos6_early_release_t early_release)
+{
+	WorkerThread *currentThread = WorkerThread::getCurrentWorkerThread();
+	Task *task = currentThread->getTask();
+	assert(task != nullptr);
+	switch(early_release) {
+		case nanos6_no_wait:
+			task->setDelayedRelease(false);
+			break;
+
+		case nanos6_autowait:
+			task->setDelayedNonLocalRelease();
+			break;
+
+		case nanos6_wait:
+			task->setDelayedRelease(true);
+			break;
+	}
 }
