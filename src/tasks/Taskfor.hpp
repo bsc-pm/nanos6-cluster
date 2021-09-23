@@ -12,6 +12,7 @@
 #include "support/MathSupport.hpp"
 #include "tasks/Task.hpp"
 #include "tasks/TaskImplementation.hpp"
+#include "lowlevel/FatalErrorHandler.hpp"
 
 
 class Taskfor : public Task {
@@ -90,6 +91,12 @@ public:
 		_bounds.lower_bound = lowerBound;
 		_bounds.upper_bound = upperBound;
 		_bounds.chunksize = chunksize;
+
+		// The current implementation hangs if the taskfor has no iterations.
+		FatalErrorHandler::failIf(upperBound <= lowerBound,
+								 "Task for ",
+								 getLabel(),
+								 " has no iterations: currently not supported");
 
 		size_t maxCollaborators = CPUManager::getNumCPUsPerTaskforGroup();
 		assert(maxCollaborators > 0);
