@@ -57,7 +57,7 @@ namespace Instrument {
 		size_t messageType = static_cast<size_t>(msg->getType());
 		assert(messageType < TOTAL_MESSAGE_TYPES);
 		countMessagesSent[messageType] ++;
-		bytesMessagesSent[messageType] += msg->getSize();
+		bytesMessagesSent[messageType] += msg->getSize() + sizeof(Message::msg_header);
 	}
 
 	void clusterHandleMessage(Message const *msg, int senderId)
@@ -68,7 +68,7 @@ namespace Instrument {
 		size_t messageType = static_cast<size_t>(msg->getType());
 		assert(messageType < TOTAL_MESSAGE_TYPES);
 		countMessagesReceived[messageType] ++;
-		bytesMessagesReceived[messageType] += msg->getSize();
+		bytesMessagesReceived[messageType] += msg->getSize() + sizeof(Message::msg_header);
 	}
 
 	void clusterDataSend(void *, size_t size, int, int messageId, InstrumentationContext const &)
