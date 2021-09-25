@@ -22,14 +22,14 @@ public:
 		//! the type of the message
 		MessageType type;
 
-		//! size of the payload in bytes
-		size_t size;
+		//! Cluster index of the sender node
+		short senderId;
 
 		//! Id of the message
 		int id;
 
-		//! Cluster index of the sender node
-		int senderId;
+		//! size of the payload in bytes
+		unsigned int size;
 	};
 
 	//! Deliverable is the structure that is actually sent over the network.
