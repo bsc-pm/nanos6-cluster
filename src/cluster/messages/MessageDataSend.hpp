@@ -17,6 +17,12 @@ class MessageDataSend : public Message {
 	struct DataSendMessageContent {
 		//! The remote region we update
 		DataAccessRegion _remoteRegion;
+
+		//! Node that the data should be sent to
+		short _recipientNodeIndex;
+
+		//! Id of the resulting data transfer message
+		int _id;
 	};
 
 	//! \brief pointer to the message payload
@@ -24,7 +30,9 @@ class MessageDataSend : public Message {
 
 public:
 	MessageDataSend(const ClusterNode *from,
-		DataAccessRegion const &remoteRegion);
+		DataAccessRegion const &remoteRegion,
+		ClusterNode *recipient,
+		int id);
 
 	MessageDataSend(Deliverable *dlv)
 		: Message(dlv)

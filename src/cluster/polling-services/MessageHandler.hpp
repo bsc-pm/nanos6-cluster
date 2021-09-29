@@ -61,6 +61,7 @@ namespace ClusterPollingServices {
 				case DMALLOC:
 				case DFREE:
 				case DATA_FETCH:
+				case DATA_SEND: // Not sure whether worth offloading to workers as just an MPI call
 				case SATISFIABILITY:
 					// These messages have no ordering constraints and are worth handling
 					// by other workers. All involve dependency system operations, which may
@@ -110,7 +111,6 @@ namespace ClusterPollingServices {
 					break;
 
 				case DATA_RAW:
-				case DATA_SEND:
 				case TOTAL_MESSAGE_TYPES:
 					// We should never see these messages
 					assert(0);
@@ -162,6 +162,7 @@ namespace ClusterPollingServices {
 				case DMALLOC:
 				case DFREE:
 				case DATA_FETCH:
+				case DATA_SEND:
 				case TASK_NEW:
 				case SATISFIABILITY:
 					// These messages have no ordering constraints, so do nothing
@@ -193,7 +194,6 @@ namespace ClusterPollingServices {
 					break;
 
 				case DATA_RAW:
-				case DATA_SEND:
 				case TOTAL_MESSAGE_TYPES:
 					// We should never see these messages
 					assert(0);

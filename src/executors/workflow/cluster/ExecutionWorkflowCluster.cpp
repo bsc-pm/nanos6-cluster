@@ -22,6 +22,34 @@
 
 namespace ExecutionWorkflow {
 
+	static inline int handleEagerSend(
+		DataAccessRegion region,
+		const MemoryPlace *sourceLocation,
+		const MemoryPlace *targetLocation,
+		ClusterNode *destNode)
+	{
+		if (ClusterManager::getEagerSend()  // cluster.eager_send = true
+			&& !sourceLocation->isDirectoryMemoryPlace() // and not in the directory (would mean data as yet invalid)
+			&& sourceLocation != targetLocation) { // and not already at the target
+			int eagerSendTag = MessageId::nextMessageId();
+			assert(destNode->getType() == nanos6_cluster_device);
+			ClusterNode *from = ClusterManager::getCurrentClusterNode();
+			const MemoryPlace *currentMemoryPlace = ClusterManager::getMemoryNode(from->getIndex());
+			if (sourceLocation == currentMemoryPlace) {
+				DataTransfer *dt = ClusterManager::sendDataRaw(region, targetLocation, eagerSendTag);
+				ClusterPollingServices::PendingQueue<DataTransfer>::addPending(dt);
+			} else {
+				// Send a MessageDataSend to the source node
+				ClusterNode *sourceNode = ClusterManager::getClusterNode(sourceLocation->getIndex());
+				MessageDataSend *msg = new MessageDataSend(from, region, destNode, eagerSendTag);
+				ClusterManager::sendMessage(msg, sourceNode);
+			}
+			return eagerSendTag;
+		} else {
+			return 0;
+		}
+	}
+
 	void ClusterDataLinkStep::linkRegion(
 		DataAccess const *access,
 		bool read,
@@ -67,11 +95,16 @@ namespace ExecutionWorkflow {
 			// in the namespace; so send the value nullptr.
 			ClusterNode *destNode = _task->getClusterContext()->getRemoteNode();
 
+			int eagerSendTag = 0;
+			if (_allowEagerSend && read && !_namespacePredecessor) {
+				eagerSendTag = handleEagerSend(region, location, _targetMemoryPlace, destNode);
+			}
+
 			satisfiabilityMap[destNode].push_back(
 				TaskOffloading::SatisfiabilityInfo(
 					region, locationIndex,
 					read, write,
-					writeID, _task)
+					writeID, _task, eagerSendTag)
 			);
 
 			size_t linkedBytes = region.getSize();
@@ -143,11 +176,18 @@ namespace ExecutionWorkflow {
 			// Will have a pointer in ClusterMemoryNode to the ClusterNode and will get the
 			// Commindex from there with getCommIndex.
 			// assert(_sourceMemoryPlace->getIndex() == _sourceMemoryPlace->getCommIndex());
+			ClusterNode *destNode = ClusterManager::getClusterNode(_targetMemoryPlace->getIndex());
+			int eagerSendTag = 0;
+			if (_allowEagerSend && _read && !_namespacePredecessor) {
+				eagerSendTag = handleEagerSend(_region, _sourceMemoryPlace, _targetMemoryPlace, destNode);
+			}
+
 			execStep->addDataLink(
 				location, _region,
 				_writeID,
 				_read, _write,
-				(void *)_namespacePredecessor
+				(void *)_namespacePredecessor,
+				eagerSendTag
 			);
 
 			const size_t linkedBytes = _region.getSize();
@@ -281,6 +321,8 @@ namespace ExecutionWorkflow {
 			if (--_nFragments == 0) {
 				//! If this data copy is performed for a taskwait we don't need to update the
 				//! location here.
+
+				WriteIDManager::registerWriteIDasLocal(_writeID, _fullRegion);
 				DataAccessRegistration::updateTaskDataAccessLocation(
 					_task,
 					_fullRegion,

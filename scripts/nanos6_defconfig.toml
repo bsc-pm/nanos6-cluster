@@ -264,6 +264,8 @@ __require_CLUSTER
 	disable_autowait = false
 	# Enable eager fetching of weak dependencies. Default is true
 	eager_weak_fetch = true
+	# Enable eager send of all dependencies. Default is false
+	eager_send = false
 	# Merge release and Finish messages when possible. Default
 	# true.  When this is true dataacesses release messages for
 	# different tasks can be merged and finalization into a single

@@ -61,6 +61,8 @@ private:
 
 	bool _eagerWeakFetch;
 
+	bool _eagerSend;
+
 	bool _mergeReleaseAndFinish;
 
 	int _numMessageHandlerWorkers;
@@ -316,42 +318,6 @@ public:
 		MemoryPlace const *from
 	);
 
-	//! \brief Initiate a data send operation
-	//!
-	//! \param[in] region is the local region we send to the remote node
-	//! \param[in] to is the MemoryPlace we send the data to. This must be a
-	//!		cluster memory place
-	//! \param[in] block determines whether the operation will be blocking.
-	//!		If block is true then upon return, the data will have
-	//!		been succesfully sent and region is allowed to be
-	//!		modified.
-	//!
-	//! \returns In non-blocking mode, this method returns a DataTransfer
-	//!		object which can be used to track the completion of the
-	//!		data transfer. In blocking mode this always returns
-	//!		nullptr
-	static inline DataTransfer *sendData(
-		DataAccessRegion const &region,
-		MemoryPlace const *to,
-		bool block = false)
-	{
-		assert(_singleton->_msn != nullptr);
-		assert(to != nullptr);
-		assert(to->getType() == nanos6_cluster_device);
-
-		ClusterNode const *remoteNode = getClusterNode(to->getIndex());
-
-		assert(remoteNode != _singleton->_thisNode);
-
-		//! At the moment we do not translate addresses on remote
-		//! nodes, so the region we are sending, on the remote node is
-		//! the same as the local one
-		MessageDataSend msg(_singleton->_thisNode, region);
-		_singleton->_msn->sendMessage(&msg, remoteNode, true);
-
-		return sendDataRaw(region, to, msg.getId(), block);
-	}
-
 	//! \brief A barrier across all cluster nodes
 	//!
 	//! This is a collective operation. It needs to be invoked by all
@@ -420,6 +386,12 @@ public:
 	{
 		assert(_singleton != nullptr);
 		return _singleton->_eagerWeakFetch;
+	}
+
+	static bool getEagerSend()
+	{
+		assert(_singleton != nullptr);
+		return _singleton->_eagerSend;
 	}
 
 	static bool getMergeReleaseAndFinish()

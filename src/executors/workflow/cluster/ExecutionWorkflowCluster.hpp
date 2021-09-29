@@ -57,6 +57,8 @@ namespace ExecutionWorkflow {
 
 		bool _started;
 
+		bool _allowEagerSend;
+
 	public:
 		ClusterDataLinkStep(
 			MemoryPlace const *sourceMemoryPlace,
@@ -72,7 +74,11 @@ namespace ExecutionWorkflow {
 			_write(access->writeSatisfied()),
 			_namespacePredecessor(nullptr),
 			_writeID((access->getType() == COMMUTATIVE_ACCESS_TYPE) ? 0 : access->getWriteID()),
-			_started(false)
+			_started(false),
+			// Eager send is not compatible with weakconcurrent accesses, because
+			// an updated location is used to mean that the data was updated by
+			// a (strong) concurrent access.
+			_allowEagerSend(access->getType() != CONCURRENT_ACCESS_TYPE && access->getType() != WRITE_ACCESS_TYPE)
 		{
 			access->setDataLinkStep(this);
 
@@ -407,7 +413,8 @@ namespace ExecutionWorkflow {
 			DataAccessRegion const &region,
 			WriteID writeID,
 			bool read, bool write,
-			void *namespacePredecessorId
+			void *namespacePredecessorId,
+			int eagerWeakSendTag
 		) {
 			// This lock should already have been taken by the caller
 			// Apparently it is not.
@@ -416,7 +423,7 @@ namespace ExecutionWorkflow {
 				TaskOffloading::SatisfiabilityInfo(
 					region, source,
 					read, write,
-					writeID, namespacePredecessorId)
+					writeID, namespacePredecessorId, eagerWeakSendTag)
 			);
 		}
 
@@ -491,10 +498,10 @@ namespace ExecutionWorkflow {
 			// on node 0. This is probably acceptable in this example where the weakinout
 			// is explicit, but when the weakinout is "all memory" there is too much
 			// chance of this kind of thing happening.
-			if (ClusterManager::getEagerWeakFetch()) {
+			if (ClusterManager::getEagerWeakFetch() || ClusterManager::getEagerSend()) {
 
 				FatalErrorHandler::fail(
-					"Set cluster.eager_weak_fetch = false for large weak memory access ",
+					"Set cluster.eager_send = false and cluster.eager_weak_fetch = false for large weak memory access ",
 					region,
 					" of task ",
 					access->getOriginator()->getLabel());

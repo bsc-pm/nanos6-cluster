@@ -26,6 +26,8 @@
 #include "MessageSatisfiability.hpp"
 #include <NodeNamespace.hpp>
 
+#include "cluster/WriteID.hpp"
+#include "cluster/polling-services/MessageDelivery.hpp"
 #include <ClusterUtil.hpp>
 
 namespace TaskOffloading {
@@ -44,6 +46,17 @@ namespace TaskOffloading {
 		// index or the directory (which is used for uninitialized memory regions).
 		MemoryPlace const *loc =
 			(satInfo._src == -1) ? nullptr : ClusterManager::getMemoryNodeOrDirectory(satInfo._src);
+
+		if (satInfo._eagerSendTag != 0) {
+			assert(loc != nullptr);
+			assert(!loc->isDirectoryMemoryPlace());
+			DataTransfer *dt = ClusterManager::fetchDataRaw(satInfo._region, loc, satInfo._eagerSendTag, /* block */ false);
+			LiveDataTransfers::add(dt);
+			dt->addCompletionCallback([=]() {
+				WriteIDManager::registerWriteIDasLocal(satInfo._writeID, satInfo._region);
+			});
+			ClusterPollingServices::PendingQueue<DataTransfer>::addPending(dt);
+		}
 
 		DataAccessRegistration::propagateSatisfiability(
 			localTask, satInfo._region, cpu,
