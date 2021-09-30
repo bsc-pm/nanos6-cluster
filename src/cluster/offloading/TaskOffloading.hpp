@@ -70,6 +70,12 @@ namespace TaskOffloading {
 	//!
 	//! \param[in] args the MessageTaskNew of the remote Task as a void pointer
 	void remoteTaskCleanup(void *args);
+
+	//! \brief Send no eager send message
+	void sendNoEagerSend(Task *task, DataAccessRegion region);
+
+	//! \brief Handle disable eager send of data for offloaded task's dependency that is not accessed
+	void receivedNoEagerSend(Task *task, DataAccessRegion region);
 }
 
 #endif // TASK_OFFLOADING_HPP

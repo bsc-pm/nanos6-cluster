@@ -96,7 +96,7 @@ namespace ExecutionWorkflow {
 			ClusterNode *destNode = _task->getClusterContext()->getRemoteNode();
 
 			int eagerSendTag = 0;
-			if (_allowEagerSend && read && !_namespacePredecessor) {
+			if (_allowEagerSend && read && !_namespacePredecessor && !access->getDisableEagerSend()) {
 				eagerSendTag = handleEagerSend(region, location, _targetMemoryPlace, destNode);
 			}
 

@@ -83,6 +83,7 @@ private:
 		REMOTE_HAS_PSEUDOWRITE_BIT,
 		DISABLE_READ_PROPAGATION_UNTIL_HERE,
 		DATA_RELEASED_BIT,
+		DISABLE_EAGER_SEND_BIT,
 		TOTAL_STATUS_BITS
 	};
 
@@ -862,11 +863,20 @@ public:
 		return _status[DATA_RELEASED_BIT];
 	}
 
+	void setDisableEagerSend()
+	{
+		_status[DISABLE_EAGER_SEND_BIT] = true;
+	}
+
+	bool getDisableEagerSend() const
+	{
+		return _status[DISABLE_EAGER_SEND_BIT];
+	}
+
 	void setDataReleased()
 	{
 		_status[DATA_RELEASED_BIT] = true;
 	}
-
 	// Get and set the initial location to a group of concurrent accesses.
 	const MemoryPlace *getConcurrentInitialLocation() const
 	{

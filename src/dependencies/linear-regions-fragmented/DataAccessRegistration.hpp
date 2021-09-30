@@ -233,6 +233,8 @@ namespace DataAccessRegistration {
 	typedef std::vector<DataAccessRegion> DataAccessRegionVector;
 	void checkNamespacePropagation(DataAccessRegionVector regions, Task *offloadedTask);
 
+	void noEagerSend(Task *task, DataAccessRegion region);
+
 } // namespace DataAccessRegistration
 
 

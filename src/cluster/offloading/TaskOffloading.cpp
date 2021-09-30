@@ -24,6 +24,7 @@
 #include <Directory.hpp>
 #include <MessageTaskNew.hpp>
 #include "MessageSatisfiability.hpp"
+#include <MessageNoEagerSend.hpp>
 #include <NodeNamespace.hpp>
 
 #include "cluster/WriteID.hpp"
@@ -207,6 +208,21 @@ namespace TaskOffloading {
 		DataAccessRegistration::processDelayedOperationsSatisfiedOriginatorsAndRemovableTasks(
 			hpDependencyData, cpu, true
 		);
+	}
+
+	void sendNoEagerSend(Task *task, DataAccessRegion region)
+	{
+		ClusterTaskContext *context = task->getClusterContext();
+		void *id = context->getRemoteIdentifier();
+		ClusterNode const *thisNode = ClusterManager::getCurrentClusterNode();
+		ClusterNode *offloader = context->getRemoteNode();
+		MessageNoEagerSend *msg = new MessageNoEagerSend(thisNode, region, id);
+		ClusterManager::sendMessage(msg, offloader);
+	}
+
+	void receivedNoEagerSend(Task *task, DataAccessRegion region)
+	{
+		DataAccessRegistration::noEagerSend(task, region);
 	}
 
 	void remoteTaskCreateAndSubmit(

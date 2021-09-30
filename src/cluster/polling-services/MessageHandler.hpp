@@ -63,6 +63,7 @@ namespace ClusterPollingServices {
 				case DATA_FETCH:
 				case DATA_SEND: // Not sure whether worth offloading to workers as just an MPI call
 				case SATISFIABILITY:
+				case NO_EAGER_SEND:
 					// These messages have no ordering constraints and are worth handling
 					// by other workers. All involve dependency system operations, which may
 					// potentially be a lot of work. So put the message into _stealableMessages
@@ -165,6 +166,7 @@ namespace ClusterPollingServices {
 				case DATA_SEND:
 				case TASK_NEW:
 				case SATISFIABILITY:
+				case NO_EAGER_SEND:
 					// These messages have no ordering constraints, so do nothing
 					break;
 

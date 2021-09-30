@@ -3452,6 +3452,7 @@ namespace DataAccessRegistration {
 		// get deleted by the same loop when it handles the original access itself
 		// (which is done first). This only happens when disable_autowait=true.
 		bool dataAccessEarlyReleaseInNamespace = dataAccess->getEarlyReleaseInNamespace();
+		bool propagateFromNamespace = dataAccess->getPropagateFromNamespace();
 
 		// Set the writeID of the finalized access if we are given one
 		if (writeID != 0) {
@@ -3477,6 +3478,23 @@ namespace DataAccessRegistration {
 					if (accessOrFragment != dataAccess) {
 						accessOrFragment->setEarlyReleaseInNamespace();
 					}
+				}
+
+				// Send EagerNoSend messages for any regions that were never accessed by
+				// the task or a subtask
+				if (finishedTask->isRemoteTask()
+					&& !accessOrFragment->readSatisfied()
+					&& !propagateFromNamespace) {
+					if ((accessOrFragment->getObjectType() == access_type
+							&& !accessOrFragment->hasSubaccesses())
+						|| (accessOrFragment->getObjectType() == fragment_type
+							&& accessOrFragment->hasNext()
+							&& accessOrFragment->getNext()._objectType == taskwait_type)) {
+
+							if (ClusterManager::getEagerSend()) {
+								TaskOffloading::sendNoEagerSend(finishedTask, accessOrFragment->getAccessRegion());
+							}
+						}
 				}
 
 				// the access will already be complete only if it is a task with a wait clause
@@ -5282,6 +5300,36 @@ namespace DataAccessRegistration {
 			assert(!accessStructures.hasBeenDeleted());
 			std::lock_guard<TaskDataAccesses::spinlock_t> guard(accessStructures._lock);
 
+			// For tasks with wait or autowait, send NoEagerSend messages for any regions
+			// that were never accessed by the task or a subtask
+			if (task->hasFinished() && task->isRemoteTask() && ClusterManager::getEagerSend()) {
+				accessStructures._accesses.processAll(
+					/* processor: called for each task access */
+					[&](TaskDataAccesses::accesses_t::iterator position) -> bool {
+						DataAccess *access = &(*position);
+						assert(access != nullptr);
+						if (!access->getPropagateFromNamespace()
+							&& !access->readSatisfied()) {
+								if (!access->hasSubaccesses()) {
+									TaskOffloading::sendNoEagerSend(task, access->getAccessRegion());
+								} else {
+									accessStructures._accessFragments.processIntersecting(
+										access->getAccessRegion(),
+										[&](TaskDataAccesses::access_fragments_t::iterator fragmentPosition) -> bool {
+											DataAccess *fragment = &(*fragmentPosition);
+											if (!fragment->hasNext()) {
+												TaskOffloading::sendNoEagerSend(task, fragment->getAccessRegion());
+											}
+											return true;
+										}
+									);
+								}
+							}
+						return true;
+					}
+				);
+			}
+
 			/* Create a taskwait fragment for each entry in the bottom map */
 			createTaskwait(task, accessStructures, computePlace, hpDependencyData, noflush, nonLocalOnly);
 
@@ -5590,6 +5638,24 @@ namespace DataAccessRegistration {
 		hpDependencyData._namespaceRegionsToRemove.clear();
 		processDelayedOperationsSatisfiedOriginatorsAndRemovableTasks(hpDependencyData, nullptr, false);
 	}
+
+	void noEagerSend(Task *task, DataAccessRegion region)
+	{
+		TaskDataAccesses &accessStructures = task->getDataAccesses();
+		std::lock_guard<TaskDataAccesses::spinlock_t> guard(accessStructures._lock);
+		accessStructures._accesses.processIntersecting(
+			region,
+			[&](TaskDataAccesses::accesses_t::iterator position) -> bool {
+				DataAccess *dataAccess = &(*position);
+				assert(dataAccess != nullptr);
+				assert(!dataAccess->hasBeenDiscounted());
+				dataAccess = fragmentAccess(dataAccess, region, accessStructures);
+				dataAccess->setDisableEagerSend();
+				return true;
+			}
+		);
+	}
+
 }; // namespace DataAccessRegistration
 
 #pragma GCC visibility pop
