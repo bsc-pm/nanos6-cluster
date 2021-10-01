@@ -25,7 +25,7 @@ MessageDataFetch::MessageDataFetch(
 
 	for (ExecutionWorkflow::ClusterDataCopyStep const *step : copySteps) {
 
-		const std::vector<ExecutionWorkflow::FragmentInfo> fragments = step->getFragments();
+		const std::vector<ExecutionWorkflow::FragmentInfo> &fragments = step->getFragments();
 
 		for (ExecutionWorkflow::FragmentInfo const &fragment : fragments) {
 			assert(index < numFragments);
