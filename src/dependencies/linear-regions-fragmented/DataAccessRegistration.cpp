@@ -3459,6 +3459,9 @@ namespace DataAccessRegistration {
 			dataAccess->setWriteID(writeID);
 		}
 
+		// Regions for a possible MessageNoEagerSend to the offloader
+		std::vector<DataAccessRegion> noEagerSendRegions;
+
 		/*
 		 * Set complete and update location for the access itself and all
 		 * (child task) fragments.
@@ -3492,7 +3495,7 @@ namespace DataAccessRegistration {
 							&& accessOrFragment->getNext()._objectType == taskwait_type)) {
 
 							if (ClusterManager::getEagerSend()) {
-								TaskOffloading::sendNoEagerSend(finishedTask, accessOrFragment->getAccessRegion());
+								noEagerSendRegions.push_back(accessOrFragment->getAccessRegion());
 							}
 						}
 				}
@@ -3551,6 +3554,11 @@ namespace DataAccessRegistration {
 
 				return true; // Apply also to subaccesses if any
 			});
+
+		if (!noEagerSendRegions.empty()) {
+			assert(finishedTask->isRemoteTask());
+			TaskOffloading::sendNoEagerSend(finishedTask, noEagerSendRegions);
+		}
 	}
 
 
@@ -5303,6 +5311,7 @@ namespace DataAccessRegistration {
 			// For tasks with wait or autowait, send NoEagerSend messages for any regions
 			// that were never accessed by the task or a subtask
 			if (task->hasFinished() && task->isRemoteTask() && ClusterManager::getEagerSend()) {
+				std::vector<DataAccessRegion> noEagerSendRegions;
 				accessStructures._accesses.processAll(
 					/* processor: called for each task access */
 					[&](TaskDataAccesses::accesses_t::iterator position) -> bool {
@@ -5311,14 +5320,14 @@ namespace DataAccessRegistration {
 						if (!access->getPropagateFromNamespace()
 							&& !access->readSatisfied()) {
 								if (!access->hasSubaccesses()) {
-									TaskOffloading::sendNoEagerSend(task, access->getAccessRegion());
+									noEagerSendRegions.push_back(access->getAccessRegion());
 								} else {
 									accessStructures._accessFragments.processIntersecting(
 										access->getAccessRegion(),
 										[&](TaskDataAccesses::access_fragments_t::iterator fragmentPosition) -> bool {
 											DataAccess *fragment = &(*fragmentPosition);
 											if (!fragment->hasNext()) {
-												TaskOffloading::sendNoEagerSend(task, fragment->getAccessRegion());
+												noEagerSendRegions.push_back(fragment->getAccessRegion());
 											}
 											return true;
 										}
@@ -5328,6 +5337,9 @@ namespace DataAccessRegistration {
 						return true;
 					}
 				);
+				if (!noEagerSendRegions.empty()) {
+					TaskOffloading::sendNoEagerSend(task, noEagerSendRegions);
+				}
 			}
 
 			/* Create a taskwait fragment for each entry in the bottom map */

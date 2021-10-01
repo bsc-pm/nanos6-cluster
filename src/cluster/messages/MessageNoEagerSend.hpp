@@ -8,13 +8,17 @@
 #define MESSAGE_NO_EAGER_SEND_SEND_HPP
 
 #include <sstream>
+#include <vector>
 
 #include "Message.hpp"
 
 #include <DataAccessRegion.hpp>
 
 class MessageNoEagerSend : public Message {
-	struct NoEagerSendMessageContent {
+
+public:
+
+	struct NoEagerSendRegion {
 		//! The region we do not access
 		DataAccessRegion _region;
 
@@ -22,12 +26,20 @@ class MessageNoEagerSend : public Message {
 		void *_offloadedTaskId;
 	};
 
+private:
+
+	struct NoEagerSendMessageContent {
+		size_t _numRegions;
+		NoEagerSendRegion _noEagerSendInfo[];
+	};
+
 	//! \brief pointer to the message payload
 	NoEagerSendMessageContent *_content;
 
 public:
 	MessageNoEagerSend(const ClusterNode *from,
-		DataAccessRegion const &remoteRegion,
+		size_t numRegions,
+		const std::vector<DataAccessRegion> &regions,
 		void *offloadedTaskId);
 
 	MessageNoEagerSend(Deliverable *dlv)
@@ -42,7 +54,13 @@ public:
 	{
 		std::stringstream ss;
 
-		ss << "[region:" << _content->_region << "]";
+		const size_t numRegions = _content->_numRegions;
+		ss << "[regions(" << numRegions << "): ";
+
+		for (size_t i = 0; i < numRegions; ++i) {
+			ss << _content->_noEagerSendInfo[i]._region
+				<< (i < numRegions - 1 ? "; " : "]");
+		}
 
 		return ss.str();
 	}

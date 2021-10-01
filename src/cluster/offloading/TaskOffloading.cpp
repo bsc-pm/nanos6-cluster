@@ -218,13 +218,13 @@ namespace TaskOffloading {
 		);
 	}
 
-	void sendNoEagerSend(Task *task, DataAccessRegion region)
+	void sendNoEagerSend(Task *task, const std::vector<DataAccessRegion> &regions)
 	{
 		ClusterTaskContext *context = task->getClusterContext();
 		void *id = context->getRemoteIdentifier();
 		ClusterNode const *thisNode = ClusterManager::getCurrentClusterNode();
 		ClusterNode *offloader = context->getRemoteNode();
-		MessageNoEagerSend *msg = new MessageNoEagerSend(thisNode, region, id);
+		MessageNoEagerSend *msg = new MessageNoEagerSend(thisNode, regions.size(), regions, id);
 		ClusterManager::sendMessage(msg, offloader);
 	}
 
