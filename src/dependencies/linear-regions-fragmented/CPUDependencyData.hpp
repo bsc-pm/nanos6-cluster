@@ -24,6 +24,7 @@
 
 #ifdef USE_CLUSTER
 #include <SatisfiabilityInfo.hpp>  // Already includes WriteID.hpp
+#include <DataSendInfo.hpp>
 #endif // USE_CLUSTER
 
 struct DataAccess;
@@ -157,6 +158,7 @@ struct CPUDependencyData {
 
 #ifdef USE_CLUSTER
 	TaskOffloading::SatisfiabilityInfoMap _satisfiabilityMap; // Node's: list of satisfiabilities to send.
+	TaskOffloading::DataSendRegionInfoMap _dataSendRegionInfoMap;
 #endif // USE_CLUSTER
 
 	CPUDependencyData()
@@ -169,6 +171,7 @@ struct CPUDependencyData {
 #endif // NDEBUG
 #ifdef USE_CLUSTER
 		, _satisfiabilityMap() // Node's: list of satisfiabilities to send.
+		, _dataSendRegionInfoMap()
 #endif // USE_CLUSTER
 	{
 	}
@@ -186,6 +189,7 @@ struct CPUDependencyData {
 			&& _completedTaskwaits.empty()
 #ifdef USE_CLUSTER
 			&& _satisfiabilityMap.empty()
+			&& _dataSendRegionInfoMap.empty()
 #endif // USE_CLUSTER
 			;
 	}

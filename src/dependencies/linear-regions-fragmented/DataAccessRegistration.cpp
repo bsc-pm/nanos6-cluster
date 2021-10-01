@@ -1154,7 +1154,7 @@ namespace DataAccessRegistration {
 			 * satisfiability.
 			 */
 			if (linksRead || linksWrite) {
-				step->linkRegion(access, linksRead, linksWrite, hpDependencyData._satisfiabilityMap);
+				step->linkRegion(access, linksRead, linksWrite, hpDependencyData._satisfiabilityMap, hpDependencyData._dataSendRegionInfoMap);
 			}
 
 			if (updatedStatus._triggersDataLinkRead && updatedStatus._triggersDataLinkWrite) {
@@ -2196,7 +2196,7 @@ namespace DataAccessRegistration {
 		assert(hpDependencyData._satisfiedOriginators.empty());
 
 #ifdef USE_CLUSTER
-		TaskOffloading::sendSatisfiability(hpDependencyData._satisfiabilityMap);
+		TaskOffloading::sendSatisfiabilityAndDataSends(hpDependencyData._satisfiabilityMap, hpDependencyData._dataSendRegionInfoMap);
 #endif // USE_CLUSTER
 
 		handleRemovableTasks(hpDependencyData._removableTasks);

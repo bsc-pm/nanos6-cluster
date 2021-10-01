@@ -22,31 +22,24 @@
 
 namespace ExecutionWorkflow {
 
-	static inline int handleEagerSend(
+	static inline TaskOffloading::DataSendRegionInfo handleEagerSend(
 		DataAccessRegion region,
 		const MemoryPlace *sourceLocation,
-		const MemoryPlace *targetLocation,
-		ClusterNode *destNode)
+		const MemoryPlace *targetLocation)
 	{
 		if (ClusterManager::getEagerSend()  // cluster.eager_send = true
 			&& !sourceLocation->isDirectoryMemoryPlace() // and not in the directory (would mean data as yet invalid)
 			&& sourceLocation != targetLocation) { // and not already at the target
 			int eagerSendTag = MessageId::nextMessageId();
-			assert(destNode->getType() == nanos6_cluster_device);
 			ClusterNode *from = ClusterManager::getCurrentClusterNode();
 			const MemoryPlace *currentMemoryPlace = ClusterManager::getMemoryNode(from->getIndex());
 			if (sourceLocation == currentMemoryPlace) {
 				DataTransfer *dt = ClusterManager::sendDataRaw(region, targetLocation, eagerSendTag);
 				ClusterPollingServices::PendingQueue<DataTransfer>::addPending(dt);
-			} else {
-				// Send a MessageDataSend to the source node
-				ClusterNode *sourceNode = ClusterManager::getClusterNode(sourceLocation->getIndex());
-				MessageDataSend *msg = new MessageDataSend(from, region, destNode, eagerSendTag);
-				ClusterManager::sendMessage(msg, sourceNode);
 			}
-			return eagerSendTag;
+			return TaskOffloading::DataSendRegionInfo({region, targetLocation, eagerSendTag});
 		} else {
-			return 0;
+			return TaskOffloading::DataSendRegionInfo({region, nullptr, 0});
 		}
 	}
 
@@ -54,7 +47,8 @@ namespace ExecutionWorkflow {
 		DataAccess const *access,
 		bool read,
 		bool write,
-		TaskOffloading::SatisfiabilityInfoMap &satisfiabilityMap
+		TaskOffloading::SatisfiabilityInfoMap &satisfiabilityMap,
+		TaskOffloading::DataSendRegionInfoMap &dataSendRegionInfoMap
 	) {
 		assert(access != nullptr);
 		assert(_task->getClusterContext() != nullptr);
@@ -97,7 +91,13 @@ namespace ExecutionWorkflow {
 
 			int eagerSendTag = 0;
 			if (_allowEagerSend && read && !_namespacePredecessor && !access->getDisableEagerSend()) {
-				eagerSendTag = handleEagerSend(region, location, _targetMemoryPlace, destNode);
+				TaskOffloading::DataSendRegionInfo dataSendRegionInfo = handleEagerSend(region, location, _targetMemoryPlace);
+				eagerSendTag = dataSendRegionInfo._id;
+				if (eagerSendTag && location != ClusterManager::getCurrentMemoryNode()) {
+					// Queue the DataSendRegionInfo for a DataSend message
+					ClusterNode *sourceNode = ClusterManager::getClusterNode(locationIndex);
+					dataSendRegionInfoMap[sourceNode].emplace_back(dataSendRegionInfo);
+				}
 			}
 
 			satisfiabilityMap[destNode].push_back(
@@ -176,10 +176,21 @@ namespace ExecutionWorkflow {
 			// Will have a pointer in ClusterMemoryNode to the ClusterNode and will get the
 			// Commindex from there with getCommIndex.
 			// assert(_sourceMemoryPlace->getIndex() == _sourceMemoryPlace->getCommIndex());
-			ClusterNode *destNode = ClusterManager::getClusterNode(_targetMemoryPlace->getIndex());
 			int eagerSendTag = 0;
 			if (_allowEagerSend && _read && !_namespacePredecessor) {
-				eagerSendTag = handleEagerSend(_region, _sourceMemoryPlace, _targetMemoryPlace, destNode);
+				TaskOffloading::DataSendRegionInfo dataSendRegionInfo = handleEagerSend(_region, _sourceMemoryPlace, _targetMemoryPlace);
+				eagerSendTag = dataSendRegionInfo._id;
+				if (eagerSendTag && _sourceMemoryPlace != ClusterManager::getCurrentMemoryNode()) {
+					// Send a MessageDataSend to the source node: we send it immediately as we do not
+					// expect many accesses to be ready at the time that the task is offloaded in optimized
+					// code.
+					ClusterNode *sourceNode = ClusterManager::getClusterNode(location);
+					std::vector<TaskOffloading::DataSendRegionInfo> sends;
+					sends.push_back(dataSendRegionInfo);
+					ClusterNode *from = ClusterManager::getCurrentClusterNode();
+					MessageDataSend *msg = new MessageDataSend(from, 1, sends);
+					ClusterManager::sendMessage(msg, sourceNode);
+				}
 			}
 
 			execStep->addDataLink(

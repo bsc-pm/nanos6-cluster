@@ -12,9 +12,13 @@
 #include "Message.hpp"
 
 #include <DataAccessRegion.hpp>
+#include <DataSendInfo.hpp>
 
 class MessageDataSend : public Message {
-	struct DataSendMessageContent {
+
+	// Similar to TaskOffloading::DataSendRegionInfo, but using the integer recipient node
+	struct DataSendRegionInfoElem {
+
 		//! The remote region we update
 		DataAccessRegion _remoteRegion;
 
@@ -25,14 +29,18 @@ class MessageDataSend : public Message {
 		int _id;
 	};
 
+	struct DataSendMessageContent {
+		size_t _numSends;
+		DataSendRegionInfoElem _dataSendRegionInfo[];
+	};
+
 	//! \brief pointer to the message payload
 	DataSendMessageContent *_content;
 
 public:
 	MessageDataSend(const ClusterNode *from,
-		DataAccessRegion const &remoteRegion,
-		ClusterNode *recipient,
-		int id);
+		size_t numSends,
+		std::vector<TaskOffloading::DataSendRegionInfo> const &dataSends);
 
 	MessageDataSend(Deliverable *dlv)
 		: Message(dlv)
@@ -46,7 +54,13 @@ public:
 	{
 		std::stringstream ss;
 
-		ss << "[region:" << _content->_remoteRegion << "]";
+		const size_t numSends = _content->_numSends;
+		ss << "[regions(" << numSends << "): ";
+
+		for (size_t i = 0; i < numSends; ++i) {
+			ss << _content->_dataSendRegionInfo[i]._remoteRegion
+				<< (i < numSends - 1 ? "; " : "]");
+		}
 
 		return ss.str();
 	}

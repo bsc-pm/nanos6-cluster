@@ -18,6 +18,7 @@
 #include "WriteID.hpp"
 
 #include <SatisfiabilityInfo.hpp>
+#include <DataSendInfo.hpp>
 
 struct DataAccess;
 class MemoryPlace;
@@ -133,7 +134,8 @@ namespace ExecutionWorkflow {
 			const DataAccess *,
 			bool /*read*/,
 			bool /*write*/,
-			TaskOffloading::SatisfiabilityInfoMap & /*hpDependencyData*/
+			TaskOffloading::SatisfiabilityInfoMap &, /*hpDependencyData*/
+			TaskOffloading::DataSendRegionInfoMap &
 		) {
 			//clusterCout << "Link: (" << access->getOriginator()->getLabel() <<"): " << region << std::endl;
 		}

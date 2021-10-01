@@ -12,6 +12,7 @@
 #include <vector>
 
 #include "SatisfiabilityInfo.hpp"
+#include "DataSendInfo.hpp"
 #include "dependencies/DataAccessType.hpp"
 
 #include <MessageReleaseAccess.hpp>
@@ -42,7 +43,7 @@ namespace TaskOffloading {
 	//!		remote task
 	//! \param[in] satInfo is the Satisfiability information we are
 	//!		sending
-	void sendSatisfiability(SatisfiabilityInfoMap &satInfoMap);
+	void sendSatisfiabilityAndDataSends(SatisfiabilityInfoMap &satInfoMap, DataSendRegionInfoMap &regionInfoMap);
 
 	//! \brief Propagate satisfiability information for a remote task
 	void propagateSatisfiabilityForHandler(

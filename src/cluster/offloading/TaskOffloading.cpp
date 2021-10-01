@@ -109,9 +109,9 @@ namespace TaskOffloading {
 		task->setDelayedRelease(false);
 	}
 
-	void sendSatisfiability(SatisfiabilityInfoMap &satInfoMap)
+	void sendSatisfiabilityAndDataSends(SatisfiabilityInfoMap &satInfoMap, DataSendRegionInfoMap &regionInfoMap)
 	{
-		if (satInfoMap.empty()) {
+		if (satInfoMap.empty() && regionInfoMap.empty()) {
 			return;
 		}
 
@@ -125,6 +125,14 @@ namespace TaskOffloading {
 		}
 
 		satInfoMap.clear();
+
+		for (auto &it: regionInfoMap) {
+			assert(it.first != nullptr);
+			MessageDataSend *msg = new MessageDataSend(current, it.second.size(), it.second);
+			ClusterManager::sendMessage(msg, it.first);
+		}
+
+		regionInfoMap.clear();
 	}
 
 

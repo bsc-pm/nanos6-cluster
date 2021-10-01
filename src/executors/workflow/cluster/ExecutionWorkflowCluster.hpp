@@ -25,6 +25,7 @@
 #include <InstrumentCluster.hpp>
 
 #include <MessageReleaseAccess.hpp>
+#include <MessageDataSend.hpp>
 
 #include "executors/threads/WorkerThread.hpp"
 
@@ -139,7 +140,8 @@ namespace ExecutionWorkflow {
 			DataAccess const *region,
 			bool read,
 			bool write,
-			TaskOffloading::SatisfiabilityInfoMap &satisfiabilityMap) override;
+			TaskOffloading::SatisfiabilityInfoMap &satisfiabilityMap,
+			TaskOffloading::DataSendRegionInfoMap &dataSendRegionInfoMap) override;
 
 		//! Start the execution of the Step
 		void start() override;
@@ -380,6 +382,7 @@ namespace ExecutionWorkflow {
 	class ClusterExecutionStep : public Step {
 	private:
 		TaskOffloading::SatisfiabilityInfoVector _satInfo;
+		TaskOffloading::DataSendRegionInfoVector _dataSendRegionInfo;
 		ClusterNode *_remoteNode;
 		Task *_task;
 
@@ -387,6 +390,7 @@ namespace ExecutionWorkflow {
 		ClusterExecutionStep(Task *task, ComputePlace *computePlace)
 			: Step(),
 			_satInfo(),
+			_dataSendRegionInfo(),
 			_remoteNode(dynamic_cast<ClusterNode *>(computePlace)),
 			_task(task)
 		{
@@ -419,6 +423,8 @@ namespace ExecutionWorkflow {
 			// This lock should already have been taken by the caller
 			// Apparently it is not.
 			//assert(_lock.isLockedByThisThread());
+
+			// Satisfiability info to send to target
 			_satInfo.push_back(
 				TaskOffloading::SatisfiabilityInfo(
 					region, source,
