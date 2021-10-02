@@ -15,6 +15,8 @@
 #include <nanos6/loop.h>
 #include <SatisfiabilityInfo.hpp>
 
+#include "OffloadedTaskId.hpp"
+
 class MessageTaskNew : public Message {
 	struct TaskNewMessageContent {
 		//! Necessary info for duplicating the task on the remote node
@@ -36,7 +38,7 @@ class MessageTaskNew : public Message {
 
 		//! An opaque id that that will uniquely identifies the
 		//! offloaded task
-		void *_offloadedTaskId;
+		OffloadedTaskId _offloadedTaskId;
 
 		//! buffer holding all the variable length information we need
 		//! to send across.
@@ -88,7 +90,7 @@ public:
 		TaskOffloading::SatisfiabilityInfo const *satInfo,
 		size_t argsBlockSize,
 		void *argsBlock,
-		void *offloadedTaskId
+		OffloadedTaskId offloadedTaskId
 	);
 
 	MessageTaskNew(Deliverable *dlv) : Message(dlv)
@@ -137,7 +139,7 @@ public:
 	}
 
 	//! Get the task id of the offloaded Task
-	inline void *getOffloadedTaskId() const
+	inline OffloadedTaskId getOffloadedTaskId() const
 	{
 		return _content->_offloadedTaskId;
 	}

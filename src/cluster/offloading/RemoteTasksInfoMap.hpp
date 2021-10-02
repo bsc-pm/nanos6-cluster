@@ -13,7 +13,7 @@
 #include <SatisfiabilityInfo.hpp>
 
 #include "ClusterUtil.hpp"
-
+#include "OffloadedTaskId.hpp"
 
 namespace TaskOffloading {
 
@@ -44,7 +44,7 @@ namespace TaskOffloading {
 	//! the local information of the remote task.
 	class RemoteTasksInfoMap {
 	public:
-		typedef std::pair<void *, int> remote_index_t;
+		typedef std::pair<OffloadedTaskId, int> remote_index_t;
 		//TODO: I keep this like this, in the future make this an unordered map for better
 		//scalability
 		typedef std::map<remote_index_t, RemoteTaskInfo> remote_map_t;
@@ -64,7 +64,7 @@ namespace TaskOffloading {
 		//! within this map. If this is the first access to this entry
 		//! we will create it and return a reference to the new
 		//! RemoteTaskInfo object
-		RemoteTaskInfo &_getRemoteTaskInfo(void *offloadTaskId, int offloaderId)
+		RemoteTaskInfo &_getRemoteTaskInfo(OffloadedTaskId offloadTaskId, int offloaderId)
 		{
 			auto key = std::make_pair(offloadTaskId, offloaderId);
 
@@ -75,7 +75,7 @@ namespace TaskOffloading {
 
 		//! This erases a map entry. It assumes that there is already
 		//! an entry with the given key
-		void _eraseTaskInfo(void *offloadTaskId, int offloaderId)
+		void _eraseTaskInfo(OffloadedTaskId offloadTaskId, int offloaderId)
 		{
 			auto key = std::make_pair(offloadTaskId, offloaderId);
 
@@ -117,7 +117,7 @@ namespace TaskOffloading {
 		//! within this map. If this is the first access to this entry
 		//! we will create it and return a reference to the new
 		//! RemoteTaskInfo object
-		static RemoteTaskInfo &getRemoteTaskInfo(void *offloadedTaskId, int offloaderId)
+		static RemoteTaskInfo &getRemoteTaskInfo(OffloadedTaskId offloadedTaskId, int offloaderId)
 		{
 			assert(_singleton != nullptr);
 			return _singleton->_getRemoteTaskInfo(offloadedTaskId, offloaderId);
@@ -125,7 +125,7 @@ namespace TaskOffloading {
 
 		//! This erases a map entry. It assumes that there is already
 		//! an entry with the given key
-		static void eraseRemoteTaskInfo(void *offloadTaskId, int offloaderId)
+		static void eraseRemoteTaskInfo(OffloadedTaskId offloadTaskId, int offloaderId)
 		{
 			assert(_singleton != nullptr);
 			_singleton->_eraseTaskInfo(offloadTaskId, offloaderId);

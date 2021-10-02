@@ -23,7 +23,7 @@ public:
 		DataAccessRegion _region;
 
 		//! The opaque id identifying the offloaded task
-		void *_offloadedTaskId;
+		OffloadedTaskId _offloadedTaskId;
 	};
 
 private:
@@ -40,7 +40,7 @@ public:
 	MessageNoEagerSend(const ClusterNode *from,
 		size_t numRegions,
 		const std::vector<DataAccessRegion> &regions,
-		void *offloadedTaskId);
+		OffloadedTaskId offloadedTaskId);
 
 	MessageNoEagerSend(Deliverable *dlv)
 		: Message(dlv)

@@ -10,10 +10,11 @@
 #include <ClusterManager.hpp>
 #include <TaskOffloading.hpp>
 #include <ClusterUtil.hpp>
+#include "OffloadedTaskId.hpp"
 
 MessageReleaseAccess::MessageReleaseAccess(
 	const ClusterNode *from,
-	void *offloadedTaskId,
+	OffloadedTaskId offloadedTaskId,
 	bool release,
 	ReleaseAccessInfoVector &InfoVector
 ) :
@@ -37,14 +38,14 @@ MessageReleaseAccess::MessageReleaseAccess(
 
 bool MessageReleaseAccess::handleMessage()
 {
+	Task *task = getOriginalTask(_content->_offloadedTaskId);
 	TaskOffloading::releaseRemoteAccessForHandler(
-		(Task *)_content->_offloadedTaskId,
+		task,
 		_content->_ninfos,
 		_content->_regionInfoList
 	);
 
 	if (_content->_release == 1) {
-		Task *task = (Task *)_content->_offloadedTaskId;
 		ExecutionWorkflow::Step *step = task->getExecutionStep();
 		assert(step != nullptr);
 		Instrument::offloadedTaskCompletes(task->getInstrumentationTaskId());

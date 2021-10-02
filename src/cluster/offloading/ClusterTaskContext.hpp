@@ -16,6 +16,7 @@
 #include <TaskOffloading.hpp>
 #include <ClusterShutdownCallback.hpp>
 #include <tasks/Task.hpp>
+#include "OffloadedTaskId.hpp"
 
 class ClusterNode;
 
@@ -29,17 +30,12 @@ namespace TaskOffloading {
 	//! case the ClusterTaskContext object describes the remote task, or it
 	//! can be a remote task, so the ClusterTaskContext describes the
 	//! offloaded task on the original node.
-	//!
-	//! The remoteTaskIdentifier is an opaque descriptor that identifies
-	//! uniquely, to the user of the ClusterTaskContext object, the remote
-	//! task on the remote node. It is opaque so that the user can define
-	//! whatever makes sense as a descriptor on each case.
 	class ClusterTaskContext {
 
 		MessageTaskNew *_msg;
 		//! A descriptro that identifies the remote task at the remote
 		//! node
-		void *_remoteTaskIdentifier;
+		OffloadedTaskId _remoteTaskIdentifier;
 
 		//! The cluster node on which the remote task is located
 		ClusterNode *_remoteNode;
@@ -67,7 +63,7 @@ namespace TaskOffloading {
 
 		ClusterTaskContext(Task *remoteTaskIdentifier, ClusterNode *remoteNode)
 			: _msg(nullptr),
-			_remoteTaskIdentifier((void *)remoteTaskIdentifier),
+			_remoteTaskIdentifier(getTaskId(remoteTaskIdentifier)),
 			_remoteNode(remoteNode),
 			_owner(remoteTaskIdentifier),
 			_hook(nullptr)
@@ -91,7 +87,7 @@ namespace TaskOffloading {
 
 		//! \brief Get the remote task descriptor. A descriptro that identifies the remote task at
 		//! the remote node
-		inline void *getRemoteIdentifier() const
+		inline OffloadedTaskId getRemoteIdentifier() const
 		{
 			return _remoteTaskIdentifier;
 		}

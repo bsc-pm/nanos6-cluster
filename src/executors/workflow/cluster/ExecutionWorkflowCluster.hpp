@@ -53,7 +53,7 @@ namespace ExecutionWorkflow {
 		//! write satisfiability at creation time
 		bool _write;
 
-		Task *_namespacePredecessor;
+		OffloadedTaskId _namespacePredecessor;
 		WriteID _writeID;
 
 		bool _started;
@@ -73,7 +73,7 @@ namespace ExecutionWorkflow {
 			_task(access->getOriginator()),
 			_read(access->readSatisfied()),
 			_write(access->writeSatisfied()),
-			_namespacePredecessor(nullptr),
+			_namespacePredecessor(InvalidOffloadedTaskId),
 			_writeID((access->getType() == COMMUTATIVE_ACCESS_TYPE) ? 0 : access->getWriteID()),
 			_started(false),
 			// Eager send is not compatible with weakconcurrent accesses, because
@@ -123,13 +123,13 @@ namespace ExecutionWorkflow {
 
 			/* Starting workflow on another node: set the namespace and predecessor task */
 			if (ClusterManager::getDisableRemote()) {
-				_namespacePredecessor = nullptr;
+				_namespacePredecessor = InvalidOffloadedTaskId;
 			} else {
 				if (access->getValidNamespacePrevious() == targetNamespace) {
 					assert(access->getType() != COMMUTATIVE_ACCESS_TYPE);
 					_namespacePredecessor = access->getNamespacePredecessor(); // remote propagation valid if predecessor task and offloading node matches
 				} else {
-					_namespacePredecessor = nullptr;
+					_namespacePredecessor = InvalidOffloadedTaskId;
 				}
 			}
 
@@ -233,7 +233,7 @@ namespace ExecutionWorkflow {
 
 	class ClusterDataReleaseStep : public DataReleaseStep {
 		//! identifier of the remote task
-		void *_remoteTaskIdentifier;
+		OffloadedTaskId _remoteTaskIdentifier;
 
 		//! the cluster node we need to notify
 		ClusterNode const *_offloader;
@@ -417,7 +417,7 @@ namespace ExecutionWorkflow {
 			DataAccessRegion const &region,
 			WriteID writeID,
 			bool read, bool write,
-			void *namespacePredecessorId,
+			OffloadedTaskId namespacePredecessorId,
 			int eagerWeakSendTag
 		) {
 			// This lock should already have been taken by the caller

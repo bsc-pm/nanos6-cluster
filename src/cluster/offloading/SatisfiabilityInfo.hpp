@@ -10,6 +10,7 @@
 #include <map>
 #include <vector>
 #include "WriteID.hpp"
+#include "OffloadedTaskId.hpp"
 
 class ClusterNode;
 
@@ -34,7 +35,7 @@ namespace TaskOffloading {
 		//! this is will play two roles.
 		//! a) When used in a tasknew it will be the namespacePredecessor
 		//! b) When used in a satisfiability message it will be the task id (access originator)
-		void *_id;
+		OffloadedTaskId _id;
 
 		// 0, or eager weak send tag
 		int _eagerSendTag;
@@ -42,7 +43,7 @@ namespace TaskOffloading {
 		SatisfiabilityInfo(
 			DataAccessRegion const &region, int src,
 			bool read, bool write,
-			WriteID writeID, void *id, int eagerSendTag
+			WriteID writeID, OffloadedTaskId id, int eagerSendTag
 		) : _region(region), _src(src),
 			_readSat(read), _writeSat(write),
 			_writeID(writeID), _id(id), _eagerSendTag(eagerSendTag)

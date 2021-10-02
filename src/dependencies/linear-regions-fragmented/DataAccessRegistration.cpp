@@ -888,7 +888,7 @@ namespace DataAccessRegistration {
 				} else {
 					updateOperation._validNamespace = access->getValidNamespaceSelf();
 				}
-				updateOperation._namespacePredecessor = access->getOriginator();
+				updateOperation._namespacePredecessor = getTaskId(access->getOriginator());
 				access->setPropagatedNamespaceInfo();
 			}
 
@@ -1340,7 +1340,7 @@ namespace DataAccessRegistration {
 				newLocalAccess->setConcurrentSatisfied();
 				newLocalAccess->setCommutativeSatisfied();
 				newLocalAccess->setReceivedReductionInfo();
-				newLocalAccess->setValidNamespacePrevious(VALID_NAMESPACE_NONE, nullptr);
+				newLocalAccess->setValidNamespacePrevious(VALID_NAMESPACE_NONE, InvalidOffloadedTaskId);
 				newLocalAccess->setValidNamespaceSelf(VALID_NAMESPACE_NONE);
 				newLocalAccess->setRegistered();
 		#ifndef NDEBUG
@@ -1810,7 +1810,7 @@ namespace DataAccessRegistration {
 				// propagation of these accesses could work. We have a similar condition to
 				// disable namespace propagation out of these accesses (in the calculation
 				// of updateOperation._validNamespace).
-				access->setValidNamespacePrevious(VALID_NAMESPACE_NONE, nullptr);
+				access->setValidNamespacePrevious(VALID_NAMESPACE_NONE, InvalidOffloadedTaskId);
 			} else {
 				access->setValidNamespacePrevious(
 					updateOperation._validNamespace,
@@ -3062,7 +3062,7 @@ namespace DataAccessRegistration {
 
 							DataAccessStatusEffects initialStatusT(targetAccess);
 
-							targetAccess->setValidNamespacePrevious(VALID_NAMESPACE_NONE, nullptr);
+							targetAccess->setValidNamespacePrevious(VALID_NAMESPACE_NONE, InvalidOffloadedTaskId);
 
 							targetAccess->setReceivedReductionInfo();
 
@@ -3194,7 +3194,7 @@ namespace DataAccessRegistration {
 						}
 
 						targetAccess->setReceivedReductionInfo();
-						targetAccess->setValidNamespacePrevious(VALID_NAMESPACE_NONE, nullptr);
+						targetAccess->setValidNamespacePrevious(VALID_NAMESPACE_NONE, InvalidOffloadedTaskId);
 
 						// Note: setting ReductionSlotSet as received is not necessary, as its not always propagated
 						DataAccessStatusEffects updatedStatus(targetAccess);
@@ -4657,7 +4657,7 @@ namespace DataAccessRegistration {
 			newLocalAccess->setConcurrentSatisfied();
 			newLocalAccess->setCommutativeSatisfied();
 			newLocalAccess->setReceivedReductionInfo();
-			newLocalAccess->setValidNamespacePrevious(VALID_NAMESPACE_NONE, nullptr);
+			newLocalAccess->setValidNamespacePrevious(VALID_NAMESPACE_NONE, InvalidOffloadedTaskId);
 			newLocalAccess->setValidNamespaceSelf(VALID_NAMESPACE_NONE);
 			newLocalAccess->setRegistered();
 	#ifndef NDEBUG
@@ -5230,13 +5230,13 @@ namespace DataAccessRegistration {
 		Task *parent,
 		DataAccessRegion region,
 		ClusterNode *remoteNode,
-		void *namespacePredecessor
+		OffloadedTaskId namespacePredecessor
 	) {
 		assert(parent != nullptr);
 		assert(parent->isNodeNamespace());
 
 #ifndef INSTRUMENT_STATS_CLUSTER_HPP
-		if (namespacePredecessor == nullptr) {
+		if (namespacePredecessor == InvalidOffloadedTaskId) {
 			return;
 		}
 #endif
@@ -5259,7 +5259,7 @@ namespace DataAccessRegistration {
 				/* Does the previous task match the offloading task and remote ID? */
 				TaskOffloading::ClusterTaskContext *prevContext = previousTask->getClusterContext();
 				ClusterNode *offloader = prevContext->getRemoteNode();
-				void *prevRemoteTaskIdentifier = prevContext->getRemoteIdentifier();
+				OffloadedTaskId prevRemoteTaskIdentifier = prevContext->getRemoteIdentifier();
 				if (offloader == remoteNode && prevRemoteTaskIdentifier == namespacePredecessor) {
 					// Match, so set the namespace successor
 					// Namespace propagation from a concurrent or commutative access is

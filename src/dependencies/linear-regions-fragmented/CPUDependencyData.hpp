@@ -49,7 +49,7 @@ struct CPUDependencyData {
 		bool _setReductionInfo; // Note: Both this and next field are required, as a null ReductionInfo can be propagated
 		ReductionInfo *_reductionInfo;
 		int _validNamespace;
-		Task *_namespacePredecessor;
+		OffloadedTaskId _namespacePredecessor;
 
 		boost::dynamic_bitset<> _reductionSlotSet;
 		bool _previousIsCommutative;
@@ -64,7 +64,7 @@ struct CPUDependencyData {
 			_writeID(0),
 			_setReductionInfo(false), _reductionInfo(nullptr),
 			_validNamespace(-1),
-			_namespacePredecessor(nullptr),
+			_namespacePredecessor(InvalidOffloadedTaskId),
 			_previousIsCommutative(false)
 		{
 		}
@@ -79,7 +79,7 @@ struct CPUDependencyData {
 			_writeID(0),
 			_setReductionInfo(false), _reductionInfo(nullptr),
 			_validNamespace(-1),
-			_namespacePredecessor(nullptr),
+			_namespacePredecessor(InvalidOffloadedTaskId),
 			_previousIsCommutative(false)
 		{
 		}
@@ -91,7 +91,7 @@ struct CPUDependencyData {
 				&& !_setPropagateFromNamespace
 				&& !_setReductionInfo
 				&& (_reductionSlotSet.size() == 0)
-				&& !_namespacePredecessor;
+				&& _namespacePredecessor == InvalidOffloadedTaskId;
 		}
 	};
 

@@ -100,11 +100,12 @@ namespace ExecutionWorkflow {
 				}
 			}
 
+			OffloadedTaskId offloadedTaskId = _task->getClusterContext()->getRemoteIdentifier();
 			satisfiabilityMap[destNode].push_back(
 				TaskOffloading::SatisfiabilityInfo(
 					region, locationIndex,
 					read, write,
-					writeID, _task, eagerSendTag)
+					writeID, offloadedTaskId, eagerSendTag)
 			);
 
 			size_t linkedBytes = region.getSize();
@@ -197,7 +198,7 @@ namespace ExecutionWorkflow {
 				location, _region,
 				_writeID,
 				_read, _write,
-				(void *)_namespacePredecessor,
+				_namespacePredecessor,
 				eagerSendTag
 			);
 

@@ -25,7 +25,7 @@ MessageTaskNew::MessageTaskNew(
 	const TaskOffloading::SatisfiabilityInfo *satInfo,
 	size_t argsBlockSize,
 	void *argsBlock,
-	void *offloadedTaskId
+	OffloadedTaskId offloadedTaskId
 ) :
 	Message(TASK_NEW,
 		sizeof(TaskNewMessageContent) +

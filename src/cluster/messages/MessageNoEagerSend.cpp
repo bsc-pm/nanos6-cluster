@@ -13,7 +13,7 @@
 MessageNoEagerSend::MessageNoEagerSend(const ClusterNode *from,
 	size_t numRegions,
 	const std::vector<DataAccessRegion> &regions,
-	void *offloadedTaskId)
+	OffloadedTaskId offloadedTaskId)
 	: Message(NO_EAGER_SEND, sizeof(size_t) + numRegions * sizeof(NoEagerSendRegion), from)
 {
 	_content = reinterpret_cast<NoEagerSendMessageContent *>(_deliverable->payload);
@@ -32,7 +32,7 @@ bool MessageNoEagerSend::handleMessage()
 	const size_t numRegions = _content->_numRegions;
 	for(size_t i = 0; i < numRegions; i++) {
 		NoEagerSendRegion const &regionInfo = _content->_noEagerSendInfo[i];
-		Task *task = reinterpret_cast<Task *>(regionInfo._offloadedTaskId);
+		Task *task = getOriginalTask(regionInfo._offloadedTaskId);
 		TaskOffloading::receivedNoEagerSend(task, regionInfo._region);
 	}
 

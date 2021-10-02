@@ -82,7 +82,7 @@ namespace TaskOffloading {
 		size_t argsBlockSize = task->getArgsBlockSize();
 		size_t nrSatInfo = satInfo.size();
 		SatisfiabilityInfo const *satInfoPtr = (nrSatInfo == 0) ? nullptr : satInfo.data();
-		void *taskId = (void *)task;
+		OffloadedTaskId taskId = getTaskId(task);
 
 		Instrument::taskIsOffloaded(task->getInstrumentationTaskId());
 		task->markAsOffloaded();
@@ -221,7 +221,7 @@ namespace TaskOffloading {
 	void sendNoEagerSend(Task *task, const std::vector<DataAccessRegion> &regions)
 	{
 		ClusterTaskContext *context = task->getClusterContext();
-		void *id = context->getRemoteIdentifier();
+		OffloadedTaskId id = context->getRemoteIdentifier();
 		ClusterNode const *thisNode = ClusterManager::getCurrentClusterNode();
 		ClusterNode *offloader = context->getRemoteNode();
 		MessageNoEagerSend *msg = new MessageNoEagerSend(thisNode, regions.size(), regions, id);
@@ -253,7 +253,7 @@ namespace TaskOffloading {
 		size_t argsBlockSize;
 		void *argsBlock = msg->getArgsBlock(argsBlockSize);
 
-		void *remoteTaskIdentifier = msg->getOffloadedTaskId();
+		OffloadedTaskId remoteTaskIdentifier = msg->getOffloadedTaskId();
 		ClusterNode *remoteNode = ClusterManager::getClusterNode(msg->getSenderId());
 
 		// Create the task with no dependencies. Treat this call
@@ -406,7 +406,7 @@ namespace TaskOffloading {
 		assert(args != nullptr);
 		ClusterTaskContext *clusterContext = static_cast<ClusterTaskContext *>(args);
 
-		void *offloadedTaskId = clusterContext->getRemoteIdentifier();
+		OffloadedTaskId offloadedTaskId = clusterContext->getRemoteIdentifier();
 		ClusterNode *offloader = clusterContext->getRemoteNode();
 
 		RemoteTasksInfoMap::eraseRemoteTaskInfo(offloadedTaskId, offloader->getIndex());

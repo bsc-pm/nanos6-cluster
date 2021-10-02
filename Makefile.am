@@ -476,6 +476,7 @@ cluster_sources += \
 	src/cluster/messenger/LiveDataTransfers.cpp \
 	src/cluster/messenger/mpi/MPIMessenger.cpp \
 	src/cluster/offloading/TaskOffloading.cpp \
+	src/cluster/offloading/OffloadedTaskId.cpp \
 	src/cluster/polling-services/ClusterWorker.cpp \
 	src/executors/workflow/cluster/ExecutionWorkflowCluster.cpp \
 	src/memory/directory/cluster/DistributionPolicy.cpp \
@@ -1359,6 +1360,7 @@ noinst_HEADERS += \
 	src/cluster/offloading/DataSendInfo.hpp \
 	src/cluster/offloading/RemoteTasksInfoMap.hpp \
 	src/cluster/offloading/ClusterTaskContext.hpp \
+	src/cluster/offloading/OffloadedTaskId.hpp \
 	src/cluster/offloading/SatisfiabilityInfo.hpp \
 	src/cluster/offloading/TaskOffloading.hpp \
 	src/cluster/polling-services/ClusterServicesTask.hpp \

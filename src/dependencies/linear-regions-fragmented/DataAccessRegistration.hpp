@@ -138,7 +138,7 @@ namespace DataAccessRegistration {
 		Task *parentTask,
 		DataAccessRegion region,
 		ClusterNode *remoteNode,
-		void *namespacePredecessor
+		OffloadedTaskId namespacePredecessor
 	);
 #endif // USE_CLUSTER
 

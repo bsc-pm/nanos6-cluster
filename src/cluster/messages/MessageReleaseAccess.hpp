@@ -47,7 +47,7 @@ public:
 private:
 	struct ReleaseAccessMessageContent {
 		//! The opaque id identifying the offloaded task
-		void *_offloadedTaskId;
+		OffloadedTaskId _offloadedTaskId;
 		size_t _release;
 		size_t _ninfos;
 		ReleaseAccessInfo _regionInfoList[];
@@ -60,7 +60,7 @@ public:
 
 	MessageReleaseAccess(
 		const ClusterNode *from,
-		void *offloadedTaskId,
+		OffloadedTaskId offloadedTaskId,
 		bool release,
 		ReleaseAccessInfoVector &vector
 	);
