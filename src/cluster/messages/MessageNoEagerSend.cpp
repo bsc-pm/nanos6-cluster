@@ -9,6 +9,8 @@
 #include <ClusterManager.hpp>
 #include <MessageDelivery.hpp>
 #include <TaskOffloading.hpp>
+#include "OffloadedTaskId.hpp"
+#include "OffloadedTasksInfoMap.hpp"
 
 MessageNoEagerSend::MessageNoEagerSend(const ClusterNode *from,
 	size_t numRegions,
@@ -32,7 +34,9 @@ bool MessageNoEagerSend::handleMessage()
 	const size_t numRegions = _content->_numRegions;
 	for(size_t i = 0; i < numRegions; i++) {
 		NoEagerSendRegion const &regionInfo = _content->_noEagerSendInfo[i];
-		Task *task = getOriginalTask(regionInfo._offloadedTaskId);
+		TaskOffloading::OffloadedTaskInfo &taskInfo = TaskOffloading::OffloadedTasksInfoMap::getOffloadedTaskInfo(regionInfo._offloadedTaskId);
+		assert(taskInfo.remoteNode && taskInfo.remoteNode->getIndex() == getSenderId());
+		Task *task = taskInfo._origTask;
 		TaskOffloading::receivedNoEagerSend(task, regionInfo._region);
 	}
 

@@ -62,7 +62,8 @@ inline Task::Task(
 	_hwCounters(taskCountersAddress),
 	_clusterContext(nullptr),
 	_parentSpawnCallback(nullptr),
-	_nestingLevel(0)
+	_nestingLevel(0),
+	_offloadedTaskId(OffloadedTaskIdManager::nextOffloadedTaskId())
 {
 	// This asserts that the interface is used properly.
 
@@ -125,6 +126,8 @@ inline void Task::reinitialize(
 		parent->addChild(this);
 		_nestingLevel = parent->getNestingLevel() + 1;
 	}
+
+	_offloadedTaskId = OffloadedTaskIdManager::nextOffloadedTaskId();
 
 	// Re-use hardware counters and monitoring statistics
 	TrackingPoints::taskReinitialized(this);

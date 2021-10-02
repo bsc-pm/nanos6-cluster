@@ -24,6 +24,7 @@
 #include <InstrumentTaskId.hpp>
 #include <TaskDataAccesses.hpp>
 #include <TaskDataAccessesInfo.hpp>
+#include "cluster/offloading/OffloadedTaskId.hpp"
 
 struct DataAccess;
 struct DataAccessBase;
@@ -187,6 +188,9 @@ private:
 
 	//! Nesting level of the task
 	int _nestingLevel;
+
+	//! Offloaded task ID
+	OffloadedTaskId _offloadedTaskId;
 
 public:
 	inline Task(
@@ -1069,6 +1073,11 @@ public:
 	Task *getOffloadedPredecesor() const
 	{
 		return _offloadedTask;
+	}
+
+	OffloadedTaskId getOffloadedTaskId() const
+	{
+		return _offloadedTaskId;
 	}
 
 

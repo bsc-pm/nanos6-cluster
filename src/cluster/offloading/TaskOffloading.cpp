@@ -29,6 +29,7 @@
 
 #include "cluster/WriteID.hpp"
 #include "cluster/polling-services/MessageDelivery.hpp"
+#include "OffloadedTasksInfoMap.hpp"
 #include <ClusterUtil.hpp>
 
 namespace TaskOffloading {
@@ -89,7 +90,9 @@ namespace TaskOffloading {
 		size_t argsBlockSize = task->getArgsBlockSize();
 		size_t nrSatInfo = satInfo.size();
 		SatisfiabilityInfo const *satInfoPtr = (nrSatInfo == 0) ? nullptr : satInfo.data();
-		OffloadedTaskId taskId = getTaskId(task);
+
+		OffloadedTaskId taskId = task->getOffloadedTaskId();
+		OffloadedTasksInfoMap::createOffloadedTaskInfo(taskId, task, remoteNode);
 
 		Instrument::taskIsOffloaded(task->getInstrumentationTaskId());
 		task->markAsOffloaded();

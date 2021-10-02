@@ -867,7 +867,7 @@ namespace DataAccessRegistration {
 				} else {
 					updateOperation._validNamespace = access->getValidNamespaceSelf();
 				}
-				updateOperation._namespacePredecessor = getTaskId(access->getOriginator());
+				updateOperation._namespacePredecessor = access->getOriginator()->getOffloadedTaskId();
 				access->setPropagatedNamespaceInfo();
 			}
 

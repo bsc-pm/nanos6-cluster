@@ -14,6 +14,8 @@
 #include "system/RuntimeInfo.hpp"
 
 #include <RemoteTasksInfoMap.hpp>
+#include <OffloadedTaskId.hpp>
+#include <OffloadedTasksInfoMap.hpp>
 #include <ClusterNode.hpp>
 #include <NodeNamespace.hpp>
 #include "ClusterUtil.hpp"
@@ -26,6 +28,7 @@
 
 
 TaskOffloading::RemoteTasksInfoMap *TaskOffloading::RemoteTasksInfoMap::_singleton = nullptr;
+TaskOffloading::OffloadedTasksInfoMap *TaskOffloading::OffloadedTasksInfoMap::_singleton = nullptr;
 ClusterManager *ClusterManager::_singleton = nullptr;
 
 std::atomic<size_t> ClusterServicesPolling::_activeClusterPollingServices;
@@ -40,6 +43,7 @@ ClusterManager::ClusterManager()
 {
 	_clusterNodes[0] = _thisNode;
 	WriteIDManager::initialize(0,1);
+	OffloadedTaskIdManager::initialize(0,1);
 }
 
 ClusterManager::ClusterManager(std::string const &commType)
@@ -49,6 +53,7 @@ ClusterManager::ClusterManager(std::string const &commType)
 	assert(_msn);
 
 	TaskOffloading::RemoteTasksInfoMap::init();
+	TaskOffloading::OffloadedTasksInfoMap::init();
 
 	/** These are communicator-type indices. At the moment we have an
 	 * one-to-one mapping between communicator-type and runtime-type
@@ -59,6 +64,7 @@ ClusterManager::ClusterManager(std::string const &commType)
 
 	MessageId::initialize(nodeIndex, clusterSize);
 	WriteIDManager::initialize(nodeIndex, clusterSize);
+	OffloadedTaskIdManager::initialize(nodeIndex, clusterSize);
 
 	_clusterNodes.resize(clusterSize);
 
@@ -202,6 +208,7 @@ void ClusterManager::shutdownPhase1()
 		assert(ClusterServicesPolling::_activeClusterPollingServices == 0);
 
 		TaskOffloading::RemoteTasksInfoMap::shutdown();
+		TaskOffloading::OffloadedTasksInfoMap::shutdown();
 	}
 
 	if (_singleton->_msn != nullptr) {

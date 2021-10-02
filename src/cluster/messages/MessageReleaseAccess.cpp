@@ -11,6 +11,7 @@
 #include <TaskOffloading.hpp>
 #include <ClusterUtil.hpp>
 #include "OffloadedTaskId.hpp"
+#include "OffloadedTasksInfoMap.hpp"
 
 MessageReleaseAccess::MessageReleaseAccess(
 	const ClusterNode *from,
@@ -38,7 +39,10 @@ MessageReleaseAccess::MessageReleaseAccess(
 
 bool MessageReleaseAccess::handleMessage()
 {
-	Task *task = getOriginalTask(_content->_offloadedTaskId);
+	OffloadedTaskId offloadedTaskId = _content->_offloadedTaskId;
+	TaskOffloading::OffloadedTaskInfo &taskInfo = TaskOffloading::OffloadedTasksInfoMap::getOffloadedTaskInfo(offloadedTaskId);
+	assert(taskInfo.remoteNode && taskInfo.remoteNode->getIndex() == getSenderId());
+	Task *task = taskInfo._origTask;
 	TaskOffloading::releaseRemoteAccessForHandler(
 		task,
 		_content->_ninfos,
@@ -50,6 +54,7 @@ bool MessageReleaseAccess::handleMessage()
 		assert(step != nullptr);
 		Instrument::offloadedTaskCompletes(task->getInstrumentationTaskId());
 
+		TaskOffloading::OffloadedTasksInfoMap::eraseOffloadedTaskInfo(offloadedTaskId);
 		task->setExecutionStep(nullptr);
 		step->releaseSuccessors();
 		delete step;

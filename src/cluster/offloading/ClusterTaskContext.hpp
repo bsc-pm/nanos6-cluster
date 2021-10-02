@@ -44,7 +44,8 @@ namespace TaskOffloading {
 		ClusterTaskCallback *_hook;
 
 	public:
-		//! \brief Create a Cluster Task context
+
+		//! \brief Create a Cluster Task context for a remote task (offloaded to here)
 		//!
 		//! \param[in] remoteTaskIdentifier is an identifier of the task
 		//!		on the remote node
@@ -61,11 +62,18 @@ namespace TaskOffloading {
 			assert(owner != nullptr);
 		}
 
-		ClusterTaskContext(Task *remoteTaskIdentifier, ClusterNode *remoteNode)
+
+		//! \brief Create a Cluster Task context for an offloaded task (offloaded from here)
+		//!
+		//! \param[in] remoteTaskIdentifier is an identifier of the task
+		//!		on the remote node
+		//! \param[in] remoteNode is the ClusterNode where the remote
+		//!		task is located
+		ClusterTaskContext(Task *task, OffloadedTaskId remoteTaskIdentifier, ClusterNode *remoteNode)
 			: _msg(nullptr),
-			_remoteTaskIdentifier(getTaskId(remoteTaskIdentifier)),
+			_remoteTaskIdentifier(remoteTaskIdentifier),
 			_remoteNode(remoteNode),
-			_owner(remoteTaskIdentifier),
+			_owner(task),
 			_hook(nullptr)
 		{
 		}

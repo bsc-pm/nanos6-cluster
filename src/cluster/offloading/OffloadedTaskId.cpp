@@ -5,3 +5,5 @@
 */
 
 #include "OffloadedTaskId.hpp"
+
+std::atomic<size_t> OffloadedTaskIdManager::_counter;

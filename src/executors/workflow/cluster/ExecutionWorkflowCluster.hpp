@@ -395,7 +395,7 @@ namespace ExecutionWorkflow {
 			assert(_remoteNode != nullptr);   /// the dynamic_cast worked
 
 			TaskOffloading::ClusterTaskContext *clusterContext =
-				new TaskOffloading::ClusterTaskContext(_task, _remoteNode);
+				new TaskOffloading::ClusterTaskContext(_task, task->getOffloadedTaskId(), _remoteNode);
 			_task->setClusterContext(clusterContext);
 		}
 
