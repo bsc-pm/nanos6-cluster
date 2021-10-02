@@ -147,7 +147,7 @@ namespace TaskOffloading {
 
 
 	void propagateSatisfiabilityForHandler(
-		ClusterNode const *from,
+		__attribute__((unused)) ClusterNode const *from,
 		const size_t nSatisfiabilities,
 		TaskOffloading::SatisfiabilityInfo *_satisfiabilityInfoList
 	) {
@@ -165,7 +165,7 @@ namespace TaskOffloading {
 			// In Satisfiability messages the satInfo._id contains the remote task identifier (not the
 			// predecessor like in tasknew)
 			RemoteTaskInfo &taskInfo
-				= RemoteTasksInfoMap::getRemoteTaskInfo(satInfo._id, from->getIndex());
+				= RemoteTasksInfoMap::getRemoteTaskInfo(satInfo._id);
 
 			taskInfo._lock.lock();
 			if (taskInfo._localTask == nullptr) {
@@ -322,8 +322,7 @@ namespace TaskOffloading {
 		// Register remote Task with TaskOffloading mechanism before
 		// submitting it to the dependency system
 		RemoteTaskInfo &remoteTaskInfo = RemoteTasksInfoMap::getRemoteTaskInfo(
-			remoteTaskIdentifier,
-			remoteNode->getIndex()
+			remoteTaskIdentifier
 		);
 
 		{
@@ -419,9 +418,8 @@ namespace TaskOffloading {
 		ClusterTaskContext *clusterContext = static_cast<ClusterTaskContext *>(args);
 
 		OffloadedTaskId offloadedTaskId = clusterContext->getRemoteIdentifier();
-		ClusterNode *offloader = clusterContext->getRemoteNode();
 
-		RemoteTasksInfoMap::eraseRemoteTaskInfo(offloadedTaskId, offloader->getIndex());
+		RemoteTasksInfoMap::eraseRemoteTaskInfo(offloadedTaskId);
 		assert(clusterContext->getOwnerTask()->hasDataReleaseStep());
 
 		if (ClusterManager::getMergeReleaseAndFinish()) {

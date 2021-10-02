@@ -44,10 +44,9 @@ namespace TaskOffloading {
 	//! the local information of the remote task.
 	class RemoteTasksInfoMap {
 	public:
-		typedef std::pair<OffloadedTaskId, int> remote_index_t;
 		//TODO: I keep this like this, in the future make this an unordered map for better
 		//scalability
-		typedef std::map<remote_index_t, RemoteTaskInfo> remote_map_t;
+		typedef std::map<OffloadedTaskId, RemoteTaskInfo> remote_map_t;
 
 	private:
 		//! The actual map holding the remote tasks' info
@@ -64,27 +63,23 @@ namespace TaskOffloading {
 		//! within this map. If this is the first access to this entry
 		//! we will create it and return a reference to the new
 		//! RemoteTaskInfo object
-		RemoteTaskInfo &_getRemoteTaskInfo(OffloadedTaskId offloadTaskId, int offloaderId)
+		RemoteTaskInfo &_getRemoteTaskInfo(OffloadedTaskId offloadTaskId)
 		{
-			auto key = std::make_pair(offloadTaskId, offloaderId);
-
-			// clusterPrintf("Adding remoteTaskInfo %p %d\n", offloadTaskId, offloaderId);
+			// clusterPrintf("Adding/getting remoteTaskInfo %lx\n", offloadTaskId);
 			std::lock_guard<PaddedSpinLock<>> guard(_lock);
-			return _taskMap[key];
+			return _taskMap[offloadTaskId];
 		}
 
 		//! This erases a map entry. It assumes that there is already
 		//! an entry with the given key
-		void _eraseTaskInfo(OffloadedTaskId offloadTaskId, int offloaderId)
+		void _eraseTaskInfo(OffloadedTaskId offloadTaskId)
 		{
-			auto key = std::make_pair(offloadTaskId, offloaderId);
-
 			std::lock_guard<PaddedSpinLock<>> guard(_lock);
 
-			// clusterPrintf("Removing remoteTaskInfo %p %d\n", offloadTaskId, offloaderId);
+			// clusterPrintf("Removing remoteTaskInfo %lx\n", offloadTaskId);
 			//std::cout << clusterBacktrace() << std::endl;
 
-			remote_map_t::iterator it = _taskMap.find(key);
+			remote_map_t::iterator it = _taskMap.find(offloadTaskId);
 			assert(it != _taskMap.end());
 
 			_taskMap.erase(it);
@@ -117,18 +112,18 @@ namespace TaskOffloading {
 		//! within this map. If this is the first access to this entry
 		//! we will create it and return a reference to the new
 		//! RemoteTaskInfo object
-		static RemoteTaskInfo &getRemoteTaskInfo(OffloadedTaskId offloadedTaskId, int offloaderId)
+		static RemoteTaskInfo &getRemoteTaskInfo(OffloadedTaskId offloadedTaskId)
 		{
 			assert(_singleton != nullptr);
-			return _singleton->_getRemoteTaskInfo(offloadedTaskId, offloaderId);
+			return _singleton->_getRemoteTaskInfo(offloadedTaskId);
 		}
 
 		//! This erases a map entry. It assumes that there is already
 		//! an entry with the given key
-		static void eraseRemoteTaskInfo(OffloadedTaskId offloadTaskId, int offloaderId)
+		static void eraseRemoteTaskInfo(OffloadedTaskId offloadTaskId)
 		{
 			assert(_singleton != nullptr);
-			_singleton->_eraseTaskInfo(offloadTaskId, offloaderId);
+			_singleton->_eraseTaskInfo(offloadTaskId);
 		}
 	};
 
