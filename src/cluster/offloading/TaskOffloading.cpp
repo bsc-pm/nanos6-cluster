@@ -286,6 +286,9 @@ namespace TaskOffloading {
 			taskfor->initialize(bounds.lower_bound, bounds.upper_bound, bounds.chunksize);
 		}
 
+		// Set the task's offloaded task ID to match the original task.
+		task->setOffloadedTaskId(remoteTaskIdentifier);
+
 		// Check satisfiability for noRemotePropagation
 		// When CreateAndSubmit the satInfo._id member contains the namespace predecessor.
 		size_t numSatInfo;

@@ -5216,7 +5216,7 @@ namespace DataAccessRegistration {
 		Task *task,
 		Task *parent,
 		DataAccessRegion region,
-		ClusterNode *remoteNode,
+		__attribute((unused)) ClusterNode *remoteNode,
 		OffloadedTaskId namespacePredecessor
 	) {
 		assert(parent != nullptr);
@@ -5244,10 +5244,7 @@ namespace DataAccessRegistration {
 				assert(previousTask->isRemoteTask());
 
 				/* Does the previous task match the offloading task and remote ID? */
-				TaskOffloading::ClusterTaskContext *prevContext = previousTask->getClusterContext();
-				ClusterNode *offloader = prevContext->getRemoteNode();
-				OffloadedTaskId prevRemoteTaskIdentifier = prevContext->getRemoteIdentifier();
-				if (offloader == remoteNode && prevRemoteTaskIdentifier == namespacePredecessor) {
+				if (previousTask->getOffloadedTaskId() == namespacePredecessor) {
 					// Match, so set the namespace successor
 					// Namespace propagation from a concurrent or commutative access is
 					// not allowed. Check this.

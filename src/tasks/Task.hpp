@@ -1080,6 +1080,10 @@ public:
 		return _offloadedTaskId;
 	}
 
+	void setOffloadedTaskId(OffloadedTaskId taskId)
+	{
+		_offloadedTaskId = taskId;
+	}
 
 };
 

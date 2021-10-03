@@ -100,7 +100,7 @@ namespace ExecutionWorkflow {
 				}
 			}
 
-			OffloadedTaskId offloadedTaskId = _task->getClusterContext()->getRemoteIdentifier();
+			OffloadedTaskId offloadedTaskId = _task->getOffloadedTaskId();
 			satisfiabilityMap[destNode].push_back(
 				TaskOffloading::SatisfiabilityInfo(
 					region, locationIndex,
