@@ -1289,13 +1289,34 @@ namespace DataAccessRegistration {
 						access->getAccessRegion(),
 						accessStructures);
 
+				const MemoryPlace *location;
+				std::string label = task->getLabel();
+
+				if (access->getOutputLocation() && access->getOutputLocation()->isClusterLocalMemoryPlace()) {
+					// If the output location is a local memory place, then use the local
+					// location. Note: for cases where a copy isn't needed (e.g. read accesses,
+					// distributed memory), the output location will have been cleared by the workflow.
+					location = access->getOutputLocation();
+					if (!originalAccess->isWeak() && originalAccess->getType() != READ_ACCESS_TYPE) {
+						// If it is a strong access that is not a read, then assign a new
+						// write ID to capture any changes.
+						originalAccess->setNewLocalWriteID();
+					} else {
+						// Note: already registered as local by the taskwait's workflow
+						originalAccess->setWriteID(access->getWriteID());
+					}
+				} else {
+					// Use the location before the taskwait
+					location = access->getLocation();
+					originalAccess->setWriteID(access->getWriteID());
+				}
+
 				if (originalAccess->getLocation()->isClusterLocalMemoryPlace()
-					|| !access->getLocation()->isClusterLocalMemoryPlace()) {
+					|| !location->isClusterLocalMemoryPlace()) {
 					// Either the original access was already local or the new location
 					// is non-local. In either case, we only need to update the location
 					// and writeID of the original access.
-					originalAccess->setLocation(access->getLocation());
-					originalAccess->setWriteID(access->getWriteID());
+					originalAccess->setLocation(location);
 				} else {
 					// Updating the location of the original access from a non-local to
 					// a local location may cause read satisfiability to be propagated to
@@ -1306,8 +1327,7 @@ namespace DataAccessRegistration {
 					// logic to propagate satisfiability does not take account of
 					// disableReadPropagationToNext.
 					DataAccessStatusEffects initialStatus(originalAccess);
-					originalAccess->setLocation(access->getLocation());
-					originalAccess->setWriteID(access->getWriteID());
+					originalAccess->setLocation(location);
 					DataAccessStatusEffects updatedStatus(originalAccess);
 					handleDataAccessStatusChanges(
 						initialStatus, updatedStatus,

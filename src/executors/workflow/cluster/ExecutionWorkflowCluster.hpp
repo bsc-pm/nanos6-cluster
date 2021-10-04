@@ -561,6 +561,13 @@ namespace ExecutionWorkflow {
 			&& objectType != taskwait_type
 			&& !isWeak;
 
+		//! If it is a taskwait that doesn't need a transfer, then clear the
+		//! output location to tell handleExitTaskwait that it hasn't been copied
+		//! here.
+		if (objectType == taskwait_type && !needsTransfer) {
+			access->setOutputLocation(nullptr);
+		}
+
 		return new ClusterDataCopyStep(
 			source, target, inregion,
 			access->getOriginator(),
