@@ -1037,41 +1037,10 @@ namespace DataAccessRegistration {
 			assert(task->hasDataReleaseStep());
 
 			// We are about to perform the data release (from the original access or top-level
-			// sink). Before releasing the lock on the task, we must set the dataReleased flag
-			// for the original access, which will prevent propagation on the namespace. This
-			// cannot be delayed, since another thread may be just about to link the original
-			// access to its successor in the namespace, as soon as it gets the lock. If
-			// this is the original access, then we know that it has not already been connected
-			// to the successor in the namespace, since _triggersDataRelease cannot be true if
-			// the access has a next access. But if it is a top-level sink, we need to check
-			// the original access to make sure that it does not already have a next access. If
-			// it does, then we set dontRelease = true to abandon the data release and proceed
-			// with namespace propagation.
-			bool dontRelease = false;
-			if (access->getObjectType() == top_level_sink_type) {
-				DataAccessRegion region = access->getAccessRegion();
-				accessStructures._accesses.processIntersecting(
-					region,
-					[&](TaskDataAccesses::accesses_t::iterator position) -> bool {
-						DataAccess *originalAccess = &(*position);
-						assert(originalAccess != nullptr);
-						assert(!originalAccess->hasBeenDiscounted());
-						originalAccess = fragmentAccess(originalAccess, region, accessStructures);
-						assert(originalAccess->getAccessRegion().fullyContainedIn(region));
-						if (originalAccess->hasNext()) {
-							dontRelease = true;
-						} else {
-							originalAccess->setDataReleased();
-						}
-						return true;
-					}
-				);
-			} else {
-				assert(!access->hasNext());
-				access->setDataReleased();
-			}
+			// sink). So set the dataReleased flag to prevent propagation on the namespace.
+			access->setDataReleased();
 
-			if (access->getLocation() != nullptr && !dontRelease) {
+			if (access->getLocation() != nullptr) {
 
 				// Unmap the task's access from the namespace bottom map. This can be
 				// done as a delayed operation, because the dataReleased flag is now
@@ -4010,10 +3979,7 @@ namespace DataAccessRegistration {
 			topLevelSinkFragment->setInBottomMap();
 			topLevelSinkFragment->setRegistered();
 
-			// NOTE: For now we create it as completed, but we could actually link
-			// that part of the status to any other actions that needed to be carried
-			// out. For instance, data transfers.
-			topLevelSinkFragment->setComplete();
+			// NOTE: Do not set as complete until linked to access' next (if it has one)
 #ifndef NDEBUG
 			topLevelSinkFragment->setReachable();
 #endif
@@ -5087,6 +5053,44 @@ namespace DataAccessRegistration {
 
 						return true;
 					});
+			}
+
+			if (task->isRemoteTask()) {
+				// Now that the accesses have been finalized, we can set the top-level sink
+				// fragments, if we have any, to complete. Waiting until now prevents any
+				// data releases before the top-level sink has been put on the namespace's
+				// bottom map. It avoids a nasty race condition where:
+				// 1. We make the top-level sink and set it to complete
+				// 2. We release the lock to make the previous bottom map access have the
+				//    top-level sink as next.
+				// 3. The previous bottom map access completes, and since the top-level sink
+				//    is complete, it triggers the data release and the top-level sink is
+				//    discounted.
+				// 4. Since our task's original access is still on the namespace's bottom
+				//    map, another task can be linked in as the next.
+				// 5. The next task on the namespace expects to get satisfiability in the
+				//    namespace (and ignores "redundant" satisfiability from the parent).
+				//    But it will never receive it so hangs.
+				// This is best solved by not setting the top-level sink as complete until
+				// after it has been linked into the namespace's bottom map.
+				accessStructures._taskwaitFragments.processAll(
+					/* processor: called for each task access fragment */
+					[&](TaskDataAccesses::access_fragments_t::iterator position) -> bool {
+						DataAccess *taskwaitFragment = &(*position);
+						assert(taskwaitFragment != nullptr);
+						assert(taskwaitFragment->getObjectType() == top_level_sink_type);
+						DataAccessStatusEffects initialStatus(taskwaitFragment);
+						taskwaitFragment->setComplete();
+						DataAccessStatusEffects updatedStatus(taskwaitFragment);
+
+						/* Handle consequences of access becoming complete */
+						handleDataAccessStatusChanges(
+							initialStatus, updatedStatus,
+							taskwaitFragment, accessStructures, task,
+							hpDependencyData);
+						return true;
+					}
+				);
 			}
 
 			// Process all delayed operations that do not involve
