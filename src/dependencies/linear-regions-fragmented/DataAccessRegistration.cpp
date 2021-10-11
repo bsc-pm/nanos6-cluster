@@ -4112,7 +4112,6 @@ namespace DataAccessRegistration {
 					assert(bottomMapEntry != nullptr);
 					DataAccessRegion region = bottomMapEntry->_region;
 					void *addr = nullptr;
-					bool done = false;
 					accessStructures._accesses.processIntersectingWithRestart(
 						region,
 						[&](TaskDataAccesses::accesses_t::iterator position) -> bool {
@@ -4120,39 +4119,25 @@ namespace DataAccessRegistration {
 							DataAccess *dataAccess = &(*position);
 							assert(dataAccess != nullptr);
 							DataAccessRegion accessRegion = dataAccess->getAccessRegion();
-							if (done || accessRegion.getEndAddress() <= addr) {
+							if (accessRegion.getEndAddress() <= addr) {
 								// Restart revisits the same access a second time; skip the second
 								// time a region is visited
 								return true;
 							}
 							addr = accessRegion.getEndAddress();
 							if (dataAccess->hasNext() && !dataAccess->getNamespaceNextIsIn()) {
-								// This access has early release in the namespace
-								if (dataAccess->getAccessRegion().getStartAddress() > region.getStartAddress()) {
-									// There is a bit before this complete access
-									DataAccessRegion subregion(region.getStartAddress(),
-																std::min<void*>(dataAccess->getAccessRegion().getStartAddress(),
-																region.getEndAddress()));
-									// Access with no next that needs a taskwait fragment
-									bottomMapEntry = fragmentBottomMapEntry(bottomMapEntry, subregion, accessStructures);
-									createTopLevelSinkFragment(task, bottomMapEntry, subregion, accessStructures, hpDependencyData);
-									continueWithoutRestart = false;
-									bottomMapEntry = &(*(++bottomMapPosition));
-								}
-								if (dataAccess->getAccessRegion().getEndAddress() < region.getEndAddress()) {
-									// There is a part of the region after this complete access, so keep going
-									region = DataAccessRegion(dataAccess->getAccessRegion().getEndAddress(), region.getEndAddress());
-								} else {
-									// Otherwise stop
-									done = true;
-								}
+								// This access has early release in the namespace, so
+								// don't make a top-level sink fragment
+							} else {
+								// Make a top-level sink fragment covering this access
+								DataAccessRegion subregion = accessRegion.intersect(region);
+								bottomMapEntry = fragmentBottomMapEntry(bottomMapEntry, subregion, accessStructures);
+								createTopLevelSinkFragment(task, bottomMapEntry, subregion, accessStructures, hpDependencyData);
+								continueWithoutRestart = false;
+								bottomMapEntry = &(*(++bottomMapPosition));
 							}
 							return continueWithoutRestart;
 						});
-						if (!done) {
-							bottomMapEntry = fragmentBottomMapEntry(bottomMapEntry, region, accessStructures);
-							createTopLevelSinkFragment(task, bottomMapEntry, region, accessStructures, hpDependencyData);
-						}
 					/* Always continue with the rest of the accesses */
 					return true;
 					});
