@@ -23,6 +23,7 @@ void ConfigCentral::initialize()
 	registerOption<integer_t>("cluster.va_start", 0);
 	registerOption<bool_t>("cluster.use_namespace", false);
 	registerOption<bool_t>("cluster.disable_remote", false);
+	registerOption<bool_t>("cluster.disable_remote_connect", true);
 	registerOption<bool_t>("cluster.disable_autowait", false);
 	registerOption<integer_t>("cluster.num_message_handler_workers", 2);
 

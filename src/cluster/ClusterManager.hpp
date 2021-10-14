@@ -55,6 +55,8 @@ private:
 
 	bool _disableRemote;
 
+	bool _disableRemoteConnect;
+
 	bool _disableAutowait;
 
 	size_t _messageMaxSize;
@@ -354,6 +356,12 @@ public:
 	{
 		assert(_singleton != nullptr);
 		return _singleton->_disableRemote;
+	}
+
+	static bool getDisableRemoteConnect()
+	{
+		assert(_singleton != nullptr);
+		return _singleton->_disableRemoteConnect;
 	}
 
 	static bool getDisableAutowait()

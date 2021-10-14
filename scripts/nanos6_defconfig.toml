@@ -259,6 +259,8 @@ __require_CLUSTER
 	use_namespace = true
 	# Disable propagation of dependencies in the remote namespace. Default is false
 	disable_remote = false
+	# Disable remote connect (direct propagation between namespaces). Default is true
+	disable_remote_connect = true
 	# Disable the "autowait" feature, which disables early release for accesses of offloaded
 	# tasks that are not propagated in the remote namespace. Default is false
 	disable_autowait = false

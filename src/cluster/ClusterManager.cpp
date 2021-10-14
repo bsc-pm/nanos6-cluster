@@ -38,7 +38,7 @@ ClusterManager::ClusterManager()
 	: _clusterNodes(1),
 	_thisNode(new ClusterNode(0, 0)),
 	_masterNode(_thisNode),
-	_msn(nullptr), _usingNamespace(false), _disableRemote(false), _disableAutowait(false),
+	_msn(nullptr), _usingNamespace(false), _disableRemote(false), _disableRemoteConnect(false), _disableAutowait(false),
 	_callback(nullptr)
 {
 	_clusterNodes[0] = _thisNode;
@@ -48,7 +48,7 @@ ClusterManager::ClusterManager()
 
 ClusterManager::ClusterManager(std::string const &commType)
 	:_msn(GenericFactory<std::string, Messenger*>::getInstance().create(commType)),
-	 _disableRemote(false), _disableAutowait(false), _callback(nullptr)
+	 _disableRemote(false), _disableRemoteConnect(false), _disableAutowait(false), _callback(nullptr)
 {
 	assert(_msn);
 
@@ -87,6 +87,9 @@ ClusterManager::ClusterManager(std::string const &commType)
 	if (_usingNamespace) {
 		ConfigVariable<bool> disableRemote("cluster.disable_remote");
 		_disableRemote = disableRemote.getValue();
+
+		ConfigVariable<bool> disableRemoteConnect("cluster.disable_remote_connect");
+		_disableRemoteConnect = disableRemoteConnect.getValue();
 	}
 
 	ConfigVariable<bool> disableAutowait("cluster.disable_autowait");
