@@ -13,24 +13,15 @@
 #include "Message.hpp"
 
 #include <DataAccessRegion.hpp>
+#include "NoEagerSendInfo.hpp"
 
 class MessageNoEagerSend : public Message {
-
-public:
-
-	struct NoEagerSendRegion {
-		//! The region we do not access
-		DataAccessRegion _region;
-
-		//! The opaque id identifying the offloaded task
-		OffloadedTaskId _offloadedTaskId;
-	};
 
 private:
 
 	struct NoEagerSendMessageContent {
 		size_t _numRegions;
-		NoEagerSendRegion _noEagerSendInfo[];
+		TaskOffloading::NoEagerSendInfo _noEagerSendInfo[];
 	};
 
 	//! \brief pointer to the message payload
@@ -39,8 +30,7 @@ private:
 public:
 	MessageNoEagerSend(const ClusterNode *from,
 		size_t numRegions,
-		const std::vector<DataAccessRegion> &regions,
-		OffloadedTaskId offloadedTaskId);
+		const std::vector<TaskOffloading::NoEagerSendInfo> &regions);
 
 	MessageNoEagerSend(Deliverable *dlv)
 		: Message(dlv)

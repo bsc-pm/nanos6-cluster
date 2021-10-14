@@ -14,16 +14,15 @@
 
 MessageNoEagerSend::MessageNoEagerSend(const ClusterNode *from,
 	size_t numRegions,
-	const std::vector<DataAccessRegion> &regions,
-	OffloadedTaskId offloadedTaskId)
-	: Message(NO_EAGER_SEND, sizeof(size_t) + numRegions * sizeof(NoEagerSendRegion), from)
+	const std::vector<TaskOffloading::NoEagerSendInfo> &regions)
+	: Message(NO_EAGER_SEND, sizeof(size_t) + numRegions * sizeof(TaskOffloading::NoEagerSendInfo), from)
 {
 	_content = reinterpret_cast<NoEagerSendMessageContent *>(_deliverable->payload);
 	_content->_numRegions = numRegions;
 	size_t index = 0;
-	for (DataAccessRegion region : regions) {
-		_content->_noEagerSendInfo[index]._region = region;
-		_content->_noEagerSendInfo[index]._offloadedTaskId = offloadedTaskId;
+	for (TaskOffloading::NoEagerSendInfo regionInfo : regions) {
+		_content->_noEagerSendInfo[index]._region = regionInfo._region;
+		_content->_noEagerSendInfo[index]._offloadedTaskId = regionInfo._offloadedTaskId;
 		index++;
 	}
 }
@@ -33,7 +32,7 @@ bool MessageNoEagerSend::handleMessage()
 	// clusterCout << "handle no eager send " << _content->_region << " for " << task->getLabel() << "\n";
 	const size_t numRegions = _content->_numRegions;
 	for(size_t i = 0; i < numRegions; i++) {
-		NoEagerSendRegion const &regionInfo = _content->_noEagerSendInfo[i];
+		TaskOffloading::NoEagerSendInfo const &regionInfo = _content->_noEagerSendInfo[i];
 		TaskOffloading::OffloadedTaskInfo &taskInfo = TaskOffloading::OffloadedTasksInfoMap::getOffloadedTaskInfo(regionInfo._offloadedTaskId);
 		assert(taskInfo.remoteNode && taskInfo.remoteNode->getIndex() == getSenderId());
 		Task *task = taskInfo._origTask;

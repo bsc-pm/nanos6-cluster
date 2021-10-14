@@ -25,6 +25,7 @@
 
 #ifdef USE_CLUSTER
 #include <SatisfiabilityInfo.hpp>  // Already includes WriteID.hpp
+#include <NoEagerSendInfo.hpp>
 #include <DataSendInfo.hpp>
 #endif // USE_CLUSTER
 
@@ -163,6 +164,7 @@ struct CPUDependencyData {
 #ifdef USE_CLUSTER
 	TaskOffloading::SatisfiabilityInfoMap _satisfiabilityMap; // Node's: list of satisfiabilities to send.
 	TaskOffloading::DataSendRegionInfoMap _dataSendRegionInfoMap;
+	std::vector<TaskOffloading::NoEagerSendInfo> _noEagerSendInfoVector;
 #endif // USE_CLUSTER
 
 	CPUDependencyData()

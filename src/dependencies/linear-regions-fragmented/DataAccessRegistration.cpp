@@ -1731,6 +1731,14 @@ namespace DataAccessRegistration {
 		}
 	}
 
+	static inline void processNoEagerSendInfo(Task *task, /* INOUT */ CPUDependencyData &hpDependencyData)
+	{
+		if (!hpDependencyData._noEagerSendInfoVector.empty()) {
+			TaskOffloading::sendNoEagerSend(task, hpDependencyData._noEagerSendInfoVector);
+			hpDependencyData._noEagerSendInfoVector.clear();
+		}
+	}
+
 
 	static inline void processSatisfiedCommutativeOriginators(/* INOUT */ CPUDependencyData &hpDependencyData)
 	{
@@ -3484,9 +3492,6 @@ namespace DataAccessRegistration {
 			dataAccess->setWriteID(writeID);
 		}
 
-		// Regions for a possible MessageNoEagerSend to the offloader
-		std::vector<DataAccessRegion> noEagerSendRegions;
-
 		/*
 		 * Set complete and update location for the access itself and all
 		 * (child task) fragments.
@@ -3520,7 +3525,9 @@ namespace DataAccessRegistration {
 							&& accessOrFragment->getNext()._objectType == taskwait_type)) {
 
 							if (ClusterManager::getEagerSend()) {
-								noEagerSendRegions.push_back(accessOrFragment->getAccessRegion());
+								hpDependencyData._noEagerSendInfoVector.emplace_back(
+										accessOrFragment->getAccessRegion(),
+										accessOrFragment->getOriginator()->getOffloadedTaskId());
 							}
 						}
 				}
@@ -3580,10 +3587,6 @@ namespace DataAccessRegistration {
 				return true; // Apply also to subaccesses if any
 			});
 
-		if (!noEagerSendRegions.empty()) {
-			assert(finishedTask->isRemoteTask());
-			TaskOffloading::sendNoEagerSend(finishedTask, noEagerSendRegions);
-		}
 	}
 
 
@@ -4390,6 +4393,8 @@ namespace DataAccessRegistration {
 
 					return true;
 				});
+
+			processNoEagerSendInfo(task, hpDependencyData);
 		}
 
 #ifndef NDEBUG
@@ -4907,7 +4912,7 @@ namespace DataAccessRegistration {
 					}
 					return true;
 				});
-
+			processNoEagerSendInfo(task, hpDependencyData);
 		}
 		processDelayedOperationsSatisfiedOriginatorsAndRemovableTasks(hpDependencyData, computePlace, true);
 		if (didAll) {
@@ -5073,6 +5078,7 @@ namespace DataAccessRegistration {
 
 						return true;
 					});
+				processNoEagerSendInfo(task, hpDependencyData);
 			}
 
 			if (task->isRemoteTask()) {
@@ -5380,7 +5386,6 @@ namespace DataAccessRegistration {
 			// For tasks with wait or autowait, send NoEagerSend messages for any regions
 			// that were never accessed by the task or a subtask
 			if (task->hasFinished() && task->isRemoteTask() && ClusterManager::getEagerSend()) {
-				std::vector<DataAccessRegion> noEagerSendRegions;
 				accessStructures._accesses.processAll(
 					/* processor: called for each task access */
 					[&](TaskDataAccesses::accesses_t::iterator position) -> bool {
@@ -5389,14 +5394,18 @@ namespace DataAccessRegistration {
 						if (!access->getPropagateFromNamespace()
 							&& !access->readSatisfied()) {
 								if (!access->hasSubaccesses()) {
-									noEagerSendRegions.push_back(access->getAccessRegion());
+									hpDependencyData._noEagerSendInfoVector.emplace_back(
+										access->getAccessRegion(),
+										access->getOriginator()->getOffloadedTaskId());
 								} else {
 									accessStructures._accessFragments.processIntersecting(
 										access->getAccessRegion(),
 										[&](TaskDataAccesses::access_fragments_t::iterator fragmentPosition) -> bool {
 											DataAccess *fragment = &(*fragmentPosition);
 											if (!fragment->hasNext()) {
-												noEagerSendRegions.push_back(fragment->getAccessRegion());
+												hpDependencyData._noEagerSendInfoVector.emplace_back(
+													fragment->getAccessRegion(),
+													access->getOriginator()->getOffloadedTaskId());
 											}
 											return true;
 										}
@@ -5406,9 +5415,7 @@ namespace DataAccessRegistration {
 						return true;
 					}
 				);
-				if (!noEagerSendRegions.empty()) {
-					TaskOffloading::sendNoEagerSend(task, noEagerSendRegions);
-				}
+				processNoEagerSendInfo(task, hpDependencyData);
 			}
 
 			/* Create a taskwait fragment for each entry in the bottom map */
