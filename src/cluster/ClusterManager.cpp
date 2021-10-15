@@ -182,6 +182,14 @@ void ClusterManager::shutdownPhase1()
 	assert(_singleton != nullptr);
 	assert(MemoryAllocator::isInitialized());
 
+	if (inClusterMode()) {
+		if (_singleton->_taskInPoolins) {
+			ClusterServicesTask::waitUntilFinished();
+		} else {
+			ClusterServicesPolling::waitUntilFinished();
+		}
+	}
+
 	if (_singleton->_usingNamespace && isMasterNode()) {
 		// _usingNamespace duplicates the information of NodeNamespace::isEnabled().
 		assert(NodeNamespace::isEnabled());

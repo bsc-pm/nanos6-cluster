@@ -66,6 +66,12 @@ namespace ClusterServicesPolling {
 																		  Instrument::ClusterEventType::PendingDataTransferBytes);
 	}
 
+	inline void waitUntilFinished()
+	{
+		ClusterPollingServices::PendingQueue<Message>::waitUntilFinished();
+		ClusterPollingServices::PendingQueue<DataTransfer>::waitUntilFinished();
+	}
+
 	//! \brief Shutdown the Cluster polling services-
 	//!
 	//! This method will be called during ClusterManager
@@ -83,6 +89,7 @@ namespace ClusterServicesPolling {
 		// completion of all the messages it has sent. So just wait for
 		// completion before shutting down the polling services.
 		ClusterPollingServices::PendingQueue<Message>::waitUntilFinished();
+		ClusterPollingServices::PendingQueue<DataTransfer>::waitUntilFinished();
 
 		unregisterService<ClusterPollingServices::PendingQueue<DataTransfer>>("DataTransfer");
 		unregisterService<ClusterPollingServices::PendingQueue<Message>>("MessageDelivery");

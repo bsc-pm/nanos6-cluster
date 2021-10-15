@@ -90,6 +90,11 @@ namespace ClusterServicesTask {
 		}
 	}
 
+	inline void waitUntilFinished()
+	{
+		ClusterPollingServices::PendingQueue<Message>::waitUntilFinished();
+	}
+
 
 	//! \brief Shutdown the Cluster polling services-
 	//!

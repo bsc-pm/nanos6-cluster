@@ -154,12 +154,15 @@ namespace ClusterPollingServices {
 			assert(_singleton._live.load() == true);
 			bool done = false;
 			while (!done) {
-				std::lock_guard<PaddedSpinLock<>> guard1(_singleton._lock); // Always take _lock before _incomingLock
-				std::lock_guard<PaddedSpinLock<>> guard2(_singleton._incomingLock);
-				done = _singleton._pendings.empty() && _singleton._incomingPendings.empty();
+				{
+					std::lock_guard<PaddedSpinLock<>> guard1(_singleton._lock); // Always take _lock before _incomingLock
+					std::lock_guard<PaddedSpinLock<>> guard2(_singleton._incomingLock);
+					done = _singleton._pendings.empty() && _singleton._incomingPendings.empty();
+				}
 				if (!done) {
 					clusterCout << "Waiting for message delivery\n";
 					sleep(1);
+					executeService();
 				}
 			}
 		}
