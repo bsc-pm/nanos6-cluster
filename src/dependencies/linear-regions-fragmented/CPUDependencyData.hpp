@@ -131,7 +131,7 @@ struct CPUDependencyData {
 		}
 		bool operator!=(TaskAndRegion const &other) const
 		{
-			return (_task == other._task) && (_region == other._region);
+			return (_task != other._task) || (_region != other._region);
 		}
 	};
 
