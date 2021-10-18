@@ -149,14 +149,20 @@ namespace ClusterMemoryManagement {
 
 	void *lmalloc(size_t size)
 	{
+		// round the requested size to the cache line size to prevent 
+		// defragmenting the cache line resulting in unnecessarily 
+		// excessive number of accesses, and in turn update operations.
+		size_t cacheLineSize = HardwareInfo::getCacheLineSize();
+		size_t roundedSize = (size + cacheLineSize - 1) & ~(cacheLineSize - 1);
+
 		// Register the lmalloc in the task's dependency system.  This is needed for taskwait
 		// noflush, as a place to put the location information. Ideally we should register the whole
 		// local region all at once. At the moment the lmalloc and lfree have to be in the same
 		// task, which is a bit restrictive.
-		void *lptr = MemoryAllocator::alloc(size);
+		void *lptr = MemoryAllocator::alloc(roundedSize);
 		WorkerThread *currentThread = WorkerThread::getCurrentWorkerThread();
 		Task *task = currentThread->getTask();
-		DataAccessRegion allocatedRegion(lptr, size);
+		DataAccessRegion allocatedRegion(lptr, roundedSize);
 		DataAccessRegistration::registerLocalAccess(
 			task,
 			allocatedRegion,
@@ -168,10 +174,12 @@ namespace ClusterMemoryManagement {
 
 	void lfree(void *ptr, size_t size)
 	{
-		DataAccessRegion allocatedRegion(ptr, size);
+		size_t cacheLineSize = HardwareInfo::getCacheLineSize();
+		size_t roundedSize = (size + cacheLineSize - 1) & ~(cacheLineSize - 1);
+		DataAccessRegion allocatedRegion(ptr, roundedSize);
 		WorkerThread *currentThread = WorkerThread::getCurrentWorkerThread();
 		Task *task = currentThread->getTask();
 		DataAccessRegistration::unregisterLocalAccess(task, allocatedRegion);
-		MemoryAllocator::free(ptr, size);
+		MemoryAllocator::free(ptr, roundedSize);
 	}
 }
