@@ -12,6 +12,7 @@
 #include <iostream>
 #include <sstream>
 #include <string>
+#include <set>
 #include <unordered_set>
 
 #include "ConfigCentral.hpp"
@@ -74,14 +75,13 @@ public:
 
 
 //! Class representing a configuration variable set
-template <typename T>
-class ConfigVariableSet {
+template <typename T, typename contents_t>
+class ConfigVariableContainer {
 public:
-	typedef std::unordered_set<T> contents_t;
 	typedef typename contents_t::iterator iterator;
 	typedef typename contents_t::const_iterator const_iterator;
 
-private:
+protected:
 	typedef typename ConfigOptionType::type<T> option_type_t;
 
 	std::string _name;
@@ -89,22 +89,12 @@ private:
 	bool _isPresent;
 
 public:
-	//! \brief Constructor
-	//!
-	//! \param[in] name The name of the config variable
-	ConfigVariableSet(const std::string &name) :
+
+	ConfigVariableContainer(const std::string &name) :
 		_name(name),
 		_contents(),
 		_isPresent(false)
 	{
-		std::vector<option_type_t> values;
-		_isPresent = ConfigCentral::getOptionValue<option_type_t>(_name, values);
-
-		if (!values.empty()) {
-			_contents.clear();
-			for (T &item : values)
-				_contents.emplace((T) item);
-		}
 	}
 
 	//! \brief Indicate if the config variable has actually been defined
@@ -143,6 +133,60 @@ public:
 	inline const_iterator end() const
 	{
 		return _contents.end();
+	}
+};
+
+
+template <typename T>
+class ConfigVariableSet: public ConfigVariableContainer<T, std::set<T>> {
+
+private:
+	using typename ConfigVariableContainer<T, std::set<T>>::option_type_t;
+
+public:
+	//! \brief Constructor
+	//!
+	//! \param[in] name The name of the config variable
+	ConfigVariableSet(const std::string &name)
+		: ConfigVariableContainer<T, std::set<T>>(name)
+	{
+		std::vector<option_type_t> values;
+
+		this->_isPresent = ConfigCentral::getOptionValue<option_type_t>(name, values);
+
+		if (!values.empty()) {
+			this->_contents.clear();
+			for (T &item : values) {
+				this->_contents.emplace(static_cast<T>(item));
+			}
+		}
+	}
+};
+
+
+template <typename T>
+class ConfigVariableVector: public ConfigVariableContainer<T, std::vector<T>> {
+
+private:
+	using typename ConfigVariableContainer<T, std::vector<T>>::option_type_t;
+
+public:
+	//! \brief Constructor
+	//!
+	//! \param[in] name The name of the config variable
+	ConfigVariableVector(const std::string &name)
+		: ConfigVariableContainer<T, std::vector<T>>(name)
+	{
+		std::vector<option_type_t> values;
+
+		this->_isPresent = ConfigCentral::getOptionValue<option_type_t>(name, values);
+
+		if (!values.empty()) {
+			this->_contents.clear();
+			for (T &item : values) {
+				this->_contents.push_back(static_cast<T>(item));
+			}
+		}
 	}
 };
 

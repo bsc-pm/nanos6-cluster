@@ -75,7 +75,7 @@ namespace Instrument {
 		ExtraeSymbolResolverBase::initialize();
 		RuntimeInfo::addEntry("instrumentation", "Instrumentation", "extrae");
 
-		ConfigVariableSet<std::string> extraeAreas("instrument.extrae.areas");
+		ConfigVariableVector<std::string> extraeAreas("instrument.extrae.areas");
 
 		for (auto area : extraeAreas) {
 			std::transform(area.begin(), area.end(), area.begin(), ::tolower);
@@ -96,7 +96,6 @@ namespace Instrument {
 				_extraeInstrumentCluster = true;
 			} else if (area == "taskforchunks") {
 				_extraeInstrumentTaskforChunks = true;
-
 
 			} else if (area == "!taskgraph") {
 				_detailTaskGraph =  false;

@@ -39,7 +39,7 @@ namespace Instrument {
 	{
 		RuntimeInfo::addEntry("instrumentation", "Instrumentation", "verbose");
 
-		ConfigVariableSet<std::string> verboseAreas("instrument.verbose.areas");
+		ConfigVariableVector<std::string> verboseAreas("instrument.verbose.areas");
 
 		for (auto area : verboseAreas) {
 			std::transform(area.begin(), area.end(), area.begin(), ::tolower);
