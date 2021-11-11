@@ -39,72 +39,6 @@
 // 64-bit Write ID.
 typedef size_t WriteID;
 
-// "Forgetful" dictionary, intended to store the write IDs that are available
-// locally together with the region that the write ID corresponds to.
-//
-// The operations are:
-//
-//    emplace(key,val): Add a non-zero key with its value to the set. It is
-//    assumed that the keys are "randomized", so the key modulo the cache size
-//    is a good hash. If there is a hash collision, then the old (key,value) is
-//    lost.
-//
-//    remove(key): Remove a non-zero key by setting its cache entry to 0.
-//
-//    get(key): Return a pointer to the value for a given key, or nullptr
-//              if the key is not present
-template<class K, class V>
-class CacheSet
-{
-private:
-	struct keypair {
-		K key;
-		V value;
-	};
-
-	static constexpr int cacheSize = 8192;
-	std::vector<keypair> _buffer;
-
-public:
-	CacheSet() : _buffer(cacheSize)
-	{
-	}
-
-	inline static size_t hash(const K key)
-	{
-		return key % cacheSize;
-	}
-
-	// Put non-zero val in the cache set
-	inline void emplace(const K key, const V &value)
-	{
-		if (key) {
-			_buffer.at(hash(key)) = {key, value};
-		}
-	}
-
-	// Remove val from the cache set
-	inline void remove(const K key)
-	{
-		if (key) {
-			_buffer.at(hash(key)).key = 0;
-		}
-	}
-
-	inline const V *get(const K key) const
-	{
-		if (key) {
-			const size_t hashkey = hash(key);
-			const keypair &pair = _buffer.at(hashkey);
-
-			if (pair.key == key) {
-				return &pair.value;
-			}
-		}
-		return nullptr;
-	}
-};
-
 typedef size_t HashID;
 typedef size_t WriteID;
 
@@ -116,7 +50,13 @@ private:
 
 	/* Counter */
 	std::atomic<WriteID> _counter;
-	CacheSet<HashID, DataAccessRegion> _localWriteIDs;
+	struct keypair {
+		HashID key;
+		DataAccessRegion value;
+	};
+
+	static constexpr int cacheSize = 8192;
+	std::vector<keypair> _localWriteIDs;
 
 	static HashID hash(WriteID id, const DataAccessRegion &region)
 	{
@@ -131,7 +71,7 @@ private:
 
 public:
 
-	WriteIDManager(WriteID initCounter) : _localWriteIDs()
+	WriteIDManager(WriteID initCounter) : _localWriteIDs(cacheSize)
 	{
 		_counter.store(initCounter);
 	}
@@ -161,7 +101,8 @@ public:
 	{
 		if (id) {
 			assert(_singleton != nullptr);
-			_singleton->_localWriteIDs.emplace(hash(id, region), region);
+			HashID key = hash(id, region);
+			_singleton->_localWriteIDs.at(key % cacheSize) = {key, region};
 		}
 	}
 
@@ -171,7 +112,8 @@ public:
 	static void unregisterWriteIDnotLocal(WriteID id, const DataAccessRegion &region)
 	{
 		assert(_singleton != nullptr);
-		_singleton->_localWriteIDs.remove(hash(id,region));
+		HashID key = hash(id, region);
+		_singleton->_localWriteIDs.at(key % cacheSize).key = 0;
 	}
 
 	// Check whether a write ID is definitely present locally.
@@ -179,8 +121,13 @@ public:
 	{
 		if (id) {
 			assert(_singleton != nullptr);
-			const DataAccessRegion *regionLocal = _singleton->_localWriteIDs.get(hash(id, region));
-			return (regionLocal != nullptr && *regionLocal == region);
+			HashID key = hash(id, region);
+			if (key) {
+				const keypair &pair = _singleton->_localWriteIDs.at(key % cacheSize);
+				if (pair.key == key && pair.value == region) {
+					return true;
+				}
+			}
 		}
 		return false;
 	}
