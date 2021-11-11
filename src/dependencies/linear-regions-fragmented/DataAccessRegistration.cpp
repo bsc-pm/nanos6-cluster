@@ -306,30 +306,10 @@ namespace DataAccessRegistration {
 				// This can happen now if a remote task has a successor in the namespace
 				// assert(access->getObjectType() != top_level_sink_type);
 
-				/* For offloaded tasks, don't propagate read satisfiability to
-				 * next (in the namespace) until the data is here or the task
-				 * completes. This is important to avoid duplicate data copies
-				 * for in dependencies. Otherwise every offloaded weak task
-				 * will (almost simultaneously) fetch the same data.  The below
-				 * logic ensures that read satisfiability is not propagated
-				 * until after the task has been scheduled and the data has
-				 * been transferred in. When the data arrives, even if fetched
-				 * for a subtask, updateTaskDataAccessLocation will update
-				 * the location at all parents including this task.
-				 */
-				bool disableReadPropagationToNext = false;
-				if (access->disableReadPropagationUntilHere()
-					&& access->hasLocation()
-					&& !access->getLocation()->isClusterLocalMemoryPlace()
-					&& !access->complete()) {
-					disableReadPropagationToNext = true;
-				}
-
 				if (access->hasSubaccesses()) {
 					assert(access->getObjectType() == access_type);
 					_propagatesReadSatisfiabilityToNext =
-						!disableReadPropagationToNext
-						&& access->canPropagateReadSatisfiability() && access->readSatisfied()
+						access->canPropagateReadSatisfiability() && access->readSatisfied()
 						&& ((access->getType() == READ_ACCESS_TYPE) || (access->getType() == NO_ACCESS_TYPE));
 					_propagatesWriteSatisfiabilityToNext = false; // Write satisfiability is propagated through the fragments
 					_propagatesConcurrentSatisfiabilityToNext =
@@ -376,8 +356,7 @@ namespace DataAccessRegistration {
 
 					// A regular access without subaccesses but with a next
 					_propagatesReadSatisfiabilityToNext =
-						!disableReadPropagationToNext
-						&& access->canPropagateReadSatisfiability()
+						access->canPropagateReadSatisfiability()
 						&& access->readSatisfied()
 						// Note: 'satisfied' as opposed to 'readSatisfied', because otherwise read
 						// satisfiability could be propagated before reductions are combined
@@ -1863,10 +1842,6 @@ namespace DataAccessRegistration {
 						access->setWriteID(updateOperation._writeID);
 					} else {
 						access->setReadSatisfied(access->getLocation());
-					}
-					if (!access->isWeak()
-						&& !access->getOriginator()->isOffloadedTask()) {
-							access->setDisableReadPropagationUntilHere();
 					}
 				}
 
@@ -4564,8 +4539,7 @@ namespace DataAccessRegistration {
 				// Note: it is tempting to change the access, if it is weak,
 				// into a strong one (calling access->upgrade). But there is no
 				// need, and there is no logic in the dependency system to deal
-				// with accesses changing from weak to strong (e.g. the value
-				// of disableReadPropagationUntilHere might need changing).
+				// with accesses changing from weak to strong.
 				DataAccessStatusEffects initialStatus(access);
 				if (location) {
 					access->setLocation(location);

@@ -849,16 +849,6 @@ public:
 		_status[REMOTE_HAS_PSEUDOWRITE_BIT] = true;
 	}
 
-	bool disableReadPropagationUntilHere() const
-	{
-		return _status[DISABLE_READ_PROPAGATION_UNTIL_HERE];
-	}
-
-	void setDisableReadPropagationUntilHere()
-	{
-		_status[DISABLE_READ_PROPAGATION_UNTIL_HERE] = true;
-	}
-
 	bool getDataReleased() const
 	{
 		return _status[DATA_RELEASED_BIT];
