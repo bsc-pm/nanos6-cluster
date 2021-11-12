@@ -1868,19 +1868,8 @@ namespace DataAccessRegistration {
 							access->setDisableReadPropagationUntilHere();
 					}
 				}
-				if (access->getAccessRegion() == updateOperation._region) {
-					// Access exactly matches the old one: so take the WriteID
-					access->setWriteID(updateOperation._writeID);
-				} else {
-					// The access has fragmented: create a new WriteID
-					if (!access->isWeak()) {
-						access->setNewWriteID();
-					}
-					// and if already read satisfied and here, then register it as local
-					if (access->readSatisfied() && access->getLocation() && access->getLocation()->isClusterLocalMemoryPlace()) {
-						WriteIDManager::registerWriteIDasLocal(access->getWriteID(), access->getAccessRegion());
-					}
-				}
+
+				access->setWriteID(updateOperation._writeID);
 			}
 
 			/*
