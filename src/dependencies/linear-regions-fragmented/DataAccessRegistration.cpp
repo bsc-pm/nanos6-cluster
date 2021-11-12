@@ -1860,6 +1860,7 @@ namespace DataAccessRegistration {
 
 					if (updateLocation) {
 						access->setReadSatisfied(updateOperation._location);
+						access->setWriteID(updateOperation._writeID);
 					} else {
 						access->setReadSatisfied(access->getLocation());
 					}
@@ -1869,7 +1870,6 @@ namespace DataAccessRegistration {
 					}
 				}
 
-				access->setWriteID(updateOperation._writeID);
 			}
 
 			/*
