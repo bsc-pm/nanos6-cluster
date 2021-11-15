@@ -33,6 +33,23 @@
 
 namespace TaskOffloading {
 
+	static inline void handleEagerSend(SatisfiabilityInfo const &satInfo)
+	{
+		MemoryPlace const *loc =
+			(satInfo._src == -1) ? nullptr : ClusterManager::getMemoryNodeOrDirectory(satInfo._src);
+
+		if (satInfo._eagerSendTag != 0) {
+			assert(loc != nullptr);
+			assert(!loc->isDirectoryMemoryPlace());
+			DataTransfer *dt = ClusterManager::fetchDataRaw(satInfo._region, loc, satInfo._eagerSendTag, /* block */ false);
+			LiveDataTransfers::add(dt);
+			dt->addCompletionCallback([=]() {
+				WriteIDManager::registerWriteIDasLocal(satInfo._writeID, satInfo._region);
+			});
+			ClusterPollingServices::PendingQueue<DataTransfer>::addPending(dt);
+		}
+	}
+
 	static void propagateSatisfiability(
 		Task *localTask,
 		SatisfiabilityInfo const &satInfo,
@@ -48,17 +65,7 @@ namespace TaskOffloading {
 		MemoryPlace const *loc =
 			(satInfo._src == -1) ? nullptr : ClusterManager::getMemoryNodeOrDirectory(satInfo._src);
 
-		if (satInfo._eagerSendTag != 0) {
-			assert(loc != nullptr);
-			assert(!loc->isDirectoryMemoryPlace());
-			DataTransfer *dt = ClusterManager::fetchDataRaw(satInfo._region, loc, satInfo._eagerSendTag, /* block */ false);
-			LiveDataTransfers::add(dt);
-			dt->addCompletionCallback([=]() {
-				WriteIDManager::registerWriteIDasLocal(satInfo._writeID, satInfo._region);
-			});
-			ClusterPollingServices::PendingQueue<DataTransfer>::addPending(dt);
-		}
-
+		handleEagerSend(satInfo);
 		DataAccessRegistration::propagateSatisfiability(
 			localTask, satInfo._region, cpu,
 			hpDependencyData,
@@ -149,7 +156,7 @@ namespace TaskOffloading {
 			(cpu != nullptr) ? cpu->getDependencyData() : localDependencyData;
 
 		for (size_t i = 0; i < nSatisfiabilities; ++i) {
-			SatisfiabilityInfo const &satInfo = _satisfiabilityInfoList[i];
+			SatisfiabilityInfo &satInfo = _satisfiabilityInfoList[i];
 
 			// This is called from the MessageSatisfiability::handleMessage.
 			// In Satisfiability messages the satInfo._id contains the remote task identifier (not the
@@ -161,6 +168,8 @@ namespace TaskOffloading {
 			if (taskInfo._localTask == nullptr) {
 				// The remote task has not been created yet, so we just add the info to the
 				// temporary vector.
+				handleEagerSend(satInfo);
+				satInfo._eagerSendTag = 0;
 				taskInfo._satInfo.push_back(satInfo);
 				taskInfo._lock.unlock();
 			} else {
