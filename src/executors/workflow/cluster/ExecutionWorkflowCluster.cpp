@@ -30,7 +30,7 @@ namespace ExecutionWorkflow {
 		if (ClusterManager::getEagerSend()  // cluster.eager_send = true
 			&& !sourceLocation->isDirectoryMemoryPlace() // and not in the directory (would mean data as yet invalid)
 			&& sourceLocation != targetLocation) { // and not already at the target
-			int eagerSendTag = MessageId::nextMessageId();
+			int eagerSendTag = MessageId::nextMessageId(ClusterManager::getMPIFragments(region));
 			ClusterNode *from = ClusterManager::getCurrentClusterNode();
 			const MemoryPlace *currentMemoryPlace = ClusterManager::getMemoryNode(from->getIndex());
 			if (sourceLocation == currentMemoryPlace) {
@@ -388,7 +388,7 @@ namespace ExecutionWorkflow {
 				// This lambda is called if a new data transfer is needed
 				[&]() -> DataTransfer * {
 					// Create the DataTransfer
-					id = MessageId::nextMessageId();
+					id = MessageId::nextMessageId(ClusterManager::getMPIFragments(region));
 					DataTransfer *dataTransfer = ClusterManager::fetchDataRaw(
 						region,
 						_sourceMemoryPlace,

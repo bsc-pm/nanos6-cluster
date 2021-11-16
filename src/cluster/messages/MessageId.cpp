@@ -49,7 +49,7 @@ namespace MessageId {
 	typedef std::atomic<uint32_t> message_id_t;
 
 	static message_id_t _nextMessageId;
-	static uint32_t _numRanks = 0;
+	uint32_t _numRanks = 0;
 
 	void initialize(int rank, int numRanks)
 	{
@@ -58,11 +58,12 @@ namespace MessageId {
 		_numRanks = numRanks;
 	}
 
-	uint32_t nextMessageId()
+	uint32_t nextMessageId(int numIds)
 	{
-		const uint32_t ret = _nextMessageId.fetch_add(_numRanks);
+		const uint32_t ret = _nextMessageId.fetch_add(numIds * _numRanks);
 
 		/* Check for overflow */
+		assert(numIds >= 1);
 		assert(_numRanks != 0);
 		assert(ret != UINT_MAX);
 

@@ -13,11 +13,28 @@
 
 namespace MessageId {
 
+	extern uint32_t _numRanks;
+
 	//! \brief Initialize globally unique MessageIds
 	void initialize(int rank, int numRanks);
 
 	//! \brief Get the next available MessageId
-	uint32_t nextMessageId();
+	//!
+	//! \param[in] numIds The number of Ids to allocate.
+	//!
+	//! \returns The first MessageId. Use messageIdAtOffset to find
+	//! the other MessageIds, if numIds > 1.
+	uint32_t nextMessageId(int numIds = 1);
+
+	//! \brief Extract a MessageId from a group
+	//!
+	//! \param[in] firstMessageId The first MessageId, returned by
+	//!            nextMessageId.
+	//! \param[in] ofs The index, counting from zero.
+	inline uint32_t messageIdInGroup(int firstMessageId, int ofs)
+	{
+		return firstMessageId + ofs * _numRanks;
+	}
 }
 
 #endif /* MESSAGE_ID_HPP */

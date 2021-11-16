@@ -6,6 +6,7 @@
 
 #include <cstdlib>
 #include <vector>
+#include <algorithm>
 
 #include "InstrumentCluster.hpp"
 #include "MPIDataTransfer.hpp"
@@ -15,6 +16,7 @@
 #include "cluster/polling-services/ClusterServicesTask.hpp"
 #include "lowlevel/FatalErrorHandler.hpp"
 #include "lowlevel/mpi/MPIErrorHandler.hpp"
+#include "MessageId.hpp"
 
 #include <ClusterManager.hpp>
 #include <ClusterNode.hpp>
@@ -23,6 +25,32 @@
 #pragma GCC visibility push(default)
 #include <mpi.h>
 #pragma GCC visibility pop
+
+// Split a data transfer by the max message size
+template <typename ProcessorType>
+static void forEachDataPart(
+	void *startAddress,
+	size_t size,
+	int messageId,
+	ProcessorType processor)
+{
+	size_t messageMaxSize = ClusterManager::getMessageMaxSize();
+#ifndef NDEBUG
+	int nFragments = ClusterManager::getMPIFragments(DataAccessRegion(startAddress,size));
+#endif
+	char *currAddress = (char *)startAddress;
+	char *endAddress = currAddress + size;
+	int ofs = 0;
+
+	while (currAddress < endAddress) {
+		assert(ofs < nFragments);
+		size_t currSize = std::min<size_t>(endAddress - currAddress, messageMaxSize);
+		int currMessageId = MessageId::messageIdInGroup(messageId, ofs);
+		processor(currAddress, currSize, currMessageId);
+		currAddress += currSize;
+		ofs++;
+	}
+}
 
 MPIMessenger::MPIMessenger()
 {
@@ -189,13 +217,20 @@ DataTransfer *MPIMessenger::sendData(
 		Instrument::clusterDataSend(address, size, mpiDst, messageId);
 	}
 
-	int tag = getTag(messageId);
 
 	if (block) {
 		ExtraeLock();
-		ret = MPI_Send(address, size, MPI_BYTE, mpiDst, tag, INTRA_COMM_DATA_RAW);
+		forEachDataPart(
+			address,
+			size,
+			messageId,
+			[&](void *currAddress, size_t currSize, int currMessageId) {
+				int tag = getTag(currMessageId);
+				ret = MPI_Send(currAddress, currSize, MPI_BYTE, mpiDst, tag, INTRA_COMM_DATA_RAW);
+				MPIErrorHandler::handle(ret, INTRA_COMM_DATA_RAW);
+			}
+		);
 		ExtraeUnlock();
-		MPIErrorHandler::handle(ret, INTRA_COMM_DATA_RAW);
 
 		return nullptr;
 	}
@@ -205,9 +240,17 @@ DataTransfer *MPIMessenger::sendData(
 	FatalErrorHandler::failIf(request == nullptr, "Could not allocate memory for MPI_Request");
 
 	ExtraeLock();
-	ret = MPI_Isend(address, size, MPI_BYTE, mpiDst, tag, INTRA_COMM_DATA_RAW, request);
+	forEachDataPart(
+		address,
+		size,
+		messageId,
+		[&](void *currAddress, size_t currSize, int currMessageId) {
+			int tag = getTag(currMessageId);
+			ret = MPI_Isend(currAddress, currSize, MPI_BYTE, mpiDst, tag, INTRA_COMM_DATA_RAW, request);
+			MPIErrorHandler::handle(ret, INTRA_COMM_DATA_RAW);
+		}
+	);
 	ExtraeUnlock();
-	MPIErrorHandler::handle(ret, INTRA_COMM_DATA_RAW);
 
 	if (instrument) {
 		Instrument::clusterDataSend(NULL, 0, mpiDst, -1);
@@ -231,13 +274,19 @@ DataTransfer *MPIMessenger::fetchData(
 
 	assert(mpiSrc < _wsize && mpiSrc != _wrank);
 
-	int tag = getTag(messageId);
-
 	if (block) {
 		ExtraeLock();
-		ret = MPI_Recv(address, size, MPI_BYTE, mpiSrc, tag, INTRA_COMM_DATA_RAW, MPI_STATUS_IGNORE);
+		forEachDataPart(
+			address,
+			size,
+			messageId,
+			[&](void *currAddress, size_t currSize, int currMessageId) {
+				int tag = getTag(currMessageId);
+				ret = MPI_Recv(currAddress, currSize, MPI_BYTE, mpiSrc, tag, INTRA_COMM_DATA_RAW, MPI_STATUS_IGNORE);
+				MPIErrorHandler::handle(ret, INTRA_COMM_DATA_RAW);
+			}
+		);
 		ExtraeUnlock();
-		MPIErrorHandler::handle(ret, INTRA_COMM_DATA_RAW);
 		if (instrument) {
 			Instrument::clusterDataReceived(address, size, mpiSrc, messageId);
 		}
@@ -250,10 +299,17 @@ DataTransfer *MPIMessenger::fetchData(
 	FatalErrorHandler::failIf(request == nullptr, "Could not allocate memory for MPI_Request");
 
 	ExtraeLock();
-	ret = MPI_Irecv(address, size, MPI_BYTE, mpiSrc, tag, INTRA_COMM_DATA_RAW, request);
+	forEachDataPart(
+		address,
+		size,
+		messageId,
+		[&](void *currAddress, size_t currSize, int currMessageId) {
+			int tag = getTag(currMessageId);
+			ret = MPI_Irecv(currAddress, currSize, MPI_BYTE, mpiSrc, tag, INTRA_COMM_DATA_RAW, request);
+			MPIErrorHandler::handle(ret, INTRA_COMM_DATA_RAW);
+		}
+	);
 	ExtraeUnlock();
-
-	MPIErrorHandler::handle(ret, INTRA_COMM_DATA_RAW);
 
 	return new MPIDataTransfer(region, from->getMemoryNode(),
 		ClusterManager::getCurrentMemoryNode(), request, mpiSrc, messageId, /* isFetch */ true);
