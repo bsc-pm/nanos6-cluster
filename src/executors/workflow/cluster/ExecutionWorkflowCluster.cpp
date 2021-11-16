@@ -105,7 +105,7 @@ namespace ExecutionWorkflow {
 				TaskOffloading::SatisfiabilityInfo(
 					region, locationIndex,
 					read, write,
-					writeID, offloadedTaskId, -1, eagerSendTag)
+					writeID, offloadedTaskId, eagerSendTag)
 			);
 
 			size_t linkedBytes = region.getSize();
@@ -199,7 +199,6 @@ namespace ExecutionWorkflow {
 				_writeID,
 				_read, _write,
 				_namespacePredecessor,
-				_namespaceReaderNum,
 				eagerSendTag
 			);
 

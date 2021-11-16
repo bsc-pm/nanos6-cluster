@@ -55,7 +55,6 @@ namespace ExecutionWorkflow {
 
 		OffloadedTaskId _namespacePredecessor;
 		int _namespacePredecessorNode;
-		int _namespaceReaderNum;
 		WriteID _writeID;
 
 		bool _started;
@@ -77,7 +76,6 @@ namespace ExecutionWorkflow {
 			_write(access->writeSatisfied()),
 			_namespacePredecessor(InvalidOffloadedTaskId),
 			_namespacePredecessorNode(VALID_NAMESPACE_UNKNOWN),
-			_namespaceReaderNum(0),
 			_writeID((access->getType() == COMMUTATIVE_ACCESS_TYPE) ? 0 : access->getWriteID()),
 			_started(false),
 			// Eager send is not compatible with weakconcurrent accesses, because
@@ -129,14 +127,12 @@ namespace ExecutionWorkflow {
 			if (ClusterManager::getDisableRemote()) {
 				_namespacePredecessor = InvalidOffloadedTaskId;
 				_namespacePredecessorNode = VALID_NAMESPACE_NONE;
-				_namespaceReaderNum = 0;
 			} else {
 				if (access->getValidNamespacePrevious() == targetNamespace) {
 					assert(access->getType() != COMMUTATIVE_ACCESS_TYPE);
 				}
 				_namespacePredecessor = access->getNamespacePredecessor(); // remote propagation valid if predecessor task and offloading node matches
 				_namespacePredecessorNode = access->getValidNamespacePrevious();
-				_namespaceReaderNum = access->getNamespaceReaderNum();
 			}
 
 			DataAccessRegistration::setNamespaceSelf(access, targetNamespace, hpDependencyData);
@@ -421,7 +417,6 @@ namespace ExecutionWorkflow {
 			WriteID writeID,
 			bool read, bool write,
 			OffloadedTaskId namespacePredecessorId,
-			int namespaceReaderNum,
 			int eagerWeakSendTag
 		) {
 			// This lock should already have been taken by the caller
@@ -433,7 +428,7 @@ namespace ExecutionWorkflow {
 				TaskOffloading::SatisfiabilityInfo(
 					region, source,
 					read, write,
-					writeID, namespacePredecessorId, namespaceReaderNum, eagerWeakSendTag)
+					writeID, namespacePredecessorId, eagerWeakSendTag)
 			);
 		}
 

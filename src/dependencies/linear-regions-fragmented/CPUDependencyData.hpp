@@ -52,7 +52,6 @@ struct CPUDependencyData {
 		int _validNamespace;
 		OffloadedTaskId _namespacePredecessor;
 		DataAccessType _namespaceAccessType;
-		int _namespaceReaderNum;
 
 		boost::dynamic_bitset<> _reductionSlotSet;
 		bool _previousIsCommutative;
