@@ -246,8 +246,7 @@ namespace ExecutionWorkflow {
 		_isTaskwait(isTaskwait),
 		_isWeak(isWeak),
 		_needsTransfer(needsTransfer),
-		_registerLocation(registerLocation),
-		_nFragments(0)
+		_registerLocation(registerLocation)
 	{
 #ifndef NDEBUG
 		assert(ClusterManager::getCurrentMemoryNode() == _targetMemoryPlace);
@@ -307,44 +306,21 @@ namespace ExecutionWorkflow {
 		assert(_sourceMemoryPlace->getType() == nanos6_cluster_device);
 		assert(_sourceMemoryPlace != _targetMemoryPlace);
 
-		// First fragment the data transfers into regions, each of which
-		// is of size <= cluster.message_max_size.
-		_nFragments = ClusterManager::getMPIFragments(_fullRegion);
-		std::vector<DataAccessRegion> regions;
-
-		char *start = (char *)_fullRegion.getStartAddress();
-		for (size_t i = 0; start < _fullRegion.getEndAddress(); ++i) {
-
-			assert(i < _nFragments);
-			// Note: this calculation still works when the maximum message size is SIZE_MAX.
-			char *end = (char *) _fullRegion.getEndAddress();
-			if ((size_t)(end-start) > ClusterManager::getMessageMaxSize()) {
-				end = start + ClusterManager::getMessageMaxSize();
-			}
-
-			regions.emplace_back(start, end);
-
-			start = end;
-		}
-		assert(start == _fullRegion.getEndAddress());
-
 		// Set the callback
 		_postcallback = [&]() {
-			if (--_nFragments == 0) {
-				//! If this data copy is performed for a taskwait we don't need to update the
-				//! location here.
+			//! If this data copy is performed for a taskwait we don't need to update the
+			//! location here.
 
-				WriteIDManager::registerWriteIDasLocal(_writeID, _fullRegion);
-				DataAccessRegistration::updateTaskDataAccessLocation(
-					_task,
-					_fullRegion,
-					_targetMemoryPlace,
-					_isTaskwait
-				);
+			WriteIDManager::registerWriteIDasLocal(_writeID, _fullRegion);
+			DataAccessRegistration::updateTaskDataAccessLocation(
+				_task,
+				_fullRegion,
+				_targetMemoryPlace,
+				_isTaskwait
+			);
 
-				this->releaseSuccessors();
-				delete this;
-			}
+			this->releaseSuccessors();
+			delete this;
 		};
 
 		// Now check pending data transfers because the same data transfer
@@ -352,63 +328,63 @@ namespace ExecutionWorkflow {
 		// would be when several tasks with an "in" dependency on the same
 		// data region are offloaded at a similar time.
 		bool allHandled = true;
-		for (DataAccessRegion region : regions) {
 
-			int id = 0;
-			bool handled = LiveDataTransfers::check(
+		DataAccessRegion region = _fullRegion;
 
-				// This lambda is called for all pending data transfers (with the lock taken)
-				[&](DataTransfer *dtPending) {
+		int id = 0;
+		bool handled = LiveDataTransfers::check(
 
-					// Check whether the pending data transfer has the same target
-					// (this node) and that it fully contains the current region.
-					// Note: it is important to check that the target matches
-					// because outgoing and incoming data transfers are held in the
-					// same queue.  It is possible for an outgoing message transfer
-					// to still be in the queue because of the race condition
-					// between (a) remote task completion and triggering incoming
-					// data fetches and (b) completing the outgoing data transfer.
+			// This lambda is called for all pending data transfers (with the lock taken)
+			[&](DataTransfer *dtPending) {
 
-					const MemoryPlace *pendingTarget = dtPending->getTarget();
-					assert(pendingTarget->getType() == nanos6_cluster_device);
+				// Check whether the pending data transfer has the same target
+				// (this node) and that it fully contains the current region.
+				// Note: it is important to check that the target matches
+				// because outgoing and incoming data transfers are held in the
+				// same queue.  It is possible for an outgoing message transfer
+				// to still be in the queue because of the race condition
+				// between (a) remote task completion and triggering incoming
+				// data fetches and (b) completing the outgoing data transfer.
 
-					if (pendingTarget->getIndex() == _targetMemoryPlace->getIndex()
-						&& region.fullyContainedIn(dtPending->getDataAccessRegion())) {
+				const MemoryPlace *pendingTarget = dtPending->getTarget();
+				assert(pendingTarget->getType() == nanos6_cluster_device);
 
-						// The pending data transfer contains this region: so add our callback.
-						// Return true as do not need to check any more pending transfers.
-						// Add the callback inside the lambda (with the lock taken).
-						dtPending->addCompletionCallback(_postcallback);
-						return true;
-					}
-					// Not a match: continue checking pending data transfers
-					return false;
-				},
+				if (pendingTarget->getIndex() == _targetMemoryPlace->getIndex()
+					&& region.fullyContainedIn(dtPending->getDataAccessRegion())) {
 
-				// This lambda is called if a new data transfer is needed
-				[&]() -> DataTransfer * {
-					// Create the DataTransfer
-					id = MessageId::nextMessageId(ClusterManager::getMPIFragments(region));
-					DataTransfer *dataTransfer = ClusterManager::fetchDataRaw(
-						region,
-						_sourceMemoryPlace,
-						id,
-						/* block */ false);
-					// Add the callback
-					dataTransfer->addCompletionCallback(_postcallback);
-
-					// Append the data transfer
-					_regionsFragments.emplace_back(FragmentInfo{region, id, dataTransfer});
-					allHandled = false;
-					return dataTransfer;
+					// The pending data transfer contains this region: so add our callback.
+					// Return true as do not need to check any more pending transfers.
+					// Add the callback inside the lambda (with the lock taken).
+					dtPending->addCompletionCallback(_postcallback);
+					return true;
 				}
-			);
+				// Not a match: continue checking pending data transfers
+				return false;
+			},
 
-			if (handled) {
-				Instrument::dataFetch(Instrument::FoundInPending, region);
-			} else {
-				Instrument::dataFetch(Instrument::FetchRequired, region);
+			// This lambda is called if a new data transfer is needed
+			[&]() -> DataTransfer * {
+				// Create the DataTransfer
+				id = MessageId::nextMessageId(ClusterManager::getMPIFragments(region));
+				DataTransfer *dataTransfer = ClusterManager::fetchDataRaw(
+					region,
+					_sourceMemoryPlace,
+					id,
+					/* block */ false);
+				// Add the callback
+				dataTransfer->addCompletionCallback(_postcallback);
+
+				// Append the data transfer
+				_regionsFragments.emplace_back(FragmentInfo{region, id, dataTransfer});
+				allHandled = false;
+				return dataTransfer;
 			}
+		);
+
+		if (handled) {
+			Instrument::dataFetch(Instrument::FoundInPending, region);
+		} else {
+			Instrument::dataFetch(Instrument::FetchRequired, region);
 		}
 
 		return (allHandled == false);

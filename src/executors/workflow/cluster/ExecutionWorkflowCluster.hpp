@@ -180,9 +180,6 @@ namespace ExecutionWorkflow {
 
 		const bool _registerLocation;
 
-		//! Number of fragments messages
-		size_t _nFragments;
-
 		DataTransfer::data_transfer_callback_t _postcallback;
 
 	public:
@@ -217,7 +214,7 @@ namespace ExecutionWorkflow {
 
 		size_t getNumFragments() const
 		{
-			return _nFragments;
+			return 1;
 		}
 
 		const std::vector<FragmentInfo> &getFragments() const
