@@ -20,8 +20,8 @@ ConfigVariable<bool> CPUManagerInterface::_taskforGroupsReportEnabled("taskfor.r
 CPUManagerPolicyInterface *CPUManagerInterface::_cpuManagerPolicy;
 ConfigVariable<std::string> CPUManagerInterface::_policyChosen("cpumanager.policy");
 size_t CPUManagerInterface::_firstCPUId;
-CPU *CPUManagerInterface::_leaderThreadCPU;
-
+CPU *CPUManagerInterface::_leaderThreadCPU = nullptr;
+bool CPUManagerInterface::_reserveCPUforLeaderThread = false;
 
 namespace cpumanager_internals {
 	static inline std::string maskToRegionList(boost::dynamic_bitset<> const &mask, size_t size)

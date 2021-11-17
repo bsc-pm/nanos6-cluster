@@ -283,7 +283,6 @@ public:
 	static inline void addShutdownCPU(CPU *cpu)
 	{
 		assert(_cpuManager != nullptr);
-
 		_cpuManager->addShutdownCPU(cpu);
 	}
 
@@ -293,10 +292,15 @@ public:
 	static inline CPU *getShutdownCPU()
 	{
 		assert(_cpuManager != nullptr);
-
 		return _cpuManager->getShutdownCPU();
 	}
 
+
+	static inline bool hasReservedCPUforLeaderThread()
+	{
+		assert(_cpuManager != nullptr);
+		return _cpuManager->hasReservedCPUforLeaderThread();
+	}
 
 	/*    TASKFORS    */
 
@@ -306,7 +310,6 @@ public:
 	static inline size_t getNumTaskforGroups()
 	{
 		assert(_cpuManager != nullptr);
-
 		return _cpuManager->getNumTaskforGroups();
 	}
 
@@ -315,10 +318,8 @@ public:
 	static inline size_t getNumCPUsPerTaskforGroup()
 	{
 		assert(_cpuManager != nullptr);
-
 		return _cpuManager->getNumCPUsPerTaskforGroup();
 	}
-
 };
 
 

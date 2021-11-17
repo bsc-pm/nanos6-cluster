@@ -23,11 +23,24 @@ void DefaultCPUManager::preinitialize()
 {
 	_finishedCPUInitialization = false;
 
+	if (ClusterManager::inClusterMode()) {
+		// In cluster mode, the LeaderThread is necessary, otherwise the
+		// polling services (which manage communication with other nodes) may
+		// not be run frequently enough, causing a high latency on
+		// communications. This has been observed to be a problem in test
+		// cases. But the LeaderThread normally overallocates a CPU, which
+		// means that it can preempt a worker thread that is holding the
+		// scheduler lock. In this case, no new tasks can be scheduled until
+		// all the messages have been handled.  Therefore, in cluster mode,
+		// leave one CPU free to be used by the LeaderThread.
+		_reserveCPUforLeaderThread = true;
+	} else {
+		_reserveCPUforLeaderThread = false;
+	}
+
 	// Retreive the CPU mask of this process
 	int rc = sched_getaffinity(0, sizeof(cpu_set_t), &_cpuMask);
-	FatalErrorHandler::handle(
-		rc, " when retrieving the affinity of the process"
-	);
+	FatalErrorHandler::handle(rc, " when retrieving the affinity of the process");
 
 	// Get the number of NUMA nodes and a list of all available CPUs
 	nanos6_device_t hostDevice = nanos6_device_t::nanos6_host_device;
@@ -36,7 +49,7 @@ void DefaultCPUManager::preinitialize()
 	assert(hostInfo != nullptr);
 
 	const std::vector<ComputePlace *> &cpus = hostInfo->getComputePlaces();
-	size_t numCPUs = cpus.size();
+	const size_t numCPUs = cpus.size();
 	assert(numCPUs > 0);
 
 	// Create the chosen policy for this CPUManager
@@ -108,8 +121,7 @@ void DefaultCPUManager::preinitialize()
 
 			cpu->setIndex(virtualCPUId);
 			cpu->setGroupId(groupId);
-			_cpus[virtualCPUId] = cpu;
-			++virtualCPUId;
+			_cpus[virtualCPUId++] = cpu;
 		} else {
 			cpu->setIndex((unsigned int) ~0UL);
 		}
@@ -131,28 +143,16 @@ void DefaultCPUManager::preinitialize()
 	_numIdleCPUs = 0;
 
 	// Initialize the virtual CPU for the leader thread
-	_leaderThreadCPU = new CPU(numCPUs);
+	if (_reserveCPUforLeaderThread) {
+		_leaderThreadCPU = _cpus[numAvailableCPUs - 1];
+	} else {
+		_leaderThreadCPU = new CPU(numCPUs);
+	}
 	assert(_leaderThreadCPU != nullptr);
 }
 
 void DefaultCPUManager::initialize()
 {
-	if (ClusterManager::inClusterMode()) {
-		// In cluster mode, the LeaderThread is necessary, otherwise the
-		// polling services (which manage communication with other nodes) may
-		// not be run frequently enough, causing a high latency on
-		// communications. This has been observed to be a problem in test
-		// cases. But the LeaderThread normally overallocates a CPU, which
-		// means that it can preempt a worker thread that is holding the
-		// scheduler lock. In this case, no new tasks can be scheduled until
-		// all the messages have been handled.  Therefore, in cluster mode,
-		// leave one CPU free to be used by the LeaderThread.
-		_reserveCPUforLeaderThread = true;
-	} else {
-		_reserveCPUforLeaderThread = false;
-	}
-
-
 	for (size_t id = 0; id < _cpus.size(); ++id) {
 		CPU *cpu = _cpus[id];
 		assert(cpu != nullptr);
@@ -160,7 +160,7 @@ void DefaultCPUManager::initialize()
 		__attribute__((unused)) bool worked = cpu->initializeIfNeeded();
 		assert(worked);
 
-		if (id == _cpus.size()-1 && _reserveCPUforLeaderThread) {
+		if (id == _cpus.size() - 1 && _reserveCPUforLeaderThread) {
 			// reserve last CPU for the leader thread (not CPU zero which
 			// always runs main when running with Extrae)
 		} else {
@@ -177,7 +177,7 @@ void DefaultCPUManager::shutdownPhase1()
 {
 	// Notify all CPUs that the runtime is shutting down
 	for (size_t id = 0; id < _cpus.size(); ++id) {
-		if (id == _cpus.size()-1 && _reserveCPUforLeaderThread) {
+		if (id == _cpus.size() - 1 && _reserveCPUforLeaderThread) {
 			// reserve last CPU for the leader thread
 		} else {
 			DefaultCPUActivation::shutdownCPU(_cpus[id]);
@@ -339,7 +339,7 @@ void DefaultCPUManager::getIdleCollaborators(
 	assert(cpu != nullptr);
 
 	size_t numObtainedCollaborators = 0;
-	size_t groupId = ((CPU *) cpu)->getGroupId();
+	const size_t groupId = ((CPU *) cpu)->getGroupId();
 
 	_idleCPUsLock.lock();
 

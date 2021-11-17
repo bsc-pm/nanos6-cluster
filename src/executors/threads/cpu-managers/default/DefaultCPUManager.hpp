@@ -25,8 +25,6 @@ private:
 
 public:
 
-	bool _reserveCPUforLeaderThread;
-
 	/*    CPUMANAGER    */
 
 	void preinitialize();
@@ -37,7 +35,9 @@ public:
 
 	inline void shutdownPhase2()
 	{
-		delete _leaderThreadCPU;
+		if (!_reserveCPUforLeaderThread ) {
+			delete _leaderThreadCPU;
+		}
 
 		delete _cpuManagerPolicy;
 

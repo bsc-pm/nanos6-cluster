@@ -26,7 +26,7 @@ private:
 	std::atomic<bool> _mustExit;
 
 	//! The LeaderThread's virtual CPU
-	CPU *_leaderThreadCPU;
+	CPU * const _leaderThreadCPU;
 
 public:
 
@@ -41,27 +41,42 @@ public:
 	{
 	}
 
+	//! \brief A loop that takes care of maintenance duties
+	void body();
+
 	//! \brief Initialize the structures of the leader thread
 	//!
 	//! \param[in] leaderThreadCPU The leader thread's virtual CPU
-	static void initialize(CPU *leaderThreadCPU);
+	static void initialize(CPU *leaderThreadCPU)
+	{
+		assert(leaderThreadCPU != nullptr);
+
+		_singleton = new LeaderThread(leaderThreadCPU);
+		assert(_singleton != nullptr);
+		_singleton->start(nullptr);
+	}
 
 	//! \brief Finalize the structures of the leader thread
-	static void shutdown();
+	static void shutdown()
+	{
+		assert(_singleton != nullptr);
 
-	//! \brief A loop that takes care of maintenance duties
-	void body();
+		bool expected = false;
+		_singleton->_mustExit.compare_exchange_strong(expected, true);
+		assert(!expected);
+
+		_singleton->join();
+
+		delete _singleton;
+		_singleton = nullptr;
+	}
 
 	//! \brief Check whether the leader thread is exiting
 	//!
 	//! \return true if leader thread is exiting
 	static inline bool isExiting()
 	{
-		if (_singleton == nullptr) {
-			return false;
-		}
-
-		return _singleton->_mustExit.load();
+		return _singleton != nullptr && _singleton->_mustExit.load();
 	}
 
 	//! \brief Check whether the current thread is the leader thread
@@ -71,10 +86,7 @@ public:
 	{
 		assert(_singleton != nullptr);
 		KernelLevelThread *thread = static_cast<KernelLevelThread *> (getCurrentKernelLevelThread());
-		if (thread == nullptr) {
-			return false;
-		}
-		return (typeid(*thread) == typeid(LeaderThread));
+		return thread != nullptr && typeid(*thread) == typeid(LeaderThread) ;
 	}
 
 	//! \brief Get the virtual compute place of the leader thread

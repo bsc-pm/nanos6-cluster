@@ -59,6 +59,7 @@ protected:
 
 	//! The virtual CPU of the leader thread
 	static CPU *_leaderThreadCPU;
+	static bool _reserveCPUforLeaderThread;
 
 private:
 
@@ -285,6 +286,14 @@ public:
 	inline size_t getNumCPUsPerTaskforGroup() const
 	{
 		return _cpus.size() / _taskforGroups;
+	}
+
+
+	//! \brief Get if a cpu has been reserved for the leader thread.
+	inline bool hasReservedCPUforLeaderThread() const
+	{
+		assert(_leaderThreadCPU != nullptr);
+		return _reserveCPUforLeaderThread;
 	}
 
 };

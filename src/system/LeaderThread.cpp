@@ -12,35 +12,13 @@
 #include "LeaderThread.hpp"
 #include "PollingAPI.hpp"
 #include "support/config/ConfigVariable.hpp"
+#include "executors/threads/CPUManager.hpp"
 
 #include <InstrumentLeaderThread.hpp>
 #include <InstrumentThreadManagement.hpp>
 
 
 LeaderThread *LeaderThread::_singleton = nullptr;
-
-
-void LeaderThread::initialize(CPU *leaderThreadCPU)
-{
-	assert(leaderThreadCPU != nullptr);
-
-	_singleton = new LeaderThread(leaderThreadCPU);
-	_singleton->start(nullptr);
-}
-
-void LeaderThread::shutdown()
-{
-	assert(_singleton != nullptr);
-
-	bool expected = false;
-	_singleton->_mustExit.compare_exchange_strong(expected, true);
-	assert(!expected);
-
-	_singleton->join();
-
-	delete _singleton;
-	_singleton = nullptr;
-}
 
 void LeaderThread::body()
 {
@@ -52,18 +30,18 @@ void LeaderThread::body()
 
 	while (!std::atomic_load_explicit(&_mustExit, std::memory_order_relaxed)) {
 
-#ifndef USE_CLUSTER
-		// In cluster mode there is a dedicated thread for the LeaderThread.
-		// It is therefore not necessary for it to sleep. Only sleep in
-		// non-cluster mode.
-		struct timespec delay = {0, pollingFrequency * 1000};
-		// The loop repeats the call with the remaining time in the event that
-		// the thread received a signal with a handler that has SA_RESTART set
-		Instrument::threadWillSuspend(getInstrumentationId());
-		while (nanosleep(&delay, &delay)) {
+		if (!CPUManager::hasReservedCPUforLeaderThread()) {
+			// In cluster mode there is a dedicated thread for the LeaderThread.
+			// It is therefore not necessary for it to sleep. Only sleep in
+			// non-cluster mode.
+			struct timespec delay = {0, pollingFrequency * 1000};
+			// The loop repeats the call with the remaining time in the event that
+			// the thread received a signal with a handler that has SA_RESTART set
+			Instrument::threadWillSuspend(getInstrumentationId());
+			while (nanosleep(&delay, &delay)) {
+			}
+			Instrument::threadHasResumed(getInstrumentationId());
 		}
-		Instrument::threadHasResumed(getInstrumentationId());
-#endif
 
 		PollingAPI::handleServices();
 
