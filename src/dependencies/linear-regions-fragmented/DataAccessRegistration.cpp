@@ -1019,38 +1019,38 @@ namespace DataAccessRegistration {
 			// sink). So set the dataReleased flag to prevent propagation on the namespace.
 			access->setDataReleased();
 
-			if (access->getLocation() != nullptr) {
+			// Any access that does a data release must be read satisfied, so its location must
+			// be known.
+			assert(access->hasLocation());
 
-				// Unmap the task's access from the namespace bottom map. This can be
-				// done as a delayed operation, because the dataReleased flag is now
-				// set, so despite the access still being on the bottom map, the
-				// namespace propagation will fail. We must, however, ensure that it is
-				// removed from the bottom map (by removeFromNamespaceBottomMap) before the
-				// task is deleted.
-				assert(access->getOriginator()->getParent() == NodeNamespace::getNamespaceTask());
-				hpDependencyData._namespaceRegionsToRemove.emplace_back(CPUDependencyData::TaskAndRegion(access->getOriginator(), access->getAccessRegion(), /* location not needed */ nullptr));
+			// Unmap the task's access from the namespace bottom map. This can be
+			// done as a delayed operation, because the dataReleased flag is now
+			// set, so despite the access still being on the bottom map, the
+			// namespace propagation will fail. We must, however, ensure that it is
+			// removed from the bottom map (by removeFromNamespaceBottomMap) before the
+			// task is deleted.
+			assert(access->getOriginator()->getParent() == NodeNamespace::getNamespaceTask());
+			hpDependencyData._namespaceRegionsToRemove.emplace_back(CPUDependencyData::TaskAndRegion(access->getOriginator(), access->getAccessRegion(), /* location not needed */ nullptr));
 
-				// Don't release a concurrent access if the location hasn't changed. That happens
-				// either (a) because we didn't write to it (it must have been weakconcurrent) or (b)
-				// because we did write to it, but on the same node that it was on before the concurrent tasks.
-				// By sending no message we will not change the location, which in case (a) will let
-				// another concurrent task do the write and in case (b) gives the correct location already.
-				bool dontUpdateConcurrentLocation = ((access->getType() == CONCURRENT_ACCESS_TYPE)
-									&& (access->getLocation() == access->getConcurrentInitialLocation()))
-									|| access->getLocation() == nullptr; // necessary?
+			// Don't release a concurrent access if the location hasn't changed. That happens
+			// either (a) because we didn't write to it (it must have been weakconcurrent) or (b)
+			// because we did write to it, but on the same node that it was on before the concurrent tasks.
+			// By sending no message we will not change the location, which in case (a) will let
+			// another concurrent task do the write and in case (b) gives the correct location already.
+			bool dontUpdateConcurrentLocation = (access->getType() == CONCURRENT_ACCESS_TYPE)
+								&& (access->getLocation() == access->getConcurrentInitialLocation());
 
-				if (!dontUpdateConcurrentLocation) {
-					// This adds the access to the ClusterDataReleaseStep::_releaseInfo vector.
-					// The accesses will be released latter.
-					access->getOriginator()->getDataReleaseStep()->addToReleaseList(access);
-				}
+			if (!dontUpdateConcurrentLocation) {
+				// This adds the access to the ClusterDataReleaseStep::_releaseInfo vector.
+				// The accesses will be released latter.
+				access->getOriginator()->getDataReleaseStep()->addToReleaseList(access);
+			}
 
-				if (access->getType() == COMMUTATIVE_ACCESS_TYPE) {
-					// This is the last commutative task here, so delete the scoreboard entry.
-					CommutativeScoreboard::_lock.lock();
-					CommutativeScoreboard::endCommutative(access->getAccessRegion());
-					CommutativeScoreboard::_lock.unlock();
-				}
+			if (access->getType() == COMMUTATIVE_ACCESS_TYPE) {
+				// This is the last commutative task here, so delete the scoreboard entry.
+				CommutativeScoreboard::_lock.lock();
+				CommutativeScoreboard::endCommutative(access->getAccessRegion());
+				CommutativeScoreboard::_lock.unlock();
 			}
 		}
 
