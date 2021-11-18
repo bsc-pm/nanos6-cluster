@@ -296,6 +296,23 @@ public:
 		return _reserveCPUforLeaderThread;
 	}
 
+	//! \brief Get Worker CPUs in the group id.
+	inline size_t getNumWorkerCPUsInTaskforGroup(size_t id) const
+	{
+		assert(_leaderThreadCPU != nullptr);
+		size_t nCPUS = this->getNumCPUsPerTaskforGroup();
+
+		if (nCPUS > 1 && this->hasReservedCPUforLeaderThread()) {
+			const size_t leaderGroupId = _leaderThreadCPU->getGroupId();
+			if (leaderGroupId == id) {
+				--nCPUS;
+			}
+		}
+
+		return nCPUS;
+	}
+
+
 };
 
 

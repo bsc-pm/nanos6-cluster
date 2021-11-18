@@ -62,6 +62,7 @@ public:
 	//! \brief Check whether DLB is enabled
 	static inline bool isDLBEnabled()
 	{
+		assert(_cpuManager != nullptr);
 		return _cpuManager->isDLBEnabled();
 	}
 
@@ -107,6 +108,7 @@ public:
 		_cpuManager->shutdownPhase2();
 
 		delete _cpuManager;
+		_cpuManager = nullptr;
 	}
 
 	//! \brief This method is executed after the amount of work in the runtime
@@ -320,6 +322,13 @@ public:
 		assert(_cpuManager != nullptr);
 		return _cpuManager->getNumCPUsPerTaskforGroup();
 	}
+
+	static inline size_t getNumWorkerCPUsInTaskforGroup(size_t id)
+	{
+		assert(_cpuManager != nullptr);
+		return _cpuManager->getNumWorkerCPUsInTaskforGroup(id);
+	}
+
 };
 
 

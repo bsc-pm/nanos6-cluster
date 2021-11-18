@@ -7,6 +7,6 @@
 #include "CPUManager.hpp"
 
 
-CPUManagerInterface *CPUManager::_cpuManager;
+CPUManagerInterface *CPUManager::_cpuManager(nullptr);
 ConfigVariable<bool> CPUManager::_dlbEnabled("dlb.enabled");
 bool CPUManager::_preinitialized(false);

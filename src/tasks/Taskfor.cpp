@@ -13,14 +13,13 @@ void Taskfor::run(Taskfor &source, nanos6_address_translation_entry_t *translati
 	assert(getParent()->isTaskfor() && getParent() == &source);
 	assert(getMyChunk() >= 0);
 
-	// Temporary hack in order to solve the problem of updating
-	// the location of the DataAccess objects of the Taskfor,
-	// when we unregister them, until we solve this properly,
-	// by supporting the Taskfor construct through the execution
-	// workflow
-	ComputePlace *computePlace = getThread()->getComputePlace();
-	int cpuId = computePlace->getIndex();
-	MemoryPlace *memoryPlace = computePlace->getMemoryPlace(0);
+	// Temporary hack in order to solve the problem of updating the location of the DataAccess
+	// objects of the Taskfor, when we unregister them, until we solve this properly, by supporting
+	// the Taskfor construct through the execution workflow
+	CPU * const cpu = dynamic_cast<CPU*>(getThread()->getComputePlace());
+	assert(cpu != nullptr);
+
+	MemoryPlace * const memoryPlace = cpu->getMemoryPlace(0);
 	source.setMemoryPlace(memoryPlace);
 
 	// Compute source taskfor total chunks
@@ -53,7 +52,7 @@ void Taskfor::run(Taskfor &source, nanos6_address_translation_entry_t *translati
 		// to ensure that the re-scheduling overhead is manageable.
 		break;
 
-		_myChunk = source.getNextChunk(cpuId);
+		_myChunk = source.getNextChunk(cpu);
 		if (_myChunk >= 0) {
 			myIterations = computeChunkBounds(totalChunks, sourceBounds);
 		} else {

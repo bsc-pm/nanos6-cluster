@@ -20,8 +20,8 @@ Task *HostUnsyncScheduler::getReadyTask(ComputePlace *computePlace)
 
 	Task *result = nullptr;
 
-	const long cpuId = computePlace->getIndex();
-	const long groupId = ((CPU *)computePlace)->getGroupId();
+	CPU *cpu = dynamic_cast<CPU*>(computePlace);
+	const long groupId = cpu->getGroupId();
 	const long immediateSuccessorGroupId = groupId * 2;
 
 	// 1. Try to get a task with a satisfied deadline
@@ -38,16 +38,16 @@ retry:
 		Taskfor *groupTaskfor = _groupSlots[groupId];
 
 		// Get the priority of the highest priority ready task
-		if (groupTaskfor || !_interruptedTaskfors.empty()) {
+		if (groupTaskfor != nullptr || !_interruptedTaskfors.empty()) {
 			topPriority = _readyTasks->getNextTaskPriority();
 		}
 
 		if (groupTaskfor != nullptr) {
-			long priority = groupTaskfor->getPriority();
+			const long priority = groupTaskfor->getPriority();
 			if (priority >= topPriority) {
 				groupTaskfor->notifyCollaboratorHasStarted();
 				bool remove = false;
-				int myChunk = groupTaskfor->getNextChunk(cpuId, &remove);
+				const int myChunk = groupTaskfor->getNextChunk(cpu, &remove);
 				if (remove) {
 					_groupSlots[groupId] = nullptr;
 					groupTaskfor->removedFromScheduler();
@@ -103,6 +103,8 @@ retry:
 		}
 
 		// 4. Try to get work from my immediateSuccessorTasks
+		const long cpuId = computePlace->getIndex();
+
 		if (result == nullptr && _immediateSuccessorTasks[cpuId] != nullptr) {
 			result = _immediateSuccessorTasks[cpuId];
 			_immediateSuccessorTasks[cpuId] = nullptr;
@@ -146,7 +148,15 @@ retry:
 	assert(result->isTaskfor());
 	assert(computePlace->getType() == nanos6_host_device);
 
-	Taskfor *taskfor = (Taskfor *) result;
+	Taskfor *taskfor = static_cast<Taskfor *>(result);
+
+	// We must initialize the chunks for the taskfor here. This is to ensure (1) that the group
+	// information collected is the one for the group that will execute the taskfor. Otherwise the
+	// group may be the main or the one that executed the workflow. Remember after the workflow the
+	// task is re-scheduled again, so potentially it may end up in a different group. (2) that the
+	// chunk initialization executes only once otherwise we need an extra lock.
+	taskfor->initializeChunks(computePlace);
+
 	_groupSlots[groupId] = taskfor;
 	taskfor->markAsScheduled();
 	return getReadyTask(computePlace);

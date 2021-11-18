@@ -8,6 +8,7 @@
 #define TASKFOR_HPP
 
 #include <cmath>
+#include <limits>
 
 #include "support/MathSupport.hpp"
 #include "tasks/Task.hpp"
@@ -38,6 +39,8 @@ private:
 	// Collaborator
 	int _myChunk;
 
+	size_t _initGroup;
+
 public:
 	// Methods for both source and collaborator taskfors
 	inline Taskfor(
@@ -63,7 +66,8 @@ public:
 		_remainingIterations(0),
 		_bounds(),
 		_completedIterations(0),
-		_myChunk(-1)
+		_myChunk(-1),
+		_initGroup(std::numeric_limits<size_t>::max())
 	{
 		assert(isFinal());
 		setRunnable(runnable);
@@ -98,7 +102,22 @@ public:
 								 getLabel(),
 								 " has no iterations: currently not supported");
 
-		size_t maxCollaborators = CPUManager::getNumCPUsPerTaskforGroup();
+	}
+
+
+	inline void initializeChunks(ComputePlace *computePlace)
+	{
+		// Assert we initialize chunks only once.
+		assert(_initGroup == std::numeric_limits<size_t>::max());
+		assert(computePlace->getType() == nanos6_host_device);
+
+		CPU *cpu = dynamic_cast<CPU*>(computePlace);
+		assert(cpu != nullptr);
+
+		_initGroup = cpu->getGroupId();
+		assert(_initGroup < CPUManager::getNumTaskforGroups());
+
+		const size_t maxCollaborators = CPUManager::getNumWorkerCPUsInTaskforGroup(_initGroup);
 		assert(maxCollaborators > 0);
 
 		size_t totalIterations = getIterationCount();
@@ -123,7 +142,7 @@ public:
 		FatalErrorHandler::failIf(totalChunks > PENDING_CHUNKS_SIZE * NUM_UINT64_BITS, "Too many chunks required.");
 		_remainingChunks.store(totalChunks, std::memory_order_relaxed);
 		while (totalChunks > 0 ) {
-			int index = (totalChunks-1)/NUM_UINT64_BITS;
+			int index = (totalChunks - 1) / NUM_UINT64_BITS;
 			int localChunks = totalChunks - (index * NUM_UINT64_BITS);
 			_pendingChunks[index].store((uint64_t)((uint64_t) 2 << (localChunks-1)) - (uint64_t) 1, std::memory_order_relaxed);
 			totalChunks -= localChunks;
@@ -167,12 +186,22 @@ public:
 		return (remaining == 0);
 	}
 
-	inline int getNextChunk(long cpuId, bool *remove = nullptr)
+	inline int getNextChunk(const CPU * const cpu, bool *remove = nullptr)
 	{
 		assert(!isRunnable());
+		assert(cpu != nullptr);
 
-		size_t totalIterations = _bounds.upper_bound - _bounds.lower_bound;
-		size_t totalChunks = MathSupport::ceil(totalIterations, _bounds.chunksize);
+		// This assertion is just to be sure that the taskfor was not rescheduled in a CPU in a
+		// different TaskforGroup since it was initialized. The initialization assumes that the task
+		// will be executed in the same group, so it counts the number of collaborators only
+		// there. If this assertion somehow fails in the future, we need to make it weaker like
+		// checking only that the old and new group has the same number of collaborators. and ignore
+		// if they are different.
+		assert(_initGroup == cpu->getGroupId());
+
+		const long cpuId = cpu->getIndex();
+		const size_t totalIterations = _bounds.upper_bound - _bounds.lower_bound;
+		const size_t totalChunks = MathSupport::ceil(totalIterations, _bounds.chunksize);
 		int chunkId = -1;
 		size_t fetched = 0;
 
@@ -190,7 +219,7 @@ public:
 		// Get the variable where we should start from based on cpuId.
 		for (int c = 0; c < PENDING_CHUNKS_SIZE; c++) {
 			do {
-				int index = ((cpuId/NUM_UINT64_BITS) + c) % PENDING_CHUNKS_SIZE;
+				const int index = ((cpuId / NUM_UINT64_BITS) + c) % PENDING_CHUNKS_SIZE;
 				std::atomic<uint64_t> &pendingChunks = _pendingChunks[index];
 
 				// We use a right rotation to get the first enabled bit starting from cpuId.
