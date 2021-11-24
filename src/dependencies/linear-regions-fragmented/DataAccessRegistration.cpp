@@ -1256,7 +1256,6 @@ namespace DataAccessRegistration {
 						accessStructures);
 
 				const MemoryPlace *location;
-				std::string label = task->getLabel();
 
 				if (access->getOutputLocation() && access->getOutputLocation()->isClusterLocalMemoryPlace()) {
 					// If the output location is a local memory place, then use the local
