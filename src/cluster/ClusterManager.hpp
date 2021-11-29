@@ -107,6 +107,7 @@ public:
 	//! \returns A vector containing all ClusterNode objects
 	static inline std::vector<ClusterNode *> const &getClusterNodes()
 	{
+		assert(_singleton != nullptr);
 		assert(!_singleton->_clusterNodes.empty());
 		return _singleton->_clusterNodes;
 	}
@@ -116,6 +117,7 @@ public:
 	//! \returns the master node ClusterNode
 	static inline ClusterNode *getMasterNode()
 	{
+		assert(_singleton != nullptr);
 		return _singleton->_masterNode;
 	}
 
@@ -126,6 +128,7 @@ public:
 	//! \returns The ClusterNode object with index 'id'
 	static inline ClusterNode *getClusterNode(size_t id)
 	{
+		assert(_singleton != nullptr);
 		assert(!_singleton->_clusterNodes.empty());
 		assert((size_t)id < _singleton->_clusterNodes.size());
 
@@ -137,6 +140,7 @@ public:
 	//! \returns the ClusterNode object of the current node
 	static inline ClusterNode *getCurrentClusterNode()
 	{
+		assert(_singleton != nullptr);
 		assert(_singleton->_thisNode != nullptr);
 		return _singleton->_thisNode;
 	}
@@ -148,6 +152,7 @@ public:
 	//! \returns The ClusterMemoryNode object with index 'id'
 	static inline ClusterMemoryNode *getMemoryNode(int id)
 	{
+		assert(_singleton != nullptr);
 		assert(!_singleton->_clusterNodes.empty());
 		assert(_singleton->_clusterNodes[id] != nullptr);
 		assert (!Directory::isDirectoryMemoryPlaceIdx(id));
@@ -168,6 +173,7 @@ public:
 	//! \returns the ClusterMemoryNode object of the current node
 	static inline ClusterMemoryNode *getCurrentMemoryNode()
 	{
+		assert(_singleton != nullptr);
 		assert(_singleton->_thisNode != nullptr);
 		return _singleton->_thisNode->getMemoryNode();
 	}
@@ -177,6 +183,7 @@ public:
 	//! \returns true if the current node is the master
 	static inline bool isMasterNode()
 	{
+		assert(_singleton != nullptr);
 		assert(_singleton->_thisNode != nullptr);
 		assert(_singleton->_masterNode != nullptr);
 		return _singleton->_masterNode == _singleton->_thisNode;
@@ -201,6 +208,7 @@ public:
 	//! \returns true if we run in cluster mode
 	static inline bool inClusterMode()
 	{
+		assert(_singleton != nullptr);
 		assert(!_singleton->_clusterNodes.empty());
 		return _singleton->_clusterNodes.size() > 1;
 	}
@@ -213,6 +221,7 @@ public:
 	//!		nullptr
 	static inline Message *checkMail()
 	{
+		assert(_singleton != nullptr);
 		assert(_singleton->_msn != nullptr);
 		return _singleton->_msn->checkMail();
 	}
@@ -227,6 +236,7 @@ public:
 	//!		Message is sent
 	static inline void sendMessage(Message *msg, ClusterNode const *recipient, bool block = false)
 	{
+		assert(_singleton != nullptr);
 		assert(_singleton->_msn != nullptr);
 		assert(msg != nullptr);
 		assert(recipient != nullptr);
@@ -242,6 +252,7 @@ public:
 	template<typename T>
 	static inline void testCompletion(std::vector<T *> &messages)
 	{
+		assert(_singleton != nullptr);
 		assert(_singleton->_msn != nullptr);
 		_singleton->_msn->testCompletion(messages);
 	}
@@ -264,6 +275,7 @@ public:
 		bool block = false,
 		bool instrument = true
 	) {
+		assert(_singleton != nullptr);
 		assert(_singleton->_msn != nullptr);
 		assert(from != nullptr);
 
@@ -289,6 +301,7 @@ public:
 		bool block = false,
 		bool instrument = true
 	) {
+		assert(_singleton != nullptr);
 		assert(_singleton->_msn != nullptr);
 		assert(to != nullptr);
 		assert(to->getType() == nanos6_cluster_device);
@@ -329,6 +342,7 @@ public:
 	static inline void synchronizeAll()
 	{
 		if (inClusterMode()) {
+			assert(_singleton != nullptr);
 			assert(_singleton->_msn != nullptr);
 			_singleton->_msn->synchronizeAll();
 		}
