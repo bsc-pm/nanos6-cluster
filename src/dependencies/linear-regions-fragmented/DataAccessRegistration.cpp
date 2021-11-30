@@ -4758,11 +4758,6 @@ namespace DataAccessRegistration {
 			 * on the bytes to release reaches zero. This may cause a
 			 * use-after-free in the runtime.
 			 */
-			// This is tempting, but would stop valid lmallocs inside a task.
-			// FatalErrorHandler::failIf(!isStack && (task->getParent() != nullptr),
-			// 	"nanos6_lmalloc or nanos6_dmalloc in ",
-			// 	task->getLabel(),
-			// 	" without a weakinout \"all memory\" access");
 
 			/* Create a new access. It will be of NO_ACCESS_TYPE, so the
 			 * workflow will determine whether taskwaits fetch the data or not.
