@@ -1364,6 +1364,7 @@ noinst_HEADERS += \
 	src/cluster/offloading/OffloadedTasksInfoMap.hpp \
 	src/cluster/offloading/SatisfiabilityInfo.hpp \
 	src/cluster/offloading/TaskOffloading.hpp \
+	src/cluster/offloading/NoEagerSendInfo.hpp \
 	src/cluster/polling-services/ClusterServicesTask.hpp \
 	src/cluster/polling-services/ClusterServicesPolling.hpp \
 	src/cluster/polling-services/MessageDelivery.hpp \
