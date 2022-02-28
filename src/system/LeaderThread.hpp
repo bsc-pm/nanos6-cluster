@@ -76,7 +76,7 @@ public:
 	//! \return true if leader thread is exiting
 	static inline bool isExiting()
 	{
-		return _singleton != nullptr && _singleton->_mustExit.load();
+		return (_singleton != nullptr && _singleton->_mustExit.load());
 	}
 
 	//! \brief Check whether the current thread is the leader thread
@@ -86,7 +86,7 @@ public:
 	{
 		assert(_singleton != nullptr);
 		KernelLevelThread *thread = static_cast<KernelLevelThread *> (getCurrentKernelLevelThread());
-		return thread != nullptr && typeid(*thread) == typeid(LeaderThread) ;
+		return (thread != nullptr && typeid(*thread) == typeid(LeaderThread));
 	}
 
 	//! \brief Get the virtual compute place of the leader thread
