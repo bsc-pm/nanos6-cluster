@@ -210,8 +210,12 @@ srun ./your_ompss_cluster_app args...
 
 ### System requirements
 
-At the moment, cluster execution requires the system to have disabled the address randomization feature. Moreover, depending on the total address space the
-application needs to manage, i.e. `cluster.local_memory` and `cluster.distributed_memory` you might need to change the memory overcommit feature of your kernel.
+At the moment, cluster execution requires the system to have disabled the address randomization
+feature.  Normally the runtime tries to solve this automatically when possible, but if it can't and
+you get an error during the initialization you may need to set it manually as indicated
+bellow.  Moreover, depending on the total address space the application needs to manage,
+i.e. `cluster.local_memory` and `cluster.distributed_memory` you might need to change the memory
+overcommit feature of your kernel.
 
 These configurations can be done on a Linux system like this:
 
