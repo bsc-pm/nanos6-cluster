@@ -24,8 +24,6 @@
 #include "ClusterHybridMetrics.hpp"
 #include "ClusterUtil.hpp"
 
-// #define DMALLOC_FROM_DIRECTORY
-
 int ClusterBalanceScheduler::getScheduledNode(
 	Task *task,
 	ComputePlace *computePlace  __attribute__((unused)),
@@ -37,57 +35,43 @@ int ClusterBalanceScheduler::getScheduledNode(
 	bool canBeOffloaded = true;
 
 	/*
-	 * Schedule the task on the node that is home for most of its data
+	 * Choose best node according to locality scheduler
 	 */
 	DataAccessRegistration::processAllDataAccesses(
 		task,
 		[&](const DataAccess *access) -> bool {
 
+			const MemoryPlace *location = access->getLocation();
+			if (location == nullptr) {
+				assert(access->isWeak());
+				location = Directory::getDirectoryMemoryPlace();
+			}
+
 			DataAccessRegion region = access->getAccessRegion();
-				
+
 			/* Cannot offload a task whose data is not all cluster memory */
 			if (!VirtualMemoryManagement::isClusterMemory(region)) {
 				canBeOffloaded = false;
 				return false;  /* don't continue with other accesses */
 			}
 
-			bool readFromDirectory = true;
-
-#if DMALLOC_FROM_DIRECTORY
-			bool isDistributedRegion = VirtualMemoryManagement::isDistributedRegion(region);
-			bool tryCurrentLocation = !isDistributedRegion;
-#else
-			bool tryCurrentLocation = true;
-#endif
-			if (tryCurrentLocation) {
-				/* Not distributed region: use current location */
-				const MemoryPlace *location = access->getLocation();
-				if (location == nullptr) {
-					assert(access->isWeak());
-				} else {
-					const size_t nodeId = getNodeIdForLocation(location);
-					bytes[nodeId] += region.getSize();
-					readFromDirectory = false;
-				}
-			}
-			if (readFromDirectory) {
+			if (location->isDirectoryMemoryPlace()) {
 				/* Read the location from the directory */
 				const Directory::HomeNodesArray *homeNodes = Directory::find(region);
 
 				for (const auto &entry : *homeNodes) {
-					/* Each entry has a location and a region */
-					const MemoryPlace *location = entry->getHomeNode();
-					const DataAccessRegion &homeNodeRegion = entry->getAccessRegion();
+					location = entry->getHomeNode();
 
-					/* Find the intersection with the data access region */
-					DataAccessRegion subregion = region.intersect(homeNodeRegion);
-
-					/* Count the bytes at the relevant node ID*/
 					const size_t nodeId = getNodeIdForLocation(location);
+
+					DataAccessRegion subregion = region.intersect(entry->getAccessRegion());
 					bytes[nodeId] += subregion.getSize();
 				}
 
 				delete homeNodes;
+			} else {
+				const size_t nodeId = getNodeIdForLocation(location);
+				bytes[nodeId] += region.getSize();
 			}
 
 			return true;
@@ -112,16 +96,13 @@ int ClusterBalanceScheduler::getScheduledNode(
 	if (numTasksAlready <= 2 * bestNode->getCurrentAllocCores()) {
 
 		// If it is executed remotely then it cannot be stolen any more
-		// clusterCout << "Direct schedule to " << bestNode->getIndex() << " [" << bestNode << " / " << ClusterManager::getCurrentClusterNode()
-	// 				<< "] " << numTasksAlready << " vs " << (2*bestNode->getCurrentAllocCores()) << "\n";
 		if (bestNode != ClusterManager::getCurrentClusterNode()) {
 			ClusterHybridMetrics::incDirectOffload(1);
 		}
 		return bestNodeId;
 	}
 
-	// Otherwise find the node that has the least work as a proportion of its
-	// allocation.
+	// Otherwise schedule immediately to a non-loaded node
 	float thiefRatio = 0.0;
 	ClusterNode *thief = nullptr;
 	for (ClusterNode *node : ClusterManager::getClusterNodes()) {
@@ -129,7 +110,7 @@ int ClusterBalanceScheduler::getScheduledNode(
 								ClusterHybridMetrics::getNumReadyTasks() :
 								node->getNumOffloadedTasks();
 		if (node->getCurrentAllocCores() > 0) {
-			float ratio = numTasksAlready / node->getCurrentAllocCores();
+			float ratio = (float)numTasksAlready / node->getCurrentAllocCores();
 
 			if (!thief || ratio < thiefRatio) {
 				thiefRatio = ratio;
@@ -150,15 +131,16 @@ int ClusterBalanceScheduler::getScheduledNode(
 		if (thiefId != ClusterManager::getCurrentClusterNode()->getIndex()) {
 			ClusterHybridMetrics::incDirectThiefOffload(1);
 		}
-		Scheduler::addReadyLocalOrExecuteRemote(thiefId, task, computePlace, hint);
-	} else {
-		// Put in a ready queue (to take when we get the MessageTaskFinished)
-		std::lock_guard<SpinLock> guard(_readyQueueLock);
-
-		// Total ready tasks that could be stolen
-		ClusterHybridMetrics::incNumReadyTasks(1);
-		_readyQueues[thiefId].push_back( new StealableTask(task, bytes) );
+		return thiefId;
 	}
+
+	// Otherwise put it in the queue for the best node; may schedule
+	// there or steal the task later.
+	std::lock_guard<SpinLock> guard(_readyQueueLock);
+	ClusterHybridMetrics::incNumReadyTasks(1);
+	_readyQueues[bestNodeId].push_back( new StealableTask(task, bytes) );
+
+	// Don't schedule it yet; it is held here
 	return nanos6_cluster_no_schedule;
 }
 
