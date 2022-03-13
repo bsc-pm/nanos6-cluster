@@ -230,10 +230,17 @@ public:
 		// Get ready task: first try local scheduler
 		Task *readyTask = SchedulerInterface::getReadyTask(computePlace);
 
-		// If successful, decrease number of local ready tasks
-		// Only useful with the cluster balance scheduler
+		// If successful, decrease number of local ready tasks. Only useful
+		// with the cluster balance scheduler cluster balance scheduler. Note:
+		// taskfors are not counted at all, as we will need to think more
+		// carefully how to do the accounting: currently the count would be
+		// increased once per source and decremented once per collaborator.
+		// This may cause the count to go negative, which is an assertion
+		// failure.
 		if (readyTask) {
-			_defaultScheduler->decNumLocalReadyTasks();
+			if (!readyTask->isTaskforSource() && !readyTask->isTaskforCollaborator()) {
+				_defaultScheduler->decNumLocalReadyTasks();
+			}
 		}
 
 		// If not successful, steal a task from the cluster scheduler
