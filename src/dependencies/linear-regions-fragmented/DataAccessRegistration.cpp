@@ -3049,10 +3049,19 @@ namespace DataAccessRegistration {
 						Instrument::namespacePropagation(Instrument::NamespacePredecessorFinished, dataAccess->getAccessRegion());
 					} else if (previous->getNamespaceSuccessor() == dataAccess->getOriginator()) {
 
-						// We should never be asked to connect in the namespace from a read access to a non-read access.
-						assert(! ((previous->getType() == READ_ACCESS_TYPE) && (dataAccess->getType() != READ_ACCESS_TYPE)));
-
-						canPropagateInNamespace = true;
+						// We should never connect in the namespace from a read access to a non-read access.
+						// In the usual case, this is prevented by the offloader, which is responsible
+						// for serializing the reads before passing satisfiability to the non-read. But
+						// it can also happen in a rare convoluted case:
+						// (1) Task A has a weakinout, and it offloads A1 with inout to node 1
+						//     The predecessor of A1 is task A.
+						// (2) Task B has an in, and it is offloaded to node 1
+						//     The predecessor of A1 is also task A.
+						// (3) Tasks A1 and B arrive in the wrong order at node 1, so it looks like
+						//     we can connect in the namespace from A1 to B, but we cannot
+						if(!(previous->getType() == READ_ACCESS_TYPE) && (dataAccess->getType() != READ_ACCESS_TYPE)) {
+							canPropagateInNamespace = true;
+						}
 						Instrument::namespacePropagation(Instrument::NamespaceSuccessful, dataAccess->getAccessRegion());
 					} else if (previous->getNamespaceSuccessor() != nullptr) {
 						Instrument::namespacePropagation(Instrument::NamespaceWrongPredecessor, dataAccess->getAccessRegion());
