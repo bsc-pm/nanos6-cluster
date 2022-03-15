@@ -26,7 +26,7 @@ extern "C" {
 
 
 //! \brief Initialize the runtime at least to the point that it will accept tasks
-void nanos6_preinit(void);
+void nanos6_preinit(int argc, char **argv);
 
 //! \brief Continue with the rest of the runtime initialization
 void nanos6_init(void);

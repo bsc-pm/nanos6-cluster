@@ -52,11 +52,11 @@ static void forEachDataPart(
 	}
 }
 
-MPIMessenger::MPIMessenger()
+MPIMessenger::MPIMessenger(int argc, char **argv) : Messenger(argc, argv)
 {
 	int support, ret, ubIsSetFlag;
 
-	ret = MPI_Init_thread(NULL, NULL, MPI_THREAD_MULTIPLE, &support);
+	ret = MPI_Init_thread(&_argc, &_argv, MPI_THREAD_MULTIPLE, &support);
 	MPIErrorHandler::handle(ret, MPI_COMM_WORLD);
 	if (support != MPI_THREAD_MULTIPLE) {
 		std::cerr << "Could not initialize multithreaded MPI" << std::endl;

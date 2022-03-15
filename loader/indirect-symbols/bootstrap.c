@@ -9,16 +9,16 @@
 
 #pragma GCC visibility push(default)
 
-void nanos6_preinit(void)
+void nanos6_preinit(int argc, char **argv)
 {
-	typedef void nanos6_preinit_t(void);
+	typedef void nanos6_preinit_t(int, char **);
 
 	static nanos6_preinit_t *symbol = NULL;
 	if (__builtin_expect(symbol == NULL, 0)) {
 		symbol = (nanos6_preinit_t *) _nanos6_resolve_symbol("nanos6_preinit", "essential", NULL);
 	}
 
-	(*symbol)();
+	(*symbol)(argc, argv);
 }
 
 int nanos6_can_run_main(void)

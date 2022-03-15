@@ -21,8 +21,12 @@ class ClusterNode;
 class DataTransfer;
 
 class Messenger {
+protected:
+	int _argc;
+	char **_argv;
+
 public:
-	Messenger()
+	Messenger(int argc, char **argv) : _argc(argc), _argv(argv)
 	{
 	}
 
@@ -36,10 +40,10 @@ public:
 	static bool RegisterMSNClass(const std::string &name)
 	{
 		static_assert(std::is_base_of<Messenger, T>::value, "Base class type is wrong.");
-		return GenericFactory<std::string, Messenger*>::getInstance().emplace(
+		return GenericFactory<std::string, Messenger*, int, char**>::getInstance().emplace(
 			name,
-			[]() -> Messenger* {
-				return new T();
+			[](int argc, char **argv) -> Messenger* {
+				return new T(argc, argv);
 			}
 		);
 	}

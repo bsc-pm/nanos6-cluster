@@ -124,7 +124,7 @@ int _nanos6_loader_main(int argc, char **argv, char **envp) {
 	}
 
 	// First half of the initialization
-	nanos6_preinit();
+	nanos6_preinit(argc, argv);
 	if (_nanos6_exit_with_error) {
 		fprintf(stderr, "Error: %s\n", _nanos6_error_text);
 		return _nanos6_exit_with_error;

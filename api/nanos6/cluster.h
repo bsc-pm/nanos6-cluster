@@ -43,6 +43,11 @@ typedef enum {
 	nanos6_wait
 } nanos6_early_release_t;
 
+//! Like nanos6_library_mode_init but requires argc and argv. It is intended to be used in cluster
+//! mode only
+__attribute__ ((used)) char const * nanos6_library_mode_init_cluster(int argc, char **argv);
+
+
 //! \brief Determine whether we are on cluster mode
 //!
 //! \returns true if we are on cluster mode

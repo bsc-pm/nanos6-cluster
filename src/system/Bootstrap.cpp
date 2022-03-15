@@ -59,7 +59,7 @@ void nanos6_register_remote_node(void (*shutdown_callback)(void *), void *callba
 }
 
 // Before main started
-void nanos6_preinit(void)
+void nanos6_preinit(int argc, char **argv)
 {
 	if (!nanos6_api_has_been_checked_successfully()) {
 		int *_nanos6_exit_with_error_ptr = (int *) dlsym(nullptr, "_nanos6_exit_with_error");
@@ -86,7 +86,7 @@ void nanos6_preinit(void)
 	Monitoring::preinitialize();
 	HardwareInfo::initialize();
 
-	ClusterManager::initialize();
+	ClusterManager::initialize(argc, argv);
 	CPUManager::preinitialize();
 
 	// Finish Hardware counters and Monitoring initialization after CPUManager

@@ -122,7 +122,7 @@ private:
 
 public:
 
-	MPIMessenger();
+	MPIMessenger(int argc, char **argv);
 	~MPIMessenger();
 
 	void shutdown() override;

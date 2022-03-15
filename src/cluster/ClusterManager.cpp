@@ -38,7 +38,8 @@ ClusterManager::ClusterManager()
 	: _clusterNodes(1),
 	_thisNode(new ClusterNode(0, 0)),
 	_masterNode(_thisNode),
-	_msn(nullptr), _usingNamespace(false), _disableRemote(false), _disableRemoteConnect(false), _disableAutowait(false),
+	_msn(nullptr), _usingNamespace(false),
+	_disableRemote(false), _disableRemoteConnect(false), _disableAutowait(false),
 	_callback(nullptr)
 {
 	_clusterNodes[0] = _thisNode;
@@ -46,9 +47,10 @@ ClusterManager::ClusterManager()
 	OffloadedTaskIdManager::initialize(0,1);
 }
 
-ClusterManager::ClusterManager(std::string const &commType)
-	:_msn(GenericFactory<std::string, Messenger*>::getInstance().create(commType)),
-	 _disableRemote(false), _disableRemoteConnect(false), _disableAutowait(false), _callback(nullptr)
+ClusterManager::ClusterManager(std::string const &commType, int argc, char **argv)
+	: _msn(GenericFactory<std::string,Messenger*,int,char**>::getInstance().create(commType, argc, argv)),
+	_disableRemote(false), _disableRemoteConnect(false), _disableAutowait(false),
+	_callback(nullptr)
 {
 	assert(_msn);
 
@@ -126,7 +128,7 @@ ClusterManager::~ClusterManager()
 }
 
 // Cluster is initialized before the memory allocator.
-void ClusterManager::initialize()
+void ClusterManager::initialize(int argc, char **argv)
 {
 	assert(_singleton == nullptr);
 	ConfigVariable<std::string> commType("cluster.communication");
@@ -137,7 +139,10 @@ void ClusterManager::initialize()
 	 * cluster.communication config variable we will not
 	 * initialize the cluster support of Nanos6 */
 	if (commType.getValue() != "disabled") {
-		_singleton = new ClusterManager(commType.getValue());
+		assert(argc > 0);
+		assert(argv != nullptr);
+
+		_singleton = new ClusterManager(commType.getValue(), argc, argv);
 	} else {
 		_singleton = new ClusterManager();
 	}

@@ -29,10 +29,10 @@ extern "C" {
 //! 
 //! \returns NULL if successful, otherwise a string that describes the error
 //! 
-//! NOTE: this function is not defined in the loader. Instead it is defined in nanos6-library-mode.o which
-//! needs to be linked with the application to correctly check if the API versions match.
+//! NOTE: this function is not defined in the loader. Instead it is defined in nanos6-library-mode.o
+//! which needs to be linked with the application to correctly check if the API versions match.  In
+//! cluster mode use nanos6_library_mode_init_cluster instead of this.
 __attribute__ ((used)) char const * nanos6_library_mode_init(void);
-
 
 //! \brief Spawn asynchronously a function
 //! 

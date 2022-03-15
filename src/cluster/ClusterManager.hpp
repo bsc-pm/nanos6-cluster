@@ -81,7 +81,7 @@ private:
 	//! private constructors. This is a singleton.
 	ClusterManager();
 
-	ClusterManager(std::string const &commType);
+	ClusterManager(std::string const &commType, int argc, char **argv);
 
 	~ClusterManager();
 
@@ -89,7 +89,7 @@ public:
 	//! \brief Initialize the ClusterManager
 	//! This is called before initializing the memory allocator because it collects some
 	//! information needed by the memory allocator latter.
-	static void initialize();
+	static void initialize(int argc, char **argv);
 
 	//! \brief postInitialize the ClusterManager
 	//! This is called after the memory allocator is already initialized because it starts the
