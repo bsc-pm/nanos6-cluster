@@ -57,25 +57,7 @@ ClusterManager::ClusterManager(std::string const &commType, int argc, char **arg
 	TaskOffloading::RemoteTasksInfoMap::init();
 	TaskOffloading::OffloadedTasksInfoMap::init();
 
-	/** These are communicator-type indices. At the moment we have an
-	 * one-to-one mapping between communicator-type and runtime-type
-	 * indices for cluster nodes */
-	const size_t clusterSize = _msn->getClusterSize();
-	const int nodeIndex = _msn->getNodeIndex();
-	const int masterIndex = _msn->getMasterIndex();
-
-	MessageId::initialize(nodeIndex, clusterSize);
-	WriteIDManager::initialize(nodeIndex, clusterSize);
-	OffloadedTaskIdManager::initialize(nodeIndex, clusterSize);
-
-	_clusterNodes.resize(clusterSize);
-
-	for (size_t i = 0; i < clusterSize; ++i) {
-		_clusterNodes[i] = new ClusterNode(i, i);
-	}
-
-	_thisNode = _clusterNodes[nodeIndex];
-	_masterNode = _clusterNodes[masterIndex];
+	this->internal_reset();
 
 	_msn->synchronizeAll();
 	_callback.store(nullptr);
@@ -123,6 +105,36 @@ ClusterManager::~ClusterManager()
 	delete _callback;
 	_callback = nullptr;
 }
+
+void ClusterManager::internal_reset() {
+
+	/** These are communicator-type indices. At the moment we have an
+	 * one-to-one mapping between communicator-type and runtime-type
+	 * indices for cluster nodes */
+
+	const size_t clusterSize = _msn->getClusterSize();
+	const int nodeIndex = _msn->getNodeIndex();
+	const int masterIndex = _msn->getMasterIndex();
+
+	// TODO: Check if this initialization may conflict somehow.
+	MessageId::initialize(nodeIndex, clusterSize);
+	WriteIDManager::initialize(nodeIndex, clusterSize);
+	OffloadedTaskIdManager::initialize(nodeIndex, clusterSize);
+
+	if (this->_clusterNodes.empty()) {
+
+		this->_clusterNodes.resize(clusterSize);
+
+		for (size_t i = 0; i < clusterSize; ++i) {
+			_clusterNodes[i] = new ClusterNode(i, i);
+		}
+
+		_thisNode = _clusterNodes[nodeIndex];
+		_masterNode = _clusterNodes[masterIndex];
+	}
+
+}
+
 
 // Cluster is initialized before the memory allocator.
 void ClusterManager::initialize(int argc, char **argv)

@@ -120,6 +120,8 @@ private:
 	template <typename T>
 	void testCompletionInternal(std::vector<T *> &pending);
 
+	void internal_reset();
+
 	void forEachDataPart(
 		void *startAddress,
 		size_t size,

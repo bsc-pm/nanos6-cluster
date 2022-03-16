@@ -83,6 +83,8 @@ private:
 
 	~ClusterManager();
 
+	void internal_reset();
+
 public:
 	//! \brief Initialize the ClusterManager
 	//! This is called before initializing the memory allocator because it collects some

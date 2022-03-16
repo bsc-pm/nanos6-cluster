@@ -53,7 +53,7 @@ void MPIMessenger::forEachDataPart(
 
 MPIMessenger::MPIMessenger(int argc, char **argv) : Messenger(argc, argv)
 {
-	int support, ret, ubIsSetFlag;
+	int support, ret;
 
 	ret = MPI_Init_thread(&_argc, &_argv, MPI_THREAD_MULTIPLE, &support);
 	MPIErrorHandler::handle(ret, MPI_COMM_WORLD);
@@ -61,6 +61,16 @@ MPIMessenger::MPIMessenger(int argc, char **argv) : Messenger(argc, argv)
 		std::cerr << "Could not initialize multithreaded MPI" << std::endl;
 		abort();
 	}
+
+	//! Get the upper-bound tag supported by current MPI implementation
+	int ubIsSetFlag = 0, *mpi_ub_tag = nullptr;
+	ret = MPI_Comm_get_attr(MPI_COMM_WORLD, MPI_TAG_UB, &mpi_ub_tag, &ubIsSetFlag);
+	MPIErrorHandler::handle(ret, MPI_COMM_WORLD);
+	assert(mpi_ub_tag != nullptr);
+	assert(ubIsSetFlag != 0);
+
+	_mpi_ub_tag = *mpi_ub_tag;
+	assert(_mpi_ub_tag > 0);
 
 	//! make sure that MPI errors are returned in the COMM_WORLD
 	ret = MPI_Comm_set_errhandler(MPI_COMM_WORLD, MPI_ERRORS_RETURN);
@@ -71,40 +81,20 @@ MPIMessenger::MPIMessenger(int argc, char **argv) : Messenger(argc, argv)
 	MPIErrorHandler::handle(ret, MPI_COMM_WORLD);
 
 	//! Create a new communicator
-	ret = MPI_Comm_dup(MPI_COMM_WORLD, &INTRA_COMM);
+	if (PARENT_COMM == MPI_COMM_NULL) {
+		// When there is not parent it is part of the initial communicator.
+		ret = MPI_Comm_dup(MPI_COMM_WORLD, &INTRA_COMM);
+	} else {
+		// This is a spawned process.
+		ret = MPI_Intercomm_merge(PARENT_COMM, true,  &INTRA_COMM);
+	}
 	MPIErrorHandler::handle(ret, MPI_COMM_WORLD);
 
-	//! make sure the new communicator returns errors
-	ret = MPI_Comm_set_errhandler(INTRA_COMM, MPI_ERRORS_RETURN);
-	MPIErrorHandler::handle(ret, INTRA_COMM);
-
+	// Get the user config to use a different communicator for data_raw.
 	ConfigVariable<bool> mpi_comm_data_raw("cluster.mpi.comm_data_raw");
 	_mpi_comm_data_raw = mpi_comm_data_raw.getValue();
 
-	if (_mpi_comm_data_raw) {
-		ret = MPI_Comm_dup(INTRA_COMM, &INTRA_COMM_DATA_RAW);
-		MPIErrorHandler::handle(ret, MPI_COMM_WORLD);
-	} else {
-		INTRA_COMM_DATA_RAW = INTRA_COMM;
-	}
-
-	ret = MPI_Comm_rank(INTRA_COMM, &_wrank);
-	MPIErrorHandler::handle(ret, INTRA_COMM);
-	assert(_wrank >= 0);
-
-	ret = MPI_Comm_size(INTRA_COMM, &_wsize);
-	MPIErrorHandler::handle(ret, INTRA_COMM);
-	assert(_wsize > 0);
-
-	//! Get the upper-bound tag supported by current MPI implementation
-	int *mpi_ub_tag = nullptr;
-	ret = MPI_Comm_get_attr(INTRA_COMM, MPI_TAG_UB, &mpi_ub_tag, &ubIsSetFlag);
-	MPIErrorHandler::handle(ret, INTRA_COMM);
-	assert(mpi_ub_tag != nullptr);
-	assert(ubIsSetFlag != 0);
-
-	_mpi_ub_tag = *mpi_ub_tag;
-	assert(_mpi_ub_tag > 0);
+	this->internal_reset();
 }
 
 
@@ -151,6 +141,28 @@ MPIMessenger::~MPIMessenger()
 	assert(RequestContainer<Message>::isCleared());
 	assert(RequestContainer<DataTransfer>::isCleared());
 #endif // NDEBUG
+}
+
+void MPIMessenger::internal_reset()
+{
+	//! make sure the new communicator returns errors
+	int ret = MPI_Comm_set_errhandler(INTRA_COMM, MPI_ERRORS_RETURN);
+	MPIErrorHandler::handle(ret, INTRA_COMM);
+
+	if (_mpi_comm_data_raw) {
+		ret = MPI_Comm_dup(INTRA_COMM, &INTRA_COMM_DATA_RAW);
+		MPIErrorHandler::handle(ret, MPI_COMM_WORLD);
+	} else {
+		INTRA_COMM_DATA_RAW = INTRA_COMM;
+	}
+
+	ret = MPI_Comm_rank(INTRA_COMM, &_wrank);
+	MPIErrorHandler::handle(ret, INTRA_COMM);
+	assert(_wrank >= 0);
+
+	ret = MPI_Comm_size(INTRA_COMM, &_wsize);
+	MPIErrorHandler::handle(ret, INTRA_COMM);
+	assert(_wsize > 0);
 }
 
 void MPIMessenger::sendMessage(Message *msg, ClusterNode const *toNode, bool block)
