@@ -25,9 +25,13 @@ protected:
 	int _argc;
 	char **_argv;
 
+	size_t _messageMaxSize = 0;
+
 public:
 	Messenger(int argc, char **argv) : _argc(argc), _argv(argv)
 	{
+		ConfigVariable<size_t> messageMaxSize("cluster.message_max_size");
+		_messageMaxSize = messageMaxSize.getValue();
 	}
 
 	virtual ~Messenger()
@@ -120,6 +124,13 @@ public:
 
 	//! Returns true if this is the master node
 	virtual bool isMasterNode() const = 0;
+
+	//! Get the max message size
+	size_t getMessageMaxSize() const
+	{
+		assert(_messageMaxSize > 0);
+		return _messageMaxSize;
+	}
 
 	//! \brief Test if sending Messages has completed
 	//!

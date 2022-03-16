@@ -52,7 +52,7 @@ ClusterManager::ClusterManager(std::string const &commType, int argc, char **arg
 	_disableRemote(false), _disableRemoteConnect(false), _disableAutowait(false),
 	_callback(nullptr)
 {
-	assert(_msn);
+	assert(_msn != nullptr);
 
 	TaskOffloading::RemoteTasksInfoMap::init();
 	TaskOffloading::OffloadedTasksInfoMap::init();
@@ -96,9 +96,6 @@ ClusterManager::ClusterManager(std::string const &commType, int argc, char **arg
 
 	ConfigVariable<bool> disableAutowait("cluster.disable_autowait");
 	_disableAutowait = disableAutowait.getValue();
-
-	ConfigVariable<size_t> messageMaxSize("cluster.message_max_size");
-	_messageMaxSize = messageMaxSize.getValue();
 
 	ConfigVariable<bool> eagerWeakFetch("cluster.eager_weak_fetch");
 	_eagerWeakFetch = eagerWeakFetch.getValue();

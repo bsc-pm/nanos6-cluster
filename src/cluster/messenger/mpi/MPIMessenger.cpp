@@ -27,25 +27,24 @@
 #pragma GCC visibility pop
 
 // Split a data transfer by the max message size
-template <typename ProcessorType>
-static void forEachDataPart(
+void MPIMessenger::forEachDataPart(
 	void *startAddress,
 	size_t size,
 	int messageId,
-	ProcessorType processor)
-{
-	size_t messageMaxSize = ClusterManager::getMessageMaxSize();
-#ifndef NDEBUG
-	int nFragments = ClusterManager::getMPIFragments(DataAccessRegion(startAddress,size));
-#endif
-	char *currAddress = (char *)startAddress;
-	char *endAddress = currAddress + size;
+	std::function<void(void*, size_t, int)> processor
+) {
+	char *currAddress = (char *) startAddress;
+	const char *endAddress = currAddress + size;
 	int ofs = 0;
+
+#ifndef NDEBUG
+	const int nFragments = ClusterManager::getMPIFragments(DataAccessRegion(startAddress, size));
+#endif
 
 	while (currAddress < endAddress) {
 		assert(ofs < nFragments);
-		size_t currSize = std::min<size_t>(endAddress - currAddress, messageMaxSize);
-		int currMessageId = MessageId::messageIdInGroup(messageId, ofs);
+		const size_t currSize = std::min<size_t>(endAddress - currAddress, _messageMaxSize);
+		const int currMessageId = MessageId::messageIdInGroup(messageId, ofs);
 		processor(currAddress, currSize, currMessageId);
 		currAddress += currSize;
 		ofs++;
@@ -338,8 +337,7 @@ Message *MPIMessenger::checkMail(void)
 		return nullptr;
 	}
 
-	//! DATA_RAW type of messages will be received by matching 'fetchData'
-	//! methods
+	//! DATA_RAW type of messages will be received by matching 'fetchData' methods
 	const int type = status.MPI_TAG & 0xff;
 	if (type == DATA_RAW) {
 		std::cout << "give up checkMail for DATA_RAW\n";

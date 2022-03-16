@@ -120,6 +120,13 @@ private:
 	template <typename T>
 	void testCompletionInternal(std::vector<T *> &pending);
 
+	void forEachDataPart(
+		void *startAddress,
+		size_t size,
+		int messageId,
+		std::function<void(void*, size_t, int)> processor
+	);
+
 public:
 
 	MPIMessenger(int argc, char **argv);

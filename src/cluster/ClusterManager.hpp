@@ -59,8 +59,6 @@ private:
 
 	bool _disableAutowait;
 
-	size_t _messageMaxSize;
-
 	bool _eagerWeakFetch;
 
 	bool _eagerSend;
@@ -384,18 +382,12 @@ public:
 		return _singleton->_disableAutowait;
 	}
 
-	static size_t getMessageMaxSize()
-	{
-		assert(_singleton != nullptr);
-		return _singleton->_messageMaxSize;
-	}
-
 	static size_t getMPIFragments(DataAccessRegion const &remoteRegion)
 	{
 		const size_t totalSize = remoteRegion.getSize();
 		assert(totalSize > 0);
 
-		const size_t maxRegionSize = ClusterManager::getMessageMaxSize();
+		const size_t maxRegionSize = _singleton->_msn->getMessageMaxSize();
 		// Note: this calculation still works when maxRegionSize == SIZE_MAX.
 		size_t nFragments = totalSize / maxRegionSize;
 		if ((totalSize % maxRegionSize) != 0) {
