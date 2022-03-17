@@ -156,6 +156,75 @@ public:
 		// Submit task and register dependencies
 		AddTask::submitTask(task, parent, fromTaskContext);
 	}
+
+	// Create a taskloop offloader, which should be offloaded and will
+	// cover a defined part of the iteration space
+	static inline void createTaskloopOffloader(
+		Taskloop *parent,
+		Taskloop::bounds_t bounds,
+		ClusterNode *remoteNode,
+		bool fromTaskContext = true
+	) {
+		assert(parent != nullptr);
+
+		nanos6_task_info_t *parentTaskInfo = parent->getTaskInfo();
+		nanos6_task_invocation_info_t *parentTaskInvocationInfo = parent->getTaskInvokationInfo();
+		void *originalArgsBlock = parent->getArgsBlock();
+		size_t originalArgsBlockSize = parent->getArgsBlockSize();
+
+		// Avoid creating a taskloop when dealing with taskloop fors
+		size_t flags = parent->getFlags();
+		if (parent->isTaskfor()) {
+			flags &= ~nanos6_taskloop_task;
+		}
+
+		void *argsBlock = nullptr;
+		bool hasPreallocatedArgsBlock = parent->hasPreallocatedArgsBlock();
+		if (hasPreallocatedArgsBlock) {
+			assert(parentTaskInfo->duplicate_args_block != nullptr);
+			parentTaskInfo->duplicate_args_block(originalArgsBlock, &argsBlock);
+		}
+
+		// This number has been computed while registering the parent's dependencies
+		size_t numDeps = parent->getMaxChildDependencies();
+
+		Task *task = AddTask::createTask(
+			parentTaskInfo, parentTaskInvocationInfo,
+			argsBlock, originalArgsBlockSize,
+			flags, numDeps, fromTaskContext
+		);
+		assert(task != nullptr);
+
+		argsBlock = task->getArgsBlock();
+		assert(argsBlock != nullptr);
+
+		// Copy the args block if it was not duplicated
+		if (!hasPreallocatedArgsBlock) {
+			if (parentTaskInfo->duplicate_args_block != nullptr) {
+				parentTaskInfo->duplicate_args_block(originalArgsBlock, &argsBlock);
+			} else {
+				memcpy(argsBlock, originalArgsBlock, originalArgsBlockSize);
+			}
+		}
+
+		assert(parent->isTaskloop());
+		Taskloop *taskloop = (Taskloop *) task;
+		Taskloop::bounds_t &childBounds = taskloop->getBounds();
+		childBounds.lower_bound = bounds.lower_bound;
+		childBounds.upper_bound = bounds.upper_bound;
+
+		taskloop->setTaskloopOffloader();
+
+		// A taskfor offloader is never a remote task, even if its parent
+		// (the taskfor source) is.
+		if (parent->isRemoteTask()) {
+			task->unmarkAsRemote();
+		}
+
+		// Submit task and register dependencies
+		task->setNode(remoteNode->getIndex());
+		AddTask::submitTask(task, parent, fromTaskContext);
+	}
 };
 
 #endif // LOOP_GENERATOR_HPP

@@ -1012,6 +1012,11 @@ public:
 		return false;
 	}
 
+	virtual inline bool isTaskloopOffloader() const
+	{
+		return false;
+	}
+
 	virtual inline bool isTaskforCollaborator() const
 	{
 		return false;

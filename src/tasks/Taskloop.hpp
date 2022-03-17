@@ -23,6 +23,9 @@ private:
 
 	bool _source;
 
+	// A part of the iteration space that may be offloaded to a node
+	bool _offloader;
+
 	// In some cases, the compiler cannot precisely indicate the number of deps.
 	// In these cases, it passes -1 to the runtime so the deps are dynamically
 	// registered. We have a loop where the parent registers all the deps of the
@@ -52,6 +55,7 @@ public:
 			taskStatistics),
 		_bounds(),
 		_source(false),
+		_offloader(false),
 		_maxChildDeps(0)
 	{
 	}
@@ -136,6 +140,16 @@ public:
 	inline bool isTaskloopFor() const override
 	{
 		return isTaskfor();
+	}
+
+	inline void setTaskloopOffloader()
+	{
+		_offloader = true;
+	}
+
+	inline bool isTaskloopOffloader() const override
+	{
+		return _offloader;
 	}
 
 	static inline size_t computeNumTasks(size_t iterations, size_t grainsize)
