@@ -38,7 +38,7 @@ ClusterManager::ClusterManager()
 	: _clusterNodes(1),
 	_thisNode(new ClusterNode(0, 0)),
 	_masterNode(_thisNode),
-	_msn(nullptr), _usingNamespace(false),
+	_msn(nullptr),
 	_disableRemote(false), _disableRemoteConnect(false), _disableAutowait(false),
 	_callback(nullptr)
 {
@@ -65,16 +65,11 @@ ClusterManager::ClusterManager(std::string const &commType, int argc, char **arg
 	ConfigVariable<bool> inTask("cluster.services_in_task");
 	_taskInPoolins = inTask.getValue();
 
-	ConfigVariable<bool> usingNamespace("cluster.use_namespace");
-	_usingNamespace = usingNamespace.getValue();
+	ConfigVariable<bool> disableRemote("cluster.disable_remote");
+	_disableRemote = disableRemote.getValue();
 
-	if (_usingNamespace) {
-		ConfigVariable<bool> disableRemote("cluster.disable_remote");
-		_disableRemote = disableRemote.getValue();
-
-		ConfigVariable<bool> disableRemoteConnect("cluster.disable_remote_connect");
-		_disableRemoteConnect = disableRemoteConnect.getValue();
-	}
+	ConfigVariable<bool> disableRemoteConnect("cluster.disable_remote_connect");
+	_disableRemoteConnect = disableRemoteConnect.getValue();
 
 	ConfigVariable<bool> disableAutowait("cluster.disable_autowait");
 	_disableAutowait = disableAutowait.getValue();
@@ -122,7 +117,7 @@ void ClusterManager::internal_reset() {
 	OffloadedTaskIdManager::initialize(nodeIndex, clusterSize);
 
 	if (this->_clusterNodes.empty()) {
-
+		// Called from constructor the first time
 		this->_clusterNodes.resize(clusterSize);
 
 		for (size_t i = 0; i < clusterSize; ++i) {
@@ -181,13 +176,7 @@ void ClusterManager::postinitialize()
 void ClusterManager::initClusterNamespaceOrSetCallback(void (*func)(void *), void *args)
 {
 	assert(_singleton != nullptr);
-
-	if (_singleton->_usingNamespace) {
-		NodeNamespace::init(func, args);
-	} else {
-		assert(_singleton->_callback.load() == nullptr);
-		_singleton->_callback.store(new ClusterShutdownCallback(func, args));
-	}
+	NodeNamespace::init(func, args);
 }
 
 
@@ -204,8 +193,7 @@ void ClusterManager::shutdownPhase1()
 		}
 	}
 
-	if (_singleton->_usingNamespace && isMasterNode()) {
-		// _usingNamespace duplicates the information of NodeNamespace::isEnabled().
+	if (isMasterNode()) {
 		assert(NodeNamespace::isEnabled());
 		NodeNamespace::notifyShutdown();
 	}

@@ -259,8 +259,6 @@ __require_CLUSTER
 	# Indicate the virtual address space start. If set to 0x00000000, the runtime will find a
 	# suitable address. Default is 0x00000000
 	va_start = 0x00000000
-	# Use namespace code. Default true
-	use_namespace = true
 	# Disable propagation of dependencies in the remote namespace. Default is false
 	disable_remote = false
 	# Disable remote connect (direct propagation between namespaces). Default is true

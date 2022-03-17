@@ -21,7 +21,6 @@ void ConfigCentral::initialize()
 	registerOption<memory_t>("cluster.distributed_memory", 2UL << 30);
 	registerOption<string_t>("cluster.scheduling_policy", "locality");
 	registerOption<integer_t>("cluster.va_start", 0);
-	registerOption<bool_t>("cluster.use_namespace", false);
 	registerOption<bool_t>("cluster.disable_remote", false);
 	registerOption<bool_t>("cluster.disable_remote_connect", true);
 	registerOption<bool_t>("cluster.disable_autowait", false);
