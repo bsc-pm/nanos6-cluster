@@ -51,10 +51,7 @@ private:
 	bool _taskInPoolins;
 
 	//! Using cluster namespace
-	bool _usingNamespace;
-
 	bool _disableRemote;
-
 	bool _disableRemoteConnect;
 
 	bool _disableAutowait;
