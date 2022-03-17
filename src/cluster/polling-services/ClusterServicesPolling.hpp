@@ -85,8 +85,7 @@ namespace ClusterServicesPolling {
 		// the shutdown procedure before the PendingQueue<Message> has checked
 		// completion of all the messages it has sent. So just wait for
 		// completion before shutting down the polling services.
-		ClusterPollingServices::PendingQueue<Message>::waitUntilFinished();
-		ClusterPollingServices::PendingQueue<DataTransfer>::waitUntilFinished();
+		waitUntilFinished();
 
 		unregisterService<ClusterPollingServices::PendingQueue<DataTransfer>>("DataTransfer");
 		unregisterService<ClusterPollingServices::PendingQueue<Message>>("MessageDelivery");

@@ -109,7 +109,7 @@ namespace ClusterServicesTask {
 		// the shutdown procedure before the PendingQueue<Message> has checked
 		// completion of all the messages it has sent. So just wait for
 		// completion before shutting down the polling services.
-		ClusterPollingServices::PendingQueue<Message>::waitUntilFinished();
+		waitUntilFinished();
 
 		unregisterService<ClusterPollingServices::PendingQueue<DataTransfer>>();
 		unregisterService<ClusterPollingServices::PendingQueue<Message>>();
@@ -120,7 +120,7 @@ namespace ClusterServicesTask {
 
 	inline void shutdownWorkers(__attribute__((unused)) int numWorkers)
 	{
-		for(int i=0; i< numWorkers; i++) {
+		for(int i = 0; i < numWorkers; i++) {
 			unregisterService<ClusterPollingServices::ClusterWorker>();
 		}
 		// // To assert shutdown the services before the CPUManager
