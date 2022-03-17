@@ -138,43 +138,41 @@ public:
 			return nanos6_cluster_no_offload;
 		}
 
-		if (task->hasConstrains()) {
-			const int nodeId = task->getNode();
+		const int nodeId = task->getNode();
 
-			if (nodeId >= 0) {                            // Id is a node number.
-				FatalErrorHandler::failIf(
-					nodeId >= ClusterManager::clusterSize(),
-					"node in node() clause is out of range (",
-					nodeId, " >= ", ClusterManager::clusterSize(),
-					") in task: ", task->getLabel()
-				);
-
-				return nodeId;
-			}
-
-			const nanos6_cluster_scheduler_t schedulerId
-				= static_cast<nanos6_cluster_scheduler_t>(nodeId);
-
-			if (schedulerId == nanos6_cluster_no_hint) {  // Explicitly not hint set.
-				return nanos6_cluster_no_hint;
-			}
-
-			// The cluster() value is a scheduler hint.
-			if (schedulerId > nanos6_cluster_min_hint
-				&& schedulerId < nanos6_cluster_no_offload) {
-
-				ClusterSchedulerPolicy * policy = getOrCreateScheduler(schedulerId);
-				assert(policy != nullptr);
-				return policy->getScheduledNode(task, computePlace, hint);
-			}
-
-			FatalErrorHandler::fail(
-				"hint value in node() constraint is out of range. nodeId:",
-				nodeId, " in task: ", task->getLabel()
+		if (nodeId >= 0) {                            // Id is a node number.
+			FatalErrorHandler::failIf(
+				nodeId >= ClusterManager::clusterSize(),
+				"node in node() clause is out of range (",
+				nodeId, " >= ", ClusterManager::clusterSize(),
+				") in task: ", task->getLabel()
 			);
+
+			return nodeId;
 		}
 
-		return nanos6_cluster_no_hint;
+		const nanos6_cluster_scheduler_t schedulerId
+			= static_cast<nanos6_cluster_scheduler_t>(nodeId);
+
+		if (schedulerId == nanos6_cluster_no_hint) {  // Explicitly not hint set.
+			return nanos6_cluster_no_hint;
+		}
+
+		// The cluster() value is a scheduler hint.
+		if (schedulerId > nanos6_cluster_min_hint
+			&& schedulerId < nanos6_cluster_no_offload) {
+
+			ClusterSchedulerPolicy * policy = getOrCreateScheduler(schedulerId);
+			assert(policy != nullptr);
+			return policy->getScheduledNode(task, computePlace, hint);
+		}
+
+		FatalErrorHandler::fail(
+			"hint value in node() constraint is out of range. nodeId:",
+			nodeId, " in task: ", task->getLabel()
+		);
+
+		return nanos6_cluster_no_hint; // Avoid compiler warning
 	}
 
 	ClusterSchedulerInterface(nanos6_cluster_scheduler_t it);

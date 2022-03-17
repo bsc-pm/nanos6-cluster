@@ -192,6 +192,9 @@ private:
 	//! Offloaded task ID
 	OffloadedTaskId _offloadedTaskId;
 
+	//! _clusterNode if set by call to setNode()
+	int _clusterNode; // -1 is same as nanos6_cluster_no_hint, so not overridden by runtime
+
 public:
 	inline Task(
 		void *argsBlock,
@@ -896,12 +899,20 @@ public:
 	//! \brief Get the task's stream
 	inline int getNode() const
 	{
+		if (_clusterNode != -1) {
+			return _clusterNode;
+		}
 		if (hasConstrains()) {
 			nanos6_task_constraints_t constraints;
 			_taskInfo->implementations->get_constraints(_argsBlock, &constraints);
 			return constraints.node;
 		}
 		return nanos6_cluster_no_hint;
+	}
+
+	inline void setNode(int node)
+	{
+		_clusterNode = node;
 	}
 
 	//! \brief Get the task's statistics

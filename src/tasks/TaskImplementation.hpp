@@ -63,7 +63,8 @@ inline Task::Task(
 	_clusterContext(nullptr),
 	_parentSpawnCallback(nullptr),
 	_nestingLevel(0),
-	_offloadedTaskId(OffloadedTaskIdManager::nextOffloadedTaskId())
+	_offloadedTaskId(OffloadedTaskIdManager::nextOffloadedTaskId()),
+	_clusterNode(-1)
 {
 	// This asserts that the interface is used properly.
 
