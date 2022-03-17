@@ -39,18 +39,19 @@ namespace ClusterPollingServices {
 		std::atomic<bool> _live;
 
 		static PendingQueue<T> _singleton;
-		Instrument::ClusterEventType _eventTypeIncoming;
-		Instrument::ClusterEventType _eventTypePending;
-		Instrument::ClusterEventType _eventTypeBytes;
+		Instrument::ClusterEventType _eventTypeIncoming = Instrument::ClusterEventType::ClusterNoEvent;
+		Instrument::ClusterEventType _eventTypePending = Instrument::ClusterEventType::ClusterNoEvent;
+		Instrument::ClusterEventType _eventTypeBytes = Instrument::ClusterEventType::ClusterNoEvent;
 		int _queueBytes;
 
 	public:
-		static void setEventTypes(Instrument::ClusterEventType eventTypeIncoming,
-		                          Instrument::ClusterEventType eventTypePending,
-								  Instrument::ClusterEventType eventTypeBytes) {
-			_singleton._eventTypeIncoming = eventTypeIncoming;
-			_singleton._eventTypePending = eventTypePending;
-			_singleton._eventTypeBytes = eventTypeBytes;
+		PendingQueue()
+		{
+			if (std::is_same<T, DataTransfer>::value) {
+				_eventTypeIncoming = Instrument::ClusterEventType::PendingDataTransfersIncoming;
+				_eventTypePending = Instrument::ClusterEventType::PendingDataTransfers;
+				_eventTypeBytes = Instrument::ClusterEventType::PendingDataTransferBytes;
+			}
 		}
 
 		static void addPendingVector(std::vector<T *> vdt)
@@ -59,18 +60,14 @@ namespace ClusterPollingServices {
 			_singleton._incomingPendings.insert(
 				_singleton._incomingPendings.end(), vdt.begin(), vdt.end());
 
-			if (_singleton._eventTypeIncoming) {
-				Instrument::emitClusterEvent(_singleton._eventTypeIncoming, _singleton._incomingPendings.size());
-			}
+			Instrument::emitClusterEvent(_singleton._eventTypeIncoming, _singleton._incomingPendings.size());
 		}
 
 		static void addPending(T * dt)
 		{
 			std::lock_guard<PaddedSpinLock<>> guard(_singleton._incomingLock);
 			_singleton._incomingPendings.push_back(dt);
-			if (_singleton._eventTypeIncoming) {
-				Instrument::emitClusterEvent(_singleton._eventTypeIncoming, _singleton._incomingPendings.size());
-			}
+			Instrument::emitClusterEvent(_singleton._eventTypeIncoming, _singleton._incomingPendings.size());
 		}
 
 		static int takePendings()
@@ -80,11 +77,11 @@ namespace ClusterPollingServices {
 			std::lock_guard<PaddedSpinLock<>> guard(_singleton._incomingLock);
 			for (T *t : _singleton._incomingPendings) {
 				_singleton._pendings.push_back(t);
-				count ++;
+				count++;
 				_singleton._queueBytes += (int)t->getSize();
 			}
 			_singleton._incomingPendings.clear();
-			if (count > 0 && _singleton._eventTypeIncoming) {
+			if (count > 0) {
 				Instrument::emitClusterEvent(_singleton._eventTypeIncoming, 0);
 				Instrument::emitClusterEvent(_singleton._eventTypePending, _singleton._pendings.size());
 				Instrument::emitClusterEvent(_singleton._eventTypeBytes, _singleton._queueBytes);
@@ -104,12 +101,11 @@ namespace ClusterPollingServices {
 			std::lock_guard<PaddedSpinLock<>> guard(_singleton._lock);
 
 			bool firstIter = true;
-			while(1) { 
+			while(1) {
 				int count = takePendings();
 
 				// There is nothing (new) to process so we can exit now.
-				if (pendings.size() == 0
-					|| (!firstIter && count == 0)) {
+				if (pendings.size() == 0 || (!firstIter && count == 0)) {
 					return true;
 				}
 
@@ -135,7 +131,7 @@ namespace ClusterPollingServices {
 					std::end(pendings)
 				);
 
-				if (numCompleted > 0 && _singleton._eventTypeIncoming) {
+				if (numCompleted > 0) {
 					Instrument::emitClusterEvent(_singleton._eventTypePending, pendings.size());
 					Instrument::emitClusterEvent(_singleton._eventTypeBytes, _singleton._queueBytes);
 				}
@@ -155,7 +151,8 @@ namespace ClusterPollingServices {
 			bool done = false;
 			while (!done) {
 				{
-					std::lock_guard<PaddedSpinLock<>> guard1(_singleton._lock); // Always take _lock before _incomingLock
+					// Always take _lock before _incomingLock
+					std::lock_guard<PaddedSpinLock<>> guard1(_singleton._lock);
 					std::lock_guard<PaddedSpinLock<>> guard2(_singleton._incomingLock);
 					done = _singleton._pendings.empty() && _singleton._incomingPendings.empty();
 				}

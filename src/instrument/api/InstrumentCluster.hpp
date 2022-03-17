@@ -34,7 +34,8 @@ namespace Instrument {
 
 	/* NOTE: this must match the order of the clusterEventType array */
 	enum ClusterEventType {
-		OffloadedTasksWaiting = 0,
+		ClusterNoEvent = 0,
+		OffloadedTasksWaiting,
 		PendingDataTransfers,
 		PendingDataTransferBytes,
 		PendingDataTransfersIncoming,

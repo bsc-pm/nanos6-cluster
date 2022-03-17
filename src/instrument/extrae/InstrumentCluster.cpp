@@ -17,6 +17,7 @@ namespace Instrument {
 
 	/* NOTE: this must match the order of HybridClusterEventType */
 	static extrae_type_t clusterEventTypeToExtraeType[MaxClusterEventType] = {
+		(extrae_type_t) -1,
 		(extrae_type_t) EventType::OFFLOADED_TASKS_WAITING,
 		(extrae_type_t) EventType::PENDING_DATA_TRANSFERS,
 		(extrae_type_t) EventType::PENDING_DATA_TRANSFER_BYTES,
@@ -254,7 +255,7 @@ namespace Instrument {
 
 	void emitClusterEvent(ClusterEventType clusterEventType, int eventValue, InstrumentationContext const &)
 	{
-		if (!Extrae::_extraeInstrumentCluster)
+		if (!Extrae::_extraeInstrumentCluster || clusterEventType == ClusterNoEvent)
 			return;
 
 		extrae_type_t type = clusterEventTypeToExtraeType[clusterEventType];
