@@ -131,7 +131,7 @@ public:
 			|| task->isRemoteTask()       // Already offloaded don't re-offload
 			|| task->isIf0()
 			|| task->isPolling()          // Polling tasks
-			|| task->isTaskloop()         // for now don't offload taskloop
+			|| (task->isTaskloop() && !task->isTaskloopSource()) // Taskfor sources can be offloaded, but not collaborators
 			|| (task->getNode() == nanos6_cluster_no_offload)
 			|| task->getWorkflow() != nullptr) {
 

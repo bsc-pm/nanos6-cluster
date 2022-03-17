@@ -16,6 +16,7 @@
 #include "system/ompss/AddTask.hpp"
 #include "tasks/Task.hpp"
 #include "tasks/Taskfor.hpp"
+#include "tasks/Taskloop.hpp"
 #include "executors/threads/TaskFinalization.hpp"
 
 #include <ClusterManager.hpp>
@@ -112,6 +113,9 @@ namespace TaskOffloading {
 		if (task->isTaskforSource()) {
 			Taskfor *taskfor = static_cast<Taskfor *>(task);
 			msg->setBounds(taskfor->getBounds());
+		} else if (task->isTaskloop()) {
+			Taskloop *taskloop = static_cast<Taskloop *>(task);
+			msg->setBounds(taskloop->getBounds());
 		}
 
 		ClusterManager::sendMessage(msg, remoteNode);
@@ -278,13 +282,15 @@ namespace TaskOffloading {
 		);
 		assert(task != nullptr);
 
-		assert(!task->isTaskloop()); // Taskloops not supported yet
-
 		// If it is a taskfor, then initialize it using the loop bounds in the message
 		if (task->isTaskfor()) {
 			nanos6_loop_bounds_t bounds = msg->getBounds();
 			Taskfor *taskfor = static_cast<Taskfor *>(task);
 			taskfor->initialize(bounds.lower_bound, bounds.upper_bound, bounds.chunksize);
+		} else if (task->isTaskloop()) {
+			nanos6_loop_bounds_t bounds = msg->getBounds();
+			Taskloop *taskloop = static_cast<Taskloop *>(task);
+			taskloop->initialize(bounds.lower_bound, bounds.upper_bound, bounds.grainsize, bounds.chunksize);
 		}
 
 		// Set the task's offloaded task ID to match the original task.

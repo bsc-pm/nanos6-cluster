@@ -147,6 +147,12 @@ public:
 			childBounds.upper_bound = upperBound;
 		}
 
+		// A taskloop executor is never a remote task, even if its parent
+		// (the taskloop source) is.
+		if (parent->isRemoteTask()) {
+			task->unmarkAsRemote();
+		}
+
 		// Submit task and register dependencies
 		AddTask::submitTask(task, parent, fromTaskContext);
 	}
