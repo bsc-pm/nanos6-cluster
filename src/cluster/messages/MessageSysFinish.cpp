@@ -22,22 +22,9 @@ bool MessageSysFinish::handleMessage()
 		"Master node received a MessageSysFinish; this should never happen."
 	);
 
-	ClusterShutdownCallback *callback = nullptr;
-	do {
-		//! We will spin to avoid the (not very likely) case that the Callback has not been set
-		//! yet. This could happen if we received and handled a MessageSysFinish before the loader
-		//! code has finished setting up everything.
-		//! Same situation can happen if the master node sends this message too early and the remote
-		//! namespace has not started yet.
-		callback = ClusterManager::getShutdownCallback();
-	} while (!callback && !NodeNamespace::isEnabled());
+	do {} while (!NodeNamespace::isEnabled());
 
-	if (NodeNamespace::isEnabled()) {
-		NodeNamespace::notifyShutdown();
-	} else {
-		assert(callback != nullptr);
-		callback->execute();
-	}
+	NodeNamespace::notifyShutdown();
 
 	//! Synchronize with all other cluster nodes at this point
 	//! Master node makes this in ClusterManager::shutdownPhase1

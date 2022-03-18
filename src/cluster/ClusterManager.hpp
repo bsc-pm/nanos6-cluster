@@ -345,15 +345,6 @@ public:
 		}
 	}
 
-	//! \brief Get the shutdown callback
-	//!
-	//! \returns the ShutdownCallback
-	static inline ClusterShutdownCallback* getShutdownCallback()
-	{
-		assert(_singleton != nullptr);
-		return _singleton->_callback.load();
-	}
-
 	//! \brief Set a cluster callback or namespace initialization.
 	//!
 	//! The callback is of the form 'void callback(void*)' and it will be

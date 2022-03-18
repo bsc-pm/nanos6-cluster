@@ -63,17 +63,7 @@ MessageTaskNew::MessageTaskNew(
 
 bool MessageTaskNew::handleMessage()
 {
-	if (NodeNamespace::isEnabled()) {
-		NodeNamespace::enqueueTaskMessage(this);
-	} else {
-		SpawnFunction::spawnFunction(
-			TaskOffloading::remoteTaskWrapper, this,
-			TaskOffloading::remoteTaskCleanup, this,
-			"remote-task-wrapper",
-			true,
-			(size_t) Task::nanos6_task_runtime_flag_t::nanos6_remote_wrapper_flag
-		);
-	}
+	NodeNamespace::enqueueTaskMessage(this);
 
 	// The Message will be deleted by remoteTaskCleanup
 	return false;
