@@ -52,12 +52,12 @@ void Taskfor::run(Taskfor &source, nanos6_address_translation_entry_t *translati
 		// to ensure that the re-scheduling overhead is manageable.
 		break;
 
-		_myChunk = source.getNextChunk(cpu);
-		if (_myChunk >= 0) {
-			myIterations = computeChunkBounds(totalChunks, sourceBounds);
-		} else {
-			myIterations = 0;
-		}
+		// _myChunk = source.getNextChunk(cpu);
+		// if (_myChunk >= 0) {
+		// 	myIterations = computeChunkBounds(totalChunks, sourceBounds);
+		// } else {
+		// 	myIterations = 0;
+		// }
 	} while (myIterations != 0);
 
 	assert(completedIterations > 0);
