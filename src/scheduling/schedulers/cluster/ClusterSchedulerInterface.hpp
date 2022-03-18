@@ -141,6 +141,12 @@ public:
 
 		const int nodeId = task->getNode();
 
+		//! Don't offload a taskloop with no_hint as a whole: it will be distributed across
+		//! the nodes instead.
+		if (task->isTaskloop() && nodeId == nanos6_cluster_no_hint) {
+			return nanos6_cluster_no_offload;
+		}
+
 		if (nodeId >= 0) {                            // Id is a node number.
 			FatalErrorHandler::failIf(
 				nodeId >= ClusterManager::clusterSize(),
