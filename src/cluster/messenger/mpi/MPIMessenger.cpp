@@ -351,10 +351,8 @@ Message *MPIMessenger::checkMail(void)
 
 	//! DATA_RAW type of messages will be received by matching 'fetchData' methods
 	const int type = status.MPI_TAG & 0xff;
-	if (type == DATA_RAW) {
-		std::cout << "give up checkMail for DATA_RAW\n";
-		return nullptr;
-	}
+
+	assert(type != DATA_RAW); // DATA_RAW is sent on INTRA_COMM_DATA_RAW
 
 	ret = MPI_Get_count(&status, MPI_BYTE, &count);
 	MPIErrorHandler::handle(ret, INTRA_COMM);
