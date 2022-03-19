@@ -240,6 +240,22 @@ public:
 		_singleton->_msn->sendMessage(msg, recipient, block);
 	}
 
+	static inline void sendMessageToAll(Message *msg, bool block = false)
+	{
+		assert(_singleton != nullptr);
+		assert(_singleton->_msn != nullptr);
+		assert(msg != nullptr);
+
+		for (ClusterNode *slaveNode : _singleton->_clusterNodes) {
+			if (slaveNode == _singleton->_thisNode) {
+				continue;
+			}
+
+			_singleton->_msn->sendMessage(msg, slaveNode, block);
+		}
+	}
+
+
 	//! \brief Test Messages for completion
 	//!
 	//! This is just a wrapper on top of the Messenger API

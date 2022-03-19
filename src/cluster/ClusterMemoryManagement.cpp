@@ -166,32 +166,27 @@ namespace ClusterMemoryManagement {
 
 		//! Send a message to everyone else to let them know about the allocation
 		ClusterNode *current = ClusterManager::getCurrentClusterNode();
-		std::vector<ClusterNode *> const &world = ClusterManager::getClusterNodes();
 
 		MessageDmalloc msg(current, numDimensions);
 		msg.setAllocationSize(size);
 		msg.setDistributionPolicy(policy);
 		msg.setDimensions(dimensions);
+		ClusterManager::sendMessageToAll(&msg, true);
 
-		for (ClusterNode *node : world) {
-			if (node == current) {
-				continue;
+		if (isMaster) {
+			DataAccessRegion region(&dptr, sizeof(void *));
+			for (ClusterNode *node : ClusterManager::getClusterNodes()) {
+				if (node != current) {
+					ClusterManager::sendDataRaw(region, node->getMemoryNode(), msg.getId(), true);
+				}
 			}
-
-			ClusterManager::sendMessage(&msg, node, true);
-
-			if (isMaster) {
-				DataAccessRegion region(&dptr, sizeof(void *));
-				ClusterManager::sendDataRaw(region, node->getMemoryNode(), msg.getId(), true);
-			}
-		}
-
-		//! We are not the master node. The master node will send the allocated address
-		if (!isMaster) {
+		} else {
+			//! We are not the master node. The master node will send the allocated address
 			ClusterNode *master = ClusterManager::getMasterNode();
 			DataAccessRegion region(&dptr, sizeof(void *));
 			ClusterManager::fetchDataRaw(region, master->getMemoryNode(), msg.getId(), true);
 		}
+
 
 		//! Register the newly allocated region with the Directory of home nodes
 		DataAccessRegion allocatedRegion(dptr, size);
@@ -238,20 +233,12 @@ namespace ClusterMemoryManagement {
 
 		//! Send a message to everyone else to let them know about the deallocation
 		const ClusterNode * const current = ClusterManager::getCurrentClusterNode();
-		std::vector<ClusterNode *> const &world = ClusterManager::getClusterNodes();
-
 		MessageDfree msg(current);
 		msg.setAddress(ptr);
 		msg.setSize(size);
 
-		for (ClusterNode *node : world) {
-			if (node == current) {
-				continue;
-			}
 
-			ClusterManager::sendMessage(&msg, node, true);
-		}
-
+		ClusterManager::sendMessageToAll(&msg, true);
 		ClusterManager::synchronizeAll();
 
 		//! TODO: We need to fix the way we allocate distributed memory so that we do allocate it

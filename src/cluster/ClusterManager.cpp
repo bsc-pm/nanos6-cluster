@@ -194,20 +194,14 @@ void ClusterManager::shutdownPhase1()
 	}
 
 	if (isMasterNode()) {
-		assert(NodeNamespace::isEnabled());
 		NodeNamespace::notifyShutdown();
 	}
 
 	if (inClusterMode()) {
 
 		if (isMasterNode()) {
-			for (ClusterNode *slaveNode : _singleton->_clusterNodes) {
-				if (slaveNode != _singleton->_thisNode) {
-					MessageSysFinish msg(_singleton->_thisNode);
-					_singleton->_msn->sendMessage(&msg, slaveNode, true);
-				}
-			}
-
+			MessageSysFinish msg(_singleton->_thisNode);
+			sendMessageToAll(&msg, true);
 			_singleton->_msn->synchronizeAll();
 		}
 

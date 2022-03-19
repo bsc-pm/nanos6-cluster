@@ -36,11 +36,8 @@ bool MessageDmalloc::handleMessage()
 		ClusterNode *current = ClusterManager::getCurrentClusterNode();
 		assert(current != nullptr);
 
-		std::vector<ClusterNode *> const &world =
-			ClusterManager::getClusterNodes();
-
 		/* Send the allocated address to everyone else */
-		for (ClusterNode *node : world) {
+		for (ClusterNode *node : ClusterManager::getClusterNodes()) {
 			if (node == current) {
 				continue;
 			}
