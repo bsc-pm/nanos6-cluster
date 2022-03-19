@@ -42,8 +42,7 @@ public:
 		size_t numSends,
 		std::vector<TaskOffloading::DataSendRegionInfo> const &dataSends);
 
-	MessageDataSend(Deliverable *dlv)
-		: Message(dlv)
+	MessageDataSend(Deliverable *dlv) : Message(dlv)
 	{
 		_content = reinterpret_cast<DataSendMessageContent *>(_deliverable->payload);
 	}

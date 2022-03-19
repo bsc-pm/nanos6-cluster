@@ -167,10 +167,7 @@ namespace ClusterMemoryManagement {
 		//! Send a message to everyone else to let them know about the allocation
 		ClusterNode *current = ClusterManager::getCurrentClusterNode();
 
-		MessageDmalloc msg(current, numDimensions);
-		msg.setAllocationSize(size);
-		msg.setDistributionPolicy(policy);
-		msg.setDimensions(dimensions);
+		MessageDmalloc msg(current, size, policy, numDimensions, dimensions);
 		ClusterManager::sendMessageToAll(&msg, true);
 
 		if (isMaster) {
@@ -233,11 +230,8 @@ namespace ClusterMemoryManagement {
 
 		//! Send a message to everyone else to let them know about the deallocation
 		const ClusterNode * const current = ClusterManager::getCurrentClusterNode();
-		MessageDfree msg(current);
-		msg.setAddress(ptr);
-		msg.setSize(size);
 
-
+		MessageDfree msg(current, ptr, size);
 		ClusterManager::sendMessageToAll(&msg, true);
 		ClusterManager::synchronizeAll();
 

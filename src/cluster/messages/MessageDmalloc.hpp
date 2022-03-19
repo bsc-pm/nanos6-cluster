@@ -32,7 +32,10 @@ class MessageDmalloc : public Message {
 	DmallocMessageContent *_content;
 
 public:
-	MessageDmalloc(const ClusterNode *from, size_t num_dimensions);
+	MessageDmalloc(const ClusterNode *from,
+		size_t size, nanos6_data_distribution_t policy,
+		size_t numDimensions, size_t *dimensions
+	);
 
 	MessageDmalloc(Deliverable *dlv)
 		: Message(dlv)
@@ -42,22 +45,10 @@ public:
 
 	bool handleMessage();
 
-	//! \brief Set the allocation size
-	inline void setAllocationSize(size_t size)
-	{
-		_content->_allocationSize = size;
-	}
-
 	//! \brief Get the allocation size
 	inline size_t getAllocationSize() const
 	{
 		return _content->_allocationSize;
-	}
-
-	//! \brief Set distribution policy
-	inline void setDistributionPolicy(nanos6_data_distribution_t policy)
-	{
-		_content->_policy = policy;
 	}
 
 	//! \brief Get distribution policy
@@ -70,12 +61,6 @@ public:
 	inline size_t getDimensionsSize() const
 	{
 		return _content->_nrDim;
-	}
-
-	//! \brief Set policy dimensions
-	inline void setDimensions(size_t *dimensions)
-	{
-		memcpy(_content->_dimensions, dimensions, sizeof(size_t) * _content->_nrDim);
 	}
 
 	//! \brief Get policy dimensions

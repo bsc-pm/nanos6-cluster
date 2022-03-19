@@ -11,12 +11,16 @@
 #include <DistributionPolicy.hpp>
 #include <VirtualMemoryManagement.hpp>
 
-MessageDmalloc::MessageDmalloc(const ClusterNode *from, size_t numDimensions)
-	: Message(DMALLOC,
-		sizeof(DmallocMessageContent) + numDimensions * sizeof(size_t),
-		from)
+MessageDmalloc::MessageDmalloc(const ClusterNode *from,
+	size_t size, nanos6_data_distribution_t policy,
+	size_t numDimensions, size_t *dimensions
+)
+	: Message(DMALLOC, sizeof(DmallocMessageContent) + numDimensions * sizeof(size_t), from)
 {
 	_content = reinterpret_cast<DmallocMessageContent *>(_deliverable->payload);
+	_content->_allocationSize = size;
+	_content->_policy = policy;
+	memcpy(_content->_dimensions, dimensions, sizeof(size_t) * _content->_nrDim);
 }
 
 bool MessageDmalloc::handleMessage()

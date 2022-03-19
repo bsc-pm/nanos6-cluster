@@ -11,10 +11,12 @@
 #include <DataAccessRegion.hpp>
 #include <memory/directory/cluster/DistributionPolicy.hpp>
 
-MessageDfree::MessageDfree(const ClusterNode *from) :
+MessageDfree::MessageDfree(const ClusterNode *from, void *address, size_t size) :
 	Message(DFREE, sizeof(DfreeMessageContent), from)
 {
 	_content = reinterpret_cast<DfreeMessageContent *>(_deliverable->payload);
+	_content->_address = address;
+	_content->_size = size;
 }
 
 bool MessageDfree::handleMessage()
