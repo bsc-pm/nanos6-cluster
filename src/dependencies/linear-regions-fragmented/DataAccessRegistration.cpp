@@ -1646,6 +1646,50 @@ namespace DataAccessRegistration {
 		return dataAccess;
 	}
 
+	/*
+	 * fragmentUnregisteredAccessObject: Fragment an unregistered access if necessary to match a region.
+	 *
+	 * The task access structures must not be reachable.
+	 *
+	 */
+	static inline DataAccess *fragmentUnregisteredAccessObject(
+		DataAccess *dataAccess, DataAccessRegion const &region,
+		TaskDataAccesses &accessStructures)
+	{
+		assert(!dataAccess->hasBeenDiscounted());
+		assert(!dataAccess->isRegistered());
+		assert(dataAccess->getObjectType() == access_type);
+
+		if (dataAccess->getAccessRegion().fullyContainedIn(region)) {
+			// Nothing to fragment
+			return dataAccess;
+		}
+
+		TaskDataAccesses::accesses_t::iterator position =
+			accessStructures._accesses.iterator_to(*dataAccess);
+		position = accessStructures._accesses.fragmentByIntersection(
+			position, region,
+			/* removeIntersection */ false,
+			/* duplicator */
+			[&](DataAccess const &toBeDuplicated) -> DataAccess * {
+				assert(!toBeDuplicated.isRegistered());
+				return duplicateDataAccess(toBeDuplicated, accessStructures);
+			},
+			/* postprocessor */
+			[&](DataAccess *fragment, DataAccess *originalDataAccess) {
+				fragment->setUpNewFragment(originalDataAccess->getInstrumentationId());
+			});
+
+		/*
+		 * Return the part of this access that is fully inside the given region
+		 */
+		dataAccess = &(*position);
+		assert(dataAccess != nullptr);
+		assert(dataAccess->getAccessRegion().fullyContainedIn(region));
+
+		return dataAccess;
+	}
+
 
 	static inline DataAccess *fragmentFragmentObject(
 		DataAccess *dataAccess, DataAccessRegion const &region,
@@ -3376,6 +3420,37 @@ namespace DataAccessRegistration {
 		std::lock_guard<TaskDataAccesses::spinlock_t> parentGuard(parentAccessStructures._lock);
 		std::lock_guard<TaskDataAccesses::spinlock_t> guard(accessStructures._lock);
 
+		if (task->hasAllMemory()
+			&& parent->getParent() != nullptr
+			&& !parent->isNodeNamespace()) {
+			// Inherit all the none accesses from the parent
+			char *curAddress = (char *)(0x1); // ignore nullptr
+			parentAccessStructures._accesses.processAll(
+				[&](TaskDataAccesses::accesses_t::iterator position) -> bool {
+					DataAccess &access = *position;
+					DataAccessRegion accessRegion = access.getAccessRegion();
+					char *startAddr = (char *)accessRegion.getStartAddress();
+					char *endAddr = (char *)accessRegion.getEndAddress();
+					if (accessRegion.getStartAddress() > curAddress) {
+						DataAccessRegion gap = DataAccessRegion(curAddress, startAddr);
+						accessStructures._accesses.processIntersecting(
+							gap,
+							[&](TaskDataAccesses::accesses_t::iterator childPosition) -> bool {
+								DataAccess *childAccess = &(*childPosition);
+								childAccess = fragmentUnregisteredAccessObject(childAccess, gap, accessStructures);
+								childAccess->markAsDiscounted();
+								accessStructures._accesses.erase(childAccess);
+								ObjectAllocator<DataAccess>::deleteObject(childAccess);
+								return true;
+							}
+						);
+					}
+					curAddress = endAddr;
+					return true;
+				}
+			);
+		}
+
 		// Create any initial missing fragments in the parent, link the previous accesses
 		// and possibly some parent fragments to the new task, and create propagation
 		// operations from the previous accesses to the new task.
@@ -4251,6 +4326,10 @@ namespace DataAccessRegistration {
 
 		TaskDataAccesses &accessStructures = task->getDataAccesses();
 		assert(!accessStructures.hasBeenDeleted());
+
+		if (accessType == AUTO_ACCESS_TYPE) {
+			task->setHasAllMemory();
+		}
 
 		/*
 		 * This access may fragment an existing access.
