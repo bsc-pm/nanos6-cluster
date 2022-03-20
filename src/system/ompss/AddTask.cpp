@@ -97,9 +97,10 @@ Task *AddTask::createTask(
 	}
 
 	TaskDataAccessesInfo taskAccesses(numDependencies);
-	size_t taskAccessesSize = taskAccesses.getAllocationSize();
-	size_t taskCountersSize = TaskHardwareCounters::getAllocationSize();
-	size_t taskStatisticsSize = Monitoring::getAllocationSize();
+	const size_t taskAccessesSize = taskAccesses.getAllocationSize();
+	const size_t taskCountersSize = TaskHardwareCounters::getAllocationSize();
+	const size_t taskStatisticsSize = Monitoring::getAllocationSize();
+	const size_t taskConstraintsSize = sizeof(nanos6_task_constraints_t);
 
 	bool hasPreallocatedArgsBlock = (flags & nanos6_preallocated_args_block);
 	if (hasPreallocatedArgsBlock) {
@@ -107,7 +108,8 @@ Task *AddTask::createTask(
 		task = (Task *) MemoryAllocator::alloc(taskSize
 			+ taskAccessesSize
 			+ taskCountersSize
-			+ taskStatisticsSize);
+			+ taskStatisticsSize
+			+ taskConstraintsSize);
 	} else {
 		// Alignment fixup
 		const size_t missalignment = argsBlockSize & (DATA_ALIGNMENT_SIZE - 1);
@@ -118,7 +120,8 @@ Task *AddTask::createTask(
 		argsBlock = MemoryAllocator::alloc(argsBlockSize + taskSize
 			+ taskAccessesSize
 			+ taskCountersSize
-			+ taskStatisticsSize);
+			+ taskStatisticsSize
+			+ taskConstraintsSize);
 		task = (Task *) ((char *) argsBlock + argsBlockSize);
 	}
 
@@ -131,6 +134,10 @@ Task *AddTask::createTask(
 
 	void *taskStatisticsAddress = (taskStatisticsSize > 0) ?
 		(char *) task + taskSize + taskAccessesSize + taskCountersSize : nullptr;
+
+	void *taskConstraintsAddress
+		= (char *) task + taskSize + taskAccessesSize + taskCountersSize + taskStatisticsSize;
+
 
 	if (isTaskloop || isTaskloopFor) {
 		new (task) Taskloop(argsBlock, originalArgsBlockSize,
@@ -153,6 +160,9 @@ Task *AddTask::createTask(
 			flags, taskAccesses, taskCountersAddress, taskStatisticsAddress);
 	}
 
+	// Just sets the pointer, like taskAccesses, taskCountersAddress is set in constructor.
+	task->setConstraints(reinterpret_cast<nanos6_task_constraints_t *>(taskConstraintsAddress));
+
 	TrackingPoints::exitCreateTask(creator, fromUserCode);
 
 	return task;
@@ -161,6 +171,10 @@ Task *AddTask::createTask(
 void AddTask::submitTask(Task *task, Task *parent, bool fromUserCode)
 {
 	assert(task != nullptr);
+
+	// initConstraints needs to be done during submit step because mercurium initializes the
+	// argsBlock AFTER nanos6_create_task (constructor).
+	task->initConstraints();
 
 	// Retrieve the current thread, compute place, and the creator if it exists
 	Task *creator = nullptr;

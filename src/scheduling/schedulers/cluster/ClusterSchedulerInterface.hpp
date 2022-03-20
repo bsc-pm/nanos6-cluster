@@ -133,13 +133,13 @@ public:
 			|| task->isPolling()          // Polling tasks
 			|| (task->isTaskloop() && !task->isTaskloopSource() && !task->isTaskloopOffloader())
 										  // Taskloop executors cannot be offloaded (sources and offloaders can)
-			|| (task->getNode() == nanos6_cluster_no_offload)
+			|| (task->getConstraints()->node == nanos6_cluster_no_offload)
 			|| task->getWorkflow() != nullptr) {
 
 			return nanos6_cluster_no_offload;
 		}
 
-		const int nodeId = task->getNode();
+		const int nodeId = task->getConstraints()->node;
 
 		//! Don't offload a taskloop with no_hint as a whole: it will be distributed across
 		//! the nodes instead.

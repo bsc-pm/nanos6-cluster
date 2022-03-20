@@ -64,7 +64,7 @@ inline Task::Task(
 	_parentSpawnCallback(nullptr),
 	_nestingLevel(0),
 	_offloadedTaskId(OffloadedTaskIdManager::nextOffloadedTaskId()),
-	_clusterNode(-1)
+	_constraints(nullptr)
 {
 	// This asserts that the interface is used properly.
 
@@ -122,6 +122,8 @@ inline void Task::reinitialize(
 	_clusterContext = nullptr;
 	_parentSpawnCallback = nullptr;
 	_nestingLevel = 0;
+
+	this->initConstraints();
 
 	if (parent != nullptr) {
 		parent->addChild(this);

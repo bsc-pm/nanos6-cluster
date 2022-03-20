@@ -193,7 +193,7 @@ private:
 	OffloadedTaskId _offloadedTaskId;
 
 	//! _clusterNode if set by call to setNode()
-	int _clusterNode; // -1 is same as nanos6_cluster_no_hint, so not overridden by runtime
+	nanos6_task_constraints_t *_constraints; // -1 is same as nanos6_cluster_no_hint, so not overridden by runtime
 
 public:
 	inline Task(
@@ -864,55 +864,43 @@ public:
 		return "Unlabeled";
 	}
 
-	//! \brief Check whether cost is available for the task
-	inline bool hasConstrains() const
+	inline void setConstraints(nanos6_task_constraints_t *address)
 	{
-		return (_taskInfo != nullptr
+		assert(_constraints == nullptr || _constraints == address);
+		_constraints = address;
+	}
+
+	inline void initConstraints()
+	{
+		if (_constraints == nullptr) {
+			return;
+		}
+
+		// We set and initialize constrains. This could be done in the constructor, but requires
+		// many changes with no real benefit.
+		if (_taskInfo != nullptr
 			&& _taskInfo->implementations != nullptr
-			&& _taskInfo->implementations->get_constraints != nullptr);
+			&& _taskInfo->implementations->get_constraints != nullptr) {
+
+			_taskInfo->implementations->get_constraints(_argsBlock, _constraints);
+		} else {
+			_constraints->stream = 0;
+			_constraints->cost = 0;
+			_constraints->node = nanos6_cluster_no_hint;
+		}
 	}
 
-	//! \brief Get the task's cost
-	inline size_t getCost() const
+
+	const inline nanos6_task_constraints_t * getConstraints() const
 	{
-		if (hasConstrains()) {
-			nanos6_task_constraints_t constraints;
-			_taskInfo->implementations->get_constraints(_argsBlock, &constraints);
-			return constraints.cost;
-		}
-
-		return 0;
-	}
-
-	//! \brief Get the task's stream
-	inline size_t getStream() const
-	{
-		if (hasConstrains()) {
-			nanos6_task_constraints_t constraints;
-			_taskInfo->implementations->get_constraints(_argsBlock, &constraints);
-			return constraints.stream;
-		}
-
-		return 0;
-	}
-
-	//! \brief Get the task's stream
-	inline int getNode() const
-	{
-		if (_clusterNode != -1) {
-			return _clusterNode;
-		}
-		if (hasConstrains()) {
-			nanos6_task_constraints_t constraints;
-			_taskInfo->implementations->get_constraints(_argsBlock, &constraints);
-			return constraints.node;
-		}
-		return nanos6_cluster_no_hint;
+		assert(_constraints != nullptr);
+		return _constraints;
 	}
 
 	inline void setNode(int node)
 	{
-		_clusterNode = node;
+		assert(_constraints != nullptr);
+		_constraints->node = node;
 	}
 
 	//! \brief Get the task's statistics

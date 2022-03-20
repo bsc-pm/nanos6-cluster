@@ -47,7 +47,8 @@ typedef enum
 	nanos6_cluster_no_hint = -1,    // Keep this one always the last
 } nanos6_cluster_scheduler_t;
 
-
+// When adding new members here, remember to add a default value in Task::SetConstraints and
+// mercurium.
 typedef struct
 {
 	size_t cost;

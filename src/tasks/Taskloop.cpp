@@ -17,7 +17,7 @@ void Taskloop::body(nanos6_address_translation_entry_t *translationTable)
 
 		if (isRemoteTask()		// Taskloop was offloaded
 			|| _offloader		// It is a taskloop offloader that for some reason didn't get offloaded
-			|| (getNode() != nanos6_cluster_no_hint)) {	// there is a node clause: all on same node
+			|| (this->getConstraints()->node != nanos6_cluster_no_hint)) {	// there is a node clause: all on same node
 
 			// Generate the taskloop executors for the given loop bounds
 			while (getIterationCount() > 0) {
