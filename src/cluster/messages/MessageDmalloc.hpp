@@ -15,6 +15,9 @@
 
 class MessageDmalloc : public Message {
 	struct DmallocMessageContent {
+		//! Address pointer.
+		void *_dptr;
+
 		//! size in bytes of the requested allocation
 		size_t _allocationSize;
 
@@ -33,17 +36,26 @@ class MessageDmalloc : public Message {
 
 public:
 	MessageDmalloc(const ClusterNode *from,
-		size_t size, nanos6_data_distribution_t policy,
+		void *dptr, size_t size, nanos6_data_distribution_t policy,
 		size_t numDimensions, size_t *dimensions
 	);
 
-	MessageDmalloc(Deliverable *dlv)
-		: Message(dlv)
+	MessageDmalloc(Deliverable *dlv) : Message(dlv)
 	{
 		_content = reinterpret_cast<DmallocMessageContent *>(_deliverable->payload);
 	}
 
 	bool handleMessage();
+
+	inline void *getPointer() const
+	{
+		return _content->_dptr;
+	}
+
+	inline void setPointer(void *dptr)
+	{
+		_content->_dptr = dptr;
+	}
 
 	//! \brief Get the allocation size
 	inline size_t getAllocationSize() const

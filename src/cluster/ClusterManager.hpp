@@ -246,15 +246,15 @@ public:
 		assert(_singleton->_msn != nullptr);
 		assert(msg != nullptr);
 
-		for (ClusterNode *slaveNode : _singleton->_clusterNodes) {
-			if (slaveNode == _singleton->_thisNode) {
+		for (ClusterNode *node : _singleton->_clusterNodes) {
+			// Not send to myself and avoid ping-pong.
+			if (node == _singleton->_thisNode || msg->getSenderId() == node->getIndex()) {
 				continue;
 			}
 
-			_singleton->_msn->sendMessage(msg, slaveNode, block);
+			_singleton->_msn->sendMessage(msg, node, block);
 		}
 	}
-
 
 	//! \brief Test Messages for completion
 	//!

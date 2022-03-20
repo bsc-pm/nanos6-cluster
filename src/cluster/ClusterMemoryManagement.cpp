@@ -126,64 +126,14 @@ namespace ClusterMemoryManagement {
 		Directory::writeUnlock();
 	}
 
-	void *dmalloc(
-		size_t size,
-		nanos6_data_distribution_t policy,
-		size_t numDimensions,
-		size_t *dimensions
-	) {
-		void *dptr = nullptr;
-		const bool isMaster = ClusterManager::isMasterNode();
 
-		//! We allocate distributed memory only on the master node, so that we serialize the
-		//! allocations across all cluster nodes
-		if (isMaster) {
-			dptr = VirtualMemoryManagement::allocDistrib(size);
-			if (dptr == nullptr) {
-				return nullptr;
-			}
-		}
+	void handle_dmalloc_message(MessageDmalloc *msg, Task *task)
+	{
+		void *dptr = msg->getPointer();
+		size_t size = msg->getAllocationSize();
 
-		//! Get current task
-		WorkerThread *currentThread = WorkerThread::getCurrentWorkerThread();
-		assert(currentThread != nullptr);
-		Task *task = currentThread->getTask();
-
-		//! If we are not in cluster mode we are done here
-		if (!ClusterManager::inClusterMode()) {
-			assert(isMaster);
-
-			DataAccessRegion allocatedRegion(dptr, size);
-
-			//! The home node of the new allocated region is the current node
-			Directory::insert(allocatedRegion, ClusterManager::getCurrentMemoryNode());
-			DataAccessRegistration::registerLocalAccess(
-				task, allocatedRegion, ClusterManager::getCurrentMemoryNode(), /* isStack */ false
-			);
-
-			return dptr;
-		}
-
-		//! Send a message to everyone else to let them know about the allocation
-		ClusterNode *current = ClusterManager::getCurrentClusterNode();
-
-		MessageDmalloc msg(current, size, policy, numDimensions, dimensions);
-		ClusterManager::sendMessageToAll(&msg, true);
-
-		if (isMaster) {
-			DataAccessRegion region(&dptr, sizeof(void *));
-			for (ClusterNode *node : ClusterManager::getClusterNodes()) {
-				if (node != current) {
-					ClusterManager::sendDataRaw(region, node->getMemoryNode(), msg.getId(), true);
-				}
-			}
-		} else {
-			//! We are not the master node. The master node will send the allocated address
-			ClusterNode *master = ClusterManager::getMasterNode();
-			DataAccessRegion region(&dptr, sizeof(void *));
-			ClusterManager::fetchDataRaw(region, master->getMemoryNode(), msg.getId(), true);
-		}
-
+		assert(dptr != nullptr);
+		assert(size > 0);
 
 		//! Register the newly allocated region with the Directory of home nodes
 		DataAccessRegion allocatedRegion(dptr, size);
@@ -192,10 +142,77 @@ namespace ClusterMemoryManagement {
 		//! This call adds the region to the list of Dmallocs that
 		//! are automatically rebalanced and registers it with the cluster
 		//! directory. Note that it is only registered in cluster mode.
-		registerDmalloc(allocatedRegion, policy, numDimensions, dimensions, task);
+		ClusterMemoryManagement::registerDmalloc(
+			allocatedRegion,
+			msg->getDistributionPolicy(),
+			msg->getDimensionsSize(),
+			msg->getDimensions(),
+			task);
 
 		//! Synchronize across all nodes
 		ClusterManager::synchronizeAll();
+	}
+
+
+	void *dmalloc(
+		size_t size,
+		nanos6_data_distribution_t policy,
+		size_t numDimensions,
+		size_t *dimensions
+	) {
+		void *dptr = nullptr;
+
+		//! Get current task
+		WorkerThread *currentThread = WorkerThread::getCurrentWorkerThread();
+		assert(currentThread != nullptr);
+		Task *task = currentThread->getTask();
+
+		ClusterNode *current = ClusterManager::getCurrentClusterNode();
+		assert(current != nullptr);
+
+		//! We allocate distributed memory only on the master node, so that we serialize the
+		//! allocations across all cluster nodes
+		if (ClusterManager::isMasterNode()) {
+			dptr = VirtualMemoryManagement::allocDistrib(size);
+			if (dptr == nullptr) {
+				return nullptr;
+			}
+		}
+
+		if (ClusterManager::inClusterMode()) {
+			//! Send a message to everyone else to let them know about the allocation
+			MessageDmalloc msg(current, dptr, size, policy, numDimensions, dimensions);
+
+			if (ClusterManager::isMasterNode()) {
+				assert(msg.getPointer() != nullptr);
+				ClusterManager::sendMessageToAll(&msg, true);
+			} else {
+				// Send a dmalloc message to master without pointer,
+				assert(msg.getPointer() == nullptr);
+
+				ClusterNode *master = ClusterManager::getMasterNode();
+				ClusterManager::sendMessage(&msg, master, true);
+
+				DataAccessRegion region(&dptr, sizeof(void *));
+				ClusterManager::fetchDataRaw(region, master->getMemoryNode(), msg.getId(), true);
+				assert(dptr != nullptr);
+				msg.setPointer(dptr);
+			}
+
+			handle_dmalloc_message(&msg, task);
+
+		} else {
+			//! If we are not in cluster mode we are done here
+			assert(ClusterManager::isMasterNode());
+
+			DataAccessRegion allocatedRegion(dptr, size);
+
+			//! The home node of the new allocated region is the current node
+			Directory::insert(allocatedRegion, ClusterManager::getCurrentMemoryNode());
+			DataAccessRegistration::registerLocalAccess(
+				task, allocatedRegion, ClusterManager::getCurrentMemoryNode(), /* isStack */ false
+			);
+		}
 
 		return dptr;
 	}

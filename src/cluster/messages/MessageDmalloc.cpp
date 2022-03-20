@@ -12,12 +12,13 @@
 #include <VirtualMemoryManagement.hpp>
 
 MessageDmalloc::MessageDmalloc(const ClusterNode *from,
-	size_t size, nanos6_data_distribution_t policy,
+	void *dptr, size_t size, nanos6_data_distribution_t policy,
 	size_t numDimensions, size_t *dimensions
 )
 	: Message(DMALLOC, sizeof(DmallocMessageContent) + numDimensions * sizeof(size_t), from)
 {
 	_content = reinterpret_cast<DmallocMessageContent *>(_deliverable->payload);
+	_content->_dptr = dptr;
 	_content->_allocationSize = size;
 	_content->_policy = policy;
 	memcpy(_content->_dimensions, dimensions, sizeof(size_t) * _content->_nrDim);
@@ -25,47 +26,28 @@ MessageDmalloc::MessageDmalloc(const ClusterNode *from,
 
 bool MessageDmalloc::handleMessage()
 {
-	void *dptr = nullptr;
-	size_t size = getAllocationSize();
-	nanos6_data_distribution_t policy = getDistributionPolicy();
-	size_t nrDim = getDimensionsSize();
-	size_t *dimensions = getDimensions();
 	if (ClusterManager::isMasterNode()) {
-		/* The master node performs the allocation and communicates
-		 * the allocated address to all other nodes */
-		dptr = VirtualMemoryManagement::allocDistrib(size);
+		assert(_content->_dptr == nullptr);
 
-		DataAccessRegion address(&dptr, sizeof(void *));
+		const size_t size = getAllocationSize();
 
-		ClusterNode *current = ClusterManager::getCurrentClusterNode();
-		assert(current != nullptr);
+		_content->_dptr = VirtualMemoryManagement::allocDistrib(size);
+		FatalErrorHandler::failIf(_content->_dptr == nullptr,
+			"Master node couldn't allocate distributed memory with size: ", size);
 
-		/* Send the allocated address to everyone else */
-		for (ClusterNode *node : ClusterManager::getClusterNodes()) {
-			if (node == current) {
-				continue;
-			}
+		const ClusterNode *node = ClusterManager::getClusterNode(this->getSenderId());
+		assert(node != nullptr);
 
-			ClusterMemoryNode *memoryNode = node->getMemoryNode();
-			ClusterManager::sendDataRaw(address, memoryNode, getId(), true);
-		}
-	} else {
-		/* This is a slave node. We will receive the allocated address
-		 * from the master node */
-		DataAccessRegion address(&dptr, sizeof(void *));
+		// We don't change the message so it will keep the original sender and won't be sent to it
+		// by the ping-pong protection.
+		ClusterManager::sendMessageToAll(this, true);
 
-		ClusterNode *masterNode = ClusterManager::getMasterNode();
-		ClusterMemoryNode *masterMemoryNode = masterNode->getMemoryNode();
-
-		ClusterManager::fetchDataRaw(address, masterMemoryNode, getId(), true);
+		// And send only address to the original sender.
+		DataAccessRegion region(&_content->_dptr, sizeof(void *));
+		ClusterManager::sendDataRaw(region, node->getMemoryNode(), this->getId(), true);
 	}
 
-	/* Register the newly allocated region with the Directory
-	 * of home nodes */
-	DataAccessRegion allocatedRegion(dptr, size);
-	ClusterMemoryManagement::registerDmalloc(allocatedRegion, policy, nrDim, dimensions, nullptr);
-
-	ClusterManager::synchronizeAll();
+	ClusterMemoryManagement::handle_dmalloc_message(this, nullptr);
 
 	return true;
 }
