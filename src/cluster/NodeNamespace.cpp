@@ -18,7 +18,6 @@
 
 
 NodeNamespace *NodeNamespace::_singleton = nullptr;
-bool NodeNamespace::_bodyHasStarted = false;
 
 NodeNamespace::NodeNamespace(SpawnFunction::function_t mainCallback, void *args)
 	: _mustShutdown(false),
@@ -26,6 +25,12 @@ NodeNamespace::NodeNamespace(SpawnFunction::function_t mainCallback, void *args)
 	_callback(mainCallback, args),
 	_invocationInfo({"Spawned as a NodeNamespace"})
 {
+	{
+		std::lock_guard<std::mutex> lk(m);
+		_bodyHasStarted = false;
+	}
+	cv.notify_all();
+
 	_taskImplementationInfo.run = NodeNamespace::body;
 	_taskImplementationInfo.device_type_id = nanos6_device_t::nanos6_host_device;
 	_taskImplementationInfo.task_label = "Cluster_Namespace";
@@ -77,7 +82,11 @@ void NodeNamespace::bodyPrivate()
 	assert(workerThread->getTask() == _namespaceTask);
 #endif
 
-	_bodyHasStarted = true;
+	{
+		std::lock_guard<std::mutex> lk(m);
+		_bodyHasStarted = true;
+	}
+	cv.notify_all();
 
 	while (true) {
 		_spinlock.lock();

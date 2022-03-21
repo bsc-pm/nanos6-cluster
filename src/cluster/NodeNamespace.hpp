@@ -26,7 +26,9 @@ private:
 	~NodeNamespace();
 
 	//! Whether the body has started executing
-	static bool _bodyHasStarted;
+	std::mutex m;
+	bool _bodyHasStarted;
+	std::condition_variable cv;
 
 	//! Whether the runtime is shutting down
 	std::atomic<bool> _mustShutdown;
@@ -127,13 +129,14 @@ public:
 	{
 		assert(_singleton->_mustShutdown.load() == true);
 
-		while (!_bodyHasStarted) {
-			/* Wait until body has started, otherwise a very short program that
-			 * doesn't use this node may start shutting down before the
-			 * namespace body has started executing. When the body does start
-			 * executing it would otherwise find that _singleton is nullptr.
-			 */
-			sleep(1);
+		/* Wait until body has started, otherwise a very short program that
+		 * doesn't use this node may start shutting down before the
+		 * namespace body has started executing. When the body does start
+		 * executing it would otherwise find that _singleton is nullptr.
+		 */
+		{
+			std::unique_lock<std::mutex> lk(_singleton->m);
+			_singleton->cv.wait(lk, []{return _singleton->_bodyHasStarted;});
 		}
 
 		/*
