@@ -47,7 +47,7 @@ bool MessageDmalloc::handleMessage()
 		ClusterManager::sendDataRaw(region, node->getMemoryNode(), this->getId(), true);
 	}
 
-	ClusterMemoryManagement::handle_dmalloc_message(this, nullptr);
+	ClusterMemoryManagement::handleDmallocMessage(this, nullptr);
 
 	return true;
 }

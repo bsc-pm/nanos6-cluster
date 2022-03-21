@@ -118,7 +118,7 @@ namespace ClusterMemoryManagement {
 	}
 
 
-	void handle_dmalloc_message(MessageDmalloc *msg, Task *task)
+	void handleDmallocMessage(const MessageDmalloc *msg, Task *task)
 	{
 		void *dptr = msg->getPointer();
 		size_t size = msg->getAllocationSize();
@@ -190,7 +190,7 @@ namespace ClusterMemoryManagement {
 				msg.setPointer(dptr);
 			}
 
-			handle_dmalloc_message(&msg, task);
+			ClusterMemoryManagement::handleDmallocMessage(&msg, task);
 
 		} else {
 			//! If we are not in cluster mode we are done here

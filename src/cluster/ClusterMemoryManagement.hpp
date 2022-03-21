@@ -23,7 +23,8 @@ namespace ClusterMemoryManagement {
 	bool unregisterDmalloc(DataAccessRegion const &region);
 
 	void redistributeDmallocs(void);
-	void handle_dmalloc_message(MessageDmalloc *msg, Task *task);
+
+	void handleDmallocMessage(const MessageDmalloc *msg, Task *task);
 
 	void *dmalloc(
 		size_t size,
