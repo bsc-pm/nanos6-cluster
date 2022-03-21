@@ -10,6 +10,7 @@
 #include <atomic>
 #include <vector>
 
+#include <InstrumentLogMessage.hpp>
 #include "InstrumentCluster.hpp"
 #include "lowlevel/PaddedSpinLock.hpp"
 #include "system/ompss/SpawnFunction.hpp"
@@ -157,7 +158,10 @@ namespace ClusterPollingServices {
 					done = _singleton._pendings.empty() && _singleton._incomingPendings.empty();
 				}
 				if (!done) {
-					clusterCout << "Waiting for message delivery\n";
+					Instrument::logMessage(
+						Instrument::ThreadInstrumentationContext::getCurrent(),
+						"Waiting for all messages pendings and incomming"
+					);
 					sleep(1);
 					executeService();
 				}

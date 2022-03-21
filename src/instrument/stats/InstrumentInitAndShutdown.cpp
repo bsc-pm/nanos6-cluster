@@ -202,14 +202,10 @@ if (0) {
 
 	void shutdown()
 	{
-		if (!ClusterManager::inClusterMode()) {
-			// Just print the stats
-			printStats();
-		}
-
-		// In cluster mode, serialize the stats
-		for (int i=0; i < ClusterManager::clusterSize(); i++) {
-			if (i == ClusterManager::getCurrentClusterNode()->getCommIndex()) {
+		// When not in cluster mode there is still a ClusterManager with a vector with a single
+		// step, so we don't need special conditions here.
+		for (const ClusterNode *node : ClusterManager::getClusterNodes()) {
+			if (node == ClusterManager::getCurrentClusterNode()) {
 				printStats();
 			}
 			// Wait for filesystem to synchronize
