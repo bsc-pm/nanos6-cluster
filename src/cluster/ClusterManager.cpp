@@ -182,6 +182,7 @@ void ClusterManager::initClusterNamespaceOrSetCallback(void (*func)(void *), voi
 
 void ClusterManager::shutdownPhase1()
 {
+	assert(NodeNamespace::isEnabled());
 	assert(_singleton != nullptr);
 	assert(MemoryAllocator::isInitialized());
 
@@ -231,12 +232,9 @@ void ClusterManager::shutdownPhase2()
 	// To avoid some issues with the instrumentation shutdown this must be called after finalizing
 	// the instrumentation. The extrae instrumentation accesses to the taskInfo->implementations[0]
 	// during finalization so if the taskinfo is deleted the access may be corrupt.
-	if (NodeNamespace::isEnabled()) {
-		NodeNamespace::deallocate();
-	}
+	NodeNamespace::deallocate();
+
 	assert(!NodeNamespace::isEnabled());
-
-
 	assert(_singleton != nullptr);
 
 	delete _singleton;
