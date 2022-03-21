@@ -10,6 +10,7 @@
 #include <nanos6/cluster.h>
 
 class MessageDmalloc;
+class MessageDfree;
 
 namespace ClusterMemoryManagement {
 
@@ -32,6 +33,8 @@ namespace ClusterMemoryManagement {
 		size_t numDimensions,
 		size_t *dimensions
 	);
+
+	void handleDfreeMessage(const MessageDfree *msg);
 
 	void dfree(void *ptr, size_t size);
 

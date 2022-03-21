@@ -11,11 +11,10 @@
 #include <deque>
 #include <unistd.h>
 
-#include "ClusterManager.hpp"
+#include <ClusterShutdownCallback.hpp>
 #include "messages/MessageTaskNew.hpp"
-#include "tasks/Task.hpp"
-#include <ClusterUtil.hpp>
 #include "system/ompss/AddTask.hpp"
+#include "tasks/Task.hpp"
 
 
 class NodeNamespace {

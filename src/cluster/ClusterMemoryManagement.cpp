@@ -90,9 +90,9 @@ namespace ClusterMemoryManagement {
 			DmallocInfo &dmalloc = (*it);
 			if (dmalloc._region.getStartAddress() == startAddress) {
 				assert(dmalloc._region.getSize() == region.getSize());
-				/*
-				 * Remove from the list of Dmallocs
-				 */
+				// Unregister from directoory.
+				ClusterDirectory::unregisterAllocation(region);
+				// Remove from the list of Dmallocs
 				_dmallocs.erase(it);
 				Directory::writeUnlock();
 				return true;
@@ -145,6 +145,25 @@ namespace ClusterMemoryManagement {
 	}
 
 
+	void handleDfreeMessage(const MessageDfree *msg)
+	{
+		assert(ClusterManager::inClusterMode());
+		//! TODO: We need to fix the way we allocate distributed memory so that we do allocate it
+		//! from the MemoryAllocator instead of the VirtualMemoryManagement layer, which is what we
+		//! do now. The VirtualMemoryManagement layer does not allow (at the moment) deallocation of
+		//! memory, so for now we do not free distributed memory
+		const DataAccessRegion &distributedRegion = msg->getRegion();
+
+		//! Unregister region from the home node map This call removes the region from the list of
+		//! Dmallocs that are automatically rebalanced and unregisters it from the cluster
+		//! directory. NOTE: that it should only be unregistered in cluster mode.
+		const bool ok = ClusterMemoryManagement::unregisterDmalloc(distributedRegion);
+		FatalErrorHandler::failIf(!ok, "dfree on invalid region ", distributedRegion);
+
+		ClusterManager::synchronizeAll();
+	}
+
+
 	void *dmalloc(
 		size_t size,
 		nanos6_data_distribution_t policy,
@@ -184,6 +203,7 @@ namespace ClusterMemoryManagement {
 				ClusterNode *master = ClusterManager::getMasterNode();
 				ClusterManager::sendMessage(&msg, master, true);
 
+				// wait for the address from master
 				DataAccessRegion region(&dptr, sizeof(void *));
 				ClusterManager::fetchDataRaw(region, master->getMemoryNode(), msg.getId(), true);
 				assert(dptr != nullptr);
@@ -213,39 +233,22 @@ namespace ClusterMemoryManagement {
 		assert(ptr != nullptr);
 		assert(size > 0);
 
-		DataAccessRegion distributedRegion(ptr, size);
-
 		//! Unregister region from the DataAccesses list of the Task
 		WorkerThread *currentThread = WorkerThread::getCurrentWorkerThread();
 		assert(currentThread != nullptr);
-
 		Task *currentTask = currentThread->getTask();
+
+		DataAccessRegion distributedRegion(ptr, size);
 		DataAccessRegistration::unregisterLocalAccess(currentTask, distributedRegion);
 
-		//! We do not need to send any Messages here
-		if (!ClusterManager::inClusterMode()) {
+		if (ClusterManager::inClusterMode()) {
+			MessageDfree msg(ClusterManager::getCurrentClusterNode(), distributedRegion);
+
 			//! Here we should deallocate the memory once we fix the memory allocator API
-			return;
+			ClusterManager::sendMessageToAll(&msg, true);
+
+			ClusterMemoryManagement::handleDfreeMessage(&msg);
 		}
-
-		//! Unregister region from the home node map
-		//! This call removes the region from the list of Dmallocs that
-		//! are automatically rebalanced and unregisters it from the cluster
-		//! directory. NOTE: that it should only be unregistered in cluster mode.
-		const bool ok = unregisterDmalloc(distributedRegion);
-		FatalErrorHandler::failIf(!ok, "dfree on invalid region ", distributedRegion);
-
-		//! Send a message to everyone else to let them know about the deallocation
-		const ClusterNode * const current = ClusterManager::getCurrentClusterNode();
-
-		MessageDfree msg(current, ptr, size);
-		ClusterManager::sendMessageToAll(&msg, true);
-		ClusterManager::synchronizeAll();
-
-		//! TODO: We need to fix the way we allocate distributed memory so that we do allocate it
-		//! from the MemoryAllocator instead of the VirtualMemoryManagement layer, which is what we
-		//! do now. The VirtualMemoryManagement layer does not allow (at the moment) deallocation of
-		//! memory, so for now we do not free distributed memory
 	}
 
 	void *lmalloc(size_t size)

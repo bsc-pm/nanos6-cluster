@@ -11,30 +11,19 @@
 #include <DataAccessRegion.hpp>
 #include <memory/directory/cluster/DistributionPolicy.hpp>
 
-MessageDfree::MessageDfree(const ClusterNode *from, void *address, size_t size) :
+MessageDfree::MessageDfree(const ClusterNode *from, DataAccessRegion &region) :
 	Message(DFREE, sizeof(DfreeMessageContent), from)
 {
 	_content = reinterpret_cast<DfreeMessageContent *>(_deliverable->payload);
-	_content->_address = address;
-	_content->_size = size;
+	_content->_region = region;
 }
 
 bool MessageDfree::handleMessage()
 {
-	DataAccessRegion region(_content->_address, _content->_size);
+	assert(_content->_region.getStartAddress() != nullptr);
+	assert(_content->_region.getSize() > 0);
 
-	//! TODO: We need to fix the way we allocate distributed memory so that
-	//! we do allocate it from the MemoryAllocator instead of the
-	//! VirtualMemoryManagement layer, which is what we do now. The
-	//! VirtualMemoryManagement layer does not allow (at the moment)
-	//! deallocation of memory, so for now we do not free distributed
-	//! memory
-
-	//! Unregister the region from the home node map
-	ClusterDirectory::unregisterAllocation(region);
-	ClusterMemoryManagement::unregisterDmalloc(region);
-
-	ClusterManager::synchronizeAll();
+	ClusterMemoryManagement::handleDfreeMessage(this);
 
 	return true;
 }

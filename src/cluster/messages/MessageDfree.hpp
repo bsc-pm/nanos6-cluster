@@ -15,17 +15,14 @@
 class MessageDfree : public Message {
 	struct DfreeMessageContent {
 		//! address of the distributed allocation
-		void *_address;
-
-		//! size in bytes of the allocation
-		size_t _size;
+		DataAccessRegion _region;
 	};
 
 	//! \brief pointer to the message payload
 	DfreeMessageContent *_content;
 
 public:
-	MessageDfree(const ClusterNode *from, void *address, size_t size);
+	MessageDfree(const ClusterNode *from, DataAccessRegion &region);
 
 	MessageDfree(Deliverable *dlv) : Message(dlv)
 	{
@@ -34,25 +31,16 @@ public:
 
 	bool handleMessage();
 
-	//! \brief Get the address of the allocation
-	inline void *getAddress() const
+	const DataAccessRegion &getRegion() const
 	{
-		return _content->_address;
-	}
-
-	//! \brief Get the size of the allocation
-	inline size_t getSize() const
-	{
-		return _content->_size;
+		return _content->_region;
 	}
 
 	//! \brief Return a string with a description of the Message
 	inline std::string toString() const
 	{
 		std::stringstream ss;
-
-		DataAccessRegion region(_content->_address, _content->_size);
-		ss << "[region:" << region << "]";
+		ss << "[region:" << _content->_region << "]";
 
 		return ss.str();
 	}
