@@ -14,8 +14,8 @@
 class MessageSysFinish : public Message {
 public:
 	MessageSysFinish(const ClusterNode *from);
-	MessageSysFinish(Deliverable *dlv)
-		: Message(dlv)
+
+	MessageSysFinish(Deliverable *dlv) : Message(dlv)
 	{
 	}
 

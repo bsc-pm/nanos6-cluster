@@ -13,11 +13,11 @@
 #include "polling-services/ClusterServicesTask.hpp"
 #include "system/RuntimeInfo.hpp"
 
+#include <NodeNamespace.hpp>
 #include <RemoteTasksInfoMap.hpp>
 #include <OffloadedTaskId.hpp>
 #include <OffloadedTasksInfoMap.hpp>
 #include <ClusterNode.hpp>
-#include <NodeNamespace.hpp>
 #include "ClusterUtil.hpp"
 #include "WriteID.hpp"
 #include "MessageId.hpp"
@@ -102,6 +102,16 @@ void ClusterManager::initClusterNamespace(void (*func)(void *), void *args)
 	NodeNamespace::init(func, args);
 }
 
+void ClusterManager::finishClusterNamespace()
+{
+	assert(_singleton != nullptr);
+	do {} while (!NodeNamespace::isEnabled());
+
+	NodeNamespace::notifyShutdown();
+	ClusterManager::synchronizeAll();
+}
+
+
 
 void ClusterManager::internal_reset() {
 
@@ -129,7 +139,6 @@ void ClusterManager::internal_reset() {
 		_thisNode = _clusterNodes[nodeIndex];
 		_masterNode = _clusterNodes[masterIndex];
 	}
-
 }
 
 
@@ -147,7 +156,6 @@ void ClusterManager::initialize(int argc, char **argv)
 	if (commType.getValue() != "disabled") {
 		assert(argc > 0);
 		assert(argv != nullptr);
-
 		_singleton = new ClusterManager(commType.getValue(), argc, argv);
 	} else {
 		_singleton = new ClusterManager();
@@ -189,28 +197,28 @@ void ClusterManager::shutdownPhase1()
 	}
 
 	if (isMasterNode()) {
-		NodeNamespace::notifyShutdown();
-
 		MessageSysFinish msg(_singleton->_thisNode);
 		sendMessageToAll(&msg, true);
+
+		// Master needs to do the same than others
+		ClusterManager::finishClusterNamespace();
 	}
 
 	if (inClusterMode()) {
-		_singleton->_msn->synchronizeAll();
-
 		if (_singleton->_taskInPoolins) {
 			ClusterServicesTask::shutdown();
-			ClusterServicesTask::shutdownWorkers(_singleton->_numMessageHandlerWorkers);
 		} else {
 			ClusterServicesPolling::shutdown();
-			ClusterServicesTask::shutdownWorkers(_singleton->_numMessageHandlerWorkers);
 		}
+		ClusterServicesTask::shutdownWorkers(_singleton->_numMessageHandlerWorkers);
+
 		assert(ClusterServicesPolling::_activeClusterPollingServices == 0);
 
 		TaskOffloading::RemoteTasksInfoMap::shutdown();
 		TaskOffloading::OffloadedTasksInfoMap::shutdown();
+	}
 
-		assert(_singleton->_msn != nullptr);
+	if (_singleton->_msn != nullptr) {
 		// Finalize MPI BEFORE the instrumentation because the extrae finalization accesses to some
 		// data structures throw extrae_nanos6_get_thread_id when finalizing MPI.
 		_singleton->_msn->shutdown();
@@ -219,7 +227,6 @@ void ClusterManager::shutdownPhase1()
 
 void ClusterManager::shutdownPhase2()
 {
-
 	// To avoid some issues with the instrumentation shutdown this must be called after finalizing
 	// the instrumentation. The extrae instrumentation accesses to the taskInfo->implementations[0]
 	// during finalization so if the taskinfo is deleted the access may be corrupt.

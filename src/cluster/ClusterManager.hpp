@@ -357,6 +357,7 @@ public:
 	//! Init is called in the boostrap and finish in the SysFInish Message handler.
 	//! invoked when we have to shutdown the runtime instance
 	static void initClusterNamespace(void (*func)(void *), void *args);
+	static void finishClusterNamespace();
 
 	static bool getDisableRemote()
 	{

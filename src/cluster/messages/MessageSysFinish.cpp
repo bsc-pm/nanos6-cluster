@@ -5,9 +5,7 @@
 */
 
 #include "MessageSysFinish.hpp"
-#include "cluster/ClusterShutdownCallback.hpp"
 #include "cluster/ClusterManager.hpp"
-#include "cluster/NodeNamespace.hpp"
 
 #include <nanos6/bootstrap.h>
 
@@ -22,13 +20,7 @@ bool MessageSysFinish::handleMessage()
 		"Master node received a MessageSysFinish; this should never happen."
 	);
 
-	do {} while (!NodeNamespace::isEnabled());
-
-	NodeNamespace::notifyShutdown();
-
-	//! Synchronize with all other cluster nodes at this point
-	//! Master node makes this in ClusterManager::shutdownPhase1
-	ClusterManager::synchronizeAll();
+	ClusterManager::finishClusterNamespace();
 
 	return true;
 }
