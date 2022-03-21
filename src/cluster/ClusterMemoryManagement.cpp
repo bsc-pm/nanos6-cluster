@@ -20,30 +20,31 @@ namespace ClusterMemoryManagement {
 
 	struct DmallocInfo {
 
-	   DataAccessRegion _region;
-	   nanos6_data_distribution_t _policy;
-	   size_t _nrDimensions;
-	   size_t *_dimensions;
+		DataAccessRegion _region;
+		nanos6_data_distribution_t _policy;
+		size_t _nrDimensions;
+		size_t *_dimensions;
 
-	   DmallocInfo(DataAccessRegion region,
-							   nanos6_data_distribution_t policy,
-							   size_t nrDimensions,
-							   size_t *dimensions) :
-							   _region(region), _policy(policy), _nrDimensions(nrDimensions)
-	   {
-			   if (dimensions) {
-					   _dimensions = new size_t[nrDimensions];
-					   memcpy(_dimensions, dimensions, nrDimensions * sizeof(size_t));
-			   } else {
-					   _dimensions = nullptr;
-			   }
-	   }
-	   ~DmallocInfo()
-	   {
-			   if (_dimensions) {
-					   delete[] _dimensions;
-			   }
-	   }
+		DmallocInfo(DataAccessRegion region,
+			nanos6_data_distribution_t policy,
+			size_t nrDimensions,
+			size_t *dimensions
+		)
+			: _region(region), _policy(policy), _nrDimensions(nrDimensions), _dimensions(nullptr)
+		{
+			if (dimensions != nullptr) {
+				assert(nrDimensions > 0);
+				_dimensions = new size_t[nrDimensions];
+				memcpy(_dimensions, dimensions, nrDimensions * sizeof(size_t));
+			}
+		}
+
+		~DmallocInfo()
+		{
+			if (_dimensions) {
+				delete[] _dimensions;
+			}
+		}
 	};
 
 	// List of all registered dmallocs
@@ -72,11 +73,7 @@ namespace ClusterMemoryManagement {
 		/*
 		 * Now register the allocation with the directory.
 		 */
-		ClusterDirectory::registerAllocation(region,
-											 policy,
-											 nrDimensions,
-											 dimensions,
-											 task);
+		ClusterDirectory::registerAllocation(region, policy, nrDimensions, dimensions, task);
 		Directory::writeUnlock();
 	}
 
@@ -89,9 +86,7 @@ namespace ClusterMemoryManagement {
 		 * Take write lock on the directory, which also protects _dmallocs.
 		 */
 		Directory::writeLock();
-		for(std::list<DmallocInfo>::iterator it=_dmallocs.begin();
-			it!= _dmallocs.end();
-			it++) {
+		for (std::list<DmallocInfo>::iterator it=_dmallocs.begin(); it != _dmallocs.end(); it++) {
 			DmallocInfo &dmalloc = (*it);
 			if (dmalloc._region.getStartAddress() == startAddress) {
 				assert(dmalloc._region.getSize() == region.getSize());
@@ -111,17 +106,13 @@ namespace ClusterMemoryManagement {
 	// any updated policies.
 	void redistributeDmallocs(void)
 	{
-		/*
-		 * Take write lock on the directory, which also protects _dmallocs.
-		 */
+		// Take write lock on the directory, which also protects _dmallocs.
 		Directory::writeLock();
-		for(DmallocInfo &dmalloc : _dmallocs)
-		{
-			// std::cout << nanos6_get_cluster_node_id() << " redistribute dmalloc "
-			// 		  << dmalloc._region.getStartAddress() << ":" << dmalloc._region.getSize() << "\n";
-
+		for (DmallocInfo &dmalloc : _dmallocs) {
 			ClusterDirectory::unregisterAllocation(dmalloc._region);
-			ClusterDirectory::registerAllocation(dmalloc._region, dmalloc._policy, dmalloc._nrDimensions, dmalloc._dimensions, nullptr);
+			ClusterDirectory::registerAllocation(
+				dmalloc._region, dmalloc._policy, dmalloc._nrDimensions, dmalloc._dimensions, nullptr
+			);
 		}
 		Directory::writeUnlock();
 	}
@@ -241,9 +232,8 @@ namespace ClusterMemoryManagement {
 		//! This call removes the region from the list of Dmallocs that
 		//! are automatically rebalanced and unregisters it from the cluster
 		//! directory. NOTE: that it should only be unregistered in cluster mode.
-		bool ok = unregisterDmalloc(distributedRegion);
-		FatalErrorHandler::failIf(!ok,
-								  "dfree on invalid region ", distributedRegion);
+		const bool ok = unregisterDmalloc(distributedRegion);
+		FatalErrorHandler::failIf(!ok, "dfree on invalid region ", distributedRegion);
 
 		//! Send a message to everyone else to let them know about the deallocation
 		const ClusterNode * const current = ClusterManager::getCurrentClusterNode();
