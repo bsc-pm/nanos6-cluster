@@ -64,15 +64,6 @@ private:
 
 	int _numMessageHandlerWorkers;
 
-	//! The ShutdownCallback for this ClusterNode.
-	//! At the moment this is an atomic variable, because we might have
-	//! to poll for this, until it's set from external code. For example,
-	//! this could happen if a remote node tries to shutdown (because
-	//! we received a MessageSysFinish before the loader setting the
-	//! callback.
-	std::atomic<ClusterShutdownCallback*> _callback;
-
-
 	//! private constructors. This is a singleton.
 	ClusterManager();
 

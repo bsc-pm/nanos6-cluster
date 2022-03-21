@@ -39,8 +39,7 @@ ClusterManager::ClusterManager()
 	_thisNode(new ClusterNode(0, 0)),
 	_masterNode(_thisNode),
 	_msn(nullptr),
-	_disableRemote(false), _disableRemoteConnect(false), _disableAutowait(false),
-	_callback(nullptr)
+	_disableRemote(false), _disableRemoteConnect(false), _disableAutowait(false)
 {
 	_clusterNodes[0] = _thisNode;
 	WriteIDManager::initialize(0,1);
@@ -49,8 +48,7 @@ ClusterManager::ClusterManager()
 
 ClusterManager::ClusterManager(std::string const &commType, int argc, char **argv)
 	: _msn(GenericFactory<std::string,Messenger*,int,char**>::getInstance().create(commType, argc, argv)),
-	_disableRemote(false), _disableRemoteConnect(false), _disableAutowait(false),
-	_callback(nullptr)
+	_disableRemote(false), _disableRemoteConnect(false), _disableAutowait(false)
 {
 	assert(_msn != nullptr);
 
@@ -60,7 +58,6 @@ ClusterManager::ClusterManager(std::string const &commType, int argc, char **arg
 	this->internal_reset();
 
 	_msn->synchronizeAll();
-	_callback.store(nullptr);
 
 	ConfigVariable<bool> inTask("cluster.services_in_task");
 	_taskInPoolins = inTask.getValue();
@@ -96,9 +93,6 @@ ClusterManager::~ClusterManager()
 
 	delete _msn;
 	_msn = nullptr;
-
-	delete _callback;
-	_callback = nullptr;
 }
 
 void ClusterManager::internal_reset() {
@@ -196,15 +190,13 @@ void ClusterManager::shutdownPhase1()
 
 	if (isMasterNode()) {
 		NodeNamespace::notifyShutdown();
+
+		MessageSysFinish msg(_singleton->_thisNode);
+		sendMessageToAll(&msg, true);
 	}
 
 	if (inClusterMode()) {
-
-		if (isMasterNode()) {
-			MessageSysFinish msg(_singleton->_thisNode);
-			sendMessageToAll(&msg, true);
-			_singleton->_msn->synchronizeAll();
-		}
+		_singleton->_msn->synchronizeAll();
 
 		if (_singleton->_taskInPoolins) {
 			ClusterServicesTask::shutdown();
@@ -217,9 +209,8 @@ void ClusterManager::shutdownPhase1()
 
 		TaskOffloading::RemoteTasksInfoMap::shutdown();
 		TaskOffloading::OffloadedTasksInfoMap::shutdown();
-	}
 
-	if (_singleton->_msn != nullptr) {
+		assert(_singleton->_msn != nullptr);
 		// Finalize MPI BEFORE the instrumentation because the extrae finalization accesses to some
 		// data structures throw extrae_nanos6_get_thread_id when finalizing MPI.
 		_singleton->_msn->shutdown();
