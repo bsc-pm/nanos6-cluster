@@ -52,10 +52,10 @@ int nanos6_can_run_main(void)
 	return ClusterManager::isMasterNode();
 }
 
-void nanos6_register_remote_node(void (*shutdown_callback)(void *), void *callback_args)
+void nanos6_register_node(void (*shutdown_callback)(void *), void *callback_args)
 {
-	assert(shutdown_callback != nullptr);
-	ClusterManager::initClusterNamespaceOrSetCallback(shutdown_callback, callback_args);
+	assert(ClusterManager::isMasterNode() || shutdown_callback != nullptr);
+	ClusterManager::initClusterNamespace(shutdown_callback, callback_args);
 }
 
 // Before main started
@@ -119,9 +119,6 @@ void nanos6_preinit(int argc, char **argv)
 
 	CPUManager::initialize();
 
-	if (ClusterManager::isMasterNode()) {
-		ClusterManager::initClusterNamespaceOrSetCallback(nullptr, nullptr);
-	}
 	Instrument::nanos6_preinit_finished();
 
 	// Assert config conditions if any

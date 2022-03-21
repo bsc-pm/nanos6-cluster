@@ -95,6 +95,14 @@ ClusterManager::~ClusterManager()
 	_msn = nullptr;
 }
 
+// Static 
+void ClusterManager::initClusterNamespace(void (*func)(void *), void *args)
+{
+	assert(_singleton != nullptr);
+	NodeNamespace::init(func, args);
+}
+
+
 void ClusterManager::internal_reset() {
 
 	/** These are communicator-type indices. At the moment we have an
@@ -165,14 +173,6 @@ void ClusterManager::postinitialize()
 		}
 	}
 }
-
-
-void ClusterManager::initClusterNamespaceOrSetCallback(void (*func)(void *), void *args)
-{
-	assert(_singleton != nullptr);
-	NodeNamespace::init(func, args);
-}
-
 
 void ClusterManager::shutdownPhase1()
 {

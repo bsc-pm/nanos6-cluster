@@ -352,14 +352,11 @@ public:
 		}
 	}
 
-	//! \brief Set a cluster callback or namespace initialization.
+	//! \brief Functions required to init and finish.
 	//!
-	//! The callback is of the form 'void callback(void*)' and it will be
+	//! Init is called in the boostrap and finish in the SysFInish Message handler.
 	//! invoked when we have to shutdown the runtime instance
-	//!
-	//! \param[in] func is the callback function
-	//! \param[in] args is the callback function argument
-	static void initClusterNamespaceOrSetCallback(void (*func)(void *), void *args);
+	static void initClusterNamespace(void (*func)(void *), void *args);
 
 	static bool getDisableRemote()
 	{

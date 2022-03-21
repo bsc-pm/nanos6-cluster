@@ -33,13 +33,13 @@ int nanos6_can_run_main(void)
 	return (*symbol)();
 }
 
-void nanos6_register_remote_node(void (*callback_function)(void *), void *callback_args)
+void nanos6_register_node(void (*callback_function)(void *), void *callback_args)
 {
-	typedef void nanos6_register_remote_node_t(void (*)(void *), void *);
+	typedef void nanos6_register_node_t(void (*)(void *), void *);
 
-	static nanos6_register_remote_node_t *symbol = NULL;
+	static nanos6_register_node_t *symbol = NULL;
 	if (__builtin_expect(symbol == NULL, 0)) {
-		symbol = (nanos6_register_remote_node_t *) _nanos6_resolve_symbol("nanos6_register_remote_node", "essential", NULL);
+		symbol = (nanos6_register_node_t *) _nanos6_resolve_symbol("nanos6_register_node", "essential", NULL);
 	}
 
 	(*symbol)(callback_function, callback_args);

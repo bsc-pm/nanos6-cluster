@@ -42,7 +42,7 @@ int nanos6_can_run_main(void);
 //! This function registers a callback function and a pointer to arguments that should
 //! be passed to this callback. The callback will be called by the runtime system during
 //! the shutdown phase
-void nanos6_register_remote_node(void (*shutdown_callback)(void *), void *callback_args);
+void nanos6_register_node(void (*shutdown_callback)(void *), void *callback_args);
 
 //! \brief Force the runtime to be shut down
 //

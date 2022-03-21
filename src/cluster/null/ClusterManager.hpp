@@ -105,7 +105,7 @@ public:
 		return nullptr;
 	}
 
-	static inline void initClusterNamespaceOrSetCallback(
+	static inline void initClusterNamespace(
 		__attribute__((unused)) void (*func)(void *),
 		__attribute__((unused)) void *args)
 	{

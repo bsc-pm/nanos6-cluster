@@ -136,9 +136,10 @@ int _nanos6_loader_main(int argc, char **argv, char **envp) {
 	main_task_args_block_t argsBlock = { argc, argv, envp, 0 };
 
 	if (nanos6_can_run_main()) {
+		nanos6_register_node(NULL, NULL);
 		nanos6_spawn_function(main_task_wrapper, &argsBlock, main_completion_callback, &condVar, "main");
 	} else {
-		nanos6_register_remote_node(main_completion_callback, &condVar);
+		nanos6_register_node(main_completion_callback, &condVar);
 	}
 
 	if (_nanos6_exit_with_error) {
