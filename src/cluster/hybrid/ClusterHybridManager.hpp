@@ -29,11 +29,11 @@ private:
 	static int _numOwnedCPUs;
 	static ClusterHybridPolicy _policy;
 	static bool _dromEnabled;
-	static int _allocOtherInstances;
-	static float _busyOtherInstances;
-	static float _averagedBusyOtherInstances;
+	static int _allocOtherInstancesSameNode;
+	static float _busyOtherInstancesSameNode;
+	static float _averagedBusyOtherInstancesSameNode;
 	static float _averagedBusy;
-	static ClusterAveragedStats *_averagedStatsBusyOtherInstances;
+	static ClusterAveragedStats *_averagedStatsBusyOtherInstancesSameNode;
 
 public:
 
@@ -69,11 +69,11 @@ public:
 		return _dromEnabled;
 	}
 
-	static void setDemandOtherInstances(int allocOtherInstances, float busyOtherInstances)
+	static void setDemandOtherInstancesSameNode(int allocOtherInstancesSameNode, float busyOtherInstancesSameNode)
 	{
-		_allocOtherInstances = allocOtherInstances;
-		_busyOtherInstances = busyOtherInstances;
-		_averagedStatsBusyOtherInstances->update(busyOtherInstances);
+		_allocOtherInstancesSameNode = allocOtherInstancesSameNode;
+		_busyOtherInstancesSameNode = busyOtherInstancesSameNode;
+		_averagedStatsBusyOtherInstancesSameNode->update(busyOtherInstancesSameNode);
 	}
 
 	static void setAveragedBusy(float averagedBusy)
@@ -81,9 +81,9 @@ public:
 		_averagedBusy = averagedBusy;
 	}
 
-	static float getAveragedBusyOtherInstances()
+	static float getAveragedBusyOtherInstancesSameNode()
 	{
-		return  _averagedStatsBusyOtherInstances->readBusyCores();
+		return  _averagedStatsBusyOtherInstancesSameNode->readBusyCores();
 	}
 
 	static float getAveragedBusy()
@@ -91,14 +91,14 @@ public:
 		return  _averagedBusy;
 	}
 
-	static int getAllocOtherInstances()
+	static int getAllocOtherInstancesSameNode()
 	{
-		return _allocOtherInstances;
+		return _allocOtherInstancesSameNode;
 	}
 
-	static float getBusyOtherInstances()
+	static float getBusyOtherInstancesSameNode()
 	{
-		return _busyOtherInstances;
+		return _busyOtherInstancesSameNode;
 	}
 
 	static int getCurrentOwnedCPUs();

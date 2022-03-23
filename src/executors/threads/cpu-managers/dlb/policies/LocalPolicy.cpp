@@ -33,8 +33,8 @@ void LocalPolicy::execute(ComputePlace *cpu, CPUManagerPolicyHint hint, size_t n
 	CPU *currentCPU = (CPU *) cpu;
 	ClusterHybridManager::setAveragedBusy(averageBusyCPUs);
 
-	float averagedDemandOtherInstances = ClusterHybridManager::getAveragedBusyOtherInstances();
-	float totalDemandOnNode = averageBusyCPUs + averagedDemandOtherInstances;
+	float averagedDemandOtherInstancesSameNode = ClusterHybridManager::getAveragedBusyOtherInstancesSameNode();
+	float totalDemandOnNode = averageBusyCPUs + averagedDemandOtherInstancesSameNode;
 
 	int allocCores = 1;
 	if (totalDemandOnNode > 0.0) {

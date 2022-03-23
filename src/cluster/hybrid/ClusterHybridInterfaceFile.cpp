@@ -226,7 +226,7 @@ int ClusterHybridInterfaceFile::updateTotalsThisNode(void)
 	}
 	// std::cout << "Extrank " << ClusterManager::getExternalRank() << " ok " << totalBusy << "\n";
 	if (ok) {
-		ClusterHybridManager::setDemandOtherInstances(totalAlloc, totalBusy);
+		ClusterHybridManager::setDemandOtherInstancesSameNode(totalAlloc, totalBusy);
 	}
 	return totalAlloc;
 }
@@ -333,8 +333,8 @@ void ClusterHybridInterfaceFile::appendUtilization(float timestamp, float totalB
 					 << numCpusOwned << " "
 					 << DLBCPUActivation::getCurrentLentOwnedCPUs() << " "
 					 << DLBCPUActivation::getCurrentBorrowedCPUs() << " "
-					 << ClusterHybridManager::getBusyOtherInstances() << " "
-					 // << ClusterHybridManager::getAveragedBusyOtherInstances() << " "
+					 << ClusterHybridManager::getBusyOtherInstancesSameNode() << " "
+					 // << ClusterHybridManager::getAveragedBusyOtherInstancesSameNode() << " "
 					 // << ClusterHybridManager::getAveragedBusy() << "\n";
 					 << otherAlloc << " " 
 					 << numOffloaded << " " 

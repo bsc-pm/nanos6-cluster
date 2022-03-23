@@ -23,11 +23,11 @@ int ClusterHybridManager::_numCPUs;
 int ClusterHybridManager::_numOwnedCPUs;
 ClusterHybridPolicy ClusterHybridManager::_policy = ClusterHybridPolicy::Bad;
 bool ClusterHybridManager::_dromEnabled;
-float ClusterHybridManager::_busyOtherInstances = 0.0;
-int ClusterHybridManager::_allocOtherInstances = 0;
-float ClusterHybridManager::_averagedBusyOtherInstances = 0.0;
+float ClusterHybridManager::_busyOtherInstancesSameNode = 0.0;
+int ClusterHybridManager::_allocOtherInstancesSameNode = 0;
+float ClusterHybridManager::_averagedBusyOtherInstancesSameNode = 0.0;
 float ClusterHybridManager::_averagedBusy= 0.0;
-ClusterAveragedStats  *ClusterHybridManager::_averagedStatsBusyOtherInstances;
+ClusterAveragedStats  *ClusterHybridManager::_averagedStatsBusyOtherInstancesSameNode;
 
 std::atomic<int> countHandleRequestAttempts(0);
 
@@ -36,7 +36,7 @@ void ClusterHybridManager::initialize(bool forceHybrid, __attribute__((unused)) 
 	// Time period for local policy in seconds
 	ConfigVariable<int> timePeriod("cluster.hybrid.local_time_period");
 	double timePeriodSecs = (double)timePeriod.getValue();
-	_averagedStatsBusyOtherInstances = new ClusterAveragedStats(timePeriodSecs, false); // will call from ClusterHybrid
+	_averagedStatsBusyOtherInstancesSameNode = new ClusterAveragedStats(timePeriodSecs, false); // will call from ClusterHybrid
 
 	ConfigVariable<std::string> hybridPolicy("cluster.hybrid.policy");
 	if (hybridPolicy.getValue() == "default") {
