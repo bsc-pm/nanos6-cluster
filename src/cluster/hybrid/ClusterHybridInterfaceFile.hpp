@@ -30,7 +30,7 @@ class ClusterHybridInterfaceFile : public ClusterHybridInterface {
 		}
 
 		// Return value is whether the allocation changed
-		bool updateNumbersOfCores(bool isLocal);
+		bool updateNumbersOfCores(bool isLocal, float totalBusyCores);
 		bool updateAllocFileGlobal(void);
 		int updateTotalsThisNode(void);
 

@@ -35,6 +35,7 @@ private:
 	bool _clusterRequested; // Built with cluster and cluster.communication is not disabled
 	bool _shuttingDown;
 	int _totalReadyTasks;
+	int _totalBusyCoresSameApprank;
 
 	static ClusterManager *_singleton;
 
@@ -544,6 +545,18 @@ public:
 	{
 		assert(_singleton);
 		return _singleton->_totalReadyTasks;
+	}
+
+	static void setTotalBusyCoresSameApprank(int totalBusyCoresSameApprank)
+	{
+		assert(_singleton);
+		_singleton->_totalBusyCoresSameApprank = totalBusyCoresSameApprank;
+	}
+
+	static int getTotalBusyCoresSameApprank()
+	{
+		assert(_singleton);
+		return _singleton->_totalBusyCoresSameApprank;
 	}
 
 	static void abort();

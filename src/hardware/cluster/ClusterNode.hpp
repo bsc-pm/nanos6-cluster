@@ -37,6 +37,8 @@ private:
 	//! The number of ready tasks reported in the utilization<n> file
 	size_t _numReadyTasks;
 
+	//! The number of busy cores reported in the utilization<n> file
+	float _numBusyCores;
 
 	std::atomic<int> _numOffloadedTasks; // offloaded by us
 
@@ -116,6 +118,17 @@ public:
 	{
 		return _numReadyTasks;
 	}
+
+	inline void setCurrentBusyCores(float numBusyCores)
+	{
+		_numBusyCores = numBusyCores;
+	}
+
+	inline float getCurrentBusyCores() const
+	{
+		return _numBusyCores;
+	}
+
 
 	//! \brief Update number of tasks offloaded from this node to the ClusterNode
 	inline void incNumOffloadedTasks(int by)

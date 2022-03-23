@@ -231,12 +231,13 @@ int ClusterHybridInterfaceFile::updateTotalsThisNode(void)
 	return totalAlloc;
 }
 
-bool ClusterHybridInterfaceFile::updateNumbersOfCores(bool isLocal)
+bool ClusterHybridInterfaceFile::updateNumbersOfCores(bool isLocal, float totalBusyCores)
 {
 	bool changed = false;
-	int totalReadyTasks = ClusterHybridMetrics::getNumReadyTasks() - ClusterHybridMetrics::getNumImmovableReadyTasks();
 	std::vector <ClusterNode *> const &clusterNodes = ClusterManager::getClusterNodes();
 	
+	int totalReadyTasks = ClusterHybridMetrics::getNumReadyTasks() - ClusterHybridMetrics::getNumImmovableReadyTasks();
+
 	for(ClusterNode *node : clusterNodes) {
 		if (node != ClusterManager::getCurrentClusterNode()) {
 			int internalRank = node->getIndex();
@@ -269,6 +270,7 @@ bool ClusterHybridInterfaceFile::updateNumbersOfCores(bool isLocal)
 						}
 					}
 					node->setCurrentActiveCores(activeCores);
+					node->setCurrentBusyCores(busyCores);
 
 					int offloadableReadyTasks = numReadyTasks - numImmovableReadyTasks;
 #if 0
@@ -287,9 +289,11 @@ bool ClusterHybridInterfaceFile::updateNumbersOfCores(bool isLocal)
 				utilFile->clear(); // clear EOF condition so can try reading again next time
 			 
 			totalReadyTasks += node->getCurrentReadyTasks();
+			totalBusyCores += node->getCurrentBusyCores();
 		}
 	}
 	ClusterManager::setTotalReadyTasks(totalReadyTasks);
+	ClusterManager::setTotalBusyCoresSameApprank(totalBusyCores);
 
 	if (ClusterHybridManager::inHybridClusterMode()) {
 		if (totalReadyTasks > 0) { // Try to get a CPU for our apprank
@@ -326,7 +330,7 @@ void ClusterHybridInterfaceFile::appendUtilization(float timestamp, float totalB
 					 << usefulBusyCores << " "
 					 << ClusterHybridMetrics::getNumReadyTasks() << " "
 					 << ClusterManager::getTotalReadyTasks() << " "
-					 << "-1 " // unused: ClusterHybridMetrics::getTotalNumPromisedTasks() << " "
+					 << ClusterManager::getTotalBusyCoresSameApprank() << " " // unused: ClusterHybridMetrics::getTotalNumPromisedTasks() << " "
 					 << ClusterHybridMetrics::getNumImmovableReadyTasks() << " " 
 					 << "-1 " // unused: (int)countHandleRequestWork << " " 
 					 << "-1 " // unused: (int)countHandleRequestWorkAck << " "
@@ -529,7 +533,7 @@ void ClusterHybridInterfaceFile::poll()
 		if (isGlobal) {
 			changed |= updateAllocFileGlobal();
 		}
-		changed |= ClusterHybridInterfaceFile::updateNumbersOfCores(!isGlobal);
+		changed |= ClusterHybridInterfaceFile::updateNumbersOfCores(!isGlobal, totalBusyCores);
 
 		/*
 		 * Redistribute the Dmallocs if necessary
