@@ -25,6 +25,7 @@ namespace Instrument {
 	};
 
 	static const char *clusterEventTypeToName[MaxClusterEventType] = {
+		"No event",
 		"Number of unfinished offloaded tasks",
 		"Number of data transfers being waited for",
 		"Total bytes of data transfers being waited for",
