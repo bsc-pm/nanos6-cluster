@@ -89,6 +89,12 @@ public:
 		nanos6_polling_flag = (1 << polling_flag)
 	};
 
+	static constexpr nanos6_task_constraints_t default_task_constraints_t = {
+		.cost = 0,
+		.stream = 0,
+		.node = nanos6_cluster_no_hint
+	};
+
 	typedef long priority_t;
 
 	typedef uint64_t deadline_t;
@@ -867,14 +873,15 @@ public:
 	inline void setConstraints(nanos6_task_constraints_t *address)
 	{
 		assert(_constraints == nullptr || _constraints == address);
+		assert(address != nullptr);
 		_constraints = address;
+
+		*_constraints = default_task_constraints_t;
 	}
 
 	inline void initConstraints()
 	{
-		if (_constraints == nullptr) {
-			return;
-		}
+		assert (_constraints != nullptr);
 
 		// We set and initialize constrains. This could be done in the constructor, but requires
 		// many changes with no real benefit.
@@ -882,11 +889,18 @@ public:
 			&& _taskInfo->implementations != nullptr
 			&& _taskInfo->implementations->get_constraints != nullptr) {
 
-			_taskInfo->implementations->get_constraints(_argsBlock, _constraints);
-		} else {
-			_constraints->stream = 0;
-			_constraints->cost = 0;
-			_constraints->node = nanos6_cluster_no_hint;
+			nanos6_task_constraints_t tmp;
+			_taskInfo->implementations->get_constraints(_argsBlock, &tmp);
+
+			if (_constraints->cost == default_task_constraints_t.cost) {
+				_constraints->cost = tmp.cost;
+			}
+			if (_constraints->stream == default_task_constraints_t.stream) {
+				_constraints->stream = tmp.stream;
+			}
+			if (_constraints->node == default_task_constraints_t.node) {
+				_constraints->node = tmp.node;
+			}
 		}
 	}
 
