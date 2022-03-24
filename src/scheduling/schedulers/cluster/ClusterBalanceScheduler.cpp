@@ -93,7 +93,7 @@ int ClusterBalanceScheduler::getScheduledNode(
 							bestNode->getNumOffloadedTasks();
 
 	// Schedule immediately to correct node as long as queue not too long
-	if (numTasksAlready <= 2 * bestNode->getCurrentAllocCores()) {
+	if (numTasksAlready <= 2 * (bestNode->getCurrentAllocCores()-1)) {
 
 		// If it is executed remotely then it cannot be stolen any more
 		if (bestNode != ClusterManager::getCurrentClusterNode()) {
@@ -109,8 +109,8 @@ int ClusterBalanceScheduler::getScheduledNode(
 		numTasksAlready = (node == ClusterManager::getCurrentClusterNode()) ?
 								ClusterHybridMetrics::getNumReadyTasks() :
 								node->getNumOffloadedTasks();
-		if (node->getCurrentAllocCores() > 0) {
-			float ratio = (float)numTasksAlready / node->getCurrentAllocCores();
+		if (node->getCurrentAllocCores() > 1) {
+			float ratio = (float)numTasksAlready / (node->getCurrentAllocCores()-1);
 
 			if (!thief || ratio < thiefRatio) {
 				thiefRatio = ratio;
