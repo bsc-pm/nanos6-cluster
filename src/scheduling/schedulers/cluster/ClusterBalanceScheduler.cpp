@@ -119,19 +119,17 @@ int ClusterBalanceScheduler::getScheduledNode(
 		}
 	}
 
-	if (!thief) {
-		thief = ClusterManager::getCurrentClusterNode();
-	}
+	if (thief) {
+		int thiefId = thief->getIndex();
+		if (thiefRatio <= 2.0) {
+			// offload immediately
 
-	int thiefId = thief->getIndex();
-	if (thiefRatio <= 2.0) {
-		// offload immediately
-
-		// If it is executed remotely then it cannot be stolen any more
-		if (thiefId != ClusterManager::getCurrentClusterNode()->getIndex()) {
-			ClusterHybridMetrics::incDirectThiefOffload(1);
+			// If it is executed remotely then it cannot be stolen any more
+			if (thiefId != ClusterManager::getCurrentClusterNode()->getIndex()) {
+				ClusterHybridMetrics::incDirectThiefOffload(1);
+			}
+			return thiefId;
 		}
-		return thiefId;
 	}
 
 	// Otherwise put it in the queue for the best node; may schedule
@@ -215,6 +213,15 @@ Task *ClusterBalanceScheduler::stealTask(ComputePlace *)
 {
 	// Steal a task from one of the node's ready queues
 	// NOTE: steal task will decrease NumReadyTasks if successful.
+
+	// May take loads of immovable ready tasks if they all need data transfers...
+	// Don't do this
+	int numTasksAlready = ClusterHybridMetrics::getNumReadyTasks();
+	int alloc = ClusterManager::getCurrentClusterNode()->getCurrentAllocCores();
+	if (ClusterHybridMetrics::getNumImmovableReadyTasks() > 2 * alloc) {
+		return nullptr;
+	}
+
 	Task *task = stealTask(ClusterManager::getCurrentClusterNode());
 	if (task) {
 		checkSendMoreAllNodes();
