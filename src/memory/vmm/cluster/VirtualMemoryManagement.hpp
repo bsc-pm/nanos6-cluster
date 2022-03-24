@@ -11,26 +11,59 @@
 
 #include <vector>
 
-class VirtualMemoryAllocation;
-
 class VirtualMemoryManagement {
+public:
+	// Subclass allocation; only needed and used here
+	class VirtualMemoryAllocation : public DataAccessRegion
+	{
+	public:
+		VirtualMemoryAllocation(void *address, size_t size) : DataAccessRegion(address, size)
+		{
+			FatalErrorHandler::failIf(size == 0, "Virtual memory constructor receive a zero size.");
+
+			/** For the moment we are using fixed memory protection and allocation flags, but in the
+			 * future we could make those arguments fields of the class */
+			const int prot = PROT_READ|PROT_WRITE;
+			int flags = MAP_ANONYMOUS|MAP_PRIVATE|MAP_NORESERVE;
+
+			if (address != nullptr) {
+				flags |= MAP_FIXED;
+			}
+			void *ret = mmap(address, size, prot, flags, -1, 0);
+
+			FatalErrorHandler::failIf(ret == MAP_FAILED,
+				"mapping virtual address space failed. errno: ", errno);
+			FatalErrorHandler::failIf(ret != address,
+				"mapping virtual address space couldn't use address hint");
+		}
+
+		~VirtualMemoryAllocation()
+		{
+			const int ret = munmap(this->getStartAddress(), this->getSize());
+			FatalErrorHandler::failIf(ret != 0, "Could not unmap memory allocation");
+		}
+	};
+
 private:
 	//! memory allocations from OS
-	static std::vector<VirtualMemoryAllocation *> _allocations;
+	std::vector<VirtualMemoryManagement::VirtualMemoryAllocation *> _allocations;
 
 	//! addresses for local NUMA allocations
-	static std::vector<VirtualMemoryArea *> _localNUMAVMA;
+	std::vector<VirtualMemoryArea *> _localNUMAVMA;
 
 	//! addresses for generic allocations
-	static VirtualMemoryArea *_genericVMA;
+	VirtualMemoryArea *_genericVMA;
 
 	//! Setting up the memory layout
-	static void setupMemoryLayout(void *address, size_t distribSize, size_t localSize);
+	void setupMemoryLayout(void *address, size_t distribSize, size_t localSize);
 
 	//! private constructor, this is a singleton.
-	VirtualMemoryManagement()
-	{
-	}
+	VirtualMemoryManagement();
+
+	~VirtualMemoryManagement();
+
+	static VirtualMemoryManagement *_singleton;
+
 public:
 	static void initialize();
 	static void shutdown();
@@ -43,7 +76,8 @@ public:
 	 */
 	static inline void *allocDistrib(size_t size)
 	{
-		return _genericVMA->allocBlock(size);
+		assert(_singleton != nullptr);
+		return _singleton->_genericVMA->allocBlock(size);
 	}
 
 	/** allocate a block of local addresses on a NUMA node.
@@ -53,7 +87,8 @@ public:
 	 */
 	static inline void *allocLocalNUMA(size_t size, size_t NUMAId)
 	{
-		VirtualMemoryArea *vma = _localNUMAVMA.at(NUMAId);
+		assert(_singleton != nullptr);
+		VirtualMemoryArea *vma = _singleton->_localNUMAVMA.at(NUMAId);
 		return vma->allocBlock(size);
 	}
 
@@ -61,14 +96,15 @@ public:
 	//! the NUMA node count if not found
 	static inline size_t findNUMA(void *ptr)
 	{
-		for (size_t i = 0; i < _localNUMAVMA.size(); ++i) {
-			if (_localNUMAVMA[i]->includesAddress(ptr)) {
+		assert(_singleton != nullptr);
+		for (size_t i = 0; i < _singleton->_localNUMAVMA.size(); ++i) {
+			if (_singleton->_localNUMAVMA[i]->includesAddress(ptr)) {
 				return i;
 			}
 		}
 
 		//! Non-NUMA allocation
-		return _localNUMAVMA.size();
+		return _singleton->_localNUMAVMA.size();
 	}
 
 	//! \brief Check if a region is within the distributed memory region
@@ -78,7 +114,8 @@ public:
 	//! \return true if the region is within distributed memory
 	static inline bool isDistributedRegion(DataAccessRegion const &region)
 	{
-		return _genericVMA->includesRange(region.getStartAddress(), region.getSize());
+		assert(_singleton != nullptr);
+		return _singleton->_genericVMA->includesRange(region.getStartAddress(), region.getSize());
 	}
 
 	//! \brief Check if a memory region is (cluster) local memory
@@ -88,7 +125,8 @@ public:
 	//! \returns true if the region is within local memory
 	static inline bool isLocalRegion(DataAccessRegion const &region)
 	{
-		for (const auto &it : _localNUMAVMA) {
+		assert(_singleton != nullptr);
+		for (const auto &it : _singleton->_localNUMAVMA) {
 			if (it->includesRange(region.getStartAddress(), region.getSize())) {
 				return true;
 			}
@@ -106,6 +144,13 @@ public:
 	{
 		return isDistributedRegion(region) || isLocalRegion(region);
 	}
+
+	static inline std::vector<VirtualMemoryManagement::VirtualMemoryAllocation *> getAllocations()
+	{
+		assert(_singleton != nullptr);
+		return _singleton->_allocations;
+	}
+
 };
 
 

@@ -1220,7 +1220,6 @@ noinst_HEADERS = \
 	src/memory/directory/HomeMapEntry.hpp \
 	src/memory/directory/HomeNodeMap.hpp \
 	src/memory/directory/cluster/DistributionPolicy.hpp \
-	src/memory/vmm/VirtualMemoryAllocation.hpp \
 	src/memory/vmm/VirtualMemoryArea.hpp \
 	src/memory/vmm/cluster/VirtualMemoryManagement.hpp \
 	src/memory/vmm/smp/VirtualMemoryManagement.hpp \

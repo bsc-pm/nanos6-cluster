@@ -15,7 +15,6 @@
 #include "hardware/HardwareInfo.hpp"
 #include "hardware/cluster/ClusterNode.hpp"
 #include "lowlevel/FatalErrorHandler.hpp"
-#include "memory/vmm/VirtualMemoryAllocation.hpp"
 #include "memory/vmm/VirtualMemoryArea.hpp"
 #include "support/config/ConfigVariable.hpp"
 #include "system/RuntimeInfo.hpp"
@@ -23,10 +22,7 @@
 #include <DataAccessRegion.hpp>
 #include <Directory.hpp>
 
-std::vector<VirtualMemoryAllocation *> VirtualMemoryManagement::_allocations;
-std::vector<VirtualMemoryArea *> VirtualMemoryManagement::_localNUMAVMA;
-VirtualMemoryArea *VirtualMemoryManagement::_genericVMA;
-
+VirtualMemoryManagement *VirtualMemoryManagement::_singleton = nullptr;
 
 //! \brief Returns a vector with all the mappings of the process
 //!
@@ -132,7 +128,7 @@ static DataAccessRegion findSuitableMemoryRegion()
 
 			MemoryPlace *memoryNode = remote->getMemoryNode();
 			// do not instrument as instrumentation subsystem not initialized yet
-			ClusterManager::fetchDataRaw(buffer, memoryNode, 0, /* block */ true, /* instrument */ false);
+			ClusterManager::fetchDataRaw(buffer, memoryNode, 0, true, false);
 
 			gap = gap.intersect(remoteGap);
 		}
@@ -162,7 +158,7 @@ static DataAccessRegion findSuitableMemoryRegion()
 	return gap;
 }
 
-void VirtualMemoryManagement::initialize()
+VirtualMemoryManagement::VirtualMemoryManagement()
 {
 	// The cluster.distributed_memory variable determines the total address space to be
 	// used for distributed allocations across the cluster The efault value is 2GB
@@ -176,8 +172,6 @@ void VirtualMemoryManagement::initialize()
 	// total physical memory of the machine
 	ConfigVariable<StringifiedMemorySize> localSizeEnv("cluster.local_memory");
 	size_t localSize = localSizeEnv.getValue();
-
-	// localSize == 0 when not set in any toml.
 	if (localSize == 0) {
 		FatalErrorHandler::warn("cluster.local_memory not from toml.");
 		const size_t totalMemory = HardwareInfo::getPhysicalMemorySize();
@@ -190,15 +184,16 @@ void VirtualMemoryManagement::initialize()
 	void *address = (void *) startAddress.getValue();
 	size_t size = distribSize + localSize * ClusterManager::clusterSize();
 
+	// If the start address was not specified then coordinate with other processes.
 	if (address == nullptr) {
-		DataAccessRegion gap = findSuitableMemoryRegion();
+		DataAccessRegion gap;
+		gap = findSuitableMemoryRegion();
 		address = gap.getStartAddress();
 		FatalErrorHandler::failIf(gap.getSize() < size, "Cannot allocate virtual memory region");
 	}
 
 	assert(_allocations.empty());
-	_allocations.resize(1);
-	_allocations[0] = new VirtualMemoryAllocation(address, size);
+	_allocations.push_back(new VirtualMemoryAllocation(address, size));
 
 	setupMemoryLayout(address, distribSize, localSize);
 
@@ -207,7 +202,8 @@ void VirtualMemoryManagement::initialize()
 	RuntimeInfo::addEntry("va_start", "Virtual address space start", (unsigned long)address);
 }
 
-void VirtualMemoryManagement::shutdown()
+
+VirtualMemoryManagement::~VirtualMemoryManagement()
 {
 	for (auto &vma : _localNUMAVMA) {
 		delete vma;
@@ -223,8 +219,23 @@ void VirtualMemoryManagement::shutdown()
 	_allocations.clear();
 }
 
+
+void VirtualMemoryManagement::initialize()
+{
+	_singleton = new VirtualMemoryManagement();
+	assert(_singleton != nullptr);
+}
+
+void VirtualMemoryManagement::shutdown()
+{
+	assert(_singleton != nullptr);
+	delete _singleton;
+	_singleton = nullptr;
+}
+
 void VirtualMemoryManagement::setupMemoryLayout(void *address, size_t distribSize, size_t localSize)
 {
+	assert(address != nullptr);
 	assert(distribSize > 0);
 	assert(localSize > 0);
 	const ClusterNode *current = ClusterManager::getCurrentClusterNode();
