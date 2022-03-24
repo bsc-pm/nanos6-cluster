@@ -211,10 +211,10 @@ int ClusterHybridInterfaceFile::updateTotalsThisNode(void)
 				float usefulBusyCores;
 				int numReadyTasks;
 				int ignore; // its view of total tasks
-				int ignore2;
+				int totalBusyCoresThatApprank;
 				int numImmovableTasks;
 				iss >> timestamp >> allocCores >> enabledCores >> busyCores >> usefulBusyCores >> numReadyTasks
-						>> ignore >> ignore2 >> numImmovableTasks;
+						>> ignore >> totalBusyCoresThatApprank >> numImmovableTasks;
 
 
 				ok = true; // really only good if one other rank
@@ -230,7 +230,7 @@ int ClusterHybridInterfaceFile::updateTotalsThisNode(void)
 	return totalAlloc;
 }
 
-bool ClusterHybridInterfaceFile::updateNumbersOfCores(bool isLocal)
+bool ClusterHybridInterfaceFile::updateNumbersOfCores(bool isLocal, float totalBusyCores)
 {
 	bool changed = false;
 	int totalReadyTasks = ClusterMetrics::getNumReadyTasks() - ClusterMetrics::getNumImmovableTasks();
@@ -268,6 +268,7 @@ bool ClusterHybridInterfaceFile::updateNumbersOfCores(bool isLocal)
 						}
 					}
 					node->setCurrentEnabledCores(enabledCores);
+					node->setCurrentBusyCores(busyCores);
 
 					int offloadableReadyTasks = numReadyTasks - numImmovableTasks;
 					node->setCurrentReadyTasks(offloadableReadyTasks);
@@ -275,9 +276,11 @@ bool ClusterHybridInterfaceFile::updateNumbersOfCores(bool isLocal)
 				utilFile->clear(); // clear EOF condition so can try reading again next time
 
 			totalReadyTasks += node->getCurrentReadyTasks();
+			totalBusyCores += node->getCurrentBusyCores();
 		}
 	}
 	ClusterManager::setTotalReadyTasks(totalReadyTasks);
+	ClusterMetrics::setTotalBusyCoresCurrentApprank(totalBusyCores);
 
 	if (ClusterHybridManager::inHybridClusterMode()) {
 		if (totalReadyTasks > 0) { // Try to get a CPU for our apprank
@@ -317,7 +320,7 @@ void ClusterHybridInterfaceFile::appendUtilization(float timestamp, float totalB
 		<< usefulBusyCores << " "                                      //  4: useful-busy: averaged number of cores executing tasks
 		<< ClusterMetrics::getNumReadyTasks() << " "                   //  5: localtasks: num. stealable or immovable ready tasks this instance
 		<< ClusterManager::getTotalReadyTasks() << " "                 //  6: totaltasks: num. stealable ready tasks all instances this apprank
-		<< "-1 "                                                       //  7: unused
+		<< ClusterMetrics::getTotalBusyCoresCurrentApprank() << " "    //  7: apprankbusy: sum of "busy" all instances this apprank
 		<< ClusterMetrics::getNumImmovableTasks() << " "               //  8: immovable: num. immovable ready tasks (in local scheduler)
 		<< "-1 "                                                       //  9: unused
 		<< "-1 "                                                       // 10: unused
@@ -492,7 +495,7 @@ void ClusterHybridInterfaceFile::poll()
 		if (isGlobal) {
 			changed |= updateAllocFileGlobal();
 		}
-		changed |= ClusterHybridInterfaceFile::updateNumbersOfCores(!isGlobal);
+		changed |= ClusterHybridInterfaceFile::updateNumbersOfCores(!isGlobal, totalBusyCores);
 
 		/*
 		 * Redistribute the Dmallocs if necessary

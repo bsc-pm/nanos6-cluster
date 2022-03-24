@@ -32,7 +32,7 @@ class ClusterHybridInterfaceFile : public ClusterHybridInterface {
 		//! \brief Update the numbers of cores on each node
 		//!
 		//! \brief Returns true if any number has changed, otherwise false
-		bool updateNumbersOfCores(bool isLocal);
+		bool updateNumbersOfCores(bool isLocal, float totalBusyCores);
 
 		bool updateAllocFileGlobal(void);
 

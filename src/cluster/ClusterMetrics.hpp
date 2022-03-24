@@ -18,6 +18,7 @@ class ClusterMetrics {
 private:
 	static std::atomic<size_t> _numReadyTasks;
 	static std::atomic<size_t> _numImmovableTasks;
+	static std::atomic<size_t> _totalBusyCoresCurrentApprank;
 
 public:
 
@@ -42,6 +43,17 @@ public:
 		return _numReadyTasks + _numImmovableTasks;
 	}
 
+	//! \brief Set the total number of busy cores across this whole apprank
+	static void setTotalBusyCoresCurrentApprank(int totalBusyCoresCurrentApprank)
+	{
+		_totalBusyCoresCurrentApprank = totalBusyCoresCurrentApprank;
+	}
+
+	//! \brief Get the total number of busy cores across this whole apprank
+	static int getTotalBusyCoresCurrentApprank()
+	{
+		return _totalBusyCoresCurrentApprank;
+	}
 };
 
 #endif // CLUSTERHYBRIDMETRICS_HPP
