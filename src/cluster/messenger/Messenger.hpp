@@ -175,7 +175,7 @@ public:
 	//! Get the application's MPI communicator
 	virtual int appCommunicator() const = 0;
 
-	virtual const std::vector<bool> &getInstancesThisNode(void) const = 0;
+	virtual const std::vector<bool> &getIsMasterThisNode(void) const = 0;
 
 	//! For verbose instrumentation, summarize the instances and appranks
 	virtual void summarizeSplit() const = 0;

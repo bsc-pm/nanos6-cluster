@@ -520,11 +520,11 @@ public:
 
 	// For now just a bool to indicate whether each instance is a master;
 	// in future it may have to return more information.
-	static const std::vector<bool> &getInstancesThisNode()
+	static const std::vector<bool> &getIsMasterThisNode()
 	{
 		assert(_singleton);
 		assert(_singleton->_msn);
-		return _singleton->_msn->getInstancesThisNode();
+		return _singleton->_msn->getIsMasterThisNode();
 	}
 
 	static int getExternalRankThisNode(int indexThisNode)

@@ -86,7 +86,7 @@ void MPIMessenger::setApprankNumber(const std::string &clusterSplit, int &intern
 					_instrumentationRank = countInstances;
 				}
 				countInstancesThisNode ++;
-				_mastersThisNode.push_back(intRank == 0); // make a note of whether it's a master or not
+				_isMasterThisNode.push_back(intRank == 0); // make a note of whether it's a master or not
 			}
 			countInstances ++;
 
@@ -272,7 +272,7 @@ void MPIMessenger::internal_reset()
 
 		for (int i=0; i<_numInstancesThisNode; i++) {
 			bool isMasterInstance = (i==0) && (_nodeNum==0); /* first instance on first node */
-			_mastersThisNode.push_back(isMasterInstance);
+			_isMasterThisNode.push_back(isMasterInstance);
 		}
 		_instrumentationRank = _externalRank;
 

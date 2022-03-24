@@ -69,8 +69,8 @@ void ClusterHybridManager::getInitialCPUMask(cpu_set_t *set)
 	_numCPUs = cpus.size();
 
 	// Get information about the instances on this node
-	const std::vector<bool> &mastersThisNode = ClusterManager::getInstancesThisNode();
-	int numAll = mastersThisNode.size();
+	const std::vector<bool> &isMasterThisNode = ClusterManager::getIsMasterThisNode();
+	int numAll = isMasterThisNode.size();
 	FatalErrorHandler::failIf(numAll > _numCPUs,
 							"Number of instances ", numAll,
 							"greater than number of cores ", _numCPUs,
@@ -78,7 +78,7 @@ void ClusterHybridManager::getInitialCPUMask(cpu_set_t *set)
 
 	// Count the number of masters
 	int numMasters = 0;
-	for (bool isMaster : mastersThisNode) {
+	for (bool isMaster : isMasterThisNode) {
 		if (isMaster) {
 			numMasters ++;
 		}
@@ -100,11 +100,11 @@ void ClusterHybridManager::getInitialCPUMask(cpu_set_t *set)
 	int curCoreIndex = 0;
 	int indexThisNode = ClusterManager::getIndexThisNode();
 	for(int i=0; i < indexThisNode; i++) {
-		curCoreIndex += mastersThisNode[i] ? coresPerMaster : coresPerSlave;
+		curCoreIndex += isMasterThisNode[i] ? coresPerMaster : coresPerSlave;
 	}
 
 	// Check consistency about this instance
-	assert(ClusterManager::isMasterNode() == mastersThisNode[indexThisNode]);
+	assert(ClusterManager::isMasterNode() == isMasterThisNode[indexThisNode]);
 
 	// Find last (plus one) core to be owned by this instance
 	int lastCoreIndex;

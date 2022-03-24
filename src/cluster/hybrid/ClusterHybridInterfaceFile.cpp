@@ -208,10 +208,10 @@ int ClusterHybridInterfaceFile::updateTotalsThisNode(void)
 				float usefulBusyCores;
 				int numReadyTasks;
 				int ignore; // it's view of total tasks
-				int ignore2; // was numPromisedTasks;
+				int totalBusyCoresThatApprank;
 				int numImmovableReadyTasks;
 				iss >> timestamp >> allocCores >> activeCores >> busyCores >> usefulBusyCores >> numReadyTasks
-						>> ignore >> ignore2 >> numImmovableReadyTasks;
+						>> ignore >> totalBusyCoresThatApprank >> numImmovableReadyTasks;
 
 
 				ok = true; // really only good if one other rank

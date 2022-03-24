@@ -144,7 +144,7 @@ private:
 	std::vector<int> _internalRankToExternalRank;
 	std::vector<int> _internalRankToInstrumentationRank;
 	std::vector<int> _instanceThisNodeToExternalRank;
-	std::vector<bool> _mastersThisNode; // For each instance on this node, whether it's a master or not
+	std::vector<bool> _isMasterThisNode; // For each instance on this node, whether it's a master or not
 
 	void getNodeNumber();
 	void splitCommunicator(const std::string &clusterSplit);
@@ -267,9 +267,9 @@ public:
 		return APP_COMM;
 	}
 
-	const std::vector<bool> &getInstancesThisNode(void) const
+	const std::vector<bool> &getIsMasterThisNode(void) const
 	{
-		return _mastersThisNode;
+		return _isMasterThisNode;
 	}
 
 	//! For verbose instrumentation, summarize the instances and appranks
