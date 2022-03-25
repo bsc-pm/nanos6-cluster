@@ -50,6 +50,8 @@ class ClusterHybridInterfaceFile : public ClusterHybridInterface {
 						const std::vector<int> &internalRankToExternalRank,
 						const std::vector<int> &instanceThisNodeToExternalRank);
 
+		void writeMapFile();
+
 		void poll(void);
 
 		void updateDROM(bool isGlobal);

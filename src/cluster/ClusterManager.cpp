@@ -230,6 +230,11 @@ void ClusterManager::initialize2()
 		getClusterNode(i)->setCurrentAllocCores(numCores);
 	}
 
+	assert(_singleton);
+	if (_singleton->_hyb) {
+		_singleton->_hyb->writeMapFile(); // must be after CPUManager initialization
+	}
+
 }
 
 // This needs to be called AFTER initializing the memory allocator

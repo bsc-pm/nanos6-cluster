@@ -46,8 +46,8 @@ ClusterHybridInterfaceFile::ClusterHybridInterfaceFile() :
 void ClusterHybridInterfaceFile::initialize(int externalRank,
 											int apprankNum,
 											int internalRank,
-											int nodeNum,
-											int indexThisNode,
+											__attribute__((unused)) int nodeNum,
+											__attribute__((unused)) int indexThisNode,
 											int clusterSize,
 											const std::vector<int> &internalRankToExternalRank,
 											const std::vector<int> &instanceThisNodeToExternalRank)
@@ -80,19 +80,6 @@ void ClusterHybridInterfaceFile::initialize(int externalRank,
 	}
 
 	MPI_Barrier(MPI_COMM_WORLD);
-
-	/*
-	 * Now create our map file
-	 */
-	std::stringstream ss0;
-	ss0 << _directory << "/map" << externalRank;
-	std::ofstream mapFile(ss0.str().c_str());
-	mapFile << "externalRank " << externalRank << "\n"
-		<< "apprankNum " << apprankNum << "\n"
-		<< "internalRank " << internalRank << "\n"
-		<< "nodeNum " << nodeNum << "\n"
-		<< "indexThisNode " << indexThisNode << "\n";
-	mapFile.close();
 
 	/*
 	 * For global policy: filename for this apprank's core allocation (cannot
@@ -153,6 +140,25 @@ void ClusterHybridInterfaceFile::initialize(int externalRank,
 			// 				<< " rank " << internalRank << " opens " << otherUtilizationFilename << "\n";
 		}
 	}
+}
+
+void ClusterHybridInterfaceFile::writeMapFile(void)
+{
+	/*
+	 * Now create our map file
+	 */
+	std::stringstream ss0;
+	int externalRank = ClusterManager::getExternalRank();
+	ss0 << _directory << "/map" << externalRank;
+	std::ofstream mapFile(ss0.str().c_str());
+	mapFile << "externalRank " << externalRank << "\n"
+		<< "apprankNum " << ClusterManager::getApprankNum() << "\n"
+		<< "internalRank " << ClusterManager::getCurrentClusterNode()->getIndex() << "\n"
+		<< "nodeNum " << ClusterManager::getNodeNum() << "\n"
+		<< "indexThisNode " << ClusterManager::getIndexThisNode() << "\n"
+		<< "cpusOnNode " << CPUManager::getTotalCPUs() << "\n";
+	mapFile.close();
+
 }
 
 bool ClusterHybridInterfaceFile::updateAllocFileGlobal(void)

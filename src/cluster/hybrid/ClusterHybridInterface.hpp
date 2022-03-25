@@ -31,6 +31,7 @@ class ClusterHybridInterface {
 								int clusterSize,
 								const std::vector<int> &internalRankToExternalRank,
 								const std::vector<int> &instanceThisNodeToExternalRank) = 0;
+		virtual void writeMapFile() = 0;
 
 		//! Called by polling service
 		virtual void poll() = 0;
