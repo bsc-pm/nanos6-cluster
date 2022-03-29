@@ -237,6 +237,11 @@ void ClusterBalanceScheduler::offloadedTaskFinished(ClusterNode *remoteNode)
 	int localCores = DLBCPUActivation::getCurrentActiveOwnedCPUs();
 	int remoteCores = remoteNode->getCurrentAllocCores();                               // Their allocation
 
+	if (remoteCores <= 1) {
+		// Don't use first remote core
+		return;
+	}
+
 	// Do not give the remote node proportionally more work than we could potentially execute:
 	//
 	//       (alreadyOffloaded + numSent)      totalTasksHere - numSent
@@ -262,7 +267,14 @@ void ClusterBalanceScheduler::offloadedTaskFinished(ClusterNode *remoteNode)
 	// std::lock_guard<SpinLock> guard(_requestLock);
 	int numSentTasks = 0;
 	for (int i=0; i < maxToSend; i++) {
+		float ratio = (float)remoteNode->getNumOffloadedTasks() / (remoteCores -1);
+		if (ratio >= 2.0) {
+			// Don't offload more than two tasks per remote core
+			return;
+		}
+
 		Task *task = stealTask(remoteNode);
+
 		if (task) {
 			numSentTasks ++;
 			Scheduler::addReadyLocalOrExecuteRemote(remoteNode->getIndex(), task, nullptr, NO_HINT);
