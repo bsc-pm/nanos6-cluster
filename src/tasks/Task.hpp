@@ -881,7 +881,10 @@ public:
 
 	inline void initConstraints()
 	{
-		assert (_constraints != nullptr);
+		if (_constraints == nullptr) {
+			assert(isTaskforSource());
+			return;
+		}
 
 		// We set and initialize constrains. This could be done in the constructor, but requires
 		// many changes with no real benefit.
