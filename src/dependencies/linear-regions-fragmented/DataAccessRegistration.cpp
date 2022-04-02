@@ -4765,7 +4765,7 @@ namespace DataAccessRegistration {
 					return true;
 				}
 
-				// A local access (that is not part of a larger access) is created weak.
+				// A local access (that is not part of a larger access) is created strong.
 				assert(!access->isWeak());
 				/*
 				 * Fragment access, as only part inside region becomes complete.
