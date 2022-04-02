@@ -4712,7 +4712,7 @@ namespace DataAccessRegistration {
 	 * Unregister a new data access on a task (after it has started). This
 	 * is necessary after a dfree.
 	 */
-	void unregisterLocalAccess(Task *task, DataAccessRegion const &region)
+	void unregisterLocalAccess(Task *task, DataAccessRegion const &region, bool isStack)
 	{
 		assert(task != nullptr);
 
@@ -4817,17 +4817,19 @@ namespace DataAccessRegistration {
 			assert(!accessStructures._accesses.contains(region));
 
 			// If at this point there are still any fragments overlapping this
-			// region, then we are calling lfree or dfree without doing a taskwait
-			// first, which is unsafe. The above loop may have caused the fragments
-			// to become removable and therefore be discounted, but they are only
-			// actually deleted in handleExitTaskwait. This code will unfortunately
-			// raise an error even if the code has done a 'taskwait on' covering
-			// the whole region, which would actually be safe. Also, this check
-			// cannot be done in a task with an "all memory" access, as the access
-			// will remain anyway. We may have to remove this error or rethink how
-			// to do it.
+			// region, then we are calling lfree or dfree or removing the stack
+			// without doing a taskwait first, which is unsafe. Note: it is not
+			// sufficient to do a "taskwait on" covering the whole region.
+			// While in principle it is safe, the below error will still be
+			// triggered. This is because such fragments will still be on the
+			// bottom map and will only be deleted in handleExitTaskwait. Also,
+			// this check cannot be done in a task with an "all memory" access,
+			// as the fragment will remain anyway. We may have to remove this
+			// error or rethink how to do it.
 			FatalErrorHandler::failIf(accessStructures._accessFragments.contains(region),
-				"lfree or dfree without preceding taskwait");
+				task->getLabel(),
+				isStack ? ": subtask accesses stack after task completion (add taskwait)"
+						: ": lfree or dfree without preceding taskwait");
 			assert(!accessStructures._accessFragments.contains(region));
 		}
 	}

@@ -239,7 +239,7 @@ namespace ClusterMemoryManagement {
 		Task *currentTask = currentThread->getTask();
 
 		DataAccessRegion distributedRegion(ptr, size);
-		DataAccessRegistration::unregisterLocalAccess(currentTask, distributedRegion);
+		DataAccessRegistration::unregisterLocalAccess(currentTask, distributedRegion, /* isStack */ false);
 
 		if (ClusterManager::inClusterMode()) {
 			MessageDfree msg(ClusterManager::getCurrentClusterNode(), distributedRegion);
@@ -283,7 +283,7 @@ namespace ClusterMemoryManagement {
 		DataAccessRegion allocatedRegion(ptr, roundedSize);
 		WorkerThread *currentThread = WorkerThread::getCurrentWorkerThread();
 		Task *task = currentThread->getTask();
-		DataAccessRegistration::unregisterLocalAccess(task, allocatedRegion);
+		DataAccessRegistration::unregisterLocalAccess(task, allocatedRegion, /* isStack */ false);
 		MemoryAllocator::free(ptr, roundedSize);
 	}
 }

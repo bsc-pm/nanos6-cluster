@@ -218,7 +218,7 @@ namespace DataAccessRegistration {
 	//!
 	//! \param[in] task is the Task that region is registerd to
 	//! \param[in] region is the DataAccessRegion being unregistered
-	void unregisterLocalAccess(Task *task, DataAccessRegion const &region);
+	void unregisterLocalAccess(Task *task, DataAccessRegion const &region, bool isStack);
 
 	//! \brief Generate the symbol translation table for reductions
 	//!

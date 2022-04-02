@@ -119,7 +119,7 @@ namespace ExecutionWorkflow {
 
 				// Unregister the stack
 				if (!_task->isNodeNamespace()) {
-					DataAccessRegistration::unregisterLocalAccess(_task, stackRegion);
+					DataAccessRegistration::unregisterLocalAccess(_task, stackRegion, /* isStack */ true);
 				}
 
 				// Update the CPU since the thread may have migrated
