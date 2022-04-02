@@ -1212,6 +1212,14 @@ namespace DataAccessRegistration {
 				if ((access->getObjectType() == taskwait_type)
 					|| (access->getObjectType() == top_level_sink_type))
 				{
+				} else if (access->getObjectType() == fragment_type) {
+					// This is a fragment that was completed by unregisterLocalAccess.
+					// Since it has no next access (see outer "if" condition), it
+					// must be part of a fragmented access that was never accessed
+					// by a subtask. It is OK to just remove.
+					Instrument::removedDataAccess(access->getInstrumentationId());
+					accessStructures._accessFragments.erase(access);
+					ObjectAllocator<DataAccess>::deleteObject(access);
 				} else {
 					assert(access->getOriginator()->isRemoteTask()
 						|| (access->getObjectType() == access_type
