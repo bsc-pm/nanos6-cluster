@@ -60,13 +60,18 @@ void ClusterHybridInterfaceFile::initialize(int externalRank,
 	if (externalRank  == 0) {
 		struct stat sb;
 		if (stat(_directory, &sb) == 0 && S_ISDIR(sb.st_mode)) {
-			// .hybrid/ directory already exists: clear everything inside it
+			// .hybrid/ directory already exists: clear all map, utilization and alloc files inside it
+			// (keep other things that may exist in the directory, like rebalance output)
 			DIR *dirStream = opendir(_directory);
 			struct dirent *file;
 			while ( (file = readdir(dirStream)) != nullptr) {
-				std::stringstream ss;
-				ss << _directory << "/" << file->d_name;
-				remove(ss.str().c_str());
+				if (strncmp(file->d_name, "map", strlen("map")) == 0
+					|| strncmp(file->d_name, "alloc", strlen("alloc")) == 0
+					|| strncmp(file->d_name, "utilization", strlen("utilization")) == 0) {
+					std::stringstream ss;
+					ss << _directory << "/" << file->d_name;
+					remove(ss.str().c_str());
+				}
 			}
 			closedir(dirStream);
 		} else {
