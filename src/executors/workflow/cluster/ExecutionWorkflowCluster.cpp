@@ -25,15 +25,15 @@ namespace ExecutionWorkflow {
 	static inline TaskOffloading::DataSendRegionInfo handleEagerSend(
 		DataAccessRegion region,
 		const MemoryPlace *sourceLocation,
-		const MemoryPlace *targetLocation)
-	{
-		if (ClusterManager::getEagerSend()  // cluster.eager_send = true
+		const MemoryPlace *targetLocation
+	) {
+		if (ClusterManager::getEagerSend()               // cluster.eager_send = true
 			&& !sourceLocation->isDirectoryMemoryPlace() // and not in the directory (would mean data as yet invalid)
-			&& sourceLocation != targetLocation) { // and not already at the target
+			&& sourceLocation != targetLocation) {       // and not already at the target
+
 			int eagerSendTag = MessageId::nextMessageId(ClusterManager::getMPIFragments(region));
-			ClusterNode *from = ClusterManager::getCurrentClusterNode();
-			const MemoryPlace *currentMemoryPlace = ClusterManager::getMemoryNode(from->getIndex());
-			if (sourceLocation == currentMemoryPlace) {
+
+			if (sourceLocation == ClusterManager::getCurrentMemoryNode()) {
 				DataTransfer *dt = ClusterManager::sendDataRaw(region, targetLocation, eagerSendTag);
 				ClusterPollingServices::PendingQueue<DataTransfer>::addPending(dt);
 			}

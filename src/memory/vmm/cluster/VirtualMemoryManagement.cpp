@@ -208,7 +208,6 @@ VirtualMemoryManagement::~VirtualMemoryManagement()
 	for (auto &vma : _localNUMAVMA) {
 		delete vma;
 	}
-
 	delete _genericVMA;
 
 	for (auto &alloc : _allocations) {
@@ -220,18 +219,6 @@ VirtualMemoryManagement::~VirtualMemoryManagement()
 }
 
 
-void VirtualMemoryManagement::initialize()
-{
-	_singleton = new VirtualMemoryManagement();
-	assert(_singleton != nullptr);
-}
-
-void VirtualMemoryManagement::shutdown()
-{
-	assert(_singleton != nullptr);
-	delete _singleton;
-	_singleton = nullptr;
-}
 
 void VirtualMemoryManagement::setupMemoryLayout(void *address, size_t distribSize, size_t localSize)
 {

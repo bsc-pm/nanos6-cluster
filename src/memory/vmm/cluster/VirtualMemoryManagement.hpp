@@ -65,8 +65,20 @@ private:
 	static VirtualMemoryManagement *_singleton;
 
 public:
-	static void initialize();
-	static void shutdown();
+
+	static inline void initialize()
+	{
+		assert(_singleton == nullptr);
+		_singleton = new VirtualMemoryManagement();
+		assert(_singleton != nullptr);
+	}
+
+	static inline void shutdown()
+	{
+		assert(_singleton != nullptr);
+		delete _singleton;
+		_singleton = nullptr;
+	}
 
 	/** allocate a block of generic addresses.
 	 *

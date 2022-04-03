@@ -72,7 +72,10 @@ MPIMessenger::MPIMessenger(int argc, char **argv) : Messenger(argc, argv)
 	_mpi_ub_tag = *mpi_ub_tag;
 	assert(_mpi_ub_tag > 0);
 
-	//! make sure that MPI errors are returned in the COMM_WORLD
+	// Set the error handler to MPI_ERRORS_RETURN so we can use a check latter.  The error handler
+	// is inherited by any created messenger latter, so we don't need to set it again.  TODO:
+	// Instead of checking on every MPI call we must define a propper MPI error handler.  The
+	// problem with this is that some parameters are implementation specific...
 	ret = MPI_Comm_set_errhandler(MPI_COMM_WORLD, MPI_ERRORS_RETURN);
 	MPIErrorHandler::handle(ret, MPI_COMM_WORLD);
 
@@ -145,10 +148,8 @@ MPIMessenger::~MPIMessenger()
 
 void MPIMessenger::internal_reset()
 {
+	int ret;
 	//! make sure the new communicator returns errors
-	int ret = MPI_Comm_set_errhandler(INTRA_COMM, MPI_ERRORS_RETURN);
-	MPIErrorHandler::handle(ret, INTRA_COMM);
-
 	if (_mpi_comm_data_raw) {
 		ret = MPI_Comm_dup(INTRA_COMM, &INTRA_COMM_DATA_RAW);
 		MPIErrorHandler::handle(ret, MPI_COMM_WORLD);
@@ -352,6 +353,8 @@ Message *MPIMessenger::checkMail(void)
 	//! DATA_RAW type of messages will be received by matching 'fetchData' methods
 	const int type = status.MPI_TAG & 0xff;
 
+	// INIT_SPAWNED messages are received ONLY before the polling services were started; so we never
+	// receive this message in the check-mail unless there is an error.
 	assert(type != DATA_RAW); // DATA_RAW is sent on INTRA_COMM_DATA_RAW
 
 	ret = MPI_Get_count(&status, MPI_BYTE, &count);
@@ -407,7 +410,10 @@ void MPIMessenger::testCompletionInternal(std::vector<T *> &pendings)
 	);
 	ExtraeUnlock();
 
-	MPIErrorHandler::handleErrorInStatus(ret, RequestContainer<T>::status, completedCount, INTRA_COMM);
+	MPIErrorHandler::handleErrorInStatus(
+		ret, INTRA_COMM,
+		completedCount, RequestContainer<T>::status
+	);
 
 	for (int i = 0; i < completedCount; ++i) {
 		const int index = RequestContainer<T>::finished[i];

@@ -15,7 +15,7 @@
 
 class MPIErrorHandler : public FatalErrorHandler {
 private:
-	static inline void printMPIError(int err, std::ostringstream &oss)
+	static inline void printMPIError(std::ostringstream &oss, int err)
 	{
 		char errorString[MPI_MAX_ERROR_STRING];
 		int stringLength;
@@ -39,7 +39,7 @@ public:
 
 		std::ostringstream oss;
 
-		printMPIError(rc, oss);
+		printMPIError(oss, rc);
 		emitReasonParts(oss, reasonParts...);
 		oss << std::endl;
 
@@ -52,9 +52,10 @@ public:
 	}
 
 	template<typename... TS>
-	static inline void
-	handleErrorInStatus(int rc, MPI_Status *status, int statusSize, MPI_Comm comm, TS... reasonParts)
-	{
+	static inline void handleErrorInStatus(
+		int rc, MPI_Comm comm,
+		int statusSize, MPI_Status *status, TS... reasonParts
+	) {
 		if (__builtin_expect(rc == MPI_SUCCESS, 1)) {
 			return;
 		}
