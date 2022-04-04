@@ -215,13 +215,13 @@ int ClusterHybridInterfaceFile::updateTotalsThisNode(void)
 			while (std::getline(*utilFile, line)) {
 				std::istringstream iss(line);
 				float timestamp;
-				int activeCores;
+				int enabledCores;
 				float usefulBusyCores;
 				int numReadyTasks;
 				int ignore; // it's view of total tasks
 				int totalBusyCoresThatApprank;
 				int numImmovableTasks;
-				iss >> timestamp >> allocCores >> activeCores >> busyCores >> usefulBusyCores >> numReadyTasks
+				iss >> timestamp >> allocCores >> enabledCores >> busyCores >> usefulBusyCores >> numReadyTasks
 						>> ignore >> totalBusyCoresThatApprank >> numImmovableTasks;
 
 
@@ -261,14 +261,14 @@ bool ClusterHybridInterfaceFile::updateNumbersOfCores(bool isLocal, float totalB
 					std::istringstream iss(line);
 					float timestamp;
 					int allocCores;
-					int activeCores;
+					int enabledCores;
 					float busyCores;
 					float usefulBusyCores;
 					int numReadyTasks;
 					int ignore; // it's view of total tasks
 					int ignore2; // was numPromisedTasks;
 					int numImmovableTasks;
-					iss >> timestamp >> allocCores >> activeCores >> busyCores >> usefulBusyCores >> numReadyTasks
+					iss >> timestamp >> allocCores >> enabledCores >> busyCores >> usefulBusyCores >> numReadyTasks
 							>> ignore >> ignore2 >> numImmovableTasks;
 
 					if (isLocal) {
@@ -280,7 +280,7 @@ bool ClusterHybridInterfaceFile::updateNumbersOfCores(bool isLocal, float totalB
 							}
 						}
 					}
-					node->setCurrentActiveCores(activeCores);
+					node->setCurrentEnabledCores(enabledCores);
 					node->setCurrentBusyCores(busyCores);
 
 					int offloadableReadyTasks = numReadyTasks - numImmovableTasks;

@@ -32,7 +32,7 @@ private:
 	int _numAllocCores;
 
 	//! Number of active cores available to this instance
-	int _numActiveCores;
+	int _numEnabledCores;
 
 	//! The number of ready tasks reported in the utilization<n> file
 	size_t _numReadyTasks;
@@ -46,7 +46,7 @@ public:
 	ClusterNode(int index, int commIndex, int apprankNum, bool inHybridMode, int instrumentationRank)
 		: ComputePlace(index, nanos6_device_t::nanos6_cluster_device),
 		_memoryNode(new ClusterMemoryNode(index, commIndex)),
-		_commIndex(commIndex), _instrumentationRank(instrumentationRank), _numAllocCores(0), _numActiveCores(0),
+		_commIndex(commIndex), _instrumentationRank(instrumentationRank), _numAllocCores(0), _numEnabledCores(0),
 		_numOffloadedTasks(0) 
 	{
 		assert(_memoryNode != nullptr);
@@ -99,14 +99,14 @@ public:
 		return _numAllocCores;
 	}
 
-	inline void setCurrentActiveCores(int numActiveCores)
+	inline void setCurrentEnabledCores(int numEnabledCores)
 	{
-		_numActiveCores = numActiveCores;
+		_numEnabledCores = numEnabledCores;
 	}
 
-	inline int getCurrentActiveCores() const
+	inline int getCurrentEnabledCores() const
 	{
-		return _numActiveCores;
+		return _numEnabledCores;
 	}
 
 	inline void setCurrentReadyTasks(int numReadyTasks)
