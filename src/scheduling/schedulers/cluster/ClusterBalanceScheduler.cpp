@@ -26,7 +26,11 @@
 
 int ClusterBalanceScheduler::getCurrentCores(ClusterNode *remoteNode)
 {
-	return remoteNode->getCurrentAllocCores();
+	int currentEnabledCores =
+		(remoteNode == ClusterManager::getCurrentClusterNode()) ?
+		DLBCPUActivation::getCurrentOwnedOrGivingCPUs() - DLBCPUActivation::getCurrentLentOwnedCPUs() + DLBCPUActivation::getCurrentBorrowedCPUs()
+		: remoteNode->getCurrentEnabledCores();
+	return std::max<int>(remoteNode->getCurrentAllocCores(), currentEnabledCores);
 }
 
 int ClusterBalanceScheduler::getScheduledNode(
