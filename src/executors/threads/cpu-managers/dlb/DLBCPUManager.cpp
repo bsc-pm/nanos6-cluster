@@ -232,12 +232,12 @@ void DLBCPUManager::initialize()
 	_finishedCPUInitialization = true;
 
 	/* Now that CPUManager has been initialized, it is safe to enable DROM */
-	ClusterHybridManager::setEnableDROM(true);
+	ClusterHybridManager::setHybridInterfaceFileInitialized(true);
 }
 
 void DLBCPUManager::shutdownPhase1()
 {
-	ClusterHybridManager::setEnableDROM(false);
+	ClusterHybridManager::setHybridInterfaceFileInitialized(false);
 
 	CPU *cpu;
 	CPU::activation_status_t status;

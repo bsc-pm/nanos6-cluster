@@ -512,7 +512,7 @@ void ClusterHybridInterfaceFile::checkNoDROM()
 //! Called by polling service
 void ClusterHybridInterfaceFile::poll()
 {
-	if (!ClusterHybridManager::getEnableDROM()) {
+	if (!ClusterHybridManager::getHybridInterfaceFileInitialized()) {
 		/* Do not mess around with CPU ownership until after the CPU Manager has initialized */
 		return;
 	}

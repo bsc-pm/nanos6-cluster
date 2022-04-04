@@ -28,7 +28,7 @@ private:
 	static int _numCPUs;
 	static int _numOwnedCPUs;
 	static ClusterHybridPolicy _policy;
-	static bool _dromEnabled;
+	static bool _hybridInterfaceFileInitialized;
 	static int _allocOtherInstancesSameNode;
 	static float _busyOtherInstancesSameNode;
 	static float _averagedBusyOtherInstancesSameNode;
@@ -59,14 +59,14 @@ public:
 		return _policy;
 	}
 
-	static void setEnableDROM(bool enabled)
+	static void setHybridInterfaceFileInitialized(bool enabled)
 	{
-		_dromEnabled = enabled;
+		_hybridInterfaceFileInitialized = enabled;
 	}
 
-	static bool getEnableDROM()
+	static bool getHybridInterfaceFileInitialized()
 	{
-		return _dromEnabled;
+		return _hybridInterfaceFileInitialized;
 	}
 
 	static void setDemandOtherInstancesSameNode(int allocOtherInstancesSameNode, float busyOtherInstancesSameNode)

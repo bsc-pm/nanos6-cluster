@@ -22,7 +22,7 @@ bool ClusterHybridManager::_inHybridClusterMode = false;
 int ClusterHybridManager::_numCPUs;
 int ClusterHybridManager::_numOwnedCPUs;
 ClusterHybridPolicy ClusterHybridManager::_policy = ClusterHybridPolicy::Bad;
-bool ClusterHybridManager::_dromEnabled;
+bool ClusterHybridManager::_hybridInterfaceFileInitialized;
 float ClusterHybridManager::_busyOtherInstancesSameNode = 0.0;
 int ClusterHybridManager::_allocOtherInstancesSameNode = 0;
 float ClusterHybridManager::_averagedBusyOtherInstancesSameNode = 0.0;
