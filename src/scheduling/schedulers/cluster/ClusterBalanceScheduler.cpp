@@ -21,6 +21,23 @@
 #include <VirtualMemoryManagement.hpp>
 #include "ClusterMetrics.hpp"
 
+//! \brief Get the current number of usable cores at a node
+//!
+//! \brief Returns max(allocated cores, owned cores - lent cores + borrowed cores).
+//!
+//! The allocated cores is the current medium-term core allocation, which is the target
+//! for DROM. Any node should be able to reclaim cores if necessary to meet its allocation.
+//! The enabled cores, which matches owned cores - lent cores + borrowed cores is the
+//! number of cores that the node is currently using.
+static int getCurrentCores(ClusterNode *remoteNode)
+{
+	int currentEnabledCores =
+		(remoteNode == ClusterManager::getCurrentClusterNode()) ?
+		ClusterHybridManager::getCurrentOwnedOrGivingCPUs() - ClusterHybridManager::getCurrentLentOwnedCPUs() + ClusterHybridManager::getCurrentBorrowedCPUs()
+		: remoteNode->getCurrentEnabledCores();
+	return std::max<int>(remoteNode->getCurrentAllocCores(), currentEnabledCores);
+}
+
 int ClusterBalanceScheduler::getScheduledNode(
 	Task *task,
 	ComputePlace *computePlace  __attribute__((unused)),
@@ -90,7 +107,7 @@ int ClusterBalanceScheduler::getScheduledNode(
 							bestNode->getNumOffloadedTasks();
 
 	// Schedule immediately to correct node as long as queue not too long
-	if (numTasksAlready <= 2 * (bestNode->getCurrentAllocCores()-1)) {
+	if (numTasksAlready <= 2 * (getCurrentCores(bestNode)-1)) {
 
 		// If it is executed remotely then it cannot be stolen any more
 		if (bestNode != ClusterManager::getCurrentClusterNode()) {
@@ -108,8 +125,9 @@ int ClusterBalanceScheduler::getScheduledNode(
 		numTasksAlready = (node == ClusterManager::getCurrentClusterNode()) ?
 								ClusterMetrics::getNumReadyTasks() :
 								node->getNumOffloadedTasks();
-		if (node->getCurrentAllocCores() > 1) {
-			float ratio = (float)numTasksAlready / (node->getCurrentAllocCores()-1);
+		int currentCores = getCurrentCores(node);
+		if (currentCores > 1) {
+			float ratio = (float)numTasksAlready / (currentCores-1);
 
 			if (!thief || ratio < thiefRatio) {
 				thiefRatio = ratio;
@@ -191,7 +209,7 @@ void ClusterBalanceScheduler::checkSendMoreAllNodes()
 		if (node == ClusterManager::getCurrentClusterNode()) {
 			continue;
 		}
-		int alloc = node->getCurrentAllocCores();
+		int alloc = getCurrentCores(node);
 		if (alloc > 0) {
 			int numTasksAlready = (node == ClusterManager::getCurrentClusterNode()) ?
 									ClusterMetrics::getNumReadyTasks() :
@@ -218,7 +236,7 @@ Task *ClusterBalanceScheduler::stealTask(ComputePlace *)
 
 	// May take loads of immovable ready tasks if they all need data transfers...
 	// Don't do this
-	int alloc = ClusterManager::getCurrentClusterNode()->getCurrentAllocCores();
+	int alloc = getCurrentCores(ClusterManager::getCurrentClusterNode());
 	if ((int)ClusterMetrics::getNumImmovableTasks() > 2 * alloc) {
 		return nullptr;
 	}
@@ -237,7 +255,7 @@ void ClusterBalanceScheduler::offloadedTaskFinished(ClusterNode *remoteNode)
 	int totalTasksHere = ClusterMetrics::getNumReadyTasks(); // Total number of ready and immovable tasks here
 	int alreadyOffloaded = remoteNode->getNumOffloadedTasks(); // Total number of tasks already offloaded to that node
 	int localCores = ClusterHybridManager::getCurrentActiveOwnedCPUs();
-	int remoteCores = remoteNode->getCurrentAllocCores();                               // Their allocation
+	int remoteCores = getCurrentCores(remoteNode);                               // Their allocation
 
 	if (remoteCores <= 1) {
 		// Don't use first remote core
