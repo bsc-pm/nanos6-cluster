@@ -135,6 +135,7 @@ void SpawnFunction::spawnFunction(
 		flags
 	);
 	assert(task != nullptr);
+	task->dontCountAsImmovable();
 
 	SpawnedFunctionArgsBlock *argsBlock = (SpawnedFunctionArgsBlock *) task->getArgsBlock();
 	assert(argsBlock != nullptr);
