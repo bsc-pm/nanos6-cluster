@@ -24,6 +24,11 @@
 #include "ClusterHybridMetrics.hpp"
 #include "ClusterUtil.hpp"
 
+int ClusterBalanceScheduler::getCurrentCores(ClusterNode *remoteNode)
+{
+	return remoteNode->getCurrentAllocCores();
+}
+
 int ClusterBalanceScheduler::getScheduledNode(
 	Task *task,
 	ComputePlace *computePlace  __attribute__((unused)),
@@ -93,7 +98,7 @@ int ClusterBalanceScheduler::getScheduledNode(
 							bestNode->getNumOffloadedTasks();
 
 	// Schedule immediately to correct node as long as queue not too long
-	if (numTasksAlready <= 2 * (bestNode->getCurrentAllocCores()-1)) {
+	if (numTasksAlready <= 2 * (getCurrentCores(bestNode)-1)) {
 
 		// If it is executed remotely then it cannot be stolen any more
 		if (bestNode != ClusterManager::getCurrentClusterNode()) {
@@ -111,8 +116,9 @@ int ClusterBalanceScheduler::getScheduledNode(
 		numTasksAlready = (node == ClusterManager::getCurrentClusterNode()) ?
 								ClusterHybridMetrics::getNumReadyTasks() :
 								node->getNumOffloadedTasks();
-		if (node->getCurrentAllocCores() > 1) {
-			float ratio = (float)numTasksAlready / (node->getCurrentAllocCores()-1);
+		int currentCores = getCurrentCores(node);
+		if (currentCores > 1) {
+			float ratio = (float)numTasksAlready / (currentCores-1);
 
 			if (!thief || ratio < thiefRatio) {
 				thiefRatio = ratio;
@@ -194,7 +200,7 @@ void ClusterBalanceScheduler::checkSendMoreAllNodes()
 		if (node == ClusterManager::getCurrentClusterNode()) {
 			continue;
 		}
-		int alloc = node->getCurrentAllocCores();
+		int alloc = getCurrentCores(node);
 		if (alloc > 0) {
 			int numTasksAlready = (node == ClusterManager::getCurrentClusterNode()) ?
 									ClusterHybridMetrics::getNumReadyTasks() :
@@ -226,7 +232,7 @@ Task *ClusterBalanceScheduler::stealTask(ComputePlace *)
 	// May take loads of immovable ready tasks if they all need data transfers...
 	// Don't do this
 	int numTasksAlready = ClusterHybridMetrics::getNumReadyTasks();
-	int alloc = ClusterManager::getCurrentClusterNode()->getCurrentAllocCores();
+	int alloc = getCurrentCores(ClusterManager::getCurrentClusterNode());
 	if (ClusterHybridMetrics::getNumImmovableTasks() > 2 * alloc) {
 		return nullptr;
 	}
@@ -245,7 +251,7 @@ void ClusterBalanceScheduler::offloadedTaskFinished(ClusterNode *remoteNode)
 	int totalTasksHere = ClusterHybridMetrics::getNumReadyTasks(); // Total number of ready and immovable and promised tasks here
 	int alreadyOffloaded = remoteNode->getNumOffloadedTasks(); // Total number of tasks already offloaded to that node
 	int localCores = DLBCPUActivation::getCurrentActiveOwnedCPUs();
-	int remoteCores = remoteNode->getCurrentAllocCores();                               // Their allocation
+	int remoteCores = getCurrentCores(remoteNode);                               // Their allocation
 
 	if (remoteCores <= 1) {
 		// Don't use first remote core

@@ -51,6 +51,7 @@ private:
 
 	Task *stealTask(ClusterNode *targetNode);
 
+	int getCurrentCores(ClusterNode *remoteNode);
 
 public:
 	ClusterBalanceScheduler(ClusterSchedulerInterface * const interface)
