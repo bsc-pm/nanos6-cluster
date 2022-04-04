@@ -38,6 +38,10 @@ namespace Instrument {
 	template<typename... TS>
 	void logMessage(InstrumentationContext const &context, TS... contents)
 	{
+		if(!_verboseLoggingMessages){
+			return;
+		}
+		
 		LogEntry *logEntry = getLogEntry(context);
 		assert(logEntry != nullptr);
 
