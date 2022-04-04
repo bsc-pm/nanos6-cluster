@@ -353,9 +353,9 @@ void ClusterHybridInterfaceFile::appendUtilization(float timestamp, float totalB
 					 // << ClusterHybridManager::getAveragedBusy() << "\n";
 					 << otherAlloc << " " 
 					 << numOffloaded << " " 
-					 << ClusterHybridMetrics::getDirectOffload() << " " 
-					 << ClusterHybridMetrics::getDirectThiefOffload() << " " 
-					 << ClusterHybridMetrics::getSendMoreOffload() << " " 
+					 << ClusterHybridMetrics::getDirectSelf() << " " 
+					 << ClusterHybridMetrics::getDirectThiefSelf() << " " 
+					 << ClusterHybridMetrics::getStealSelf() << " " 
 					 << ClusterHybridMetrics::getCheckOffload() << " "
 					 << ClusterHybridMetrics::getSentNumNewTask() << " "
 					 << ClusterHybridMetrics::getReceivedNumNewTask() << " "

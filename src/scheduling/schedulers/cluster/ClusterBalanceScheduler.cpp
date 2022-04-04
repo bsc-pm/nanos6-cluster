@@ -98,6 +98,8 @@ int ClusterBalanceScheduler::getScheduledNode(
 		// If it is executed remotely then it cannot be stolen any more
 		if (bestNode != ClusterManager::getCurrentClusterNode()) {
 			ClusterHybridMetrics::incDirectOffload(1);
+		} else {
+			ClusterHybridMetrics::incDirectSelf(1);
 		}
 		return bestNodeId;
 	}
@@ -127,6 +129,8 @@ int ClusterBalanceScheduler::getScheduledNode(
 			// If it is executed remotely then it cannot be stolen any more
 			if (thiefId != ClusterManager::getCurrentClusterNode()->getIndex()) {
 				ClusterHybridMetrics::incDirectThiefOffload(1);
+			} else {
+				ClusterHybridMetrics::incDirectThiefSelf(1);
 			}
 			return thiefId;
 		}
@@ -187,6 +191,9 @@ Task *ClusterBalanceScheduler::stealTask(ClusterNode *targetNode)
 void ClusterBalanceScheduler::checkSendMoreAllNodes()
 {
 	for (ClusterNode *node : ClusterManager::getClusterNodes()) {
+		if (node == ClusterManager::getCurrentClusterNode()) {
+			continue;
+		}
 		int alloc = node->getCurrentAllocCores();
 		if (alloc > 0) {
 			int numTasksAlready = (node == ClusterManager::getCurrentClusterNode()) ?
@@ -198,6 +205,8 @@ void ClusterBalanceScheduler::checkSendMoreAllNodes()
 				if (task) {
 					if (node != ClusterManager::getCurrentClusterNode()) {
 						ClusterHybridMetrics::incSendMoreOffload(1);
+					} else {
+						assert(0);
 					}
 					Scheduler::addReadyLocalOrExecuteRemote(node->getIndex(), task, nullptr, NO_HINT);
 				} else {
@@ -225,6 +234,7 @@ Task *ClusterBalanceScheduler::stealTask(ComputePlace *)
 	Task *task = stealTask(ClusterManager::getCurrentClusterNode());
 	if (task) {
 		checkSendMoreAllNodes();
+		ClusterHybridMetrics::incStealSelf(1);
 	}
 	return task;
 }
@@ -280,6 +290,8 @@ void ClusterBalanceScheduler::offloadedTaskFinished(ClusterNode *remoteNode)
 			Scheduler::addReadyLocalOrExecuteRemote(remoteNode->getIndex(), task, nullptr, NO_HINT);
 			if (remoteNode != ClusterManager::getCurrentClusterNode()) {
 				ClusterHybridMetrics::incCheckOffload(1);
+			} else {
+				assert(0);
 			}
 		} else {
 			break;

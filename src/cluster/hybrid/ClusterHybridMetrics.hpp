@@ -20,13 +20,16 @@ private:
 	static std::atomic<size_t> _numReadyTasks;
 	static std::atomic<size_t> _numImmovableReadyTasks;
 	static std::atomic<size_t> _directOffload;
+	static std::atomic<size_t> _directSelf;
 	static std::atomic<size_t> _directThiefOffload;
+	static std::atomic<size_t> _directThiefSelf;
 	static std::atomic<size_t> _sendMoreOffload;
 	static std::atomic<size_t> _checkOffload;
 	static std::atomic<size_t> _sentNumNewTask;
 	static std::atomic<size_t> _receivedNumNewTask;
 	static std::atomic<size_t> _sentNumTaskFinished;
 	static std::atomic<size_t> _receivedNumTaskFinished;
+	static std::atomic<size_t> _stealSelf;
 
 public:
 
@@ -56,9 +59,19 @@ public:
 		_directOffload += by;
 	}
 
+	static inline void incDirectSelf(int by)
+	{
+		_directSelf += by;
+	}
+
 	static inline size_t getDirectOffload()
 	{
 		return _directOffload;
+	}
+
+	static inline size_t getDirectSelf()
+	{
+		return _directSelf;
 	}
 
 	static inline void incDirectThiefOffload(int by)
@@ -71,9 +84,29 @@ public:
 		return _directThiefOffload;
 	}
 
+	static inline void incDirectThiefSelf(int by)
+	{
+		_directThiefSelf += by;
+	}
+
+	static inline size_t getDirectThiefSelf()
+	{
+		return _directThiefSelf;
+	}
+
 	static inline void incSendMoreOffload(int by)
 	{
 		_sendMoreOffload += by;
+	}
+
+	static inline void incStealSelf(int by)
+	{
+		_stealSelf += by;
+	}
+
+	static inline size_t getStealSelf()
+	{
+		return _stealSelf;
 	}
 
 	static inline size_t getSendMoreOffload()
