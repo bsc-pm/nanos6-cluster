@@ -334,33 +334,32 @@ void ClusterHybridInterfaceFile::appendUtilization(float timestamp, float totalB
 			numOffloaded += node->getNumOffloadedTasks();
 		}
 	}
-	_utilizationFile << timestamp << " "
-	                 << allocCores << " "
-					 << enabledCores << " "
-					 << totalBusyCores << " "
-					 << usefulBusyCores << " "
-					 << ClusterHybridMetrics::getNumReadyTasks() << " "
-					 << ClusterManager::getTotalReadyTasks() << " "
-					 << ClusterManager::getTotalBusyCoresSameApprank() << " " // unused: ClusterHybridMetrics::getTotalNumPromisedTasks() << " "
-					 << ClusterHybridMetrics::getNumImmovableTasks() << " " 
-					 << "-1 " // unused: (int)countHandleRequestWork << " " 
-					 << "-1 " // unused: (int)countHandleRequestWorkAck << " "
-					 << numCpusOwned << " "
-					 << DLBCPUActivation::getCurrentLentOwnedCPUs() << " "
-					 << DLBCPUActivation::getCurrentBorrowedCPUs() << " "
-					 << ClusterHybridManager::getBusyOtherInstancesSameNode() << " "
-					 // << ClusterHybridManager::getAveragedBusyOtherInstancesSameNode() << " "
-					 // << ClusterHybridManager::getAveragedBusy() << "\n";
-					 << otherAlloc << " " 
-					 << numOffloaded << " " 
-					 << ClusterHybridMetrics::getDirectSelf() << " " 
-					 << ClusterHybridMetrics::getDirectThiefSelf() << " " 
-					 << ClusterHybridMetrics::getStealSelf() << " " 
-					 << ClusterHybridMetrics::getCheckOffload() << " "
-					 << ClusterHybridMetrics::getSentNumNewTask() << " "
-					 << ClusterHybridMetrics::getReceivedNumNewTask() << " "
-					 << ClusterHybridMetrics::getSentNumTaskFinished() << " "
-					 << ClusterHybridMetrics::getReceivedNumTaskFinished() << "\n";
+	_utilizationFile
+		<< timestamp << " "
+		<< allocCores << " "                                        //  1: alloc: determined by local or global policy
+		<< enabledCores << " "                                      //  2: enabled
+		<< totalBusyCores << " "                                    //  3: busy: averaged number of busy cores
+		<< usefulBusyCores << " "                                   //  4: useful-busy: averaged number of cores executing tasks
+		<< ClusterHybridMetrics::getNumReadyTasks() << " "          //  5: localtasks: num. stealable or immovable ready tasks this instance
+		<< ClusterManager::getTotalReadyTasks() << " "              //  6: totaltasks: num. stealable ready tasks all instances this apprank
+		<< ClusterManager::getTotalBusyCoresSameApprank() << " "    //  7: apprankbusy: sum of "busy" all instances this apprank
+		<< ClusterHybridMetrics::getNumImmovableTasks() << " "      //  8: immovable: num. immovable ready tasks (in local scheduler)
+		<< "-1 " // unused: (int)countHandleRequestWork << " "      //  9: unused
+		<< "-1 " // unused: (int)countHandleRequestWorkAck << " "   // 10: unused
+		<< numCpusOwned << " "                                      // 11: owned: number of owned CPUs
+		<< DLBCPUActivation::getCurrentLentOwnedCPUs() << " "       // 12: lent: number of lent CPUs
+		<< DLBCPUActivation::getCurrentBorrowedCPUs() << " "        // 13: borrowed: number of borrowed CPUs
+		<< ClusterHybridManager::getBusyOtherInstancesSameNode() << " "//14:
+		<< otherAlloc << " "                                          // 15:
+		<< numOffloaded << " "                                        // 16:
+		<< ClusterHybridMetrics::getDirectOffload() << " "            // 17:
+		<< ClusterHybridMetrics::getDirectThiefOffload() << " "       // 18:
+		<< ClusterHybridMetrics::getSendMoreOffload() << " "          // 19:
+		<< ClusterHybridMetrics::getCheckOffload() << " "             // 20:
+		<< ClusterHybridMetrics::getSentNumNewTask() << " "           // 21:
+		<< ClusterHybridMetrics::getReceivedNumNewTask() << " "       // 22:
+		<< ClusterHybridMetrics::getSentNumTaskFinished() << " "      // 23:
+		<< ClusterHybridMetrics::getReceivedNumTaskFinished() << "\n";// 24:
 
 #if 0
 	int ncpus = CPUManager::getTotalCPUs();
