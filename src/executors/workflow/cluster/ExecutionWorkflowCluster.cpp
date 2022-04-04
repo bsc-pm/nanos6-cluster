@@ -105,6 +105,7 @@ namespace ExecutionWorkflow {
 				TaskOffloading::SatisfiabilityInfo(
 					region, locationIndex,
 					read, write,
+					access->isWeak(), access->getType(),
 					writeID, offloadedTaskId, eagerSendTag)
 			);
 
@@ -198,6 +199,7 @@ namespace ExecutionWorkflow {
 				location, _region,
 				_writeID,
 				_read, _write,
+				_weak, _accessType,
 				_namespacePredecessor,
 				eagerSendTag
 			);

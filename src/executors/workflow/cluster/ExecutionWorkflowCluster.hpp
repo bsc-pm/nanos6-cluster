@@ -28,6 +28,7 @@
 #include <MessageDataSend.hpp>
 
 #include "executors/threads/WorkerThread.hpp"
+#include "dependencies/DataAccessType.hpp"
 
 class ComputePlace;
 class MemoryPlace;
@@ -53,6 +54,12 @@ namespace ExecutionWorkflow {
 		//! write satisfiability at creation time
 		bool _write;
 
+		//! true if the access is weak
+		bool _weak;
+
+		//! type of the corresponding access 
+		DataAccessType _accessType;
+
 		OffloadedTaskId _namespacePredecessor;
 		int _namespacePredecessorNode;
 		WriteID _writeID;
@@ -74,6 +81,8 @@ namespace ExecutionWorkflow {
 			_task(access->getOriginator()),
 			_read(access->readSatisfied()),
 			_write(access->writeSatisfied()),
+			_weak(access->isWeak()),
+			_accessType(access->getType()),
 			_namespacePredecessor(InvalidOffloadedTaskId),
 			_namespacePredecessorNode(VALID_NAMESPACE_UNKNOWN),
 			_writeID((access->getType() == COMMUTATIVE_ACCESS_TYPE) ? 0 : access->getWriteID()),
@@ -411,12 +420,15 @@ namespace ExecutionWorkflow {
 		//! \param[in] size is the size of the region being copied.
 		//! \param[in] read is true if access is read-satisfied
 		//! \param[in] write is true if access is write-satisfied
+		//! \param[in] weak is true if access is weak
+		//! \param[in] accessType type of the access
 		//! \param[in] namespacePredecessorId is nullptr or predecessor remote task ID
 		void addDataLink(
 			int source,
 			DataAccessRegion const &region,
 			WriteID writeID,
 			bool read, bool write,
+			bool weak, DataAccessType accessType,
 			OffloadedTaskId namespacePredecessorId,
 			int eagerWeakSendTag
 		) {
@@ -429,6 +441,7 @@ namespace ExecutionWorkflow {
 				TaskOffloading::SatisfiabilityInfo(
 					region, source,
 					read, write,
+					weak, accessType,
 					writeID, namespacePredecessorId, eagerWeakSendTag)
 			);
 		}

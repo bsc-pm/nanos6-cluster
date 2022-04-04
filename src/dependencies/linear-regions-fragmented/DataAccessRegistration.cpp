@@ -4262,9 +4262,14 @@ namespace DataAccessRegistration {
 		/*
 		 * This part creates the DataAccesses and calculates any possible upgrade.
 		 * It calls _taskInfo->register_depinfo with the args block, which results
-		 * in a call to registerTaskDataAccess for each access.
+		 * in a call to "registerTaskDataAccess" for each access.
+		 * 
+		 * however, if the task is a remote task, it means that the dependencies were
+		 * registered earlier when we offload the task inside "remoteTaskCreateAndSubmit".
 		 */
-		task->registerDependencies();
+		if(!task->isRemoteTask()){
+			task->registerDependencies();
+		}
 
 		/*
 		 * Now that the task accesses have been registered, they need to

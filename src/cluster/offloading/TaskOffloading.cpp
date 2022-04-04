@@ -300,7 +300,21 @@ namespace TaskOffloading {
 		// When CreateAndSubmit the satInfo._id member contains the namespace predecessor.
 		size_t numSatInfo;
 		TaskOffloading::SatisfiabilityInfo *satInfo = msg->getSatisfiabilityInfo(numSatInfo);
+
+		// Offloaded tasks use dependency info sent from the offloading node
+        // and register dependencies manually at this point, and so skipping 
+        // Mercurium generated code for registering depndencies later inside 
+        // registerTaskDataAccesses by checking if it is a remote task.
 		for (size_t i = 0; i < numSatInfo; ++i) {
+			DataAccessRegistration::registerTaskDataAccess(
+				task,
+				satInfo[i]._accessType,
+				satInfo[i]._weak,
+				satInfo[i]._region,
+				0, /* TODO: send symbol list, ignored for the moment */
+				no_reduction_type_and_operator,
+				no_reduction_index);
+				
 			DataAccessRegistration::setNamespacePredecessor(
 				task,
 				parent,

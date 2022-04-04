@@ -11,6 +11,7 @@
 #include <vector>
 #include "WriteID.hpp"
 #include "OffloadedTaskId.hpp"
+#include "dependencies/DataAccessType.hpp"
 
 class ClusterNode;
 
@@ -27,6 +28,12 @@ namespace TaskOffloading {
 
 		//! makes access read/write satisfied
 		bool _readSat, _writeSat;
+		
+		//! true if the access is weak
+		bool _weak;
+
+		//! access object type 
+		DataAccessType _accessType;
 
 		// The unique writeID
 		WriteID _writeID;
@@ -42,10 +49,11 @@ namespace TaskOffloading {
 
 		SatisfiabilityInfo(
 			DataAccessRegion const &region, int src,
-			bool read, bool write,
+			bool read, bool write, bool weak, DataAccessType accessType,
 			WriteID writeID, OffloadedTaskId id, int eagerSendTag
 		) : _region(region), _src(src),
 			_readSat(read), _writeSat(write),
+			_weak(weak), _accessType(accessType),
 			_writeID(writeID), _id(id), _eagerSendTag(eagerSendTag)
 		{
 			// std::cout << "construct SatisfiabilityInfo with nrp = " << namespacePredecessor << "\n";
@@ -56,6 +64,8 @@ namespace TaskOffloading {
 		{
 			return o << "[SatReg:" << satInfo._region
 				<< " r:" << satInfo._readSat << " w:" << satInfo._writeSat
+				<< " type:"<< satInfo._accessType << " weak:" << satInfo._weak
+				<< " eagerSendTag: " << satInfo._eagerSendTag
 				<< " loc:" << satInfo._src << " task: " << satInfo._id << "]";
 		}
 	};
