@@ -83,7 +83,10 @@ void LocalPolicy::execute(ComputePlace *cpu, CPUManagerPolicyHint hint, size_t n
 					DLBCPUActivation::lendCPU(currentCPU);
 				}
 			} else if (currentStatus == CPU::acquired_enabled_status) {
-				DLBCPUActivation::returnCPU(currentCPU);
+				if (ClusterManager::getTotalReadyTasks() == 0) {
+					// Only return a borrowed cpu (without being reclaimed) if there are no ready tasks in this apprank
+					DLBCPUActivation::returnCPU(currentCPU);
+				}
 			} else if (currentStatus == CPU::shutdown_status) {
 				// do nothing
 			} else {
@@ -94,11 +97,14 @@ void LocalPolicy::execute(ComputePlace *cpu, CPUManagerPolicyHint hint, size_t n
 
 	} else if (hint == REQUEST_CPUS) {
 		// Try to reclaim CPUs
-		int numReclaimed = DLBCPUActivation::reclaimCPUs(numRequested);
-		if (numReclaimed < (int)numRequested) {
-			int numLeft = numRequested - numReclaimed;
-			// Try to borrow cores
-			DLBCPUActivation::acquireCPUs(numLeft);
+		int haveCores = DLBCPUActivation::getCurrentActiveOwnedCPUs() + DLBCPUActivation::getCurrentBorrowedCPUs();
+		if (haveCores <= 1 || haveCores < ClusterManager::getTotalReadyTasks() + ClusterHybridMetrics::getNumImmovableTasks()) {
+			int numReclaimed = DLBCPUActivation::reclaimCPUs(numRequested);
+			if (numReclaimed < (int)numRequested) {
+				int numLeft = numRequested - numReclaimed;
+				// Try to borrow cores
+				DLBCPUActivation::acquireCPUs(numLeft);
+			}
 		}
 
 		return;
