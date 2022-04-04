@@ -321,10 +321,11 @@ bool ClusterHybridInterfaceFile::updateNumbersOfCores(bool isLocal, float totalB
 
 void ClusterHybridInterfaceFile::appendUtilization(float timestamp, float totalBusyCores, float usefulBusyCores)
 {
-	int enabledCores = DLBCPUActivation::getCurrentActiveOwnedCPUs();
 	int allocCores = ClusterManager::getCurrentClusterNode()->getCurrentAllocCores();
-						
 	int numCpusOwned = DLBCPUActivation::getCurrentOwnedOrGivingCPUs();
+	int numLentOwned = DLBCPUActivation::getCurrentLentOwnedCPUs();
+	int numBorrowed  = DLBCPUActivation::getCurrentBorrowedCPUs();
+	int enabledCores = numCpusOwned - numLentOwned + numBorrowed;
 
 	int otherAlloc = 0;
 	int numOffloaded = 0;
@@ -337,7 +338,7 @@ void ClusterHybridInterfaceFile::appendUtilization(float timestamp, float totalB
 	_utilizationFile
 		<< timestamp << " "
 		<< allocCores << " "                                        //  1: alloc: determined by local or global policy
-		<< enabledCores << " "                                      //  2: enabled
+		<< enabledCores << " "                                      //  2: enabled: owned-lent+borrowed
 		<< totalBusyCores << " "                                    //  3: busy: averaged number of busy cores
 		<< usefulBusyCores << " "                                   //  4: useful-busy: averaged number of cores executing tasks
 		<< ClusterHybridMetrics::getNumReadyTasks() << " "          //  5: localtasks: num. stealable or immovable ready tasks this instance
@@ -347,8 +348,8 @@ void ClusterHybridInterfaceFile::appendUtilization(float timestamp, float totalB
 		<< "-1 " // unused: (int)countHandleRequestWork << " "      //  9: unused
 		<< "-1 " // unused: (int)countHandleRequestWorkAck << " "   // 10: unused
 		<< numCpusOwned << " "                                      // 11: owned: number of owned CPUs
-		<< DLBCPUActivation::getCurrentLentOwnedCPUs() << " "       // 12: lent: number of lent CPUs
-		<< DLBCPUActivation::getCurrentBorrowedCPUs() << " "        // 13: borrowed: number of borrowed CPUs
+		<< numLentOwned << " "                                      // 12: lent: number of lent CPUs
+		<< numBorrowed << " "                                       // 13: borrowed: number of borrowed CPUs
 		<< ClusterHybridManager::getBusyOtherInstancesSameNode() << " "//14:
 		<< otherAlloc << " "                                          // 15:
 		<< numOffloaded << " "                                        // 16:
