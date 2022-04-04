@@ -201,6 +201,9 @@ private:
 	//! _clusterNode if set by call to setNode()
 	nanos6_task_constraints_t *_constraints; // -1 is same as nanos6_cluster_no_hint, so not overridden by runtime
 
+	bool _countAsImmovable;
+	bool _countedAsImmovable;
+
 public:
 	inline Task(
 		void *argsBlock,
@@ -1106,6 +1109,25 @@ public:
 		_offloadedTaskId = taskId;
 	}
 
+	void dontCountAsImmovable(void)
+	{
+		_countAsImmovable = false;
+	}
+
+	bool getCountAsImmovable(void) const
+	{
+		return _countAsImmovable;
+	}
+
+	void setCountedAsImmovable(void)
+	{
+		_countedAsImmovable = true;
+	}
+
+	bool getCountedAsImmovable(void) const
+	{
+		return _countedAsImmovable;
+	}
 };
 
 

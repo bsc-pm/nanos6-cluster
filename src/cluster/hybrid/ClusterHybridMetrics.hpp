@@ -18,7 +18,7 @@ class ClusterHybridMetrics {
 private:
 	static SpinLock _promisedTasksLock;
 	static std::atomic<size_t> _numReadyTasks;
-	static std::atomic<size_t> _numImmovableReadyTasks;
+	static std::atomic<size_t> _numImmovableTasks;
 	static std::atomic<size_t> _directOffload;
 	static std::atomic<size_t> _directSelf;
 	static std::atomic<size_t> _directThiefOffload;
@@ -38,20 +38,20 @@ public:
 		_numReadyTasks += by;
 	}
 
-	static inline void incNumImmovableReadyTasks(int by)
+	static inline void incNumImmovableTasks(int by)
 	{
-	        _numImmovableReadyTasks += by;
-			Instrument::emitClusterEvent(Instrument::ClusterEventType::ImmovableTasks, _numImmovableReadyTasks);
+	        _numImmovableTasks += by;
+			Instrument::emitClusterEvent(Instrument::ClusterEventType::ImmovableTasks, _numImmovableTasks);
 	}
 	
-	static inline size_t getNumImmovableReadyTasks()
+	static inline size_t getNumImmovableTasks()
 	{
-	        return _numImmovableReadyTasks;
+	        return _numImmovableTasks;
 	}
 
 	static inline size_t getNumReadyTasks()
 	{
-		return _numReadyTasks + _numImmovableReadyTasks;
+		return _numReadyTasks + _numImmovableTasks;
 	}
 
 	static inline void incDirectOffload(int by)

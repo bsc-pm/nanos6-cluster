@@ -122,14 +122,18 @@ public:
 
 	inline void addReadyTasks(Task *tasks[], const size_t numTasks, ComputePlace *computePlace, ReadyTaskHint hint)
 	{
-		ClusterHybridMetrics::incNumImmovableReadyTasks(numTasks);
-
 		// Use a special queue not belonging to any NUMA node if no compute place
 		const size_t queueIndex = (computePlace != nullptr) ? ((CPU *)computePlace)->getNumaNodeId() : _totalAddQueues-1;
 		assert(queueIndex < _totalAddQueues);
 
 		for (size_t t = 0; t < numTasks; t++) {
 			assert(tasks[t] != nullptr);
+
+			Task *task = tasks[t];
+			if (task->getCountAsImmovable() && !task->getCountedAsImmovable()) {
+				task->setCountedAsImmovable();
+				ClusterHybridMetrics::incNumImmovableTasks(1);
+			}
 			// Set temporary info that is used when processing ready tasks
 			tasks[t]->setComputePlace(computePlace);
 			tasks[t]->setSchedulingHint(hint);

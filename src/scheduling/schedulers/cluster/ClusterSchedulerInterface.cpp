@@ -8,6 +8,7 @@
 
 #include "ClusterLocalityScheduler.hpp"
 #include "ClusterRandomScheduler.hpp"
+#include "cluster/hybrid/ClusterHybridMetrics.hpp"
 
 #include <ClusterManager.hpp>
 
@@ -37,6 +38,7 @@ void ClusterSchedulerInterface::addReadyLocalOrExecuteRemote(
 	assert(targetNode != nullptr);
 
 	if (targetNode == _thisNode) {
+		
 		SchedulerInterface::addReadyTask(task, computePlace, hint);
 		return;
 	}

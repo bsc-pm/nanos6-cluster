@@ -220,9 +220,9 @@ int ClusterHybridInterfaceFile::updateTotalsThisNode(void)
 				int numReadyTasks;
 				int ignore; // it's view of total tasks
 				int totalBusyCoresThatApprank;
-				int numImmovableReadyTasks;
+				int numImmovableTasks;
 				iss >> timestamp >> allocCores >> activeCores >> busyCores >> usefulBusyCores >> numReadyTasks
-						>> ignore >> totalBusyCoresThatApprank >> numImmovableReadyTasks;
+						>> ignore >> totalBusyCoresThatApprank >> numImmovableTasks;
 
 
 				ok = true; // really only good if one other rank
@@ -247,7 +247,7 @@ bool ClusterHybridInterfaceFile::updateNumbersOfCores(bool isLocal, float totalB
 	bool changed = false;
 	std::vector <ClusterNode *> const &clusterNodes = ClusterManager::getClusterNodes();
 	
-	int totalReadyTasks = ClusterHybridMetrics::getNumReadyTasks() - ClusterHybridMetrics::getNumImmovableReadyTasks();
+	int totalReadyTasks = ClusterHybridMetrics::getNumReadyTasks() - ClusterHybridMetrics::getNumImmovableTasks();
 
 	for(ClusterNode *node : clusterNodes) {
 		if (node != ClusterManager::getCurrentClusterNode()) {
@@ -267,9 +267,9 @@ bool ClusterHybridInterfaceFile::updateNumbersOfCores(bool isLocal, float totalB
 					int numReadyTasks;
 					int ignore; // it's view of total tasks
 					int ignore2; // was numPromisedTasks;
-					int numImmovableReadyTasks;
+					int numImmovableTasks;
 					iss >> timestamp >> allocCores >> activeCores >> busyCores >> usefulBusyCores >> numReadyTasks
-							>> ignore >> ignore2 >> numImmovableReadyTasks;
+							>> ignore >> ignore2 >> numImmovableTasks;
 
 					if (isLocal) {
 						// With local policy: read current allocation from the utilization file
@@ -283,7 +283,7 @@ bool ClusterHybridInterfaceFile::updateNumbersOfCores(bool isLocal, float totalB
 					node->setCurrentActiveCores(activeCores);
 					node->setCurrentBusyCores(busyCores);
 
-					int offloadableReadyTasks = numReadyTasks - numImmovableReadyTasks;
+					int offloadableReadyTasks = numReadyTasks - numImmovableTasks;
 #if 0
 					// The information in the file could be quite old: but it is possible that
 					// a task has not seen a reason to offload any task to us. This file might
@@ -342,7 +342,7 @@ void ClusterHybridInterfaceFile::appendUtilization(float timestamp, float totalB
 					 << ClusterHybridMetrics::getNumReadyTasks() << " "
 					 << ClusterManager::getTotalReadyTasks() << " "
 					 << ClusterManager::getTotalBusyCoresSameApprank() << " " // unused: ClusterHybridMetrics::getTotalNumPromisedTasks() << " "
-					 << ClusterHybridMetrics::getNumImmovableReadyTasks() << " " 
+					 << ClusterHybridMetrics::getNumImmovableTasks() << " " 
 					 << "-1 " // unused: (int)countHandleRequestWork << " " 
 					 << "-1 " // unused: (int)countHandleRequestWorkAck << " "
 					 << numCpusOwned << " "

@@ -227,7 +227,7 @@ Task *ClusterBalanceScheduler::stealTask(ComputePlace *)
 	// Don't do this
 	int numTasksAlready = ClusterHybridMetrics::getNumReadyTasks();
 	int alloc = ClusterManager::getCurrentClusterNode()->getCurrentAllocCores();
-	if (ClusterHybridMetrics::getNumImmovableReadyTasks() > 2 * alloc) {
+	if (ClusterHybridMetrics::getNumImmovableTasks() > 2 * alloc) {
 		return nullptr;
 	}
 

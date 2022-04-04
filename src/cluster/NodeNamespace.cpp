@@ -15,6 +15,7 @@
 #include "system/ompss/AddTask.hpp"
 #include "cluster/ClusterUtil.hpp"
 #include "cluster/offloading/TaskOffloading.hpp"
+// #include "cluster/hybrid/ClusterHybridMetrics.hpp"
 
 
 NodeNamespace *NodeNamespace::_singleton = nullptr;
@@ -55,6 +56,8 @@ NodeNamespace::NodeNamespace(SpawnFunction::function_t mainCallback, void *args)
 		this, sizeof(NodeNamespace), flags,
 		0 /* Num dependencies */, false /* from user code */
 	);
+	_namespaceTask->dontCountAsImmovable();
+	// ClusterHybridMetrics::incNumImmovableTasks(-1); // don't count the namespace task
 	assert(_namespaceTask != nullptr);
 }
 
