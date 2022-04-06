@@ -40,9 +40,6 @@
 #include <InstrumentInitAndShutdown.hpp>
 #include <InstrumentThreadManagement.hpp>
 
-// This is memory allocator specific
-bool MemoryAllocator::init = false;
-
 static ExternalThread *mainThread = nullptr;
 
 void nanos6_shutdown(void);
