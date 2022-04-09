@@ -3067,12 +3067,9 @@ namespace DataAccessRegistration {
 						//     The predecessor of A1 is also task A.
 						// (3) Tasks A1 and B arrive in the wrong order at node 1, so it looks like
 						//     we can connect in the namespace from A1 to B, but we cannot
-						assert(! ((previous->getType() == READ_ACCESS_TYPE) && (dataAccess->getType() != READ_ACCESS_TYPE)));
-						assert(! ((previous->getType() != ALLMEMORY_ACCESS_TYPE && previous->getType() != CONCURRENT_ACCESS_TYPE)
-								&& (dataAccess->getType() == ALLMEMORY_ACCESS_TYPE || dataAccess->getType() == ALLMEMORY_ACCESS_TYPE)));
-						assert(previous->getType() != NO_ACCESS_TYPE && dataAccess->getType() != NO_ACCESS_TYPE);
-
-						canPropagateInNamespace = true;
+						if(!(previous->getType() == READ_ACCESS_TYPE) && (dataAccess->getType() != READ_ACCESS_TYPE)) {
+							canPropagateInNamespace = true;
+						}
 						Instrument::namespacePropagation(Instrument::NamespaceSuccessful, dataAccess->getAccessRegion());
 					} else if (previous->getNamespaceSuccessor() != nullptr) {
 						Instrument::namespacePropagation(Instrument::NamespaceWrongPredecessor, dataAccess->getAccessRegion());
