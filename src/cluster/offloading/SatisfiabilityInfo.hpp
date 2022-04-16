@@ -28,7 +28,7 @@ namespace TaskOffloading {
 
 		//! makes access read/write satisfied
 		bool _readSat, _writeSat;
-		
+
 		//! true if the access is weak
 		bool _weak;
 
@@ -42,7 +42,7 @@ namespace TaskOffloading {
 		//! this is will play two roles.
 		//! a) When used in a tasknew it will be the namespacePredecessor
 		//! b) When used in a satisfiability message it will be the task id (access originator)
-		OffloadedTaskId _id;
+		OffloadedTaskIdManager::OffloadedTaskId _id;
 
 		// 0, or eager weak send tag
 		int _eagerSendTag;
@@ -50,7 +50,7 @@ namespace TaskOffloading {
 		SatisfiabilityInfo(
 			DataAccessRegion const &region, int src,
 			bool read, bool write, bool weak, DataAccessType accessType,
-			WriteID writeID, OffloadedTaskId id, int eagerSendTag
+			WriteID writeID, OffloadedTaskIdManager::OffloadedTaskId id, int eagerSendTag
 		) : _region(region), _src(src),
 			_readSat(read), _writeSat(write),
 			_weak(weak), _accessType(accessType),

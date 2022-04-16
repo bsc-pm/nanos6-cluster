@@ -1345,7 +1345,10 @@ namespace DataAccessRegistration {
 				newLocalAccess->setConcurrentSatisfied();
 				newLocalAccess->setCommutativeSatisfied();
 				newLocalAccess->setReceivedReductionInfo();
-				newLocalAccess->setValidNamespacePrevious(VALID_NAMESPACE_NONE, InvalidOffloadedTaskId);
+				newLocalAccess->setValidNamespacePrevious(
+					VALID_NAMESPACE_NONE,
+					OffloadedTaskIdManager::InvalidOffloadedTaskId
+				);
 				newLocalAccess->setValidNamespaceSelf(VALID_NAMESPACE_NONE);
 				newLocalAccess->setRegistered();
 		#ifndef NDEBUG
@@ -1823,7 +1826,10 @@ namespace DataAccessRegistration {
 				// propagation of these accesses could work. We have a similar condition to
 				// disable namespace propagation out of these accesses (in the calculation
 				// of updateOperation._validNamespace).
-				access->setValidNamespacePrevious(VALID_NAMESPACE_NONE, InvalidOffloadedTaskId);
+				access->setValidNamespacePrevious(
+					VALID_NAMESPACE_NONE,
+					OffloadedTaskIdManager::InvalidOffloadedTaskId
+				);
 			} else {
 				// Can only propagate in to in or non-in to non-in
 				// NO_ACCESS_TYPE is used by propagateSatisfiability to reproduce the namespace
@@ -3110,7 +3116,10 @@ namespace DataAccessRegistration {
 
 							DataAccessStatusEffects initialStatusT(targetAccess);
 
-							targetAccess->setValidNamespacePrevious(VALID_NAMESPACE_NONE, InvalidOffloadedTaskId);
+							targetAccess->setValidNamespacePrevious(
+								VALID_NAMESPACE_NONE,
+								OffloadedTaskIdManager::InvalidOffloadedTaskId
+							);
 
 							targetAccess->setReceivedReductionInfo();
 
@@ -3244,7 +3253,10 @@ namespace DataAccessRegistration {
 						}
 
 						targetAccess->setReceivedReductionInfo();
-						targetAccess->setValidNamespacePrevious(VALID_NAMESPACE_NONE, InvalidOffloadedTaskId);
+						targetAccess->setValidNamespacePrevious(
+							VALID_NAMESPACE_NONE,
+							OffloadedTaskIdManager::InvalidOffloadedTaskId
+						);
 
 						// Note: setting ReductionSlotSet as received is not necessary, as its not always propagated
 						DataAccessStatusEffects updatedStatus(targetAccess);
@@ -4692,7 +4704,10 @@ namespace DataAccessRegistration {
 			newLocalAccess->setConcurrentSatisfied();
 			newLocalAccess->setCommutativeSatisfied();
 			newLocalAccess->setReceivedReductionInfo();
-			newLocalAccess->setValidNamespacePrevious(VALID_NAMESPACE_NONE, InvalidOffloadedTaskId);
+			newLocalAccess->setValidNamespacePrevious(
+				VALID_NAMESPACE_NONE,
+				OffloadedTaskIdManager::InvalidOffloadedTaskId
+			);
 			newLocalAccess->setValidNamespaceSelf(VALID_NAMESPACE_NONE);
 			newLocalAccess->setRegistered();
 	#ifndef NDEBUG
@@ -5202,13 +5217,16 @@ namespace DataAccessRegistration {
 		bool writeSatisfied,   /* Change in write satisfiability (not new value) */
 		WriteID writeID,
 		MemoryPlace const *location,
-		OffloadedTaskId namespacePredecessor)
+		OffloadedTaskIdManager::OffloadedTaskId namespacePredecessor)
 	{
 		Instrument::enterPropagateSatisfiability();
 		assert(task != nullptr);
 
 		/* At least one of read or write satisfied (maybe both) must be changing */
-		assert(readSatisfied || writeSatisfied || (namespacePredecessor != InvalidOffloadedTaskId));
+		assert(readSatisfied
+			|| writeSatisfied
+			|| (namespacePredecessor != OffloadedTaskIdManager::InvalidOffloadedTaskId)
+		);
 
 		/*
 		 * Create an update operation with the satisfiability information.
@@ -5225,7 +5243,7 @@ namespace DataAccessRegistration {
 		updateOperation._location = location;
 		updateOperation._writeID = writeID;
 		updateOperation._propagateSatisfiability = true;
-		if (namespacePredecessor != InvalidOffloadedTaskId) {
+		if (namespacePredecessor != OffloadedTaskIdManager::InvalidOffloadedTaskId) {
 			updateOperation._validNamespace = ClusterManager::getCurrentClusterNode()->getIndex();
 			updateOperation._namespacePredecessor = namespacePredecessor;
 			updateOperation._namespaceAccessType = NO_ACCESS_TYPE; // actually means any access type (in was checked at offloader side)
@@ -5312,13 +5330,13 @@ namespace DataAccessRegistration {
 		Task *parent,
 		DataAccessRegion region,
 		__attribute((unused)) ClusterNode *remoteNode,
-		OffloadedTaskId namespacePredecessor
+		OffloadedTaskIdManager::OffloadedTaskId namespacePredecessor
 	) {
 		assert(parent != nullptr);
 		assert(parent->isNodeNamespace());
 
 #ifndef INSTRUMENT_STATS_CLUSTER_HPP
-		if (namespacePredecessor == InvalidOffloadedTaskId) {
+		if (namespacePredecessor == OffloadedTaskIdManager::InvalidOffloadedTaskId) {
 			return;
 		}
 #endif

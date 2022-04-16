@@ -31,6 +31,10 @@ TaskOffloading::RemoteTasksInfoMap *TaskOffloading::RemoteTasksInfoMap::_singlet
 TaskOffloading::OffloadedTasksInfoMap *TaskOffloading::OffloadedTasksInfoMap::_singleton = nullptr;
 ClusterManager *ClusterManager::_singleton = nullptr;
 
+MessageId *MessageId::_singleton = nullptr;
+WriteIDManager *WriteIDManager::_singleton = nullptr;
+OffloadedTaskIdManager *OffloadedTaskIdManager::_singleton = nullptr;
+
 std::atomic<size_t> ClusterServicesPolling::_activeClusterPollingServices;
 std::atomic<size_t> ClusterServicesTask::_activeClusterTaskServices;
 

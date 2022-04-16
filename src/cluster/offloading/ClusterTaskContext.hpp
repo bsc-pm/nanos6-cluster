@@ -35,7 +35,7 @@ namespace TaskOffloading {
 		MessageTaskNew *_msg;
 		//! A descriptro that identifies the remote task at the remote
 		//! node
-		OffloadedTaskId _remoteTaskIdentifier;
+		OffloadedTaskIdManager::OffloadedTaskId _remoteTaskIdentifier;
 
 		//! The cluster node on which the remote task is located
 		ClusterNode *_remoteNode;
@@ -69,8 +69,11 @@ namespace TaskOffloading {
 		//!		on the remote node
 		//! \param[in] remoteNode is the ClusterNode where the remote
 		//!		task is located
-		ClusterTaskContext(Task *task, OffloadedTaskId remoteTaskIdentifier, ClusterNode *remoteNode)
-			: _msg(nullptr),
+		ClusterTaskContext(
+			Task *task,
+			OffloadedTaskIdManager::OffloadedTaskId remoteTaskIdentifier,
+			ClusterNode *remoteNode
+		) : _msg(nullptr),
 			_remoteTaskIdentifier(remoteTaskIdentifier),
 			_remoteNode(remoteNode),
 			_owner(task),
@@ -95,7 +98,7 @@ namespace TaskOffloading {
 
 		//! \brief Get the remote task descriptor. A descriptro that identifies the remote task at
 		//! the remote node
-		inline OffloadedTaskId getRemoteIdentifier() const
+		inline OffloadedTaskIdManager::OffloadedTaskId getRemoteIdentifier() const
 		{
 			return _remoteTaskIdentifier;
 		}

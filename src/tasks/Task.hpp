@@ -196,7 +196,7 @@ private:
 	int _nestingLevel;
 
 	//! Offloaded task ID
-	OffloadedTaskId _offloadedTaskId;
+	OffloadedTaskIdManager::OffloadedTaskId _offloadedTaskId;
 
 	//! _clusterNode if set by call to setNode()
 	nanos6_task_constraints_t *_constraints; // -1 is same as nanos6_cluster_no_hint, so not overridden by runtime
@@ -1096,12 +1096,12 @@ public:
 		return _offloadedTask;
 	}
 
-	OffloadedTaskId getOffloadedTaskId() const
+	OffloadedTaskIdManager::OffloadedTaskId getOffloadedTaskId() const
 	{
 		return _offloadedTaskId;
 	}
 
-	void setOffloadedTaskId(OffloadedTaskId taskId)
+	void setOffloadedTaskId(OffloadedTaskIdManager::OffloadedTaskId taskId)
 	{
 		_offloadedTaskId = taskId;
 	}

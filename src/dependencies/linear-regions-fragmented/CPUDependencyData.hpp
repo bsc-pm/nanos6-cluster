@@ -51,7 +51,7 @@ struct CPUDependencyData {
 		bool _setReductionInfo; // Note: Both this and next field are required, as a null ReductionInfo can be propagated
 		ReductionInfo *_reductionInfo;
 		int _validNamespace;
-		OffloadedTaskId _namespacePredecessor;
+		OffloadedTaskIdManager::OffloadedTaskId _namespacePredecessor;
 		DataAccessType _namespaceAccessType;
 
 		boost::dynamic_bitset<> _reductionSlotSet;
@@ -67,7 +67,7 @@ struct CPUDependencyData {
 			_writeID(0),
 			_setReductionInfo(false), _reductionInfo(nullptr),
 			_validNamespace(-1),
-			_namespacePredecessor(InvalidOffloadedTaskId),
+			_namespacePredecessor(OffloadedTaskIdManager::InvalidOffloadedTaskId),
 			_namespaceAccessType(NO_ACCESS_TYPE),
 			_previousIsCommutative(false)
 		{
@@ -83,7 +83,7 @@ struct CPUDependencyData {
 			_writeID(0),
 			_setReductionInfo(false), _reductionInfo(nullptr),
 			_validNamespace(-1),
-			_namespacePredecessor(InvalidOffloadedTaskId),
+			_namespacePredecessor(OffloadedTaskIdManager::InvalidOffloadedTaskId),
 			_namespaceAccessType(NO_ACCESS_TYPE),
 			_previousIsCommutative(false)
 		{
@@ -96,7 +96,7 @@ struct CPUDependencyData {
 				&& !_setPropagateFromNamespace
 				&& !_setReductionInfo
 				&& (_reductionSlotSet.size() == 0)
-				&& _namespacePredecessor == InvalidOffloadedTaskId;
+				&& _namespacePredecessor == OffloadedTaskIdManager::InvalidOffloadedTaskId;
 		}
 	};
 

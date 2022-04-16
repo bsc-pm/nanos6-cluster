@@ -84,9 +84,9 @@ void nanos6_preinit(int argc, char **argv)
 	// Pre-initialize Hardware Counters and Monitoring before hardware
 	HardwareCounters::preinitialize();
 	Monitoring::preinitialize();
-	HardwareInfo::initialize();
-
 	ClusterManager::initialize(argc, argv);
+
+	HardwareInfo::initialize();
 	CPUManager::preinitialize();
 
 	// Finish Hardware counters and Monitoring initialization after CPUManager

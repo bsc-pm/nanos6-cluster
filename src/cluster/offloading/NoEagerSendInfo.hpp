@@ -16,10 +16,12 @@ namespace TaskOffloading {
 		DataAccessRegion _region;
 
 		//! The offloaded task ID that doesn't access the data
-		OffloadedTaskId _offloadedTaskId;
+		OffloadedTaskIdManager::OffloadedTaskId _offloadedTaskId;
 
-		NoEagerSendInfo(DataAccessRegion region, OffloadedTaskId offloadedTaskId)
-			: _region(region), _offloadedTaskId(offloadedTaskId)
+		NoEagerSendInfo(
+			DataAccessRegion region,
+			OffloadedTaskIdManager::OffloadedTaskId offloadedTaskId
+		) : _region(region), _offloadedTaskId(offloadedTaskId)
 		{}
 	};
 

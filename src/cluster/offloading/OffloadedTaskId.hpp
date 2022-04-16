@@ -13,36 +13,49 @@
 
 class Task;
 
-typedef size_t OffloadedTaskId;
-constexpr OffloadedTaskId InvalidOffloadedTaskId = 0;
 
 class OffloadedTaskIdManager
 {
+public:
+	typedef size_t OffloadedTaskId;
+	constexpr static OffloadedTaskId InvalidOffloadedTaskId = 0;
+
 private:
 	static constexpr int logMaxNodes = 8;
-	static std::atomic<size_t> _counter;
+	std::atomic<size_t> _counter;
+	static OffloadedTaskIdManager *_singleton;
+
+	OffloadedTaskIdManager() : _counter(0)
+	{
+	}
 
 public:
-	static void initialize(int nodeIndex, __attribute__((unused)) int clusterSize)
+	static void initialize(int nodeIndex, int clusterSize)
 	{
-		assert(clusterSize < (1 << logMaxNodes));
-		_counter = 1 + (((size_t)nodeIndex) << (64 - logMaxNodes));
+		assert(_singleton == nullptr);
+		_singleton = new OffloadedTaskIdManager();
+		OffloadedTaskIdManager::reset(nodeIndex, clusterSize);
 	}
 
-	static OffloadedTaskId nextOffloadedTaskId()
+	static void reset(int nodeIndex, __attribute__((unused)) int clusterSize)
 	{
-		return _counter.fetch_add(1);
+		assert(_singleton != nullptr);
+		assert(clusterSize < (1 << logMaxNodes));
+		_singleton->_counter = 1 + (((size_t)nodeIndex) << (64 - logMaxNodes));
+	}
+
+	static OffloadedTaskIdManager::OffloadedTaskId nextOffloadedTaskId()
+	{
+		assert(_singleton != nullptr);
+		return _singleton->_counter.fetch_add(1);
+	}
+
+	static void finalize()
+	{
+		assert(_singleton != nullptr);
+		delete _singleton;
+		_singleton = nullptr;
 	}
 };
-
-// inline Task *getOriginalTask(OffloadedTaskId taskId)
-// {
-// 	return reinterpret_cast<Task *>(taskId);
-// }
-// 
-// inline OffloadedTaskId getTaskId(Task *task)
-// {
-// 	return reinterpret_cast<OffloadedTaskId>(task);
-// }
 
 #endif /* OFFLOADED_TASK_ID_H */

@@ -460,13 +460,11 @@ cluster_sources += \
 	src/cluster/ClusterManager.cpp \
 	src/cluster/NodeNamespace.cpp \
 	src/cluster/ClusterMemoryManagement.cpp \
-	src/cluster/WriteID.cpp \
 	src/cluster/messages/Message.cpp \
 	src/cluster/messages/MessageDataFetch.cpp \
 	src/cluster/messages/MessageDataSend.cpp \
 	src/cluster/messages/MessageDfree.cpp \
 	src/cluster/messages/MessageDmalloc.cpp \
-	src/cluster/messages/MessageId.cpp \
 	src/cluster/messages/MessageNoEagerSend.cpp \
 	src/cluster/messages/MessageReleaseAccess.cpp \
 	src/cluster/messages/MessageSatisfiability.cpp \
@@ -476,7 +474,6 @@ cluster_sources += \
 	src/cluster/messenger/LiveDataTransfers.cpp \
 	src/cluster/messenger/mpi/MPIMessenger.cpp \
 	src/cluster/offloading/TaskOffloading.cpp \
-	src/cluster/offloading/OffloadedTaskId.cpp \
 	src/cluster/polling-services/ClusterWorker.cpp \
 	src/executors/workflow/cluster/ExecutionWorkflowCluster.cpp \
 	src/memory/directory/cluster/DistributionPolicy.cpp \

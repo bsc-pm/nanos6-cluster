@@ -49,13 +49,14 @@ namespace ClusterPollingServices {
 			Message *_waitingTaskFinished;
 		};
 
-		std::unordered_map<Task *, WaitingTaskInfo> _waitingTaskInfo;
+		std::unordered_map<OffloadedTaskIdManager::OffloadedTaskId, WaitingTaskInfo> _waitingTaskInfo;
 
 		// Queue a received message
 		void queueMessage(T *msg)
 		{
 			std::lock_guard<PaddedSpinLock<>> guard(_lock);
-			Task *task;
+			OffloadedTaskIdManager::OffloadedTaskId taskId
+				= OffloadedTaskIdManager::InvalidOffloadedTaskId;
 
 			switch(msg->getType()) {
 				case DMALLOC:
@@ -83,11 +84,11 @@ namespace ClusterPollingServices {
 					// This message is worth handling by other workers, but we need to ensure it
 					// is done before handling the task's TASK_FINISHED. Increment the number of
 					// RELEASE_ACCESSES for this task.
-					task = dynamic_cast<MessageReleaseAccess *>(msg)->getTask();
+					taskId = dynamic_cast<MessageReleaseAccess *>(msg)->getTaskId();
 					{
-						auto it = _waitingTaskInfo.find(task);
+						auto it = _waitingTaskInfo.find(taskId);
 						if (it == _waitingTaskInfo.end()) {
-							_waitingTaskInfo[task] = WaitingTaskInfo({1, nullptr});
+							_waitingTaskInfo[taskId] = WaitingTaskInfo({1, nullptr});
 						} else {
 							it->second._numReleaseAccesses++;
 						}
@@ -97,9 +98,9 @@ namespace ClusterPollingServices {
 
 				case TASK_FINISHED:
 				case RELEASE_ACCESS_AND_FINISH:
-					task = dynamic_cast<MessageReleaseAccess *>(msg)->getTask();
+					taskId = dynamic_cast<MessageReleaseAccess *>(msg)->getTaskId();
 					{
-						auto it = _waitingTaskInfo.find(task);
+						auto it = _waitingTaskInfo.find(taskId);
 						if (it == _waitingTaskInfo.end()) {
 							// No prior RELEASE_ACCESS messages, so it can be handled immediately
 							_stealableMessages.push_back(msg);
@@ -157,7 +158,9 @@ namespace ClusterPollingServices {
 			Instrument::clusterHandleMessage(msg, -1);
 			std::lock_guard<PaddedSpinLock<>> guard(_lock);
 			_numStolen--;
-			Task *task = nullptr;
+			OffloadedTaskIdManager::OffloadedTaskId taskId
+				= OffloadedTaskIdManager::InvalidOffloadedTaskId;
+
 			switch (msg->getType()) {
 				case SYS_FINISH:
 				case DMALLOC:
@@ -174,9 +177,9 @@ namespace ClusterPollingServices {
 					// After handling RELEASE_ACCESS, decrement the number of
 					// RELEASE_ACCESS messages that must be done before finishing
 					// the task
-					task = dynamic_cast<MessageReleaseAccess *>(msg)->getTask();
+					taskId = dynamic_cast<MessageReleaseAccess *>(msg)->getTaskId();
 					{
-						auto it = _waitingTaskInfo.find(task);
+						auto it = _waitingTaskInfo.find(taskId);
 						assert(it != _waitingTaskInfo.end());
 						WaitingTaskInfo &w = it->second;
 						assert(w._numReleaseAccesses > 0);

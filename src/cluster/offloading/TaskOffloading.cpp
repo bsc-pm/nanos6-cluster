@@ -56,7 +56,7 @@ namespace TaskOffloading {
 		Task *localTask,
 		SatisfiabilityInfo const &satInfo,
 		CPU * const cpu,
-		OffloadedTaskId namespacePredecessor,
+		OffloadedTaskIdManager::OffloadedTaskId namespacePredecessor,
 		CPUDependencyData &hpDependencyData
 	) {
 		assert(localTask != nullptr);
@@ -94,7 +94,7 @@ namespace TaskOffloading {
 		size_t nrSatInfo = satInfo.size();
 		SatisfiabilityInfo const *satInfoPtr = (nrSatInfo == 0) ? nullptr : satInfo.data();
 
-		OffloadedTaskId taskId = task->getOffloadedTaskId();
+		OffloadedTaskIdManager::OffloadedTaskId taskId = task->getOffloadedTaskId();
 		OffloadedTasksInfoMap::createOffloadedTaskInfo(taskId, task, remoteNode);
 
 		Instrument::taskIsOffloaded(task->getInstrumentationTaskId());
@@ -185,7 +185,10 @@ namespace TaskOffloading {
 				// We *HAVE* to leave the lock now, because propagating satisfiability might lead to
 				// unregistering the remote task.
 				taskInfo._lock.unlock();
-				propagateSatisfiability(taskInfo._localTask, satInfo, cpu, InvalidOffloadedTaskId, hpDependencyData);
+				propagateSatisfiability(
+					taskInfo._localTask, satInfo, cpu,
+					OffloadedTaskIdManager::InvalidOffloadedTaskId, hpDependencyData
+				);
 			}
 		}
 
@@ -270,7 +273,7 @@ namespace TaskOffloading {
 		size_t argsBlockSize;
 		void *argsBlock = msg->getArgsBlock(argsBlockSize);
 
-		OffloadedTaskId remoteTaskIdentifier = msg->getOffloadedTaskId();
+		OffloadedTaskIdManager::OffloadedTaskId remoteTaskIdentifier = msg->getOffloadedTaskId();
 		ClusterNode *remoteNode = ClusterManager::getClusterNode(msg->getSenderId());
 
 		// Create the task with no dependencies. Treat this call
@@ -395,14 +398,18 @@ namespace TaskOffloading {
 
 				// Propagate satisfiability embedded in the Message
 				for (size_t i = 0; i < numSatInfo; ++i) {
-					if (satInfo[i]._readSat || satInfo[i]._writeSat || (satInfo[i]._id != InvalidOffloadedTaskId)) {
+					if (satInfo[i]._readSat
+						|| satInfo[i]._writeSat
+						|| (satInfo[i]._id != OffloadedTaskIdManager::InvalidOffloadedTaskId)) {
 						propagateSatisfiability(task, satInfo[i], cpu, satInfo[i]._id, hpDependencyData);
 					}
 				}
 
 				// Propagate also any satisfiability that has already arrived
 				for (SatisfiabilityInfo const &sat : remoteTaskInfo._satInfo) {
-					propagateSatisfiability(task, sat, cpu, InvalidOffloadedTaskId, hpDependencyData);
+					propagateSatisfiability(task, sat, cpu,
+						OffloadedTaskIdManager::InvalidOffloadedTaskId, hpDependencyData
+					);
 				}
 				remoteTaskInfo._satInfo.clear();
 
@@ -441,7 +448,8 @@ namespace TaskOffloading {
 		assert(args != nullptr);
 		ClusterTaskContext *clusterContext = static_cast<ClusterTaskContext *>(args);
 
-		OffloadedTaskId offloadedTaskId = clusterContext->getRemoteIdentifier();
+		OffloadedTaskIdManager::OffloadedTaskId offloadedTaskId
+			= clusterContext->getRemoteIdentifier();
 
 		RemoteTasksInfoMap::eraseRemoteTaskInfo(offloadedTaskId);
 		assert(clusterContext->getOwnerTask()->hasDataReleaseStep());

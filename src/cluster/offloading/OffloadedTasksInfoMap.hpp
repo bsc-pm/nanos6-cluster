@@ -42,7 +42,7 @@ namespace TaskOffloading {
 	public:
 		//TODO: I keep this like this, in the future make this an unordered map for better
 		//scalability
-		typedef std::map<OffloadedTaskId, OffloadedTaskInfo> remote_map_t;
+		typedef std::map<OffloadedTaskIdManager::OffloadedTaskId, OffloadedTaskInfo> remote_map_t;
 
 	private:
 		//! The actual map holding the remote tasks' info
@@ -54,8 +54,10 @@ namespace TaskOffloading {
 		//! This is our map for all the remote tasks, currently on the node
 		static OffloadedTasksInfoMap *_singleton;
 
-		OffloadedTaskInfo &_createOffloadedTaskInfo(OffloadedTaskId offloadedTaskId, Task *origTask, const ClusterNode *remoteNode)
-		{
+		OffloadedTaskInfo &_createOffloadedTaskInfo(
+			OffloadedTaskIdManager::OffloadedTaskId offloadedTaskId,
+			Task *origTask, const ClusterNode *remoteNode
+		) {
 			// clusterPrintf("Adding remoteTaskInfo %lx\n", offloadedTaskId);
 			std::lock_guard<PaddedSpinLock<>> guard(_lock);
 			assert (_taskMap.count(offloadedTaskId) == 0);
@@ -66,8 +68,9 @@ namespace TaskOffloading {
 		//! within this map. If this is the first access to this entry
 		//! we will create it and return a reference to the new
 		//! OffloadedTaskInfo object
-		OffloadedTaskInfo &_getOffloadedTaskInfo(OffloadedTaskId offloadedTaskId)
-		{
+		OffloadedTaskInfo &_getOffloadedTaskInfo(
+			OffloadedTaskIdManager::OffloadedTaskId offloadedTaskId
+		) {
 			// clusterPrintf("Getting remoteTaskInfo %lx\n", offloadedTaskId);
 			std::lock_guard<PaddedSpinLock<>> guard(_lock);
 			return _taskMap[offloadedTaskId];
@@ -75,7 +78,7 @@ namespace TaskOffloading {
 
 		//! This erases a map entry. It assumes that there is already
 		//! an entry with the given key
-		void _eraseTaskInfo(OffloadedTaskId offloadedTaskId)
+		void _eraseTaskInfo(OffloadedTaskIdManager::OffloadedTaskId offloadedTaskId)
 		{
 			std::lock_guard<PaddedSpinLock<>> guard(_lock);
 
@@ -112,22 +115,26 @@ namespace TaskOffloading {
 		}
 
 		//! This will return a reference to the OffloadedTaskInfo entry
-		static OffloadedTaskInfo &createOffloadedTaskInfo(OffloadedTaskId offloadedTaskId, Task *origTask, const ClusterNode *remoteNode)
-		{
+		static OffloadedTaskInfo &createOffloadedTaskInfo(
+			OffloadedTaskIdManager::OffloadedTaskId offloadedTaskId,
+			Task *origTask,
+			const ClusterNode *remoteNode
+		) {
 			assert(_singleton != nullptr);
 			return _singleton->_createOffloadedTaskInfo(offloadedTaskId, origTask, remoteNode);
 		}
 
 		//! This will return a reference to the OffloadedTaskInfo entry
-		static OffloadedTaskInfo &getOffloadedTaskInfo(OffloadedTaskId offloadedTaskId)
-		{
+		static OffloadedTaskInfo &getOffloadedTaskInfo(
+			OffloadedTaskIdManager::OffloadedTaskId offloadedTaskId
+		) {
 			assert(_singleton != nullptr);
 			return _singleton->_getOffloadedTaskInfo(offloadedTaskId);
 		}
 
 		//! This erases a map entry. It assumes that there is already
 		//! an entry with the given key
-		static void eraseOffloadedTaskInfo(OffloadedTaskId offloadedTaskId)
+		static void eraseOffloadedTaskInfo(OffloadedTaskIdManager::OffloadedTaskId offloadedTaskId)
 		{
 			assert(_singleton != nullptr);
 			_singleton->_eraseTaskInfo(offloadedTaskId);

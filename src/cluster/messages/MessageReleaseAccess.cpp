@@ -16,7 +16,7 @@
 
 MessageReleaseAccess::MessageReleaseAccess(
 	const ClusterNode *from,
-	OffloadedTaskId offloadedTaskId,
+	OffloadedTaskIdManager::OffloadedTaskId offloadedTaskId,
 	bool release,
 	ReleaseAccessInfoVector &InfoVector
 ) :
@@ -40,8 +40,9 @@ MessageReleaseAccess::MessageReleaseAccess(
 
 bool MessageReleaseAccess::handleMessage()
 {
-	OffloadedTaskId offloadedTaskId = _content->_offloadedTaskId;
-	TaskOffloading::OffloadedTaskInfo &taskInfo = TaskOffloading::OffloadedTasksInfoMap::getOffloadedTaskInfo(offloadedTaskId);
+	OffloadedTaskIdManager::OffloadedTaskId offloadedTaskId = _content->_offloadedTaskId;
+	TaskOffloading::OffloadedTaskInfo &taskInfo
+		= TaskOffloading::OffloadedTasksInfoMap::getOffloadedTaskInfo(offloadedTaskId);
 	assert(taskInfo.remoteNode && taskInfo.remoteNode->getIndex() == getSenderId());
 	Task *task = taskInfo._origTask;
 	TaskOffloading::releaseRemoteAccessForHandler(

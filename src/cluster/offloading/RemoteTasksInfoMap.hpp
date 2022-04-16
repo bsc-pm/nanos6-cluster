@@ -46,7 +46,7 @@ namespace TaskOffloading {
 	public:
 		//TODO: I keep this like this, in the future make this an unordered map for better
 		//scalability
-		typedef std::map<OffloadedTaskId, RemoteTaskInfo> remote_map_t;
+		typedef std::map<OffloadedTaskIdManager::OffloadedTaskId, RemoteTaskInfo> remote_map_t;
 
 	private:
 		//! The actual map holding the remote tasks' info
@@ -63,7 +63,7 @@ namespace TaskOffloading {
 		//! within this map. If this is the first access to this entry
 		//! we will create it and return a reference to the new
 		//! RemoteTaskInfo object
-		RemoteTaskInfo &_getRemoteTaskInfo(OffloadedTaskId offloadTaskId)
+		RemoteTaskInfo &_getRemoteTaskInfo(OffloadedTaskIdManager::OffloadedTaskId offloadTaskId)
 		{
 			// clusterPrintf("Adding/getting remoteTaskInfo %lx\n", offloadTaskId);
 			std::lock_guard<PaddedSpinLock<>> guard(_lock);
@@ -72,7 +72,7 @@ namespace TaskOffloading {
 
 		//! This erases a map entry. It assumes that there is already
 		//! an entry with the given key
-		void _eraseTaskInfo(OffloadedTaskId offloadTaskId)
+		void _eraseTaskInfo(OffloadedTaskIdManager::OffloadedTaskId offloadTaskId)
 		{
 			std::lock_guard<PaddedSpinLock<>> guard(_lock);
 
@@ -112,7 +112,7 @@ namespace TaskOffloading {
 		//! within this map. If this is the first access to this entry
 		//! we will create it and return a reference to the new
 		//! RemoteTaskInfo object
-		static RemoteTaskInfo &getRemoteTaskInfo(OffloadedTaskId offloadedTaskId)
+		static RemoteTaskInfo &getRemoteTaskInfo(OffloadedTaskIdManager::OffloadedTaskId offloadedTaskId)
 		{
 			assert(_singleton != nullptr);
 			return _singleton->_getRemoteTaskInfo(offloadedTaskId);
@@ -120,7 +120,7 @@ namespace TaskOffloading {
 
 		//! This erases a map entry. It assumes that there is already
 		//! an entry with the given key
-		static void eraseRemoteTaskInfo(OffloadedTaskId offloadTaskId)
+		static void eraseRemoteTaskInfo(OffloadedTaskIdManager::OffloadedTaskId offloadTaskId)
 		{
 			assert(_singleton != nullptr);
 			_singleton->_eraseTaskInfo(offloadTaskId);

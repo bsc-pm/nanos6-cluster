@@ -60,7 +60,7 @@ namespace ExecutionWorkflow {
 		//! type of the corresponding access 
 		DataAccessType _accessType;
 
-		OffloadedTaskId _namespacePredecessor;
+		OffloadedTaskIdManager::OffloadedTaskId _namespacePredecessor;
 		int _namespacePredecessorNode;
 		WriteID _writeID;
 
@@ -83,7 +83,7 @@ namespace ExecutionWorkflow {
 			_write(access->writeSatisfied()),
 			_weak(access->isWeak()),
 			_accessType(access->getType()),
-			_namespacePredecessor(InvalidOffloadedTaskId),
+			_namespacePredecessor(OffloadedTaskIdManager::InvalidOffloadedTaskId),
 			_namespacePredecessorNode(VALID_NAMESPACE_UNKNOWN),
 			_writeID((access->getType() == COMMUTATIVE_ACCESS_TYPE) ? 0 : access->getWriteID()),
 			_started(false),
@@ -134,7 +134,7 @@ namespace ExecutionWorkflow {
 
 			/* Starting workflow on another node: set the namespace and predecessor task */
 			if (ClusterManager::getDisableRemote()) {
-				_namespacePredecessor = InvalidOffloadedTaskId;
+				_namespacePredecessor = OffloadedTaskIdManager::InvalidOffloadedTaskId;
 				_namespacePredecessorNode = VALID_NAMESPACE_NONE;
 			} else {
 				if (access->getValidNamespacePrevious() == targetNamespace) {
@@ -241,7 +241,7 @@ namespace ExecutionWorkflow {
 
 	class ClusterDataReleaseStep : public DataReleaseStep {
 		//! identifier of the remote task
-		OffloadedTaskId _remoteTaskIdentifier;
+		OffloadedTaskIdManager::OffloadedTaskId _remoteTaskIdentifier;
 
 		//! the cluster node we need to notify
 		ClusterNode const *_offloader;
@@ -429,7 +429,7 @@ namespace ExecutionWorkflow {
 			WriteID writeID,
 			bool read, bool write,
 			bool weak, DataAccessType accessType,
-			OffloadedTaskId namespacePredecessorId,
+			OffloadedTaskIdManager::OffloadedTaskId namespacePredecessorId,
 			int eagerWeakSendTag
 		) {
 			// This lock should already have been taken by the caller

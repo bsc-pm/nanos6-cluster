@@ -38,7 +38,7 @@ class MessageTaskNew : public Message {
 
 		//! An opaque id that that will uniquely identifies the
 		//! offloaded task
-		OffloadedTaskId _offloadedTaskId;
+		OffloadedTaskIdManager::OffloadedTaskId _offloadedTaskId;
 
 		//! buffer holding all the variable length information we need
 		//! to send across.
@@ -90,7 +90,7 @@ public:
 		TaskOffloading::SatisfiabilityInfo const *satInfo,
 		size_t argsBlockSize,
 		void *argsBlock,
-		OffloadedTaskId offloadedTaskId
+		OffloadedTaskIdManager::OffloadedTaskId offloadedTaskId
 	);
 
 	MessageTaskNew(Deliverable *dlv) : Message(dlv)
@@ -139,7 +139,7 @@ public:
 	}
 
 	//! Get the task id of the offloaded Task
-	inline OffloadedTaskId getOffloadedTaskId() const
+	inline OffloadedTaskIdManager::OffloadedTaskId getOffloadedTaskId() const
 	{
 		return _content->_offloadedTaskId;
 	}
