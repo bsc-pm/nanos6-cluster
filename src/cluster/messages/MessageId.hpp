@@ -49,32 +49,15 @@
 class MessageId {
 
 private:
+	const int _rank; // Only used for debugging purposes
 	uint32_t _numRanks;
 	std::atomic<uint32_t> _nextMessageId;
 
 	static MessageId *_singleton;
 
-	MessageId() : _numRanks(0), _nextMessageId(0)
-	{}
-
-	void resetInternal(int rank, int numRanks)
+	MessageId(int rank, int numRanks) : _rank(rank), _numRanks(numRanks), _nextMessageId(rank + 256)
 	{
-		assert(_nextMessageId == 0);
-		_nextMessageId = rank + 256;
-		_numRanks = numRanks;
-	}
-
-	uint32_t nextMessageIdInternal(int numIds = 1)
-	{
-		assert(_singleton != nullptr);
-		assert(numIds >= 1);
-		assert(_numRanks != 0);
-		const uint32_t ret = _nextMessageId.fetch_add(numIds * _numRanks);
-
-		/* Check for overflow */
-		assert(ret != UINT_MAX);
-
-		return ret;
+		assert(_nextMessageId.is_lock_free());
 	}
 
 public:
@@ -83,14 +66,24 @@ public:
 	inline static void initialize(int rank, int numRanks)
 	{
 		assert(_singleton == nullptr);
-		_singleton = new MessageId();
-		MessageId::reset(rank, numRanks);
+		_singleton = new MessageId(rank, numRanks);
+		assert(_singleton != nullptr);
 	}
 
-	inline static void reset(int rank, int numRanks)
+	//! \brief Initialize globally unique MessageIds
+	inline static void finalize()
 	{
 		assert(_singleton != nullptr);
-		_singleton->resetInternal(rank, numRanks);
+		delete _singleton;
+		_singleton = nullptr;
+	}
+
+
+	inline static void reset(__attribute__((unused)) int rank, int numRanks)
+	{
+		assert(_singleton != nullptr);
+		assert(_singleton->_rank == rank);
+		_singleton->_numRanks = numRanks;
 	}
 
 	//! \brief Get the next available MessageId
@@ -102,7 +95,14 @@ public:
 	inline static uint32_t nextMessageId(int numIds = 1)
 	{
 		assert(_singleton != nullptr);
-		return _singleton->nextMessageIdInternal(numIds);
+		assert(numIds >= 1);
+		assert(_singleton->_numRanks != 0);
+		const uint32_t ret = _singleton->_nextMessageId.fetch_add(numIds * _singleton->_numRanks);
+
+		/* Check for overflow */
+		assert(ret != std::numeric_limits<unsigned int>::max());
+
+		return ret;
 	}
 
 	//! \brief Extract a MessageId from a group
