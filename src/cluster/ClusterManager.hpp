@@ -47,9 +47,6 @@ private:
 	//! Messenger object for cluster communication.
 	Messenger * _msn;
 
-	//! The pooling services are in tasks or in pooling
-	bool _taskInPoolins;
-
 	//! Using cluster namespace
 	bool _disableRemote;
 	bool _disableRemoteConnect;

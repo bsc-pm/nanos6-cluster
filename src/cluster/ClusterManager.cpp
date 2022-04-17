@@ -65,9 +65,6 @@ ClusterManager::ClusterManager(std::string const &commType, int argc, char **arg
 
 	_msn->synchronizeAll();
 
-	ConfigVariable<bool> inTask("cluster.services_in_task");
-	_taskInPoolins = inTask.getValue();
-
 	ConfigVariable<bool> disableRemote("cluster.disable_remote");
 	_disableRemote = disableRemote.getValue();
 
@@ -176,15 +173,9 @@ void ClusterManager::postinitialize()
 	assert(_singleton != nullptr);
 	assert(MemoryAllocator::isInitialized());
 
-	if (inClusterMode()) {
-
-		if (_singleton->_taskInPoolins) {
-			ClusterServicesTask::initialize();
-			ClusterServicesTask::initializeWorkers(_singleton->_numMessageHandlerWorkers);
-		} else {
-			ClusterServicesPolling::initialize();
-			ClusterServicesTask::initializeWorkers(_singleton->_numMessageHandlerWorkers);
-		}
+	if (ClusterManager::inClusterMode()) {
+		ClusterServicesPolling::initialize();
+		ClusterServicesTask::initializeWorkers(_singleton->_numMessageHandlerWorkers);
 	}
 }
 
@@ -195,11 +186,7 @@ void ClusterManager::shutdownPhase1()
 	assert(MemoryAllocator::isInitialized());
 
 	if (inClusterMode()) {
-		if (_singleton->_taskInPoolins) {
-			ClusterServicesTask::waitUntilFinished();
-		} else {
-			ClusterServicesPolling::waitUntilFinished();
-		}
+		ClusterServicesPolling::waitUntilFinished();
 	}
 
 	if (isMasterNode()) {
@@ -210,12 +197,9 @@ void ClusterManager::shutdownPhase1()
 		ClusterManager::finishClusterNamespace();
 	}
 
-	if (inClusterMode()) {
-		if (_singleton->_taskInPoolins) {
-			ClusterServicesTask::shutdown();
-		} else {
-			ClusterServicesPolling::shutdown();
-		}
+	if (ClusterManager::inClusterMode()) {
+
+		ClusterServicesPolling::shutdown();
 		ClusterServicesTask::shutdownWorkers(_singleton->_numMessageHandlerWorkers);
 
 		assert(ClusterServicesPolling::_activeClusterPollingServices == 0);
