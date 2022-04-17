@@ -36,6 +36,8 @@ WriteIDManager *WriteIDManager::_singleton = nullptr;
 OffloadedTaskIdManager *OffloadedTaskIdManager::_singleton = nullptr;
 
 std::atomic<size_t> ClusterServicesPolling::_activeClusterPollingServices;
+bool ClusterServicesPolling::_pausedClusterPollingServices = false;
+
 std::atomic<size_t> ClusterServicesTask::_activeClusterTaskServices;
 
 ClusterManager::ClusterManager()

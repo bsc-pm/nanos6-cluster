@@ -14,12 +14,14 @@ namespace ClusterServicesPolling {
 
 	// Defined in ClusterManager.cpp
 	extern std::atomic<size_t> _activeClusterPollingServices;
+	extern bool _pausedClusterPollingServices;
 
 	template <typename T>
 	static int bodyClusterService(__attribute__((unused)) void *args)
 	{
-		// This returns true unless the service is unregistered
-		T::executeService();
+		if (!_pausedClusterPollingServices) {
+			T::executeService(); // This returns true unless the service is unregistered
+		}
 		return 0;
 	}
 
@@ -67,6 +69,14 @@ namespace ClusterServicesPolling {
 	{
 		ClusterPollingServices::PendingQueue<Message>::waitUntilFinished();
 		ClusterPollingServices::PendingQueue<DataTransfer>::waitUntilFinished();
+	}
+
+	inline void setPauseStatus(bool pause)
+	{
+		if (pause == true) {
+			waitUntilFinished();
+		}
+		_pausedClusterPollingServices = pause;
 	}
 
 	//! \brief Shutdown the Cluster polling services-
