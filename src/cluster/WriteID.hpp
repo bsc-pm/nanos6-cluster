@@ -95,27 +95,28 @@ private:
 		return z ^ (z >> 31);
 	}
 
-	WriteIDManager() : _localWriteIDs(numMaps)
+	WriteIDManager(WriteID &counter) : _counter(counter), _localWriteIDs(numMaps)
 	{
 	}
 
 public:
-	static void initialize(int nodeIndex, int clusterSize)
+	static void initialize(int nodeIndex, __attribute__((unused)) int clusterSize)
 	{
 		assert(_singleton == nullptr);
-		_singleton = new WriteIDManager();
-		WriteIDManager::reset(nodeIndex, clusterSize);
+
+		WriteID initCounter = 1 + (((size_t)nodeIndex) << (64 - logMaxNodes));
+		_singleton = new WriteIDManager(initCounter);
+		assert(_singleton != nullptr);
 	}
 
-	static void reset(int nodeIndex, __attribute__((unused)) int clusterSize)
-	{
+	static void reset(
+		__attribute__((unused)) int nodeIndex,
+		__attribute__((unused)) int clusterSize
+	) {
 		// The probability of collision is too high if a write ID has less than 64 bits
 		static_assert(sizeof(WriteID) >= 8, "WriteID size is wrong.");
 		assert(_singleton != nullptr);
 		assert(clusterSize < (1 << logMaxNodes));
-
-		WriteID initCounter = 1 + (((size_t)nodeIndex) << (64 - logMaxNodes));
-		_singleton->_counter.store(initCounter);
 	}
 
 	static void finalize()
@@ -138,7 +139,7 @@ public:
 
 			// Update the tree
 			entry._regions.processIntersectingAndMissing(region,
-				[&](__attribute__((unused)) WriteIDLinearRegionMap::iterator position) -> bool {
+				[&](WriteIDLinearRegionMap::iterator position) -> bool {
 					// Region already in the map: update the writeID if it has changed
 					if (position->_writeID != id) {
 						if (!position->getAccessRegion().fullyContainedIn(region)) {
