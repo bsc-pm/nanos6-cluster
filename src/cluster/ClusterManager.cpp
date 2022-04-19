@@ -190,9 +190,9 @@ void ClusterManager::shutdownPhase1()
 		ClusterServicesPolling::waitUntilFinished();
 	}
 
-	if (isMasterNode()) {
+	if (ClusterManager::isMasterNode()) {
 		MessageSysFinish msg(_singleton->_thisNode);
-		sendMessageToAll(&msg, true);
+		ClusterManager::sendMessageToAll(&msg, true);
 
 		// Master needs to do the same than others
 		ClusterManager::finishClusterNamespace();
@@ -202,8 +202,6 @@ void ClusterManager::shutdownPhase1()
 
 		ClusterServicesPolling::shutdown();
 		ClusterServicesTask::shutdownWorkers(_singleton->_numMessageHandlerWorkers);
-
-		assert(ClusterServicesPolling::_activeClusterPollingServices == 0);
 
 		TaskOffloading::RemoteTasksInfoMap::shutdown();
 		TaskOffloading::OffloadedTasksInfoMap::shutdown();
