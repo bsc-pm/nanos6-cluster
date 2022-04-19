@@ -35,10 +35,11 @@ MessageId *MessageId::_singleton = nullptr;
 WriteIDManager *WriteIDManager::_singleton = nullptr;
 OffloadedTaskIdManager *OffloadedTaskIdManager::_singleton = nullptr;
 
-std::atomic<size_t> ClusterServicesPolling::_activeClusterPollingServices;
-bool ClusterServicesPolling::_pausedClusterPollingServices = false;
+std::atomic<size_t> ClusterServicesPolling::_activeClusterPollingServices(0);
+std::atomic<bool> ClusterServicesPolling::_pausedServices(false);
 
-std::atomic<size_t> ClusterServicesTask::_activeClusterTaskServices;
+std::atomic<size_t> ClusterServicesTask::_activeClusterTaskServices(0);
+std::atomic<bool> ClusterServicesTask::_pausedServices(false);
 
 ClusterManager::ClusterManager()
 	: _clusterNodes(1),

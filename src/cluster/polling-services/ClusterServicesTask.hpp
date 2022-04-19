@@ -7,11 +7,9 @@
 #ifndef CLUSTER_SERVICES_TASK_HPP
 #define CLUSTER_SERVICES_TASK_HPP
 
-#include "MessageHandler.hpp"
-#include "MessageDelivery.hpp"
 #include "ClusterWorker.hpp"
 
-namespace ClusterServicesTask {
+class ClusterServicesTask {
 
 	// A polling struct/object must provide 3 static functions:
 	// registerService : To start it
@@ -21,7 +19,8 @@ namespace ClusterServicesTask {
 	// is unregistered and do the needed checks.
 
 	// Defined in ClusterManager.cpp
-	extern std::atomic<size_t> _activeClusterTaskServices;
+	static std::atomic<size_t> _activeClusterTaskServices;
+	static std::atomic<bool> _pausedServices;
 
 	//! Functions for tasks
 	template <typename T>
@@ -29,7 +28,7 @@ namespace ClusterServicesTask {
 	{
 		_activeClusterTaskServices.fetch_add(1);
 
-		while (T::executeService()) {
+		while (_pausedServices.load() || T::executeService()) {
 			nanos6_wait_for(TIMEOUT);
 		}
 
@@ -37,9 +36,8 @@ namespace ClusterServicesTask {
 		_activeClusterTaskServices.fetch_sub(1);
 	}
 
-
 	template<typename T>
-	void registerService(const std::string &name)
+	static void registerService(const std::string &name)
 	{
 		T::registerService();
 
@@ -57,78 +55,37 @@ namespace ClusterServicesTask {
 	}
 
 	template<typename T>
-	void unregisterService()
+	static void unregisterService()
 	{
 		T::unregisterService();
 	}
 
+public:
 
-	//! \brief Initialize the Cluster polling services
-	//!
-	//! This method will be called during ClusterManager
-	//! initialization.
-	//! New type of polling services need to expose an
-	//! initialization interface that will be called from here
-	inline void initialize()
-	{
-		assert(ClusterManager::inClusterMode());
-		assert(MemoryAllocator::isInitialized());
-		assert(_activeClusterTaskServices.load() == 0);
-
-		registerService<ClusterPollingServices::MessageHandler<Message>>("MessageHandler");
-		registerService<ClusterPollingServices::PendingQueue<Message>>("MessageDelivery");
-		registerService<ClusterPollingServices::PendingQueue<DataTransfer>>("DataTransfer");
-	}
-
-	inline void initializeWorkers(int numWorkers)
+	inline static void initializeWorkers(int numWorkers)
 	{
 		for(int i=0; i< numWorkers; i++) {
 			registerService<ClusterPollingServices::ClusterWorker>("ClusterWorker");
 		}
 	}
 
-	inline void waitUntilFinished()
+	inline static void setPauseStatus(bool pause)
 	{
-		ClusterPollingServices::PendingQueue<Message>::waitUntilFinished();
+		_pausedServices.store(pause);
 	}
 
-
-	//! \brief Shutdown the Cluster polling services-
-	//!
-	//! This method will be called during ClusterManager
-	//! shutdown.
-	//! New type of polling services need to expose a
-	//! shutdown interface that will be called from here.
-	inline void shutdown()
-	{
-		assert(ClusterManager::inClusterMode());
-		assert(MemoryAllocator::isInitialized());
-		assert(_activeClusterTaskServices.load() > 0);
-
-		// Occasionally a slave node receives the MessageSysFinish and starts
-		// the shutdown procedure before the PendingQueue<Message> has checked
-		// completion of all the messages it has sent. So just wait for
-		// completion before shutting down the polling services.
-		waitUntilFinished();
-
-		unregisterService<ClusterPollingServices::PendingQueue<DataTransfer>>();
-		unregisterService<ClusterPollingServices::PendingQueue<Message>>();
-		unregisterService<ClusterPollingServices::MessageHandler<Message>>();
-
-		// Note: shutdownWorkers is always called afterwards
-	}
-
-	inline void shutdownWorkers(__attribute__((unused)) int numWorkers)
+	inline static void shutdownWorkers(int numWorkers)
 	{
 		for(int i = 0; i < numWorkers; i++) {
 			unregisterService<ClusterPollingServices::ClusterWorker>();
 		}
-		// // To assert shutdown the services before the CPUManager
-		while (_activeClusterTaskServices.load() > 0) {
-			// Wait for cluster polling services before returning
-		}
+		// To assert shutdown the services before the CPUManager
+		// Wait for cluster polling services before returning
+		while (_activeClusterTaskServices.load() > 0) {}
+
+		assert(_activeClusterTaskServices == 0);
 	}
-}
+};
 
 
 #endif /* CLUSTER_SERVICES_TASK_HPP */

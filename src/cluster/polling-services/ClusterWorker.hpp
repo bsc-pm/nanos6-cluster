@@ -23,9 +23,8 @@ namespace ClusterPollingServices {
 	class ClusterWorker {
 
 	private:
-		PaddedSpinLock<> _lock;
-		std::atomic<int> _live;
 		static ClusterWorker _singleton;
+		std::atomic<int> _live;
 
 	public:
 		// When the function returns false the service stops.
@@ -56,17 +55,14 @@ namespace ClusterPollingServices {
 
 		static void registerService()
 		{
-			// Note: this will be called once per worker
-			_singleton._live = true;
+			_singleton._live.fetch_add(1);
 		}
 
 		static void unregisterService()
 		{
-			// Note: this will be called once per worker
-			_singleton._live = false;
+			_singleton._live.fetch_sub(1);
 		}
 	};
-
 }
 
 #endif /* CLUSTER_WORKER_HPP */
