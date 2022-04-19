@@ -49,6 +49,7 @@ ClusterManager::ClusterManager()
 	_disableRemote(false), _disableRemoteConnect(false), _disableAutowait(false)
 {
 	_clusterNodes[0] = _thisNode;
+	MessageId::initialize(0, 1);
 	WriteIDManager::initialize(0,1);
 	OffloadedTaskIdManager::initialize(0,1);
 }
@@ -90,6 +91,10 @@ ClusterManager::ClusterManager(std::string const &commType, int argc, char **arg
 
 ClusterManager::~ClusterManager()
 {
+	OffloadedTaskIdManager::finalize();
+	WriteIDManager::finalize();
+	MessageId::finalize();
+
 	for (auto &node : _clusterNodes) {
 		delete node;
 	}
