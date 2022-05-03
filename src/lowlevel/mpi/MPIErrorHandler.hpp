@@ -38,15 +38,18 @@ public:
 		}
 
 		std::ostringstream oss;
+		int rank, size = 0;
+		MPI_Comm_rank(MPI_COMM_WORLD, &rank);
+		MPI_Comm_size(MPI_COMM_WORLD, &size);
+		oss << "MPI error " << rank << "/" << size << " ";
 
 		printMPIError(oss, rc);
 		emitReasonParts(oss, reasonParts...);
 		oss << std::endl;
 
-		{
-			std::lock_guard<SpinLock> guard(_errorLock);
-			std::cerr << oss.str();
-		}
+		_errorLock.lock();
+		std::cerr << oss.str();
+		_errorLock.unlock();
 
 		MPI_Abort(comm, rc);
 	}
