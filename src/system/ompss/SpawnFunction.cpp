@@ -1,7 +1,7 @@
 /*
 	This file is part of Nanos6 and is licensed under the terms contained in the COPYING file.
 
-	Copyright (C) 2015-2020 Barcelona Supercomputing Center (BSC)
+	Copyright (C) 2015-2021 Barcelona Supercomputing Center (BSC)
 */
 
 #include <cassert>
@@ -141,8 +141,10 @@ void SpawnFunction::spawnFunction(
 
 	argsBlock->set(function, args, completionCallback, completionArgs, streamId);
 
-	// Increase the number of spawned functions if it is not a polling
-	if (!task->isPolling()) {
+	// Increase the number of spawned functions in case it is
+	// spawned from outside the runtime system
+	if (fromUserCode) {
+		assert(!task->isPolling());
 		_pendingSpawnedFunctions++;
 	}
 

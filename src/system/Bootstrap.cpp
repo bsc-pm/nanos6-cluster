@@ -1,7 +1,7 @@
 /*
 	This file is part of Nanos6 and is licensed under the terms contained in the COPYING file.
 
-	Copyright (C) 2015-2020 Barcelona Supercomputing Center (BSC)
+	Copyright (C) 2015-2021 Barcelona Supercomputing Center (BSC)
 */
 
 #ifdef HAVE_CONFIG_H
@@ -91,10 +91,13 @@ void nanos6_preinit(int argc, char **argv)
 	HardwareCounters::initialize();
 	Monitoring::initialize();
 	MemoryAllocator::initialize();
-	Throttle::initialize();
 	NUMAManager::initialize();
 	Scheduler::initialize();
+	Throttle::initialize();
 	ExternalThreadGroup::initialize();
+
+	// Initialize device services after initializing scheduler
+	HardwareInfo::initializeDeviceServices();
 
 	Instrument::initialize();
 	mainThread = new ExternalThread("main-thread");
@@ -146,6 +149,12 @@ void nanos6_shutdown(void)
 	StreamManager::shutdown();
 	LeaderThread::shutdown();
 
+	// Shutdown device services before CPU and thread managers
+	HardwareInfo::shutdownDeviceServices();
+
+	// Shutdown throttle service before CPUs are stopped
+	Throttle::shutdown();
+
 	// Signal the shutdown to all CPUs and finalize threads
 	ClusterManager::shutdownPhase1();
 	CPUManager::shutdownPhase1();
@@ -166,7 +175,6 @@ void nanos6_shutdown(void)
 
 	Monitoring::shutdown();
 	HardwareCounters::shutdown();
-	Throttle::shutdown();
 
 	Scheduler::shutdown();
 

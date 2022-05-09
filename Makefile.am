@@ -1,6 +1,6 @@
 #	This file is part of Nanos6 and is licensed under the terms contained in the COPYING file.
 #
-#	Copyright (C) 2015-2020 Barcelona Supercomputing Center (BSC)
+#	Copyright (C) 2015-2021 Barcelona Supercomputing Center (BSC)
 
 # A workaround for http://debbugs.gnu.org/cgi/bugreport.cgi?bug=18744
 am__is_gnu_make = { \
@@ -712,19 +712,6 @@ vmm_smp_cppflags = -I$(srcdir)/src/memory/vmm/smp
 vmm_cluster_sources = src/memory/vmm/cluster/VirtualMemoryManagement.cpp
 vmm_cluster_cppflags = -I$(srcdir)/src/memory/vmm/cluster
 
-# Chronometers
-chronometers_sources =
-chronometers_cppflags =
-if CHRONO_ARCH
-chronometers_sources  += src/support/chronometers/arch/Chrono.cpp
-chronometers_cppflags += -I$(srcdir)/src/support/chronometers/arch
-else
-chronometers_cppflags += -I$(srcdir)/src/support/chronometers/std
-endif
-
-# Add chronometer-related sources to common sources
-common_sources += $(chronometers_sources)
-
 
 # DLB + CPUManager
 cpu_manager_sources  =
@@ -1259,6 +1246,7 @@ noinst_HEADERS = \
 	src/scheduling/schedulers/device/DeviceScheduler.hpp \
 	src/scheduling/schedulers/device/DeviceUnsyncScheduler.hpp \
 	src/support/BitManipulation.hpp \
+	src/support/Chrono.hpp \
 	src/support/ConcurrentUnorderedList.hpp \
 	src/support/Containers.hpp \
 	src/support/GenericFactory.hpp \
@@ -1298,8 +1286,6 @@ noinst_HEADERS = \
 	src/support/config/toml/types.hpp \
 	src/support/config/toml/utility.hpp \
 	src/support/config/toml/value.hpp \
-	src/support/chronometers/arch/Chrono.hpp \
-	src/support/chronometers/std/Chrono.hpp \
 	src/system/APICheck.hpp \
 	src/system/BlockingAPI.hpp \
 	src/system/If0Task.hpp \
@@ -1412,7 +1398,7 @@ endif
 
 dist_memory_sources = $(memory_default_sources) $(memory_debug_sources)
 
-common_libnanos6_cppflags = $(BOOST_CPPFLAGS) -DBOOST_ENABLE_ASSERT_DEBUG_HANDLER $(PTHREAD_CFLAGS) $(hwloc_CFLAGS) $(libnuma_CPPFLAGS) $(CUDA_CFLAGS) $(MPI_CXXFLAGS) $(memkind_CPPFLAGS) $(cluster_cppflags) $(workflow_cppflags) $(chronometers_cppflags) $(monitoring_cppflags) $(cpu_manager_cppflags) $(hardware_counters_cppflags) $(jemalloc_CPPFLAGS)
+common_libnanos6_cppflags = $(BOOST_CPPFLAGS) -DBOOST_ENABLE_ASSERT_DEBUG_HANDLER $(PTHREAD_CFLAGS) $(hwloc_CFLAGS) $(libnuma_CPPFLAGS) $(CUDA_CFLAGS) $(MPI_CXXFLAGS) $(memkind_CPPFLAGS) $(cluster_cppflags) $(workflow_cppflags) $(monitoring_cppflags) $(cpu_manager_cppflags) $(hardware_counters_cppflags) $(jemalloc_CPPFLAGS)
 common_libnanos6_ldflags = $(openacc_LIBS) $(AM_LDFLAGS) -version-info $(lib_current):$(lib_revision):$(lib_age) $(jemalloc_LIBS) $(PTHREAD_CFLAGS) $(PTHREAD_LIBS) $(LDFLAGS_NOUNDEFINED) $(hwloc_LIBS) $(libnuma_LIBS) $(DLOPEN_LIBS) $(CUDA_LIBS) $(MPI_CXXLDFLAGS) $(memkind_LIBS) $(cpu_manager_ldflags) $(hardware_counters_ldflags)
 
 
@@ -2012,75 +1998,53 @@ src/version/CompilerVersionInfo.cpp: Makefile
 	echo '#endif' >> src/version/CompilerVersionInfo.cpp ; \
 	echo >> src/version/CompilerVersionInfo.cpp
 
-# Generate config_vars to pass to the configuration generator based on the AM_CONDITIONALs
-# There is kind of no other way to do this
 
-config_vars=
+# Gather all the names of disabled features, used to build the config file for this installation
+disabled_config_features=
 
-if USE_CUDA
-config_vars += "1"
-else
-config_vars += "0"
+if !USE_CUDA
+disabled_config_features += "CUDA"
 endif
 
-if USE_OPENACC
-config_vars += "1"
-else
-config_vars += "0"
+if !USE_OPENACC
+disabled_config_features += "OPENACC"
 endif
 
-if USE_CLUSTER
-config_vars += "1"
-else
-config_vars += "0"
+if !USE_CLUSTER
+disabled_config_features += "CLUSTER"
 endif
 
-if HAVE_DLB
-config_vars += "1"
-else
-config_vars += "0"
+if !HAVE_DLB
+disabled_config_features += "DLB"
 endif
 
-if BUILD_CTF_INSTRUMENTATION
-config_vars += "1"
-else
-config_vars += "0"
+if !BUILD_CTF_INSTRUMENTATION
+disabled_config_features += "CTF"
 endif
 
-if BUILD_GRAPH_INSTRUMENTATION
-config_vars += "1"
-else
-config_vars += "0"
+if !BUILD_GRAPH_INSTRUMENTATION
+disabled_config_features += "GRAPH"
 endif
 
-if BUILD_VERBOSE_INSTRUMENTATION
-config_vars += "1"
-else
-config_vars += "0"
+if !BUILD_VERBOSE_INSTRUMENTATION
+disabled_config_features += "VERBOSE"
 endif
 
-if BUILD_EXTRAE_INSTRUMENTATION
-config_vars += "1"
-else
-config_vars += "0"
+if !BUILD_EXTRAE_INSTRUMENTATION
+disabled_config_features += "EXTRAE"
 endif
 
-if HAVE_PAPI
-config_vars += "1"
-else
-config_vars += "0"
+if !HAVE_PAPI
+disabled_config_features += "PAPI"
 endif
 
-if HAVE_PQOS
-config_vars += "1"
-else
-config_vars += "0"
+if !HAVE_PQOS
+disabled_config_features += "PQOS"
 endif
 
 # Generate processed config file according to user chosen installation
-
 scripts/nanos6.toml: $(top_srcdir)/scripts/generate_config.sh $(top_srcdir)/scripts/nanos6_defconfig.toml
-	$(top_srcdir)/scripts/generate_config.sh $(top_srcdir)/scripts/nanos6_defconfig.toml $(config_vars) > scripts/nanos6.toml
+	$(top_srcdir)/scripts/generate_config.sh $(top_srcdir)/scripts/nanos6_defconfig.toml $(disabled_config_features) > scripts/nanos6.toml
 
 # All potential files in those lists will be distributed
 # regardless of the Makefile conditionals
