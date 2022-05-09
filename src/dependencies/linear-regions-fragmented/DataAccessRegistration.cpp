@@ -2561,7 +2561,8 @@ namespace DataAccessRegistration {
 		MemoryPlace const *location)
 	{
 		assert(task != nullptr);
-		//! Not true any more, since a region might be released from an external thread
+		//! Not true any more, since a region might be released from
+		//! inside a polling service
 		//! assert(computePlace != nullptr);
 
 		TaskDataAccesses &accessStructures = task->getDataAccesses();
