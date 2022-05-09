@@ -1,7 +1,7 @@
 /*
 	This file is part of Nanos6 and is licensed under the terms contained in the COPYING file.
 
-	Copyright (C) 2015-2021 Barcelona Supercomputing Center (BSC)
+	Copyright (C) 2015-2020 Barcelona Supercomputing Center (BSC)
 */
 
 #ifdef HAVE_CONFIG_H
@@ -29,6 +29,8 @@
 #include "support/Containers.hpp"
 #include "tasks/Task.hpp"
 
+#include <ClusterManager.hpp>
+#include <ExecutionWorkflow.hpp>
 #include <InstrumentComputePlaceId.hpp>
 #include <InstrumentDependenciesByAccess.hpp>
 #include <InstrumentDependenciesByAccessLinks.hpp>
@@ -80,6 +82,12 @@ namespace DataAccessRegistration {
 
 		bool _triggersTaskwaitWorkflow;
 
+		bool _propagatesDataReleaseStepToNext;
+
+		bool _triggersDataRelease;
+		bool _triggersDataLinkRead;
+		bool _triggersDataLinkWrite;
+
 	public:
 		DataAccessStatusEffects() :
 			_isRegistered(false),
@@ -112,7 +120,13 @@ namespace DataAccessRegistration {
 
 			_isRemovable(false),
 
-			_triggersTaskwaitWorkflow(false)
+			_triggersTaskwaitWorkflow(false),
+
+			_propagatesDataReleaseStepToNext(false),
+
+			_triggersDataRelease(false),
+			_triggersDataLinkRead(false),
+			_triggersDataLinkWrite(false)
 		{
 		}
 
@@ -175,6 +189,7 @@ namespace DataAccessRegistration {
 						// in order to be able to propagate a nested reduction ReductionInfo outside
 						&& ((access->getType() != WRITE_ACCESS_TYPE) && (access->getType() != READWRITE_ACCESS_TYPE));
 					_propagatesReductionSlotSetToNext = false; // ReductionSlotSet is propagated through the fragments
+					_propagatesDataReleaseStepToNext = false;  // DataReleaseStep is propagated through the fragments
 				} else if (
 					(access->getObjectType() == fragment_type)
 					|| (access->getObjectType() == taskwait_type)
@@ -199,6 +214,7 @@ namespace DataAccessRegistration {
 						&& !access->closesReduction()
 						&& (access->allocatedReductionInfo()
 							|| access->receivedReductionSlotSet());
+					_propagatesDataReleaseStepToNext = access->hasDataReleaseStep();
 				} else {
 					assert(access->getObjectType() == access_type);
 					assert(!access->hasSubaccesses());
@@ -240,6 +256,8 @@ namespace DataAccessRegistration {
 						&& !access->closesReduction()
 						&& (access->allocatedReductionInfo()
 							|| access->receivedReductionSlotSet());
+					_propagatesDataReleaseStepToNext =
+						access->hasDataReleaseStep() && access->complete();
 				}
 			} else {
 				assert(!access->hasNext());
@@ -249,6 +267,7 @@ namespace DataAccessRegistration {
 				_propagatesCommutativeSatisfiabilityToNext = false;
 				_propagatesReductionInfoToNext = false;
 				_propagatesReductionSlotSetToNext = false;
+				_propagatesDataReleaseStepToNext = false;
 			}
 
 			_makesReductionOriginalStorageAvailable =
@@ -289,6 +308,22 @@ namespace DataAccessRegistration {
 										&& access->readSatisfied()
 										&& access->writeSatisfied()
 										&& access->hasOutputLocation();
+
+			if (access->hasDataReleaseStep()) {
+				ExecutionWorkflow::DataReleaseStep *releaseStep =
+					access->getDataReleaseStep();
+
+				_triggersDataRelease =
+					releaseStep->checkDataRelease(access);
+			} else {
+				_triggersDataRelease = false;
+			}
+
+			_triggersDataLinkRead = access->hasDataLinkStep()
+									&& access->readSatisfied();
+
+			_triggersDataLinkWrite = access->hasDataLinkStep()
+									 && access->writeSatisfied();
 
 			Task *domainParent;
 			assert(access->getOriginator() != nullptr);
@@ -601,6 +636,13 @@ namespace DataAccessRegistration {
 				updateOperation._reductionSlotSet = access->getReductionSlotSet();
 			}
 
+			if (initialStatus._propagatesDataReleaseStepToNext != updatedStatus._propagatesDataReleaseStepToNext) {
+				assert(!initialStatus._propagatesDataReleaseStepToNext);
+
+				updateOperation._releaseStep = access->getDataReleaseStep();
+				access->unsetDataReleaseStep();
+			}
+
 			// Make Next Topmost
 			if (initialStatus._makesNextTopmost != updatedStatus._makesNextTopmost) {
 				assert(!initialStatus._makesNextTopmost);
@@ -703,6 +745,30 @@ namespace DataAccessRegistration {
 			assert(access->isInBottomMap());
 
 			hpDependencyData._completedTaskwaits.emplace_back(access);
+		}
+
+		// DataReleaseStep triggers
+		if (initialStatus._triggersDataRelease != updatedStatus._triggersDataRelease) {
+			assert(!initialStatus._triggersDataRelease);
+
+			ExecutionWorkflow::DataReleaseStep *step = access->getDataReleaseStep();
+			access->unsetDataReleaseStep();
+			step->releaseRegion(access->getAccessRegion(), access->getLocation());
+		}
+
+		bool linksRead = initialStatus._triggersDataLinkRead != updatedStatus._triggersDataLinkRead;
+		bool linksWrite = initialStatus._triggersDataLinkWrite != updatedStatus._triggersDataLinkWrite;
+		if (linksRead || linksWrite) {
+			assert(access->hasDataLinkStep());
+
+			ExecutionWorkflow::DataLinkStep *step =
+				access->getDataLinkStep();
+			step->linkRegion(access->getAccessRegion(),
+				access->getLocation(), linksRead, linksWrite);
+
+			if (updatedStatus._triggersDataLinkRead && updatedStatus._triggersDataLinkWrite) {
+				access->unsetDataLinkStep();
+			}
 		}
 
 		// Removable
@@ -844,6 +910,8 @@ namespace DataAccessRegistration {
 		reduction_index_t reductionIndex = -1,
 		MemoryPlace const *location = nullptr,
 		MemoryPlace const *outputLocation = nullptr,
+		ExecutionWorkflow::DataReleaseStep *dataReleaseStep = nullptr,
+		ExecutionWorkflow::DataLinkStep *dataLinkStep = nullptr,
 		DataAccess::status_t status = 0, DataAccessLink next = DataAccessLink())
 	{
 		// Regular object duplication
@@ -854,6 +922,8 @@ namespace DataAccessRegistration {
 			reductionIndex,
 			location,
 			outputLocation,
+			dataReleaseStep,
+			dataLinkStep,
 			Instrument::data_access_id_t(),
 			status, next);
 
@@ -1188,6 +1258,9 @@ namespace DataAccessRegistration {
 		if (updateOperation._makeCommutativeSatisfied) {
 			access->setCommutativeSatisfied();
 		}
+		if (updateOperation._releaseStep != nullptr) {
+			access->setDataReleaseStep(updateOperation._releaseStep);
+		}
 
 		// ReductionInfo
 		if (updateOperation._setReductionInfo) {
@@ -1367,6 +1440,8 @@ namespace DataAccessRegistration {
 			dataAccess->getReductionIndex(),
 			dataAccess->getLocation(),
 			dataAccess->getOutputLocation(),
+			dataAccess->getDataReleaseStep(),
+			dataAccess->getDataLinkStep(),
 			instrumentationId);
 
 		fragment->inheritFragmentStatus(dataAccess); //TODO is it necessary?
@@ -1383,6 +1458,12 @@ namespace DataAccessRegistration {
 
 		// NOTE: This may in the future need to be included in the common status changes code
 		dataAccess->setHasSubaccesses();
+
+		//! The DataReleaseStep of the access will be propagated through the fragment(s).
+		//! Unset it here so we avoid needless (and possibly wrong) checks for this access.
+		if (dataAccess->hasDataReleaseStep()) {
+			dataAccess->unsetDataReleaseStep();
+		}
 
 		if (subregion != dataAccess->getAccessRegion()) {
 			dataAccess->getAccessRegion().processIntersectingFragments(
@@ -2210,21 +2291,17 @@ namespace DataAccessRegistration {
 
 	static void handleCompletedTaskwaits(
 		CPUDependencyData::satisfied_taskwait_accesses_t &completedTaskwaits,
-		ComputePlace *computePlace
-	) {
-		CPUDependencyData hpDependencyData;
-
+		__attribute__((unused)) ComputePlace *computePlace)
+	{
 		for (DataAccess *taskwait : completedTaskwaits) {
 			assert(taskwait->getObjectType() == taskwait_type);
-
-			DataAccessRegistration::releaseTaskwaitFragment(
+			ExecutionWorkflow::setupTaskwaitWorkflow(
 				taskwait->getOriginator(),
-				taskwait->getAccessRegion(),
-				computePlace, hpDependencyData
-			);
+				taskwait);
 		}
 		completedTaskwaits.clear();
 	}
+
 
 	static void createTaskwait(
 		Task *task, TaskDataAccesses &accessStructures, ComputePlace *computePlace,

@@ -1,7 +1,7 @@
 /*
 	This file is part of Nanos6 and is licensed under the terms contained in the COPYING file.
 
-	Copyright (C) 2015-2021 Barcelona Supercomputing Center (BSC)
+	Copyright (C) 2015-2020 Barcelona Supercomputing Center (BSC)
 */
 
 #ifndef CPU_DEPENDENCY_DATA_HPP
@@ -18,6 +18,8 @@
 #include "DataAccessLink.hpp"
 #include "DataAccessRegion.hpp"
 #include "support/Containers.hpp"
+
+#include <ExecutionStep.hpp>
 
 
 struct DataAccess;
@@ -36,6 +38,7 @@ struct CPUDependencyData {
 		bool _makeConcurrentSatisfied;
 		bool _makeCommutativeSatisfied;
 		MemoryPlace const *_location;
+		ExecutionWorkflow::DataReleaseStep *_releaseStep;
 
 		bool _makeTopmost;
 		bool _makeTopLevel;
@@ -49,7 +52,7 @@ struct CPUDependencyData {
 			: _target(), _region(),
 			_makeReadSatisfied(false), _makeWriteSatisfied(false),
 			_makeConcurrentSatisfied(false), _makeCommutativeSatisfied(false),
-			_location(nullptr),
+			_location(nullptr), _releaseStep(nullptr),
 			_makeTopmost(false), _makeTopLevel(false),
 			_setReductionInfo(false), _reductionInfo(nullptr)
 		{
@@ -59,7 +62,7 @@ struct CPUDependencyData {
 			: _target(target), _region(region),
 			_makeReadSatisfied(false), _makeWriteSatisfied(false),
 			_makeConcurrentSatisfied(false), _makeCommutativeSatisfied(false),
-			_location(nullptr),
+			_location(nullptr), _releaseStep(nullptr),
 			_makeTopmost(false), _makeTopLevel(false),
 			_setReductionInfo(false), _reductionInfo(nullptr)
 		{
@@ -69,6 +72,7 @@ struct CPUDependencyData {
 		{
 			return !_makeReadSatisfied && !_makeWriteSatisfied
 				&& !_makeConcurrentSatisfied && !_makeCommutativeSatisfied
+				&& (_releaseStep == nullptr)
 				&& !_makeTopmost && !_makeTopLevel
 				&& !_setReductionInfo
 				&& (_reductionSlotSet.size() == 0);
