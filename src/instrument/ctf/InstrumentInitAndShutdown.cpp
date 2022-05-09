@@ -1,7 +1,7 @@
 /*
 	This file is part of Nanos6 and is licensed under the terms contained in the COPYING file.
 
-	Copyright (C) 2020 Barcelona Supercomputing Center (BSC)
+	Copyright (C) 2020-2021 Barcelona Supercomputing Center (BSC)
 */
 
 #include <cassert>
@@ -28,6 +28,7 @@
 #include "ctfapi/context/CTFStreamContextUnbounded.hpp"
 #include "executors/threads/CPUManager.hpp"
 #include "hardware-counters/HardwareCounters.hpp"
+#include "memory/numa/NUMAManager.hpp"
 #include "tasks/TaskInfo.hpp"
 #include "tasks/TasktypeData.hpp"
 
@@ -90,7 +91,7 @@ static void initializeUserStreams(
 	for (ctf_cpu_id_t i = 0; i < totalCPUs; i++) {
 		cpu = cpus[i];
 		cpuId = cpu->getSystemCPUId();
-		nodeId = cpu->getNumaNodeId();
+		nodeId = NUMAManager::getOSIndex(cpu->getNumaNodeId());
 		Instrument::CPULocalData &cpuLocalData = cpu->getInstrumentationData();
 		cpuLocalData.userStream = new CTFAPI::CTFStream(
 			defaultStreamBufferSize, cpuId, nodeId, userPath.c_str()
@@ -263,10 +264,9 @@ void Instrument::shutdown()
 	delete externalThreadStream;
 	delete Instrument::getCTFVirtualCPULocalData();
 
-	// move tracing files to final directory
+	// Convert and move tracing files to final directory
 	trace.convertToParaver();
 	trace.moveTemporalTraceToFinalDirectory();
-	trace.clean();
 
 	// Disabling kernel tracing takes a considerable amount of time. Warn
 	// the user of it.
@@ -283,6 +283,9 @@ void Instrument::shutdown()
 		}
 		std::cout << "[DONE]" << std::endl;
 	}
+
+	// cleanup trace structures
+	trace.clean();
 }
 
 void Instrument::nanos6_preinit_finished()
