@@ -102,6 +102,8 @@ namespace DataAccessRegistration {
 		CPUDependencyData &hpDependencyData,
 		bool doDelayedOperations
 	);
+
+	bool supportsDataTracking();
 } // namespace DataAccessRegistration
 
 #endif // DATA_ACCESS_REGISTRATION_HPP

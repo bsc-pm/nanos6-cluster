@@ -236,6 +236,7 @@ namespace DataAccessRegistration {
 
 	void noEagerSend(Task *task, DataAccessRegion region);
 
+	bool supportsDataTracking();
 } // namespace DataAccessRegistration
 
 

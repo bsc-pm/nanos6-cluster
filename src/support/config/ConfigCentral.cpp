@@ -126,6 +126,11 @@ void ConfigCentral::initialize()
 	registerOption<string_t>("monitoring.verbose_file", "output-monitoring.txt");
 	registerOption<bool_t>("monitoring.wisdom", false);
 
+	// NUMA support
+	registerOption<bool_t>("numa.report", false);
+	registerOption<bool_t>("numa.scheduling", true);
+	registerOption<string_t>("numa.tracking", "auto");
+
 	// Scheduler
 	registerOption<bool_t>("scheduler.immediate_successor", true);
 	registerOption<string_t>("scheduler.policy", "fifo");

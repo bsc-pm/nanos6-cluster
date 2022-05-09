@@ -5788,6 +5788,10 @@ namespace DataAccessRegistration {
 		);
 	}
 
+	bool supportsDataTracking()
+	{
+		return false;
+	}
 }; // namespace DataAccessRegistration
 
 #pragma GCC visibility pop

@@ -199,6 +199,10 @@ struct CPUDependencyData {
 #endif // USE_CLUSTER
 			;
 	}
+
+	inline void initBytesInNUMA(int)
+	{
+	}
 };
 
 

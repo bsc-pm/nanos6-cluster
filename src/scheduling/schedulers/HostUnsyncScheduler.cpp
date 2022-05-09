@@ -16,7 +16,6 @@ Task *HostUnsyncScheduler::getReadyTask(ComputePlace *computePlace)
 {
 	assert(computePlace != nullptr);
 	assert(_deadlineTasks != nullptr);
-	assert(_readyTasks != nullptr);
 
 	Task *result = nullptr;
 
@@ -39,7 +38,13 @@ retry:
 
 		// Get the priority of the highest priority ready task
 		if (groupTaskfor != nullptr || !_interruptedTaskfors.empty()) {
-			topPriority = _readyTasks->getNextTaskPriority();
+			uint64_t NUMAid = 0;
+			if (_numQueues > 1) {
+				assert(computePlace->getType() == nanos6_host_device);
+				NUMAid = ((CPU *)computePlace)->getNumaNodeId();
+			}
+			assert(NUMAid < _numQueues);
+			topPriority = _queues[NUMAid]->getNextTaskPriority();
 		}
 
 		if (groupTaskfor != nullptr) {
@@ -113,7 +118,7 @@ retry:
 
 	// 5. Check if there is work remaining in the ready queue
 	if (result == nullptr) {
-		result = _readyTasks->getReadyTask(computePlace);
+		result = regularGetReadyTask(computePlace);
 	}
 
 	// 6. Try to get work from other immediateSuccessorTasks

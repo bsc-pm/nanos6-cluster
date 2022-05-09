@@ -130,6 +130,8 @@ int nanos6_is_dlb_enabled(void);
 //! Use the same convention than extrae event where value 0 means end of the event.
 void nanos6_instrument_event(unsigned int event, unsigned int value);
 
+//! \brief Check whether NUMA support is enabled
+int nanos6_is_numa_tracking_enabled(void);
 
 #ifdef __cplusplus
 }

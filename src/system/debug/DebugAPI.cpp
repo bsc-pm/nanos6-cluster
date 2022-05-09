@@ -12,6 +12,7 @@
 #include "executors/threads/CPUManager.hpp"
 #include "executors/threads/ThreadManager.hpp"
 #include "executors/threads/WorkerThread.hpp"
+#include "memory/numa/NUMAManager.hpp"
 #include "tasks/Task.hpp"
 #include "tasks/TaskImplementation.hpp"
 
@@ -247,4 +248,9 @@ void nanos6_instrument_event(unsigned int event, unsigned int value)
 {
 	// Invert this value.
 	Instrument::emitInstrumentationEvent(event, value);
+}
+
+int nanos6_is_numa_tracking_enabled(void)
+{
+	return NUMAManager::isTrackingEnabled();
 }
