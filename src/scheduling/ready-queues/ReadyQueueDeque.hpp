@@ -58,6 +58,24 @@ public:
 		return result;
 	}
 
+	inline Task *tryReadyTask(ComputePlace *, Task *reserved)
+	{
+		if (_numReadyTasks == 0) {
+			return nullptr;
+		}
+
+		Task *result = _readyDeque.front();
+		assert(result != nullptr);
+
+		if (result == reserved) {
+			_readyDeque.pop_front();
+
+			--_numReadyTasks;
+		}
+
+		return result;
+	}
+
 	inline size_t getNumReadyTasks() const
 	{
 		return _numReadyTasks;

@@ -48,6 +48,15 @@ public:
 	//! \returns a ready task or nullptr
 	virtual Task *getReadyTask(ComputePlace *computePlace) = 0;
 
+	//! \brief Try to get a ready task for work stealing from other NUMA node.
+	//!
+	//! \param[in] current compute place
+	//! \param[in] the reserved task
+	//!
+	//! If the next task is the one that has been reserved, then get that task.
+	//! Otherwise just return the task that would have been taken.
+	virtual Task *tryReadyTask(ComputePlace *computePlace, Task *reserved) = 0;
+
 	virtual long getNextTaskPriority() = 0;
 
 	virtual size_t getNumReadyTasks() const = 0;

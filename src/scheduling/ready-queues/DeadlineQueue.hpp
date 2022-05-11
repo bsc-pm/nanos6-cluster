@@ -99,6 +99,12 @@ public:
 		return nullptr;
 	}
 
+	inline Task *tryReadyTask(ComputePlace *, Task *)
+	{
+		assert(false);
+		return nullptr;
+	}
+
 	//! \brief Get the number of available deadline tasks
 	inline size_t getNumReadyTasks() const
 	{

@@ -100,6 +100,35 @@ public:
 		return 0;
 	}
 
+	inline Task *tryReadyTask(ComputePlace *, Task *reserved)
+	{
+		if (_numReadyTasks == 0) {
+			return nullptr;
+		}
+
+		ready_map_t::iterator it = _readyMap.begin();
+		while (it != _readyMap.end()) {
+			if (it->second.empty()) {
+				it++;
+			} else {
+				Task *result = it->second.front();
+				assert(result != nullptr);
+				if (reserved == result) {
+					it->second.pop_front();
+
+					--_numReadyTasks;
+				}
+
+				return result;
+			}
+		}
+
+		// There must be a ready task
+		assert(false);
+
+		return nullptr;
+	}
+
 	inline size_t getNumReadyTasks() const
 	{
 		return _numReadyTasks;

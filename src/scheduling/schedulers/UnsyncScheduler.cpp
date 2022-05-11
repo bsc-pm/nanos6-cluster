@@ -108,8 +108,29 @@ Task *UnsyncScheduler::regularGetReadyTask(ComputePlace *computePlace)
 		}
 
 		if (chosen != (uint64_t) -1) {
-			result = _queues[chosen]->getReadyTask(computePlace);
-			assert(result != nullptr);
+			auto m = _reservedToSteal.find(computePlace);
+
+			// Which task did we reserve (countdown may not be zero yet)
+			Task *reserved = (m != _reservedToSteal.end()) ? m->second.task : nullptr;
+
+			// If the countdown reached zero, then the reserved task is ready to be stolen
+			Task *ready    = (m != _reservedToSteal.end() && m->second.count == 0) ? m->second.task : nullptr;
+
+			// Steal the task if it is the one ready to be stolen, otherwise find out which task we should reserve
+			Task *toSteal = _queues[chosen]->tryReadyTask(computePlace, ready);
+			assert(toSteal != nullptr);
+
+			if (toSteal == ready) {
+				// We stole the ready-to-steal reserved task
+				result = toSteal;
+			} else if (toSteal == reserved) {
+				// The task was reserved, but countdown isn't yet zero: decrement the countdown
+				// We want to give cores on the right NUMA node an opportunity to take it before we steal it
+				m->second.count --;
+			} else {
+				// A new (or different) task to steal: keep a record to reserve it at this compute place
+				_reservedToSteal[computePlace] = ReservedTask{toSteal, 10};
+			}
 		}
 	}
 

@@ -8,6 +8,7 @@
 #define UNSYNC_SCHEDULER_HPP
 
 #include <cassert>
+#include <unordered_map>
 
 #include "hardware/places/ComputePlace.hpp"
 #include "lowlevel/FatalErrorHandler.hpp"
@@ -34,6 +35,14 @@ protected:
 
 	bool _enableImmediateSuccessor;
 	bool _enablePriority;
+
+	struct ReservedTask {
+		Task *task;
+		size_t count;
+	};
+
+	std::unordered_map<ComputePlace *, ReservedTask> _reservedToSteal;
+
 
 public:
 	UnsyncScheduler(SchedulingPolicy policy, bool enablePriority, bool enableImmediateSuccessor);
