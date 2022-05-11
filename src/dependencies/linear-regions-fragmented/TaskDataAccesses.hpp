@@ -103,10 +103,7 @@ struct TaskDataAccesses
 		return 0;
 	}
 
-	uint64_t computeNUMAAffinity(ComputePlace *)
-	{
-		return (uint64_t) -1;
-	}
+	uint64_t computeNUMAAffinity(ComputePlace *);
 };
 
 

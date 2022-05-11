@@ -5790,7 +5790,7 @@ namespace DataAccessRegistration {
 
 	bool supportsDataTracking()
 	{
-		return false;
+		return true;
 	}
 }; // namespace DataAccessRegistration
 
