@@ -69,7 +69,7 @@
 [numa]
 	# Enable NUMA tracking of task data. NUMA tracking consists of annotating the NUMA location
 	# of data to be later scheduled based on this information. When using "auto" this feature is
-	# enabled in the first allocation done using the Nanos6 NUMA API. Default is "auto"
+	# enabled in the first allocation done using the Nanos6 NUMA API or nanos6_dmalloc. Default is "auto"
 	# Possible values: "auto", "on", "off"
 	tracking = "auto"
 	# Indicate whether should print the NUMA bitmask of each NUMA wildcards

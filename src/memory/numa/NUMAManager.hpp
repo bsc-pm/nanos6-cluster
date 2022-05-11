@@ -204,6 +204,88 @@ public:
 		// assert(_allocations.empty());
 	}
 
+	static void fullyIntersectPages(void **pptr, size_t *psize, size_t *pblockSize)
+	{
+		size_t pageSize = HardwareInfo::getPageSize();
+
+		// If blockSize is given, then round up to a multiple of the page size
+		if (pblockSize) {
+			if (*pblockSize % pageSize != 0) {
+				*pblockSize = MathSupport::closestMultiple(*pblockSize, pageSize);
+			}
+		}
+
+		// Cut the region to contain only the pages that are fully contained within it.
+		size_t cptr = (size_t)(*pptr);
+		// 1. Align the start address
+		if (cptr % pageSize != 0) {
+			size_t ofs = pageSize - (cptr % pageSize);
+			*pptr = (void*)( (char *)(*pptr) + ofs);
+			if (*psize < ofs) {
+				*psize = 0;
+				return;
+			}
+			*psize -= ofs;
+		}
+		// 2. Align the end address
+		*psize = *psize & (~(pageSize-1));
+
+		// clusterCout << "setNUMAAffinity intersect: new_ptr " << *pptr << " new_size " << *psize << "\n";
+	}
+
+
+	static void setNUMAAffinity(void *ptr, size_t size, const bitmask_t *bitmask, size_t blockSize)
+	{
+		bitmask_t bitmaskCopy = *bitmask;
+		struct bitmask *tmpBitmask = numa_bitmask_alloc(_maxOSIndex + 1);
+		for (size_t i = 0; i < size; i += blockSize) {
+			uint8_t currentNodeIndex = BitManipulation::indexFirstEnabledBit(bitmaskCopy);
+			BitManipulation::disableBit(&bitmaskCopy, currentNodeIndex);
+			if (bitmaskCopy == 0) {
+				bitmaskCopy = *bitmask;
+			}
+
+			void *tmp = (void *) ((uintptr_t) ptr + i);
+			size_t tmpSize = std::min(blockSize, size-i);
+
+			// Set all the pages of a block in the same node.
+			numa_bitmask_clearall(tmpBitmask);
+			assert(_logicalToOsIndex[currentNodeIndex] != -1);
+
+			numa_bitmask_setbit(tmpBitmask, _logicalToOsIndex[currentNodeIndex]);
+			assert(numa_bitmask_isbitset(tmpBitmask, _logicalToOsIndex[currentNodeIndex]));
+
+			numa_interleave_memory(tmp, tmpSize, tmpBitmask);
+
+			// Insert into directory
+			DirectoryInfo info(tmpSize, currentNodeIndex);
+			_lock.writeLock();
+			_directory.emplace(tmp, info);
+			_lock.writeUnlock();
+		}
+		numa_bitmask_free(tmpBitmask);
+
+#ifndef NDEBUG
+		checkAllocationCorrectness(ptr, size, bitmask, blockSize);
+#endif
+
+	}
+
+	static void unsetNUMAAffinity(void *ptr, size_t size)
+	{
+		_lock.writeLock();
+		// Find the initial element in the directory
+		auto begin = _directory.lower_bound(ptr);
+		assert(begin != _directory.end());
+
+		// Find the next element after the allocation
+		auto end = _directory.lower_bound((void *) ((uintptr_t) ptr + size));
+
+		// Remove all elements in the range [begin, end)
+		_directory.erase(begin, end);
+		_lock.writeUnlock();
+	}
+
 	static void *alloc(size_t size, const bitmask_t *bitmask, size_t blockSize)
 	{
 		size_t pageSize = HardwareInfo::getPageSize();
@@ -256,7 +338,6 @@ public:
 		if (size > _realPageSize) {
 			pageSize = _realPageSize;
 		}
-		bitmask_t bitmaskCopy = *bitmask;
 		if (blockSize % pageSize != 0) {
 			blockSize = MathSupport::closestMultiple(blockSize, pageSize);
 		}
@@ -284,37 +365,7 @@ public:
 		_allocations.emplace(res, size);
 		_allocationsLock.unlock();
 
-		struct bitmask *tmpBitmask = numa_bitmask_alloc(_maxOSIndex + 1);
-		for (size_t i = 0; i < size; i += blockSize) {
-			uint8_t currentNodeIndex = BitManipulation::indexFirstEnabledBit(bitmaskCopy);
-			BitManipulation::disableBit(&bitmaskCopy, currentNodeIndex);
-			if (bitmaskCopy == 0) {
-				bitmaskCopy = *bitmask;
-			}
-
-			void *tmp = (void *) ((uintptr_t) res + i);
-			size_t tmpSize = std::min(blockSize, size-i);
-
-			// Set all the pages of a block in the same node.
-			numa_bitmask_clearall(tmpBitmask);
-			assert(_logicalToOsIndex[currentNodeIndex] != -1);
-
-			numa_bitmask_setbit(tmpBitmask, _logicalToOsIndex[currentNodeIndex]);
-			assert(numa_bitmask_isbitset(tmpBitmask, _logicalToOsIndex[currentNodeIndex]));
-
-			numa_interleave_memory(tmp, tmpSize, tmpBitmask);
-
-			// Insert into directory
-			DirectoryInfo info(tmpSize, currentNodeIndex);
-			_lock.writeLock();
-			_directory.emplace(tmp, info);
-			_lock.writeUnlock();
-		}
-		numa_bitmask_free(tmpBitmask);
-
-#ifndef NDEBUG
-		checkAllocationCorrectness(res, size, bitmask, blockSize);
-#endif
+		setNUMAAffinity(res, size, bitmask, blockSize);
 
 		return res;
 	}
@@ -428,17 +479,7 @@ public:
 		_allocations.erase(allocIt);
 		_allocationsLock.unlock();
 
-		_lock.writeLock();
-		// Find the initial element in the directory
-		auto begin = _directory.find(ptr);
-		assert(begin != _directory.end());
-
-		// Find the next element after the allocation
-		auto end = _directory.lower_bound((void *) ((uintptr_t) ptr + size));
-
-		// Remove all elements in the range [begin, end)
-		_directory.erase(begin, end);
-		_lock.writeUnlock();
+		unsetNUMAAffinity(ptr, size);
 
 		// Release memory
 		size_t pageSize = HardwareInfo::getPageSize();
@@ -610,6 +651,7 @@ private:
 		return 0;
 	}
 
+public:
 	static bool enableTrackingIfAuto()
 	{
 		if (isTrackingEnabled()) {
@@ -625,6 +667,7 @@ private:
 		return false;
 	}
 
+private:
 	static inline uint64_t getValidTrackingNodes()
 	{
 		std::string trackingMode = _trackingMode.getValue();

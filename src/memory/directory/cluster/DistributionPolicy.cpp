@@ -8,6 +8,7 @@
 #include "DistributionPolicy.hpp"
 #include "hardware/places/MemoryPlace.hpp"
 #include "lowlevel/FatalErrorHandler.hpp"
+#include "memory/numa/NUMAManager.hpp"
 
 #include <ClusterManager.hpp>
 #include <DataAccessRegion.hpp>
@@ -31,6 +32,28 @@ namespace ClusterDirectory {
 			ClusterMemoryNode *homeNode = ClusterManager::getMemoryNode(i);
 			Directory::insert(newRegion, homeNode);
 			ptr += blockSize;
+
+			if (homeNode == ClusterManager::getCurrentMemoryNode()) {
+				// Use a blocked memory allocation for NUMA (this could be
+				// improved later)
+				nanos6_bitmask_t bitmask;
+				NUMAManager::setAnyActive(&bitmask);
+				size_t numNumaAny = NUMAManager::countEnabledBits(&bitmask);
+				assert(numNumaAny > 0);
+				size_t blockSizeNUMA = newRegion.getSize() / numNumaAny;
+
+				void *newPtr = newRegion.getStartAddress();
+				size_t newSize = newRegion.getSize();
+				NUMAManager::fullyIntersectPages(&newPtr, &newSize, &blockSizeNUMA);
+
+				if (newSize > 0) {
+					NUMAManager::setNUMAAffinity(
+						newPtr,
+						newSize,
+						&bitmask,
+						blockSizeNUMA);
+				}
+			}
 		}
 
 		//! Add an extra entry to the first node for any residual
@@ -50,6 +73,9 @@ namespace ClusterDirectory {
 			__attribute__((unused)) size_t *dimensions,
 			Task *task)
 	{
+		// If numa.tracking is set to "auto", then a dmalloc enables NUMA tracking on all nodes
+		NUMAManager::enableTrackingIfAuto();
+
 		if (task) {
 			// Register local access. A location of nullptr means that the data is currently
 			// uninitialized so the first access doesn't need a copy.
@@ -77,5 +103,11 @@ namespace ClusterDirectory {
 	{
 		//! Erase from Directory
 		Directory::erase(region);
+		void *ptr = region.getStartAddress();
+		size_t size = region.getSize();
+		NUMAManager::fullyIntersectPages(&ptr, &size, nullptr);
+		if (size > 0) {
+			NUMAManager::unsetNUMAAffinity(ptr, size);
+		}
 	}
 }
