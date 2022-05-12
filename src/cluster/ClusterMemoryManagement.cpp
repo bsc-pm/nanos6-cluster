@@ -189,9 +189,10 @@ namespace ClusterMemoryManagement {
 			}
 		}
 
+		//! Send a message to everyone else to let them know about the allocation
+		MessageDmalloc msg(current, dptr, size, policy, numDimensions, dimensions);
+
 		if (ClusterManager::inClusterMode()) {
-			//! Send a message to everyone else to let them know about the allocation
-			MessageDmalloc msg(current, dptr, size, policy, numDimensions, dimensions);
 
 			if (ClusterManager::isMasterNode()) {
 				assert(msg.getPointer() != nullptr);
@@ -210,20 +211,11 @@ namespace ClusterMemoryManagement {
 				msg.setPointer(dptr);
 			}
 
-			ClusterMemoryManagement::handleDmallocMessage(&msg, task);
-
 		} else {
-			//! If we are not in cluster mode we are done here
+			//! We are not in cluster mode, so no need to send or receive any messages
 			assert(ClusterManager::isMasterNode());
-
-			DataAccessRegion allocatedRegion(dptr, size);
-
-			//! The home node of the new allocated region is the current node
-			Directory::insert(allocatedRegion, ClusterManager::getCurrentMemoryNode());
-			DataAccessRegistration::registerLocalAccess(
-				task, allocatedRegion, ClusterManager::getCurrentMemoryNode(), /* isStack */ false
-			);
 		}
+		ClusterMemoryManagement::handleDmallocMessage(&msg, task);
 
 		return dptr;
 	}
