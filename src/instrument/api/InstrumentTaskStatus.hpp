@@ -88,6 +88,12 @@ namespace Instrument {
 	//! \param[in] taskforId the task identifier of the source taskfor returned in the call to enterAddTask
 	//! \param[in] collaboratorId the task identifier of the collaborator returned in the call to enterAddTask
 	void taskforCollaboratorStopped(task_id_t taskforId, task_id_t collaboratorId, InstrumentationContext const &context = ThreadInstrumentationContext::getCurrent());
+
+	//! \brief Indicates the NUMA hint for the task being executed
+	//! \param[in] taskId the task identifier returned in the call to enterAddTask
+	//! \param[in] wasBlocked whether the task is being resumed after being blocked (true)
+	//! or it is being resumed after running for the first time (false)
+	void taskNUMAHint(task_id_t taskId, int64_t numaHint, InstrumentationContext const &context = ThreadInstrumentationContext::getCurrent());
 }
 
 

@@ -175,6 +175,8 @@ namespace Instrument {
 
 				THREAD = 9500004,
 
+				NUMA_HINT = 9500100,
+
 			// 9504XXX -- Reductions
 				REDUCTION_STATE = 9504001,
 

@@ -75,6 +75,13 @@ namespace Instrument {
 		__attribute__((unused)) InstrumentationContext const &context
 	) {
 	}
+
+	inline void taskNUMAHint(
+		__attribute__((unused)) task_id_t taskforId,
+		__attribute__((unused)) int64_t numaHint,
+		__attribute__((unused)) InstrumentationContext const &context
+	) {
+	}
 }
 
 

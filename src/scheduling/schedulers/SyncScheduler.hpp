@@ -19,6 +19,7 @@
 #include "lowlevel/DelegationLock.hpp"
 #include "lowlevel/TicketArraySpinLock.hpp"
 #include "scheduling/SchedulerSupport.hpp"
+#include "InstrumentScheduler.hpp"
 
 
 class SyncScheduler {

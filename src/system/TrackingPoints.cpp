@@ -53,9 +53,15 @@ void TrackingPoints::taskIsExecuting(Task *task)
 		Instrument::task_id_t parentId = parent->getInstrumentationTaskId();
 		Instrument::startTaskforCollaborator(parentId, taskId, first);
 		Instrument::taskforCollaboratorIsExecuting(parentId, taskId);
+		// NUMA hint of taskfor source: add one as usual for Extrae; 255 means no hint
+		int64_t numaHint = parent->getNUMAHint();
+		Instrument::taskNUMAHint(taskId, (numaHint != -1) ? 1+numaHint : 255);
 	} else {
 		Instrument::startTask(taskId);
 		Instrument::taskIsExecuting(taskId);
+		int64_t numaHint = task->getNUMAHint();
+		// NUMA hint of task: add one as usual for Extrae; 255 means no hint
+		Instrument::taskNUMAHint(taskId, (numaHint != -1) ? 1+numaHint : 255);
 	}
 
 	Monitoring::taskChangedStatus(task, executing_status);
@@ -79,9 +85,11 @@ void TrackingPoints::taskCompletedUserCode(Task *task)
 			Instrument::task_id_t parentTaskId = parent->getInstrumentationTaskId();
 			Instrument::taskforCollaboratorStopped(parentTaskId, taskId);
 			Instrument::endTaskforCollaborator(parentTaskId, taskId, last);
+			Instrument::taskNUMAHint(taskId, 0);
 		} else {
 			Instrument::taskIsZombie(taskId);
 			Instrument::endTask(taskId);
+			Instrument::taskNUMAHint(taskId, 0);
 		}
 	} else {
 		Monitoring::taskChangedStatus(task, paused_status);

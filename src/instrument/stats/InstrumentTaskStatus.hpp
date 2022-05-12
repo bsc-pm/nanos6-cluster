@@ -88,6 +88,13 @@ namespace Instrument {
 		taskforId->_times._executionTime += collaboratorId->_times._executionTime;
 		taskforId->_lock.unlock();
 	}
+
+	inline void taskNUMAHint(
+		__attribute__((unused)) task_id_t taskforId,
+		__attribute__((unused)) int64_t numaHint,
+		__attribute__((unused)) InstrumentationContext const &context
+	) {
+	}
 }
 
 

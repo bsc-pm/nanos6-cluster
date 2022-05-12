@@ -105,6 +105,35 @@ namespace Instrument {
 		__attribute__((unused)) InstrumentationContext const &context
 	) {
 	}
+
+	inline void taskNUMAHint(
+		__attribute__((unused)) task_id_t taskforId,
+		__attribute__((unused)) int64_t numaHint,
+		__attribute__((unused)) InstrumentationContext const &context
+	) {
+		extrae_combined_events_t ce;
+
+		ce.HardwareCounters = 1;
+		ce.Callers = 0;
+		ce.UserFunction = EXTRAE_USER_FUNCTION_NONE;
+		ce.nEvents = 1;
+		ce.nCommunications = 0;
+
+		ce.Types  = (extrae_type_t *)  alloca (ce.nEvents * sizeof (extrae_type_t) );
+		ce.Values = (extrae_value_t *) alloca (ce.nEvents * sizeof (extrae_value_t));
+
+		ce.Types[0] = (extrae_type_t) EventType::NUMA_HINT;
+		ce.Values[0] = numaHint;
+
+		if (Extrae::_traceAsThreads) {
+			_extraeThreadCountLock.readLock();
+		}
+		ExtraeAPI::emit_CombinedEvents ( &ce );
+		if (Extrae::_traceAsThreads) {
+			_extraeThreadCountLock.readUnlock();
+		}
+	}
+
 }
 
 

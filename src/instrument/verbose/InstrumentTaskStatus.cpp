@@ -148,4 +148,11 @@ namespace Instrument {
 	void taskforCollaboratorStopped(__attribute__((unused)) task_id_t taskforId, __attribute__((unused)) task_id_t collaboratorId, __attribute__((unused)) InstrumentationContext const &context) {
 		// Verbose instrumentation does not instrument task fors
 	}
+
+	void taskNUMAHint(
+		__attribute__((unused)) task_id_t taskforId,
+		__attribute__((unused)) int64_t numaHint,
+		__attribute__((unused)) InstrumentationContext const &context
+	) {
+	}
 }
