@@ -26,6 +26,9 @@ public:
 		nanos6_task_invocation_info_t *parentTaskInvocationInfo = parent->getTaskInvokationInfo();
 		Instrument::task_id_t parentTaskInstrumentationId = parent->getInstrumentationTaskId();
 		size_t flags = parent->getFlags();
+		// A taskfor collaborator is never a remote task, even if its parent
+		// (the taskfor source) is.
+		flags &= ~(size_t)Task::nanos6_task_runtime_flag_t::nanos6_remote_flag;
 		void *originalArgsBlock = parent->getArgsBlock();
 		size_t originalArgsBlockSize = parent->getArgsBlockSize();
 
@@ -71,11 +74,7 @@ public:
 		// a preallocated taskfor
 		taskfor->setTaskloop(false);
 
-		// A taskfor collaborator is never a remote task, even if its parent
-		// (the taskfor source) is.
-		if (taskfor->isRemoteTask()) {
-			taskfor->unmarkAsRemote();
-		}
+		assert (!taskfor->isRemoteTask());
 
 		// Instrument the task creation
 		Instrument::task_id_t taskInstrumentationId = taskfor->getInstrumentationTaskId();
@@ -101,6 +100,9 @@ public:
 		if (parent->isTaskfor()) {
 			flags &= ~nanos6_taskloop_task;
 		}
+		// A taskloop executor is never a remote task, even if its parent
+		// (the taskloop source) is.
+		flags &= ~(size_t)Task::nanos6_task_runtime_flag_t::nanos6_remote_flag;
 
 		void *argsBlock = nullptr;
 		bool hasPreallocatedArgsBlock = parent->hasPreallocatedArgsBlock();
@@ -147,11 +149,7 @@ public:
 			childBounds.upper_bound = upperBound;
 		}
 
-		// A taskloop executor is never a remote task, even if its parent
-		// (the taskloop source) is.
-		if (parent->isRemoteTask()) {
-			task->unmarkAsRemote();
-		}
+		assert (!task->isRemoteTask());
 
 		// Submit task and register dependencies
 		AddTask::submitTask(task, parent, fromTaskContext);
@@ -177,6 +175,9 @@ public:
 		if (parent->isTaskfor()) {
 			flags &= ~nanos6_taskloop_task;
 		}
+		// A taskfor offloader is never a remote task, even if its parent
+		// (the taskfor source) is.
+		flags &= ~(size_t)Task::nanos6_task_runtime_flag_t::nanos6_remote_flag;
 
 		void *argsBlock = nullptr;
 		bool hasPreallocatedArgsBlock = parent->hasPreallocatedArgsBlock();
@@ -215,11 +216,7 @@ public:
 
 		taskloop->setTaskloopOffloader();
 
-		// A taskfor offloader is never a remote task, even if its parent
-		// (the taskfor source) is.
-		if (parent->isRemoteTask()) {
-			task->unmarkAsRemote();
-		}
+		assert (!task->isRemoteTask());
 
 		// Submit task and register dependencies
 		task->setNode(remoteNode->getIndex());

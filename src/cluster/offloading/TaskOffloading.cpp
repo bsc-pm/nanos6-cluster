@@ -276,12 +276,15 @@ namespace TaskOffloading {
 		OffloadedTaskIdManager::OffloadedTaskId remoteTaskIdentifier = msg->getOffloadedTaskId();
 		ClusterNode *remoteNode = ClusterManager::getClusterNode(msg->getSenderId());
 
+		size_t flags = msg->getFlags();
+		flags |= (size_t)Task::nanos6_task_runtime_flag_t::nanos6_remote_flag;
+
 		// Create the task with no dependencies. Treat this call
 		// as user code since we are inside a spawned task context
 		Task *task = AddTask::createTask(
 			taskInfo, taskInvocationInfo,
 			nullptr, argsBlockSize,
-			msg->getFlags(), 0, true
+			flags, 0, true
 		);
 		assert(task != nullptr);
 
@@ -330,8 +333,6 @@ namespace TaskOffloading {
 		if (argsBlockSize != 0) {
 			memcpy(argsBlockPtr, argsBlock, argsBlockSize);
 		}
-
-		task->markAsRemote();
 
 		ClusterTaskContext *clusterContext = new TaskOffloading::ClusterTaskContext(msg, task);
 		assert(clusterContext);
