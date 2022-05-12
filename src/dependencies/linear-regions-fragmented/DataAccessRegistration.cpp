@@ -5179,14 +5179,12 @@ namespace DataAccessRegistration {
 	 * Second part of unregistering all the task data accesses (when the task
 	 * completes). Handle any effects on other tasks.
 	 */
-	void unregisterTaskDataAccesses2(Task *task,
-									ComputePlace *computePlace,
+	void unregisterTaskDataAccesses2(ComputePlace *computePlace,
 									CPUDependencyData &hpDependencyData,
 									MemoryPlace *location,
 									bool fromBusyThread)
 	{
 		Instrument::enterUnregisterTaskDataAcesses2();
-		(void)task;
 		(void)location;
 
 		assert(ClusterManager::inClusterMode() || hpDependencyData._delayedOperations.empty());

@@ -84,7 +84,6 @@ namespace DataAccessRegistration {
 	);
 
 	void unregisterTaskDataAccesses2(
-		Task *task,
 		ComputePlace *computePlace,
 		CPUDependencyData &dependencyData,
 		MemoryPlace *location,
@@ -103,7 +102,7 @@ namespace DataAccessRegistration {
 		if (callback) {
 			callback();
 		}
-		unregisterTaskDataAccesses2(task, computePlace, dependencyData, location, fromBusyThread);
+		unregisterTaskDataAccesses2(computePlace, dependencyData, location, fromBusyThread);
 	}
 
 	//! \brief Combines the task reductions without releasing the dependencies
