@@ -15,6 +15,7 @@
 #include "CPUDependencyData.hpp"
 #include "../DataAccessType.hpp"
 #include "ReductionSpecific.hpp"
+#include "cluster/offloading/OffloadedTaskId.hpp"
 
 class ClusterNode;
 class ComputePlace;
@@ -37,7 +38,8 @@ namespace DataAccessRegistration {
 		DataAccessRegion region,
 		int symbolIndex,
 		reduction_type_and_operator_index_t reductionTypeAndOperatorIndex,
-		reduction_index_t reductionIndex
+		reduction_index_t reductionIndex,
+		OffloadedTaskIdManager::OffloadedTaskId namespacePredecessor = OffloadedTaskIdManager::InvalidOffloadedTaskId
 	);
 
 	//! \brief Performs the task dependency registration procedure

@@ -315,7 +315,8 @@ namespace TaskOffloading {
 				satInfo[i]._region,
 				0, /* TODO: send symbol list, ignored for the moment */
 				no_reduction_type_and_operator,
-				no_reduction_index);
+				no_reduction_index,
+				satInfo[i]._id);
 				
 			DataAccessRegistration::setNamespacePredecessor(
 				task,

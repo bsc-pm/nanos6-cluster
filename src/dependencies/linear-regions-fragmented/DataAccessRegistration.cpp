@@ -3091,6 +3091,8 @@ namespace DataAccessRegistration {
 						} else {
 							Instrument::namespacePropagation(Instrument::NamespaceWrongPredecessor, dataAccess->getAccessRegion());
 						}
+						assert(dataAccess->getNamespacePredecessor() == previous->getOriginator()->getOffloadedTaskId()
+								|| dataAccess->getNamespacePredecessor() == previous->getNamespacePredecessor());
 					} else if (previous->getNamespaceSuccessor() != nullptr) {
 						Instrument::namespacePropagation(Instrument::NamespaceWrongPredecessor, dataAccess->getAccessRegion());
 					} else {
@@ -4185,7 +4187,8 @@ namespace DataAccessRegistration {
 	 */
 	void registerTaskDataAccess(
 		Task *task, DataAccessType accessType, bool weak, DataAccessRegion region, int symbolIndex,
-		reduction_type_and_operator_index_t reductionTypeAndOperatorIndex, reduction_index_t reductionIndex)
+		reduction_type_and_operator_index_t reductionTypeAndOperatorIndex, reduction_index_t reductionIndex,
+		OffloadedTaskIdManager::OffloadedTaskId namespacePredecessor)
 	{
 		assert(task != nullptr);
 
@@ -4237,6 +4240,7 @@ namespace DataAccessRegistration {
 				DataAccess *newAccess = createAccess(task, access_type, accessType, weak, missingRegion,
 					reductionTypeAndOperatorIndex, reductionIndex);
 				newAccess->addToSymbols(symbol_list);
+				newAccess->setValidNamespacePrevious(ClusterManager::getCurrentClusterNode()->getIndex(), namespacePredecessor);
 
 				accessStructures._accesses.insert(*newAccess);
 

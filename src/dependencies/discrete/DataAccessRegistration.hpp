@@ -13,6 +13,7 @@
 #include "CPUDependencyData.hpp"
 #include "ReductionSpecific.hpp"
 #include "dependencies/DataAccessType.hpp"
+#include "cluster/offloading/OffloadedTaskId.hpp"
 
 #include <api/nanos6/task-instantiation.h>
 
@@ -38,7 +39,8 @@ namespace DataAccessRegistration {
 		size_t length,
 		reduction_type_and_operator_index_t reductionTypeAndOperatorIndex,
 		reduction_index_t reductionIndex,
-		int symbolIndex
+		int symbolIndex,
+		OffloadedTaskIdManager::OffloadedTaskId namespacePredecessor = OffloadedTaskIdManager::InvalidOffloadedTaskId
 	);
 
 	//! \brief Performs the task dependency registration procedure
