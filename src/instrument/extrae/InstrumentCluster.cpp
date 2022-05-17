@@ -14,7 +14,6 @@
 #define EVENT_PREFIX_SIZE 8
 
 namespace Instrument {
-
 	/* NOTE: this must match the order of HybridClusterEventType */
 	static extrae_type_t clusterEventTypeToExtraeType[MaxClusterEventType] = {
 		(extrae_type_t) -1,
@@ -114,7 +113,13 @@ namespace Instrument {
 			ce.Communications[0].id = msg->getId();
 		}
 
+		if (Extrae::_traceAsThreads) {
+			_extraeThreadCountLock.readLock();
+		}
 		ExtraeAPI::emit_CombinedEvents(&ce);
+		if (Extrae::_traceAsThreads) {
+			_extraeThreadCountLock.readUnlock();
+		}
 	}
 
 	void clusterHandleMessage(Message const *msg, int senderId)
@@ -154,7 +159,13 @@ namespace Instrument {
 			ce.Communications[0].id = msg->getId();
 		}
 
+		if (Extrae::_traceAsThreads) {
+			_extraeThreadCountLock.readLock();
+		}
 		ExtraeAPI::emit_CombinedEvents(&ce);
+		if (Extrae::_traceAsThreads) {
+			_extraeThreadCountLock.readUnlock();
+		}
 	}
 
 	//! This function is called when sending raw data
@@ -200,7 +211,13 @@ namespace Instrument {
 			ce.Communications[0].id = messageId;
 		}
 
+		if (Extrae::_traceAsThreads) {
+			_extraeThreadCountLock.readLock();
+		}
 		ExtraeAPI::emit_CombinedEvents(&ce);
+		if (Extrae::_traceAsThreads) {
+			_extraeThreadCountLock.readUnlock();
+		}
 	}
 
 	//! This function is called when receiving raw data
@@ -244,7 +261,13 @@ namespace Instrument {
 			ce.Communications[0].id = messageId;
 		}
 
+		if (Extrae::_traceAsThreads) {
+			_extraeThreadCountLock.readLock();
+		}
 		ExtraeAPI::emit_CombinedEvents(&ce);
+		if (Extrae::_traceAsThreads) {
+			_extraeThreadCountLock.readUnlock();
+		}
 	}
 
 	void taskIsOffloaded(__attribute__((unused)) task_id_t taskId,
@@ -272,7 +295,13 @@ namespace Instrument {
 		ce.Types = &type;
 		ce.Values = &value;
 
+		if (Extrae::_traceAsThreads) {
+			_extraeThreadCountLock.readLock();
+		}
 		ExtraeAPI::emit_CombinedEvents(&ce);
+		if (Extrae::_traceAsThreads) {
+			_extraeThreadCountLock.readUnlock();
+		}
 	}
 
 	void stateNodeNamespace(int state, InstrumentationContext const &)
@@ -297,11 +326,27 @@ namespace Instrument {
 		ce.Types = &type;
 		ce.Values = &value;
 
+		if (Extrae::_traceAsThreads) {
+			_extraeThreadCountLock.readLock();
+		}
 		ExtraeAPI::emit_CombinedEvents(&ce);
+		if (Extrae::_traceAsThreads) {
+			_extraeThreadCountLock.readUnlock();
+		}
 	}
 
 	void offloadedTaskCompletes(task_id_t, InstrumentationContext const &context)
 	{
 		Instrument::emitClusterEvent(ClusterEventType::OffloadedTasksWaiting, --_totalOffloadedTasksWaiting, context);
+	}
+
+	void MPILock()
+	{
+		Instrument::ExtraeMPILock();
+	}
+
+	void MPIUnLock()
+	{
+		Instrument::ExtraeMPIUnLock();
 	}
 }

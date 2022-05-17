@@ -23,10 +23,6 @@ class DataTransfer;
 class MPIMessenger : public Messenger {
 private:
 
-#ifdef EXTRAE_ENABLED
-	PaddedTicketSpinLock<int> _lockExtrae;
-#endif
-
 	bool _mpi_comm_data_raw = 0;
 
 	// Default value useful for asserts
@@ -43,25 +39,10 @@ private:
 		return _mpi_ub_tag & ((delv->header.id << 8) | delv->header.type);
 	}
 
-	void ExtraeLock()
-	{
-#ifdef EXTRAE_ENABLED
-		_lockExtrae.lock();
-#endif
-	}
-
-	void ExtraeUnlock()
-	{
-#ifdef EXTRAE_ENABLED
-		_lockExtrae.unlock();
-#endif
-	}
-
 	int getTag(int messageId) const
 	{
 		return _mpi_ub_tag & ((messageId << 8) | DATA_RAW);
 	}
-
 
 	template <typename T>
 	class RequestContainer

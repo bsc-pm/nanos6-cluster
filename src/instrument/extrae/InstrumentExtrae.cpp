@@ -32,8 +32,6 @@ namespace Instrument {
 	std::map<tracing_point_type_t, scope_tracing_point_info_t> _delayedScopeTracingPoints;
 	std::map<tracing_point_type_t, enumerated_tracing_point_info_t> _delayedEnumeratedTracingPoints;
 
-	SpinLock _extraeLock;
-
 	char const *_eventStateValueStr[NANOS_EVENT_STATE_TYPES] = {
 		"NOT CREATED", "NOT RUNNING", "STARTUP", "SHUTDOWN", "ERROR", "IDLE",
 		"RUNTIME", "RUNNING", "SYNCHRONIZATION", "SCHEDULING", "CREATION", "THREAD CREATION"};
@@ -60,6 +58,7 @@ namespace Instrument {
 	std::atomic<size_t> _nextTracingPointKey(1);
 
 	RWSpinLock _extraeThreadCountLock;
+	PaddedTicketSpinLock<int> _lockMPI;
 
 	int _externalThreadCount = 0;
 
@@ -79,4 +78,13 @@ namespace Instrument {
 		return nanos6_get_total_num_cpus() + GenericIds::getTotalExternalThreads();
 	}
 
+	void ExtraeMPILock()
+	{
+		_lockMPI.lock();
+	}
+
+	void ExtraeMPIUnLock()
+	{
+		_lockMPI.unlock();
+	}
 } // namespace Instrument

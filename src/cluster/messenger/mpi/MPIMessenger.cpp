@@ -22,6 +22,7 @@
 #include <ClusterNode.hpp>
 #include <MemoryAllocator.hpp>
 
+
 #pragma GCC visibility push(default)
 #include <mpi.h>
 #pragma GCC visibility pop
@@ -183,9 +184,9 @@ void MPIMessenger::sendMessage(Message *msg, ClusterNode const *toNode, bool blo
 	Instrument::clusterSendMessage(msg, mpiDst);
 
 	if (block) {
-		ExtraeLock();
+		Instrument::MPILock();
 		ret = MPI_Send((void *)delv, msgSize, MPI_BYTE, mpiDst, tag, INTRA_COMM);
-		ExtraeUnlock();
+		Instrument::MPIUnLock();
 		MPIErrorHandler::handle(ret, INTRA_COMM);
 
 		// Note: instrument before mark as completed, otherwise possible use-after-free
@@ -197,9 +198,9 @@ void MPIMessenger::sendMessage(Message *msg, ClusterNode const *toNode, bool blo
 	MPI_Request *request = (MPI_Request *)MemoryAllocator::alloc(sizeof(MPI_Request));
 	FatalErrorHandler::failIf(request == nullptr, "Could not allocate memory for MPI_Request");
 
-	ExtraeLock();
+	Instrument::MPILock();
 	ret = MPI_Isend((void *)delv, msgSize, MPI_BYTE, mpiDst, tag, INTRA_COMM, request);
-	ExtraeUnlock();
+	Instrument::MPIUnLock();
 
 	MPIErrorHandler::handle(ret, INTRA_COMM);
 
@@ -231,7 +232,7 @@ DataTransfer *MPIMessenger::sendData(
 
 
 	if (block) {
-		ExtraeLock();
+		Instrument::MPILock();
 		forEachDataPart(
 			address,
 			size,
@@ -242,7 +243,7 @@ DataTransfer *MPIMessenger::sendData(
 				MPIErrorHandler::handle(ret, INTRA_COMM_DATA_RAW);
 			}
 		);
-		ExtraeUnlock();
+		Instrument::MPIUnLock();
 
 		return nullptr;
 	}
@@ -251,7 +252,7 @@ DataTransfer *MPIMessenger::sendData(
 
 	FatalErrorHandler::failIf(request == nullptr, "Could not allocate memory for MPI_Request");
 
-	ExtraeLock();
+	Instrument::MPILock();
 	forEachDataPart(
 		address,
 		size,
@@ -262,7 +263,7 @@ DataTransfer *MPIMessenger::sendData(
 			MPIErrorHandler::handle(ret, INTRA_COMM_DATA_RAW);
 		}
 	);
-	ExtraeUnlock();
+	Instrument::MPIUnLock();
 
 	if (instrument) {
 		Instrument::clusterDataSend(NULL, 0, mpiDst, -1);
@@ -287,7 +288,7 @@ DataTransfer *MPIMessenger::fetchData(
 	assert(mpiSrc < _wsize && mpiSrc != _wrank);
 
 	if (block) {
-		ExtraeLock();
+		Instrument::MPILock();
 		forEachDataPart(
 			address,
 			size,
@@ -298,7 +299,7 @@ DataTransfer *MPIMessenger::fetchData(
 				MPIErrorHandler::handle(ret, INTRA_COMM_DATA_RAW);
 			}
 		);
-		ExtraeUnlock();
+		Instrument::MPIUnLock();
 		if (instrument) {
 			Instrument::clusterDataReceived(address, size, mpiSrc, messageId);
 		}
@@ -310,7 +311,7 @@ DataTransfer *MPIMessenger::fetchData(
 
 	FatalErrorHandler::failIf(request == nullptr, "Could not allocate memory for MPI_Request");
 
-	ExtraeLock();
+	Instrument::MPILock();
 	forEachDataPart(
 		address,
 		size,
@@ -321,7 +322,7 @@ DataTransfer *MPIMessenger::fetchData(
 			MPIErrorHandler::handle(ret, INTRA_COMM_DATA_RAW);
 		}
 	);
-	ExtraeUnlock();
+	Instrument::MPIUnLock();
 
 	return new MPIDataTransfer(region, from->getMemoryNode(),
 		ClusterManager::getCurrentMemoryNode(), request, mpiSrc, messageId, /* isFetch */ true);
@@ -329,9 +330,9 @@ DataTransfer *MPIMessenger::fetchData(
 
 void MPIMessenger::synchronizeAll(void)
 {
-	ExtraeLock();
+	Instrument::MPILock();
 	int ret = MPI_Barrier(INTRA_COMM);
-	ExtraeUnlock();
+	Instrument::MPIUnLock();
 	MPIErrorHandler::handle(ret, INTRA_COMM);
 }
 
@@ -341,9 +342,9 @@ Message *MPIMessenger::checkMail(void)
 	int ret, flag, count;
 	MPI_Status status;
 
-	ExtraeLock();
+	Instrument::MPILock();
 	ret = MPI_Iprobe(MPI_ANY_SOURCE, MPI_ANY_TAG, INTRA_COMM, &flag, &status);
-	ExtraeUnlock();
+	Instrument::MPIUnLock();
 	MPIErrorHandler::handle(ret, INTRA_COMM);
 
 	if (!flag) {
@@ -367,10 +368,10 @@ Message *MPIMessenger::checkMail(void)
 	}
 
 	assert(count != 0);
-	ExtraeLock();
+	Instrument::MPILock();
 	ret = MPI_Recv((void *)msg, count, MPI_BYTE, status.MPI_SOURCE,
 		status.MPI_TAG, INTRA_COMM, MPI_STATUS_IGNORE);
-	ExtraeUnlock();
+	Instrument::MPIUnLock();
 	MPIErrorHandler::handle(ret, INTRA_COMM);
 
 	return GenericFactory<int, Message*, Message::Deliverable*>::getInstance().create(type, msg);
@@ -400,7 +401,7 @@ void MPIMessenger::testCompletionInternal(std::vector<T *> &pendings)
 		RequestContainer<T>::requests[i] = *req;
 	}
 
-	ExtraeLock();
+	Instrument::MPILock();
 	const int ret = MPI_Testsome(
 		(int) msgCount,
 		RequestContainer<T>::requests,
@@ -408,7 +409,7 @@ void MPIMessenger::testCompletionInternal(std::vector<T *> &pendings)
 		RequestContainer<T>::finished,
 		RequestContainer<T>::status
 	);
-	ExtraeUnlock();
+	Instrument::MPIUnLock();
 
 	MPIErrorHandler::handleErrorInStatus(
 		ret, INTRA_COMM,

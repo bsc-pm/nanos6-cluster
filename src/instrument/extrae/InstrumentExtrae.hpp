@@ -16,6 +16,7 @@
 #include "support/config/ConfigVariable.hpp"
 #include "lowlevel/RWSpinLock.hpp"
 #include "lowlevel/SpinLock.hpp"
+#include "lowlevel/PaddedTicketSpinLock.hpp"
 #include "system/ompss/SpawnFunction.hpp"
 
 #include <atomic>
@@ -249,7 +250,12 @@ namespace Instrument {
 	extern std::atomic<size_t> _liveTasks;
 	extern std::atomic<size_t> _nextTracingPointKey;
 
+	// lock instrumentation's events
 	extern RWSpinLock _extraeThreadCountLock;
+
+	// lock MPI calls
+	extern PaddedTicketSpinLock<int> _lockMPI;
+
 
 	extern int _externalThreadCount;
 
@@ -294,6 +300,12 @@ namespace Instrument {
 
 	unsigned int extrae_nanos6_get_num_threads();
 	unsigned int extrae_nanos6_get_num_cpus_and_external_threads();
+
+
+	//! \brief Unlocks MPI calls when using EXTRAE instrumentations.
+	//! A wrapper that exposes the MPI Messanger's internal call.
+	void ExtraeMPILock();
+	void ExtraeMPIUnLock();
 }
 
 #endif

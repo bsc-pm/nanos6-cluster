@@ -208,4 +208,10 @@ namespace Instrument {
 	{
 	}
 
+	void MPILock()
+	{}
+
+	void MPIUnLock()
+	{}
+
 }

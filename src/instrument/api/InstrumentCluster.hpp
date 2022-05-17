@@ -109,6 +109,10 @@ namespace Instrument {
 		DataAccessRegion,
 		InstrumentationContext const &context = ThreadInstrumentationContext::getCurrent()
 	);
+
+	void MPILock();
+	void MPIUnLock();
+
 }
 
 #endif //! INSTRUMENT_CLUSTER_HPP

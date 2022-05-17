@@ -54,6 +54,14 @@ namespace Instrument {
 		InstrumentationContext const &)
 	{
 	}
+
+	inline void MPILock()
+	{
+	}
+
+	inline void MPIUnLock()
+	{
+	}
 }
 
 #endif //! INSTRUMENT_NULL_CLUSTER_HPP

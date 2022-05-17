@@ -26,7 +26,6 @@
 #include "executors/workflow/cluster/ExecutionWorkflowCluster.hpp"
 #include "executors/threads/WorkerThread.hpp"
 
-
 TaskOffloading::RemoteTasksInfoMap *TaskOffloading::RemoteTasksInfoMap::_singleton = nullptr;
 TaskOffloading::OffloadedTasksInfoMap *TaskOffloading::OffloadedTasksInfoMap::_singleton = nullptr;
 ClusterManager *ClusterManager::_singleton = nullptr;

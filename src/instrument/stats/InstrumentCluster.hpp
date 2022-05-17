@@ -32,6 +32,14 @@ namespace Instrument {
 	inline void stateNodeNamespace(int, InstrumentationContext const &)
 	{
 	}
+
+	inline void MPILock()
+	{
+	}
+
+	inline void MPIUnLock()
+	{
+	}
 }
 
 #endif //! INSTRUMENT_STATS_CLUSTER_HPP

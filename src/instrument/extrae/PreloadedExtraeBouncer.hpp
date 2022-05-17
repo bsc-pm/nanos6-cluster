@@ -9,8 +9,8 @@
 #define PRELOADED_EXTRAE_BOUNCER_HPP
 
 
-#include "extrae_user_events.h"
-#include "extrae_types.h"
+#include <extrae_user_events.h>
+#include <extrae_types.h>
 
 
 #include "ExtraeSymbolLiterals.hpp"

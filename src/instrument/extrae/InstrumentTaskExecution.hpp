@@ -459,10 +459,18 @@ namespace Instrument {
 		const int value = chunk + 1;
 		assert(value >= 0);
 
+		if (Extrae::_traceAsThreads) {
+			_extraeThreadCountLock.readLock();
+		}
+
 		ExtraeAPI::emit_SimpleEvent(
 			(extrae_type_t) EventType::RUNNING_TASKFOR_CHUNK,
 			(extrae_value_t) value
 		);
+
+		if (Extrae::_traceAsThreads) {
+			_extraeThreadCountLock.readUnlock();
+		}
 	}
 }
 
