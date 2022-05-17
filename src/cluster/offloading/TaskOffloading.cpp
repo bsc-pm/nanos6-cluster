@@ -426,19 +426,6 @@ namespace TaskOffloading {
 		}
 	}
 
-	void remoteTaskWrapper(void *args)
-	{
-		WorkerThread *workerThread = WorkerThread::getCurrentWorkerThread();
-		assert(workerThread != nullptr);
-
-		Task *parent = workerThread->getTask();
-		assert(parent != nullptr);
-
-		MessageTaskNew *msg = static_cast<MessageTaskNew *>(args);
-
-		remoteTaskCreateAndSubmit(msg, parent, false);
-	}
-
 	void remoteTaskCleanup(void *args)
 	{
 		// The remote task can be discounted from the namespace because it is finishing. This

@@ -63,11 +63,6 @@ namespace TaskOffloading {
 	//! Create and submit a task
 	void remoteTaskCreateAndSubmit(MessageTaskNew *msg, Task *parent, bool useCallbackInContext);
 
-	//! \brief Create and submit a remote task
-	//!
-	//! \param[in] args the MessageTaskNew of the remote Task as a void pointer
-	void remoteTaskWrapper(void *args);
-
 	//! \brief Completion callback for a remote task
 	//!
 	//! \param[in] args the MessageTaskNew of the remote Task as a void pointer
