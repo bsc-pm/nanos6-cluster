@@ -78,6 +78,9 @@ private:
 	//! The tracking mode "on", "off" or "auto"
 	static ConfigVariable<std::string> _trackingMode;
 
+	//! Whether DLB is enabled (turns off NUMA)
+	static ConfigVariable<bool> _dlbMode;
+
 	//! Whether should report NUMA information
 	static ConfigVariable<bool> _reportEnabled;
 
@@ -668,6 +671,9 @@ public:
 private:
 	static inline uint64_t getValidTrackingNodes()
 	{
+		if (_dlbMode.getValue() == true) {
+			return 1;
+		}
 		std::string trackingMode = _trackingMode.getValue();
 		if (trackingMode == "off") {
 			return 1;

@@ -21,6 +21,7 @@ NUMAManager::bitmask_t NUMAManager::_bitmaskNumaAnyActive;
 std::atomic<bool> NUMAManager::_trackingEnabled;
 ConfigVariable<bool> NUMAManager::_reportEnabled("numa.report");
 ConfigVariable<std::string> NUMAManager::_trackingMode("numa.tracking");
+ConfigVariable<bool> NUMAManager::_dlbMode("dlb.enabled");
 ConfigVariable<bool> NUMAManager::_discoverPageSize("numa.discover_pagesize");
 size_t NUMAManager::_realPageSize;
 int NUMAManager::_maxOSIndex;
@@ -124,6 +125,7 @@ uint64_t NUMAManager::getTrackingNodes()
 	// before calling NUMAManager::initialize().
 	std::string trackingMode = _trackingMode.getValue();
 	if (trackingMode == "off" ||
+		_dlbMode.getValue() == true ||
 		!DataAccessRegistration::supportsDataTracking() ||
 		!DataTrackingSupport::isNUMASchedulingEnabled())
 	{
