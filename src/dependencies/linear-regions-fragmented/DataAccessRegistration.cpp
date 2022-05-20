@@ -3067,12 +3067,14 @@ namespace DataAccessRegistration {
 						// In the usual case, this is prevented by the offloader, which is responsible
 						// for serializing the reads before passing satisfiability to the non-read. But
 						// it can also happen in a rare convoluted case:
-						// (1) Task A has a weakinout, and it offloads A1 with inout to node 1
-						//     The predecessor of A1 is task A.
-						// (2) Task B has an in, and it is offloaded to node 1
-						//     The predecessor of A1 is also task A.
-						// (3) Tasks A1 and B arrive in the wrong order at node 1, so it looks like
-						//     we can connect in the namespace from A1 to B, but we cannot
+						// (1) Task A has a weakinout, and it offloads (Sub)Task A1 with inout to node 1
+						//     The predecessor of A1 is task A (this seems wrong?)
+						// (2) Task B is successor of Task A and it has a weakin. It is offloaded to node 1
+						//     The predecessor of B is also task A.
+						// (3) Tasks A1 and B arrive in the wrong order at node 1, i.e. B then A1, and it
+						//     looks like we can connect in the namespace from B to A1, but we cannot (due
+						//     to the clear dependence from A1's inout to B's in and the fact that in to
+						//     inout is never allowed to propagate in the namespace)
 						if(!(previous->getType() == READ_ACCESS_TYPE) && (dataAccess->getType() != READ_ACCESS_TYPE)) {
 							canPropagateInNamespace = true;
 						}
