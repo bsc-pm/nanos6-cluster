@@ -3077,8 +3077,10 @@ namespace DataAccessRegistration {
 						//     inout is never allowed to propagate in the namespace)
 						if(!(previous->getType() == READ_ACCESS_TYPE) && (dataAccess->getType() != READ_ACCESS_TYPE)) {
 							canPropagateInNamespace = true;
+							Instrument::namespacePropagation(Instrument::NamespaceSuccessful, dataAccess->getAccessRegion());
+						} else {
+							Instrument::namespacePropagation(Instrument::NamespaceWrongPredecessor, dataAccess->getAccessRegion());
 						}
-						Instrument::namespacePropagation(Instrument::NamespaceSuccessful, dataAccess->getAccessRegion());
 					} else if (previous->getNamespaceSuccessor() != nullptr) {
 						Instrument::namespacePropagation(Instrument::NamespaceWrongPredecessor, dataAccess->getAccessRegion());
 					} else {
