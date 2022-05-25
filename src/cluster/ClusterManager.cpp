@@ -195,8 +195,10 @@ void ClusterManager::shutdownPhase1()
 	}
 
 	if (ClusterManager::isMasterNode()) {
-		MessageSysFinish msg(_singleton->_thisNode);
-		ClusterManager::sendMessageToAll(&msg, true);
+		if (inClusterMode()) {
+			MessageSysFinish msg(_singleton->_thisNode);
+			ClusterManager::sendMessageToAll(&msg, true);
+		}
 
 		// Master needs to do the same than others
 		ClusterManager::finishClusterNamespace();
