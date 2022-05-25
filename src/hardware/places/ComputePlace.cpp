@@ -62,9 +62,13 @@ ComputePlace::ComputePlace(int index, nanos6_device_t type, bool owned) :
 	void *taskStatisticsAddress = (taskStatisticsSize > 0) ? malloc(taskStatisticsSize) : nullptr;
 
 	// Allocate preallocated taskfor
-	_preallocatedTaskfor = new Taskfor(nullptr, 0, nullptr, nullptr, nullptr,
-		Instrument::task_id_t(), nanos6_task_flag_t::nanos6_final_task,
-		taskAccessInfo, taskCountersAddress, taskStatisticsAddress, true);
+	if (type != nanos6_cluster_device) {
+		_preallocatedTaskfor = new Taskfor(nullptr, 0, nullptr, nullptr, nullptr,
+			Instrument::task_id_t(), nanos6_task_flag_t::nanos6_final_task,
+			taskAccessInfo, taskCountersAddress, taskStatisticsAddress, true);
+	} else {
+		_preallocatedTaskfor = nullptr;
+	}
 	_preallocatedArgsBlockSize = 1024;
 
 	// MemoryAllocator is still not available, so use malloc
@@ -78,15 +82,18 @@ ComputePlace::ComputePlace(int index, nanos6_device_t type, bool owned) :
 
 ComputePlace::~ComputePlace()
 {
-	Taskfor *taskfor = (Taskfor *) _preallocatedTaskfor;
-	assert(taskfor != nullptr);
+	TaskStatistics *taskStatisticsAddress = nullptr;
+	void *taskCountersAddress = nullptr;
+	if (_type != nanos6_cluster_device) {
+		Taskfor *taskfor = (Taskfor *) _preallocatedTaskfor;
+		assert(taskfor != nullptr);
 
-	// Retreive the allocation addresses for monitoring statistics and hw counters before deleting
-	const TaskHardwareCounters &taskCounters = taskfor->getHardwareCounters();
-	void *taskCountersAddress = taskCounters.getAllocationAddress();
-	TaskStatistics *taskStatisticsAddress = taskfor->getTaskStatistics();
-
-	delete taskfor;
+		// Retreive the allocation addresses for monitoring statistics and hw counters before deleting
+		const TaskHardwareCounters &taskCounters = taskfor->getHardwareCounters();
+		taskStatisticsAddress = taskfor->getTaskStatistics();
+		taskCountersAddress = taskCounters.getAllocationAddress();
+		delete taskfor;
+	}
 
 	// Delete monitoring and hw counters
 	if (taskCountersAddress != nullptr) {
