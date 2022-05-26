@@ -65,7 +65,9 @@ public:
 	{
 		if (bounds.grainsize == 0) {
 			size_t totalIterations = bounds.upper_bound - bounds.lower_bound;
-			bounds.grainsize = std::max(totalIterations / CPUManager::getTotalCPUs(), (size_t) 1);
+			long numCPUs = CPUManager::getNumWorkerCPUsInTaskloop();
+			bounds.grainsize = (totalIterations + numCPUs) / numCPUs;
+			assert(bounds.grainsize >= 1);
 		}
 	}
 
@@ -158,7 +160,7 @@ public:
 	static inline size_t computeNumTasks(size_t iterations, size_t grainsize)
 	{
 		if (grainsize == 0) {
-			grainsize = std::max(iterations / CPUManager::getTotalCPUs(), (size_t) 1);
+			grainsize = std::max(iterations / CPUManager::getNumWorkerCPUsInTaskloop(), (size_t) 1);
 		}
 		return MathSupport::ceil(iterations, grainsize);
 	}

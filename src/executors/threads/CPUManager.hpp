@@ -329,6 +329,14 @@ public:
 		return _cpuManager->getNumWorkerCPUsInTaskforGroup(id);
 	}
 
+	//! \brief Get the number of CPUs that can collaborate to execute a single
+	//! taskloop.
+	static inline size_t getNumWorkerCPUsInTaskloop()
+	{
+		assert(_cpuManager != nullptr);
+		return _cpuManager->getNumWorkerCPUsInTaskloop();
+	}
+
 };
 
 

@@ -312,6 +312,19 @@ public:
 		return nCPUS;
 	}
 
+	//! \brief Get Worker CPUs for a taskloop
+	inline size_t getNumWorkerCPUsInTaskloop() const
+	{
+		size_t nCPUS = this->getTotalCPUs();
+
+		if (nCPUS > 1 && this->hasReservedCPUforLeaderThread()) {
+			--nCPUS;
+		}
+
+		assert(nCPUS >= 1);
+		return nCPUS;
+	}
+
 
 };
 
