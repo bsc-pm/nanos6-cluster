@@ -19,6 +19,8 @@ void Taskloop::body(nanos6_address_translation_entry_t *translationTable)
 			|| _offloader		// It is a taskloop offloader that for some reason didn't get offloaded
 			|| (this->getConstraints()->node != nanos6_cluster_no_hint)) {	// there is a node clause: all on same node
 
+			// Update grainsize for #iterations executed on this node
+			calculateGrainsize(_bounds);
 			// Generate the taskloop executors for the given loop bounds
 			while (getIterationCount() > 0) {
 				LoopGenerator::createTaskloopExecutor(this, _bounds);
@@ -47,7 +49,10 @@ void Taskloop::body(nanos6_address_translation_entry_t *translationTable)
 				bounds.upper_bound = std::min<unsigned int>(lb+itersPerNode, ub);
 				bounds.chunksize = _bounds.chunksize;
 				bounds.grainsize = _bounds.grainsize;
+
 				if (j == ClusterManager::getCurrentClusterNode()->getIndex()) {
+					// Update grainsize for #iterations executed on this node
+					calculateGrainsize(bounds);
 					// Create part on current node immediately
 					while (bounds.upper_bound > bounds.lower_bound) {
 						LoopGenerator::createTaskloopExecutor(this, bounds);

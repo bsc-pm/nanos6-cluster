@@ -60,6 +60,15 @@ public:
 	{
 	}
 
+	// Calculate the grainsize for the bounds depending on the number of iterations and number of CPUs
+	static inline void calculateGrainsize(bounds_t &bounds)
+	{
+		if (bounds.grainsize == 0) {
+			size_t totalIterations = bounds.upper_bound - bounds.lower_bound;
+			bounds.grainsize = std::max(totalIterations / CPUManager::getTotalCPUs(), (size_t) 1);
+		}
+	}
+
 	inline void initialize(size_t lowerBound, size_t upperBound, size_t grainsize, size_t chunksize)
 	{
 		_bounds.lower_bound = lowerBound;
@@ -67,13 +76,6 @@ public:
 		_bounds.grainsize = grainsize;
 		_bounds.chunksize = chunksize;
 		_source = true;
-
-		size_t totalIterations = getIterationCount();
-
-		// Set a implementation defined chunksize if needed
-		if (_bounds.grainsize == 0) {
-			_bounds.grainsize = std::max(totalIterations / CPUManager::getTotalCPUs(), (size_t) 1);
-		}
 	}
 
 	inline bounds_t &getBounds()
@@ -97,6 +99,7 @@ public:
 	{
 		if (discrete && isTaskloopSource()) {
 			bounds_t tmpBounds;
+			calculateGrainsize(_bounds);
 			size_t numTasks = computeNumTasks(getIterationCount(), _bounds.grainsize);
 			for (size_t t = 0; t < numTasks; t++) {
 				// Store previous maxChildDeps
