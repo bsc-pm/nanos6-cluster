@@ -14,10 +14,6 @@
 #include <ostream>
 #include <utility>
 
-
-class DataAccessRegion;
-inline std::ostream & operator<<(std::ostream &o, DataAccessRegion const &region);
-
 class DataAccessRegion {
 private:
 	//! The starting address of the data access
@@ -191,14 +187,15 @@ public:
 		}
 	}
 
-	friend std::ostream & ::operator<<(std::ostream &o, DataAccessRegion const &region);
+	friend inline std::ostream & operator<<(std::ostream &o, const DataAccessRegion& region)
+	{
+		return o << region._startAddress << ":" << region._length;
+	}
+
+
 };
 
 
-inline std::ostream & operator<<(std::ostream &o, const DataAccessRegion& region)
-{
-	return o << region._startAddress << ":" << region._length;
-}
 
 
 #endif // DATA_ACCESS_REGION_HPP

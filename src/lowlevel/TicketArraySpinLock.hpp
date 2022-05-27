@@ -32,7 +32,7 @@ public:
 	{
 		_buffer = (Padded<atomic_t> *) MemoryAllocator::alloc(_size * sizeof(Padded<atomic_t>));
 		for (size_t i = 0; i < _size; i++) {
-			new (&_buffer[i]) Padded<atomic_t>(0);
+			new (&_buffer[i]) Padded<atomic_t>();
 		}
 	}
 

@@ -64,7 +64,7 @@ public:
 			taskCountersAddress,
 			taskStatistics),
 		_remainingChunks(0),
-		_remainingIterations(0),
+		_remainingIterations(),
 		_bounds(),
 		_completedIterations(0),
 		_myChunk(-1),
