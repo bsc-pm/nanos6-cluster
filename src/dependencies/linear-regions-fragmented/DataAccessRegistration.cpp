@@ -5177,6 +5177,11 @@ namespace DataAccessRegistration {
 			// assert(!accessStructures._lock.isLockedByThisThread());
 		}
 		Instrument::enterUnregisterTaskDataAcessesCallback();
+
+		Task *offloadedTask = task->getOffloadedPredecesor();
+		if (offloadedTask && offloadedTask->hasDataReleaseStep() && offloadedTask->hasNowait()) {
+			offloadedTask->getDataReleaseStep()->releasePendingAccesses(false);
+		}
 	}
 
 	/*

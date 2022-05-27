@@ -211,7 +211,9 @@ typedef enum {
 	//! Specifies that the args_block is preallocated from user side
 	nanos6_preallocated_args_block = (1 << 5),
 	//! Specifies that the task has been verified by the user, hence it doesn't need runtime linting
-	nanos6_verified_task = (1 << 6)
+	nanos6_verified_task = (1 << 6),
+	//! Specifies that the task has the "nowait" clause
+	nanos6_nowaiting_task = (1 << 7)
 } nanos6_task_flag_t;
 
 

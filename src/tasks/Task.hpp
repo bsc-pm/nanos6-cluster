@@ -64,6 +64,7 @@ public:
 		wait_flag,
 		preallocated_args_block_flag,
 		lint_verified_flag,
+		nowait_flag,
 		//! Flags added by the Nanos6 runtime. Note that
 		//! these flags must be always declared after the
 		//! Mercurium flags
@@ -74,7 +75,7 @@ public:
 		remote_wrapper_flag,
 		remote_flag,          // remote: offloaded to this node
 		polling_flag,
-		nonlocal_wait_flag,
+		nonlocal_wait_flag, // autowait is enabled
 		offloaded_flag,  // offloaded from this node
 		total_flags
 	};
@@ -672,6 +673,12 @@ public:
 	{
 		return _flags[wait_flag];
 	}
+	//! \brief Check if the task has the nowait clause
+
+	bool hasNowait() const
+	{
+		return _flags[nowait_flag];
+	}
 
 	//! \brief Complete the delay of the dependency release
 	//! It completes the delay of the dependency release
@@ -689,6 +696,7 @@ public:
 	//! messages.
 	inline void setDelayedNonLocalRelease()
 	{
+		assert (!_flags[nowait_flag]);
 		_flags[nonlocal_wait_flag] = true;
 		//! Non-local wait is implemented as a variant of the wait clause,
 		//! so also set the normal wait flag.

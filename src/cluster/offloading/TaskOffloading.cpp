@@ -374,12 +374,12 @@ namespace TaskOffloading {
 			//     task new message, which would be a use-after-free error.
 			task->increaseRemovalBlockingCount();
 
-			// If the task does not have the wait flag then, unless
+			// If the task does not have the wait or nowait flag then, unless
 			// cluster.disable_autowait=false, set the "autowait" flag, which will
 			// enable early release for accesses ("locally") propagated in the namespace
 			// and use delayed release for the ("non-local") accesses that require a
 			// message back to the offloader.
-			if (!task->mustDelayRelease() && !ClusterManager::getDisableAutowait()) {
+			if (!task->mustDelayRelease() && !task->hasNowait() && !ClusterManager::getDisableAutowait()) {
 				task->setDelayedNonLocalRelease();
 			}
 
