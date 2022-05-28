@@ -213,6 +213,8 @@ public:
 		Taskloop::bounds_t &childBounds = taskloop->getBounds();
 		childBounds.lower_bound = bounds.lower_bound;
 		childBounds.upper_bound = bounds.upper_bound;
+		childBounds.chunksize = bounds.chunksize;
+		childBounds.grainsize = bounds.grainsize;
 
 		taskloop->setTaskloopOffloader();
 
