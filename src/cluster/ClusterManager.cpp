@@ -279,22 +279,3 @@ void ClusterManager::fetchVector(
 	_singleton->_msn->sendMessage(msg, remoteNode);
 }
 
-void ClusterManager::setEarlyRelease(nanos6_early_release_t early_release)
-{
-	WorkerThread *currentThread = WorkerThread::getCurrentWorkerThread();
-	Task *task = currentThread->getTask();
-	assert(task != nullptr);
-	switch(early_release) {
-		case nanos6_no_wait:
-			task->setDelayedRelease(false);
-			break;
-
-		case nanos6_autowait:
-			task->setDelayedNonLocalRelease();
-			break;
-
-		case nanos6_wait:
-			task->setDelayedRelease(true);
-			break;
-	}
-}

@@ -9,6 +9,8 @@
 #include <ClusterManager.hpp>
 #include <ClusterMemoryManagement.hpp>
 #include <ClusterNode.hpp>
+#include "tasks/Task.hpp"
+#include "executors/threads/WorkerThread.hpp"
 
 
 extern "C" int nanos6_in_cluster_mode(void)
@@ -72,5 +74,9 @@ extern "C" void nanos6_lfree(void *ptr, size_t size)
 
 extern "C" void nanos6_set_early_release(nanos6_early_release_t early_release)
 {
-	ClusterManager::setEarlyRelease(early_release);
+	WorkerThread *currentThread = WorkerThread::getCurrentWorkerThread();
+	Task *task = currentThread->getTask();
+	assert(task != nullptr);
+	task->setEarlyRelease(early_release);
 }
+

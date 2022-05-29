@@ -122,7 +122,7 @@ namespace TaskOffloading {
 
 		// Offloaded tasks do not need the "wait" clause, since any waiting will be handled
 		// already at the remote side.
-		task->setDelayedRelease(false);
+		task->setEarlyRelease(nanos6_no_wait);
 	}
 
 	void sendSatisfiabilityAndDataSends(SatisfiabilityInfoMap &satInfoMap, DataSendRegionInfoMap &regionInfoMap)
@@ -380,7 +380,7 @@ namespace TaskOffloading {
 			// and use delayed release for the ("non-local") accesses that require a
 			// message back to the offloader.
 			if (!task->mustDelayRelease() && !task->hasNowait() && !ClusterManager::getDisableAutowait()) {
-				task->setDelayedNonLocalRelease();
+				task->setEarlyRelease(nanos6_autowait);
 			}
 
 			// Submit the task

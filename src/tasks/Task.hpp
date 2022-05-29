@@ -662,14 +662,8 @@ public:
 		return !_flags[non_runnable_flag];
 	}
 
-	//! \brief Set the wait behavior
-	inline void setDelayedRelease(bool delayedReleaseValue)
-	{
-		_flags[wait_flag] = delayedReleaseValue;
-		_flags[nonlocal_wait_flag] = false;
-	}
 	//! \brief Check if the task has the wait clause
-	bool mustDelayRelease() const
+	inline bool mustDelayRelease() const
 	{
 		return _flags[wait_flag];
 	}
@@ -680,6 +674,34 @@ public:
 		return _flags[nowait_flag];
 	}
 
+
+	inline void setEarlyRelease(nanos6_early_release_t early_release)
+	{
+		switch(early_release) {
+			case nanos6_no_wait:
+				_flags[wait_flag] = false;
+				_flags[nonlocal_wait_flag] = false;
+				break;
+
+			case nanos6_autowait:
+				//! \brief Set delayed release of only the non-locally propagated accesses;
+				//! i.e. those that will require a release access message rather than those that are
+				//! propagated in the namespace. Delayed release is beneficial as it may unfragment
+				//! accesses to combine messages.
+				assert (!_flags[nowait_flag]);
+				_flags[wait_flag] = true;
+				//! Non-local wait is implemented as a variant of the wait clause, so also set the
+				//! normal wait flag.
+				_flags[nonlocal_wait_flag] = true;
+				break;
+
+			case nanos6_wait:
+				_flags[wait_flag] = true;
+				_flags[nonlocal_wait_flag] = false;
+				break;
+		}
+	}
+
 	//! \brief Complete the delay of the dependency release
 	//! It completes the delay of the dependency release
 	//! enforced by a wait clause
@@ -687,20 +709,6 @@ public:
 	{
 		assert(_flags[wait_flag]);
 		_flags[wait_flag] = false;
-	}
-
-	//! \brief Set delayed release of only the non-locally propagated
-	//! accesses; i.e. those that will require a release access message
-	//! rather than those that are propagated in the namespace. Delayed
-	//! release is beneficial as it may unfragment accesses to combine
-	//! messages.
-	inline void setDelayedNonLocalRelease()
-	{
-		assert (!_flags[nowait_flag]);
-		_flags[nonlocal_wait_flag] = true;
-		//! Non-local wait is implemented as a variant of the wait clause,
-		//! so also set the normal wait flag.
-		_flags[wait_flag] = true;
 	}
 
 	//! \brief Check whether delayed release is only for non-locally
