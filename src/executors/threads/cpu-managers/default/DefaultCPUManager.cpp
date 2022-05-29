@@ -1,3 +1,4 @@
+
 /*
 	This file is part of Nanos6 and is licensed under the terms contained in the COPYING file.
 
@@ -110,6 +111,8 @@ void DefaultCPUManager::preinitialize()
 
 	for (size_t i = 0; i < numCPUs; ++i) {
 		CPU *cpu = (CPU *) cpus[i];
+		cpu->setIndex(-1);
+
 		if (CPU_ISSET(cpu->getSystemCPUId(), &_cpuMask)) {
 			// Check if this CPU goes into another group
 			if (numCPUsPerTaskforGroup == 0) {
@@ -122,8 +125,6 @@ void DefaultCPUManager::preinitialize()
 			cpu->setIndex(virtualCPUId);
 			cpu->setGroupId(groupId);
 			_cpus[virtualCPUId++] = cpu;
-		} else {
-			cpu->setIndex((unsigned int) ~0UL);
 		}
 		_systemToVirtualCPUId[cpu->getSystemCPUId()] = cpu->getIndex();
 	}

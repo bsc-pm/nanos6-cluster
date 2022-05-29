@@ -218,7 +218,14 @@ HostInfo::HostInfo() :
 		assert(nodeNUMA == NULL || _memoryPlaces.size() >= nodeNUMA->logical_index);
 		if (_memoryPlaces[NUMANodeId] == nullptr) {
 			//! Create the MemoryPlace representing the NUMA node with its index and AddressSpace
-			int NUMANodeOsId = nodeNUMA == NULL ? -1 : nodeNUMA->os_index;
+			int NUMANodeOsId = -1;
+			if (nodeNUMA != NULL) {
+#ifdef HWLOC_UNKNOWN_INDEX
+				assert(nodeNUMA->os_index != HWLOC_UNKNOWN_INDEX);
+#endif
+				NUMANodeOsId = nodeNUMA->os_index;
+			}
+
 			NUMAPlace *node = new NUMAPlace(NUMANodeId, NUMANodeOsId, NUMAAddressSpace);
 
 			//! Add the MemoryPlace to the list of memory nodes of the HardwareInfo
