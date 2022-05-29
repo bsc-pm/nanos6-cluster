@@ -304,7 +304,7 @@ namespace ExecutionWorkflow {
 				_infoLock.unlock();
 				ClusterManager::sendMessage(msg, _offloader);
 			} else {
-				// When we are not going to finalize the task then we hold the lock because it is
+				// When we are going to finalize the task then we hold the lock because it is
 				// not expected that other thread add any release region anymore.
 
 				// TODO: When fixed local propagation discount in _bytesToRelease we can enable this
