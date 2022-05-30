@@ -65,6 +65,8 @@ public:
 	//! by all nodes
 	virtual void synchronizeAll(void) = 0;
 
+	virtual void abortAll(int errcode) = 0;
+
 	//! \brief Send a data region to a remote node, related to a previous message.
 	//!
 	//! \param[in] region is the data region to send

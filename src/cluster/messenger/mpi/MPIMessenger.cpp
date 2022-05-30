@@ -336,7 +336,6 @@ void MPIMessenger::synchronizeAll(void)
 	MPIErrorHandler::handle(ret, INTRA_COMM);
 }
 
-
 Message *MPIMessenger::checkMail(void)
 {
 	int ret, flag, count;
@@ -387,9 +386,6 @@ void MPIMessenger::testCompletionInternal(std::vector<T *> &pendings)
 	int completedCount;
 
 	RequestContainer<T>::reserve(msgCount);
-	assert(RequestContainer<T>::requests != nullptr);
-	assert(RequestContainer<T>::finished != nullptr);
-	assert(RequestContainer<T>::status != nullptr);
 
 	for (size_t i = 0; i < msgCount; ++i) {
 		T *msg = pendings[i];

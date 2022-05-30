@@ -34,6 +34,10 @@ private:
 	// tags when sending/receiving large number of messages.
 	int _mpi_ub_tag = 0;
 
+	// This is required as we use intensively multi-threading. See the MPI_Abort user manual about
+	// this
+	SpinLock _abortLock;
+
 	int createTag(const Message::Deliverable *delv) const
 	{
 		return _mpi_ub_tag & ((delv->header.id << 8) | delv->header.type);
@@ -85,6 +89,10 @@ private:
 					"Could not allocate memory for status array in testCompletionInternal");
 
 			}
+
+			assert(RequestContainer<T>::requests != nullptr);
+			assert(RequestContainer<T>::finished != nullptr);
+			assert(RequestContainer<T>::status != nullptr);
 		}
 
 		static bool isCleared()
@@ -120,6 +128,12 @@ public:
 	void sendMessage(Message *msg, ClusterNode const *toNode, bool block = false) override;
 
 	void synchronizeAll(void) override;
+
+	inline void abortAll(int errcode) override
+	{
+		std::lock_guard<SpinLock> guard(_abortLock);
+		MPI_Abort(INTRA_COMM, errcode);
+	}
 
 	DataTransfer *sendData(
 		const DataAccessRegion &region,

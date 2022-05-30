@@ -17,41 +17,45 @@
 #include <string>
 #include <sstream>
 #include <limits>
-
-//#include <cassert>
+#include <cassert>
 
 #include <ClusterManager.hpp>
 
 #define bufsize 1024
 #define stacksize 128
 
-// this is a glibc function used by assert internally.
-extern void __assert_fail(
-	const char *__assertion,
-	const char *__file,
-	unsigned int __line,
-	const char *__function
-) __THROW __attribute__ ((__noreturn__));
+#ifdef NDEBUG
+#define clusterAssert(expr) (static_cast<void>(0))
+#else // NDEBUG
 
+/* This prints an "Assertion failed" message and aborts.  */
 inline void __cluster_assert_fail(
 	const char *__assertion,
 	const char *__file,
 	unsigned int __line,
 	const char *__function
 ) {
+	// This is a small hack to attach the node idx to the filename.
+	const int node = ClusterManager::isInitialized()
+		? ClusterManager::getCurrentClusterNode()->getIndex()
+		: 0;
+
 	char tmp[bufsize];
-	snprintf(tmp, bufsize, "Node(%d) %s",
-		ClusterManager::getCurrentClusterNode()->getIndex(),
-		__file
-	);
-	__assert_fail (__assertion, tmp, __line, __function);
+	snprintf(tmp, bufsize, "Node(%d) %s", node, __file);
+
+	__assert_fail(__assertion, tmp, __line, __function);
 }
 
+#define clusterAssert(expr)												\
+	(static_cast <bool> (expr)											\
+		? void (0)														\
+		: __cluster_assert_fail(#expr, __FILE__, __LINE__, __ASSERT_FUNCTION))
+#endif // NDEBUG
+
 // In the verbose instrumentation there is the logMessage, but functional only when verbose
-#define clusteFprintf(STREAM, FORMAT, ...)					 \
-	fprintf(STREAM, "# Node:%d " FORMAT,					 \
-		ClusterManager::getCurrentClusterNode()->getIndex(), \
-		##__VA_ARGS__)
+#define clusteFprintf(STREAM, FORMAT, ...)								\
+	fprintf(STREAM, "# Node:%d " FORMAT,								\
+		ClusterManager::getCurrentClusterNode()->getIndex(),  ##__VA_ARGS__)
 
 // Print Node [Rest]
 #define clusterPrintf(FORMAT, ...) clusteFprintf(stdout, FORMAT, ##__VA_ARGS__)
@@ -60,13 +64,8 @@ inline void __cluster_assert_fail(
 #define clusterVPrintf(FORMAT, ...)										\
 	clusteFprintf(stdout, "%s:%d " FORMAT, __FILE__, __LINE__,__VA_ARGS__)
 
-#define clusterAssert(expr)												\
-	(static_cast <bool> (expr)											\
-		? void (0)														\
-		: __cluster_assert_fail (#expr, __FILE__, __LINE__, __ASSERT_FUNCTION))
-
-
-#define clusterCout std::cout << "# Node:" << ClusterManager::getCurrentClusterNode()->getIndex() << " "
+#define clusterCout														\
+	std::cout << "# Node:" << ClusterManager::getCurrentClusterNode()->getIndex() << " "
 
 // This function produces a stack backtrace with demangled function & method names.
 inline std::string clusterBacktrace()

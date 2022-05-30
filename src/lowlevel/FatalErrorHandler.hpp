@@ -25,16 +25,18 @@ private:
 	//! A lock for the information channel (cout)
 	static SpinLock _infoLock;
 
+	static void nanos6Abort();
+	static std::string getErrorPrefix();
+
 protected:
 
 	//! A lock for the error channel (cerr)
 	static SpinLock _errorLock;
 
-protected:
-
 	template<typename T, typename... TS>
-	static inline void emitReasonParts(std::ostringstream &oss, T const &firstReasonPart, TS... reasonParts)
-	{
+	static inline void emitReasonParts(
+		std::ostringstream &oss, T const &firstReasonPart, TS... reasonParts
+	) {
 		oss << firstReasonPart;
 		emitReasonParts(oss, reasonParts...);
 	}
@@ -91,53 +93,6 @@ protected:
 public:
 
 	template<typename... TS>
-	static inline void handle(int rc, TS... reasonParts)
-	{
-		if (__builtin_expect(rc == 0, 1)) {
-			return;
-		}
-
-		std::ostringstream oss;
-		oss << "Error: " << strerror(rc);
-		emitReasonParts(oss, reasonParts...);
-		oss << std::endl;
-
-		{
-			std::lock_guard<SpinLock> guard(_errorLock);
-			std::cerr << oss.str();
-		}
-
-#ifndef NDEBUG
-		abort();
-#else
-		exit(EXIT_FAILURE);
-#endif
-	}
-
-	template<typename... TS>
-	static inline void safeHandle(int rc, char *buffer, size_t size, TS... reasonParts)
-	{
-		if (__builtin_expect(rc == 0, 1)) {
-			return;
-		}
-
-		{
-			std::lock_guard<SpinLock> guard(_errorLock);
-			write(2, "Error: ", 7);
-			strerror_r(rc, buffer, size);
-			write(2, buffer, strlen(buffer));
-			safeEmitReasonParts(buffer, size, reasonParts...);
-			write(2, "\n", strlen("\n"));
-		}
-
-#ifndef NDEBUG
-		abort();
-#else
-		exit(EXIT_FAILURE);
-#endif
-	}
-
-	template<typename... TS>
 	static inline void failIf(bool failure, TS... reasonParts)
 	{
 		if (__builtin_expect(!failure, 1)) {
@@ -145,7 +100,7 @@ public:
 		}
 
 		std::ostringstream oss;
-		oss << "Error: ";
+		oss << "Error: " << getErrorPrefix();
 		emitReasonParts(oss, reasonParts...);
 		oss << std::endl;
 
@@ -154,17 +109,19 @@ public:
 			std::cerr << oss.str();
 		}
 
-#ifndef NDEBUG
-		abort();
-#else
-		exit(EXIT_FAILURE);
-#endif
+		nanos6Abort();
 	}
 
 	template<typename... TS>
 	static inline void fail(TS... reasonParts)
 	{
 		failIf(true, reasonParts...);
+	}
+
+	template<typename... TS>
+	static inline void handle(int rc, TS... reasonParts)
+	{
+		failIf(rc != 0, reasonParts...);
 	}
 
 	template<typename... TS>
@@ -175,7 +132,7 @@ public:
 		}
 
 		std::ostringstream oss;
-		oss << "Warning: ";
+		oss << "Warning: " << getErrorPrefix();
 		emitReasonParts(oss, reasonParts...);
 		oss << std::endl;
 

@@ -5,8 +5,32 @@
 */
 
 #include "FatalErrorHandler.hpp"
-
+#include <ClusterManager.hpp>
 
 SpinLock FatalErrorHandler::_errorLock;
 SpinLock FatalErrorHandler::_infoLock;
 
+void FatalErrorHandler::nanos6Abort()
+{
+#ifdef USE_CLUSTER
+	ClusterManager::tryAbortAll();
+#endif // USE_CLUSTER
+
+#ifndef NDEBUG
+	abort();
+#else // NDEBUG
+	exit(EXIT_FAILURE);
+#endif // NDEBUG
+}
+
+std::string FatalErrorHandler::getErrorPrefix()
+{
+#ifdef USE_CLUSTER
+	if (ClusterManager::isInitialized() && ClusterManager::inClusterMode()) {
+		std::stringstream ss;
+		ss << "Node:" << ClusterManager::getCurrentClusterNode()->getIndex() << ": ";
+		return ss.str();
+	}
+#endif // USE_CLUSTER
+	return "";
+}

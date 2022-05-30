@@ -198,6 +198,26 @@ public:
 		return _singleton->_clusterNodes.size() > 1;
 	}
 
+	static inline bool isInitialized()
+	{
+		return _singleton != nullptr;
+	}
+
+	static inline Messenger *getMessenger()
+	{
+		assert(_singleton != nullptr);
+		return _singleton->_msn;
+	}
+
+	// This function aborts all only in cluster mode.
+	static inline void tryAbortAll()
+	{
+		if (_singleton != nullptr && inClusterMode()) {
+			_singleton->_msn->abortAll(EXIT_FAILURE);
+		}
+	}
+
+
 	//! \brief Check for incoming messages
 	//!
 	//! This is just a wrapper on top of the Messenger API
