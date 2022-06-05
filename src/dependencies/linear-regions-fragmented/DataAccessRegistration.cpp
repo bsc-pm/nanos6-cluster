@@ -4602,8 +4602,12 @@ namespace DataAccessRegistration {
 	 * is necessary for dmallocs, because all child data accesses should
 	 * be contained within the parent data accesses (?).
 	 */
-	void registerLocalAccess(Task *task, DataAccessRegion const &region, const MemoryPlace *location = nullptr, __attribute__((unused)) bool isStack = false)
-	{
+	void registerLocalAccess(
+		Task *task,
+		DataAccessRegion const &region,
+		const MemoryPlace *location = nullptr,
+		__attribute__((unused)) bool isStack = false
+	) {
 		assert(task != nullptr);
 
 		TaskDataAccesses &accessStructures = task->getDataAccesses();

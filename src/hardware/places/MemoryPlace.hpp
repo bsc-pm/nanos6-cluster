@@ -10,6 +10,7 @@
 #include <vector>
 #include <map>
 #include "memory/AddressSpace.hpp"
+#include <ostream>
 
 #include <nanos6/task-instantiation.h>
 
@@ -47,6 +48,12 @@ public:
 	bool isDirectoryMemoryPlace() const;
 
 	bool isClusterLocalMemoryPlace() const;
+
+	friend std::ostream& operator<<(std::ostream& out, const MemoryPlace& in)
+	{
+		out << "{index: " << in._index << " type: " << in._type << "}";
+		return out;
+	}
 };
 
 #endif //MEMORY_PLACE_HPP

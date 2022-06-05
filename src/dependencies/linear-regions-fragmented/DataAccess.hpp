@@ -946,6 +946,12 @@ public:
 			&& this->getNamespaceSuccessor() == other->getNamespaceSuccessor();
 	}
 
+	friend std::ostream& operator<<(std::ostream& out, const DataAccess& access)
+	{
+		out << access._region << " id: " << access._writeID << " loc: " << *access._location;
+		return out;
+	}
+
 };
 
 
