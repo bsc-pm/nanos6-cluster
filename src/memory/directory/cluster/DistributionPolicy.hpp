@@ -12,6 +12,8 @@
 #include "tasks/Task.hpp"
 #include <nanos6/cluster.h>
 
+#include "cluster/ClusterMemoryManagement.hpp"
+
 class DataAccessRegion;
 
 namespace ClusterDirectory {
@@ -22,11 +24,7 @@ namespace ClusterDirectory {
 	//! \param[in] nrDimensions is the number of policy dimensions
 	//! \param[in] dimensions is the dimensions of the distribution policy
 	void registerAllocation(
-		DataAccessRegion const &region,
-		nanos6_data_distribution_t policy,
-		const size_t nrDimensions,
-		const size_t *dimensions,
-		Task *task, size_t clusterSize
+		const ClusterMemoryManagement::DmallocInfo &dmallocInfo, Task *task, size_t clusterSize
 	);
 
 	//! \brief Unregister a DataAccessRegion from the Directory

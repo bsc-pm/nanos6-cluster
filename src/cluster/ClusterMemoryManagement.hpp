@@ -13,39 +13,27 @@
 class MessageDfree;
 
 class ClusterMemoryManagement {
-
+public:
 	struct DmallocInfo {
 
 		const DataAccessRegion _region;
 		const nanos6_data_distribution_t _policy;
-		const size_t _nrDimensions;
-		size_t *_dimensions;
+		// cluster size on allocation moment, spawning and shrinking need to remember this.
+		const size_t _initialClusterSize;
+		const std::vector<size_t> _dimensions;
 
-		DmallocInfo(
-			const DataAccessRegion &region,
-			nanos6_data_distribution_t policy, size_t nrDimensions, const size_t *dimensions
-		)
-			: _region(region), _policy(policy), _nrDimensions(nrDimensions), _dimensions(nullptr)
+		DmallocInfo(const MessageDmalloc::DmallocMessageContent *dmallocContent)
+			: _region(dmallocContent->_dptr, dmallocContent->_allocationSize),
+			  _policy(dmallocContent->_policy), _initialClusterSize(dmallocContent->_clusterSize),
+			  _dimensions(dmallocContent->_dimensions, dmallocContent->_dimensions + dmallocContent->_nrDim)
 		{
-			if (dimensions != nullptr) {
-				assert(_nrDimensions > 0);
-				_dimensions = new size_t[_nrDimensions];
-				memcpy(_dimensions, _dimensions, _nrDimensions * sizeof(size_t));
-			}
-		}
-
-		~DmallocInfo()
-		{
-			if (_dimensions) {
-				assert(_nrDimensions > 0);
-				delete[] _dimensions;
-			}
 		}
 	};
 
+private:
 	std::list<DmallocInfo> _dmallocs;
 
-	void registerDmalloc(const MessageDmalloc::DmallocMessageContent *dmallocInfo, Task *task);
+	void registerDmalloc(const DmallocInfo &dmallocInfo, Task *task, size_t clusterSize);
 	bool unregisterDmalloc(DataAccessRegion const &region);
 
 	static ClusterMemoryManagement _singleton;

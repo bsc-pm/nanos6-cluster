@@ -14,6 +14,7 @@
 #include <DataAccessRegion.hpp>
 #include <DataAccessRegistration.hpp>
 
+#include "ClusterMemoryManagement.hpp"
 
 namespace ClusterDirectory {
 	static void registerAllocationEqupart(DataAccessRegion const &region, size_t clusterSize)
@@ -63,11 +64,7 @@ namespace ClusterDirectory {
 	}
 
 	void registerAllocation(
-		DataAccessRegion const &region,
-		nanos6_data_distribution_t policy,
-		const __attribute__((unused)) size_t nrDimensions,
-		const __attribute__((unused)) size_t *dimensions,
-		Task *task, size_t clusterSize
+		const ClusterMemoryManagement::DmallocInfo &dmallocInfo, Task *task, size_t clusterSize
 	) {
 		// If numa.tracking is set to "auto", then a dmalloc enables NUMA tracking on all nodes
 		NUMAManager::enableTrackingIfAuto();
@@ -76,24 +73,20 @@ namespace ClusterDirectory {
 			// Register local access. A location of nullptr means that the data is currently
 			// uninitialized so the first access doesn't need a copy.
 			DataAccessRegistration::registerLocalAccess(
-				task, region, /* location */ nullptr, /* isStack */ false
+				task, dmallocInfo._region, /* location */ nullptr, /* isStack */ false
 			);
 		}
 
-		switch (policy) {
+		switch (dmallocInfo._policy) {
 			case nanos6_equpart_distribution:
-				assert(nrDimensions == 0);
-				assert(dimensions == nullptr);
+				assert(dmallocInfo._dimensions.size() == 0);
 
-				registerAllocationEqupart(region, clusterSize);
+				registerAllocationEqupart(dmallocInfo._region, clusterSize);
 				break;
 			case nanos6_block_distribution:
 			case nanos6_cyclic_distribution:
 			default:
-				FatalErrorHandler::failIf(
-					true,
-					"Unknown distribution policy"
-				);
+				FatalErrorHandler::fail("Unknown distribution policy");
 		}
 	}
 
