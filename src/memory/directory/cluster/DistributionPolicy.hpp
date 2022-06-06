@@ -24,11 +24,11 @@ namespace ClusterDirectory {
 	void registerAllocation(
 		DataAccessRegion const &region,
 		nanos6_data_distribution_t policy,
-		size_t nrDimensions,
-		size_t *dimensions,
-		Task *task
+		const size_t nrDimensions,
+		const size_t *dimensions,
+		Task *task, size_t clusterSize
 	);
-	
+
 	//! \brief Unregister a DataAccessRegion from the Directory
 	//!
 	//! \param[in] region is the region we unregister

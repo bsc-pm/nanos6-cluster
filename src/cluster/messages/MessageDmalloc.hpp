@@ -14,12 +14,16 @@
 #include <nanos6/cluster.h>
 
 class MessageDmalloc : public Message {
+public:
 	struct DmallocMessageContent {
 		//! Address pointer.
 		void *_dptr;
 
 		//! size in bytes of the requested allocation
 		size_t _allocationSize;
+
+		//! Cluster size in allocation moment.
+		size_t _clusterSize;
 
 		//! distribution policy for the region
 		nanos6_data_distribution_t _policy;
@@ -29,14 +33,16 @@ class MessageDmalloc : public Message {
 
 		//! dimensions of the distribution
 		size_t _dimensions[];
+
 	};
 
+private:
 	//! \brief pointer to the message payload
 	DmallocMessageContent *_content;
 
 public:
 	MessageDmalloc(const ClusterNode *from,
-		void *dptr, size_t size, nanos6_data_distribution_t policy,
+		void *dptr, size_t size, size_t clusterSize, nanos6_data_distribution_t policy,
 		size_t numDimensions, size_t *dimensions
 	);
 
@@ -47,9 +53,10 @@ public:
 
 	bool handleMessage();
 
-	inline void *getPointer() const
+
+	const inline DmallocMessageContent *getContent() const
 	{
-		return _content->_dptr;
+		return _content;
 	}
 
 	inline void setPointer(void *dptr)
@@ -57,33 +64,6 @@ public:
 		_content->_dptr = dptr;
 	}
 
-	//! \brief Get the allocation size
-	inline size_t getAllocationSize() const
-	{
-		return _content->_allocationSize;
-	}
-
-	//! \brief Get distribution policy
-	inline nanos6_data_distribution_t getDistributionPolicy() const
-	{
-		return _content->_policy;
-	}
-
-	//! \brief Get policy dimensions size
-	inline size_t getDimensionsSize() const
-	{
-		return _content->_nrDim;
-	}
-
-	//! \brief Get policy dimensions
-	inline size_t *getDimensions() const
-	{
-		if (_content->_nrDim == 0) {
-			return nullptr;
-		}
-
-		return _content->_dimensions;
-	}
 
 	//! \brief Return a string with a description of the Message
 	inline std::string toString() const

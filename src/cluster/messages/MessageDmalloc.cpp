@@ -12,7 +12,7 @@
 #include <VirtualMemoryManagement.hpp>
 
 MessageDmalloc::MessageDmalloc(const ClusterNode *from,
-	void *dptr, size_t size, nanos6_data_distribution_t policy,
+	void *dptr, size_t size, size_t clusterSize, nanos6_data_distribution_t policy,
 	size_t numDimensions, size_t *dimensions
 )
 	: Message(DMALLOC, sizeof(DmallocMessageContent) + numDimensions * sizeof(size_t), from)
@@ -20,6 +20,7 @@ MessageDmalloc::MessageDmalloc(const ClusterNode *from,
 	_content = reinterpret_cast<DmallocMessageContent *>(_deliverable->payload);
 	_content->_dptr = dptr;
 	_content->_allocationSize = size;
+	_content->_clusterSize = clusterSize;
 	_content->_policy = policy;
 	memcpy(_content->_dimensions, dimensions, sizeof(size_t) * _content->_nrDim);
 }
@@ -29,11 +30,11 @@ bool MessageDmalloc::handleMessage()
 	if (ClusterManager::isMasterNode()) {
 		assert(_content->_dptr == nullptr);
 
-		const size_t size = getAllocationSize();
+		const size_t allocationSize = getContent()->_allocationSize;
 
-		_content->_dptr = VirtualMemoryManagement::allocDistrib(size);
+		_content->_dptr = VirtualMemoryManagement::allocDistrib(allocationSize);
 		FatalErrorHandler::failIf(_content->_dptr == nullptr,
-			"Master node couldn't allocate distributed memory with size: ", size);
+			"Master node couldn't allocate distributed memory with size: ", allocationSize);
 
 		const ClusterNode *node = ClusterManager::getClusterNode(this->getSenderId());
 		assert(node != nullptr);

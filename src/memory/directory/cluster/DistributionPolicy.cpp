@@ -16,17 +16,17 @@
 
 
 namespace ClusterDirectory {
-	static void registerAllocationEqupart(DataAccessRegion const &region)
+	static void registerAllocationEqupart(DataAccessRegion const &region, size_t clusterSize)
 	{
-		void *address = region.getStartAddress();
+		assert(clusterSize > 0);
+
+		char *ptr = (char *)region.getStartAddress();
 		size_t size = region.getSize();
-		size_t clusterSize = ClusterManager::clusterSize();
 
 		size_t blockSize = size / clusterSize;
 		size_t residual = size % clusterSize;
 		size_t numBlocks = (blockSize > 0) ? clusterSize : 0;
 
-		char *ptr = (char *)address;
 		for (size_t i = 0; i < numBlocks; ++i) {
 			DataAccessRegion newRegion((void *)ptr, blockSize);
 			ClusterMemoryNode *homeNode = ClusterManager::getMemoryNode(i);
@@ -34,8 +34,7 @@ namespace ClusterDirectory {
 			ptr += blockSize;
 
 			if (homeNode == ClusterManager::getCurrentMemoryNode()) {
-				// Use a blocked memory allocation for NUMA (this could be
-				// improved later)
+				// Use a blocked memory allocation for NUMA (this could be improved later)
 				nanos6_bitmask_t bitmask;
 				NUMAManager::setAnyActive(&bitmask);
 				size_t numNumaAny = NUMAManager::countEnabledBits(&bitmask);
@@ -47,11 +46,7 @@ namespace ClusterDirectory {
 				NUMAManager::fullyIntersectPages(&newPtr, &newSize, &blockSizeNUMA);
 
 				if (newSize > 0) {
-					NUMAManager::setNUMAAffinity(
-						newPtr,
-						newSize,
-						&bitmask,
-						blockSizeNUMA);
+					NUMAManager::setNUMAAffinity(newPtr, newSize, &bitmask, blockSizeNUMA);
 				}
 			}
 		}
@@ -67,19 +62,22 @@ namespace ClusterDirectory {
 		}
 	}
 
-	void registerAllocation(DataAccessRegion const &region,
-			nanos6_data_distribution_t policy,
-			__attribute__((unused)) size_t nrDimensions,
-			__attribute__((unused)) size_t *dimensions,
-			Task *task)
-	{
+	void registerAllocation(
+		DataAccessRegion const &region,
+		nanos6_data_distribution_t policy,
+		const __attribute__((unused)) size_t nrDimensions,
+		const __attribute__((unused)) size_t *dimensions,
+		Task *task, size_t clusterSize
+	) {
 		// If numa.tracking is set to "auto", then a dmalloc enables NUMA tracking on all nodes
 		NUMAManager::enableTrackingIfAuto();
 
 		if (task) {
 			// Register local access. A location of nullptr means that the data is currently
 			// uninitialized so the first access doesn't need a copy.
-			DataAccessRegistration::registerLocalAccess(task, region, /* location */ nullptr, /* isStack */ false);
+			DataAccessRegistration::registerLocalAccess(
+				task, region, /* location */ nullptr, /* isStack */ false
+			);
 		}
 
 		switch (policy) {
@@ -87,7 +85,7 @@ namespace ClusterDirectory {
 				assert(nrDimensions == 0);
 				assert(dimensions == nullptr);
 
-				registerAllocationEqupart(region);
+				registerAllocationEqupart(region, clusterSize);
 				break;
 			case nanos6_block_distribution:
 			case nanos6_cyclic_distribution:
