@@ -40,7 +40,7 @@ private:
 
 public:
 
-	void redistributeDmallocs(size_t newsize);
+	static void redistributeDmallocs(size_t newsize);
 
 	static void handleDmallocMessage(const MessageDmalloc *msg, Task *task);
 	static void handleDfreeMessage(const MessageDfree *msg);

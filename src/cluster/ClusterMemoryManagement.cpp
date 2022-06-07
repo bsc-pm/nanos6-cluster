@@ -63,7 +63,7 @@ void ClusterMemoryManagement::redistributeDmallocs(size_t newsize)
 {
 	// Take write lock on the directory, which also protects _dmallocs.
 	Directory::writeLock();
-	for (DmallocInfo &dmalloc : _dmallocs) {
+	for (DmallocInfo &dmalloc : ClusterMemoryManagement::_singleton._dmallocs) {
 		ClusterDirectory::unregisterAllocation(dmalloc._region);
 		ClusterDirectory::registerAllocation(dmalloc, nullptr, newsize);
 	}
