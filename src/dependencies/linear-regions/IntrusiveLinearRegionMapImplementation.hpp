@@ -14,8 +14,8 @@
 #include "IntrusiveLinearRegionMap.hpp"
 
 
-template <typename ContentType, class Hook> template <typename ProcessorType>
-bool IntrusiveLinearRegionMap<ContentType, Hook>::processAll(ProcessorType processor)
+template <typename ContentType, class Hook>
+bool IntrusiveLinearRegionMap<ContentType, Hook>::processAll(std::function<bool(iterator)> processor)
 {
 	VERIFY_MAP();
 	for (iterator it = BaseType::begin(); it != BaseType::end(); ) {
@@ -34,9 +34,10 @@ bool IntrusiveLinearRegionMap<ContentType, Hook>::processAll(ProcessorType proce
 	return true;
 }
 
-template <typename ContentType, class Hook> template <typename ProcessorType>
-bool IntrusiveLinearRegionMap<ContentType, Hook>::processAllWithErase(ProcessorType processor)
-{
+template <typename ContentType, class Hook>
+bool IntrusiveLinearRegionMap<ContentType, Hook>::processAllWithErase(
+	std::function<bool(iterator)> processor
+) {
 	VERIFY_MAP();
 	for (iterator it = BaseType::begin(); it != BaseType::end(); ) {
 		iterator position = it;
@@ -55,9 +56,10 @@ bool IntrusiveLinearRegionMap<ContentType, Hook>::processAllWithErase(ProcessorT
 	return true;
 }
 
-template <typename ContentType, class Hook> template <typename ProcessorType>
-void IntrusiveLinearRegionMap<ContentType, Hook>::processAllWithRestart(ProcessorType processor)
-{
+template <typename ContentType, class Hook>
+void IntrusiveLinearRegionMap<ContentType, Hook>::processAllWithRestart(
+	std::function<bool(iterator)> processor
+) {
 	VERIFY_MAP();
 	for (iterator it = BaseType::begin(); it != BaseType::end(); ) {
 		iterator position = it;
@@ -79,9 +81,10 @@ void IntrusiveLinearRegionMap<ContentType, Hook>::processAllWithRestart(Processo
 }
 
 
-template <typename ContentType, class Hook> template <typename ProcessorType>
-void IntrusiveLinearRegionMap<ContentType, Hook>::processAllWithRearangement(ProcessorType processor)
-{
+template <typename ContentType, class Hook>
+void IntrusiveLinearRegionMap<ContentType, Hook>::processAllWithRearangement(
+	std::function<bool(iterator)> processor
+) {
 	VERIFY_MAP();
 	for (iterator it = BaseType::begin(); it != BaseType::end(); ) {
 		iterator position = it;
@@ -109,10 +112,10 @@ void IntrusiveLinearRegionMap<ContentType, Hook>::processAllWithRearangement(Pro
 }
 
 
-template <typename ContentType, class Hook> template <typename ProcessorType>
+template <typename ContentType, class Hook>
 bool IntrusiveLinearRegionMap<ContentType, Hook>::processIntersecting(
 	DataAccessRegion const &region,
-	ProcessorType processor
+	std::function<bool(iterator)> processor
 ) {
 	VERIFY_MAP();
 	iterator it = BaseType::lower_bound(region.getStartAddress());
@@ -144,10 +147,10 @@ bool IntrusiveLinearRegionMap<ContentType, Hook>::processIntersecting(
 	return true;
 }
 
-template <typename ContentType, class Hook> template <typename ProcessorType>
+template <typename ContentType, class Hook>
 bool IntrusiveLinearRegionMap<ContentType, Hook>::processIntersectingWithRecentAdditions(
 	DataAccessRegion const &region,
-	ProcessorType processor
+	std::function<bool(iterator)> processor
 ) {
 	VERIFY_MAP();
 	iterator it = BaseType::lower_bound(region.getStartAddress());
@@ -182,10 +185,10 @@ bool IntrusiveLinearRegionMap<ContentType, Hook>::processIntersectingWithRecentA
 }
 
 
-template <typename ContentType, class Hook> template <typename ProcessorType>
+template <typename ContentType, class Hook>
 void IntrusiveLinearRegionMap<ContentType, Hook>::processIntersectingWithRestart(
 	DataAccessRegion const &region,
-	ProcessorType processor
+	std::function<bool(iterator)> processor
 ) {
 	VERIFY_MAP();
 	iterator it = BaseType::lower_bound(region.getStartAddress());
@@ -221,11 +224,11 @@ void IntrusiveLinearRegionMap<ContentType, Hook>::processIntersectingWithRestart
 }
 
 
-template <typename ContentType, class Hook> template <typename IntersectingProcessorType, typename MissingProcessorType>
+template <typename ContentType, class Hook>
 bool IntrusiveLinearRegionMap<ContentType, Hook>::processIntersectingAndMissing(
 	DataAccessRegion const &region,
-	IntersectingProcessorType intersectingProcessor,
-	MissingProcessorType missingProcessor
+	std::function<bool(iterator)> intersectingProcessor,
+	std::function<bool(DataAccessRegion const &region)> missingProcessor
 ) {
 	VERIFY_MAP();
 	if (BaseType::empty()) {
@@ -302,11 +305,11 @@ bool IntrusiveLinearRegionMap<ContentType, Hook>::processIntersectingAndMissing(
 }
 
 
-template <typename ContentType, class Hook> template <typename IntersectingProcessorType, typename MissingProcessorType>
+template <typename ContentType, class Hook>
 bool IntrusiveLinearRegionMap<ContentType, Hook>::processIntersectingAndMissingWithRecentAdditions(
 	DataAccessRegion const &region,
-	IntersectingProcessorType intersectingProcessor,
-	MissingProcessorType missingProcessor
+	std::function<bool(iterator)> intersectingProcessor,
+	std::function<bool(DataAccessRegion const &region)> missingProcessor
 ) {
 	VERIFY_MAP();
 	if (BaseType::empty()) {
@@ -385,10 +388,10 @@ bool IntrusiveLinearRegionMap<ContentType, Hook>::processIntersectingAndMissingW
 }
 
 
-template <typename ContentType, class Hook> template <typename MissingProcessorType>
+template <typename ContentType, class Hook>
 bool IntrusiveLinearRegionMap<ContentType, Hook>::processMissing(
 	DataAccessRegion const &region,
-	MissingProcessorType missingProcessor
+	std::function<bool(DataAccessRegion const &region)> missingProcessor
 ) {
 	VERIFY_MAP();
 	return processIntersectingAndMissing(
@@ -399,9 +402,11 @@ bool IntrusiveLinearRegionMap<ContentType, Hook>::processMissing(
 }
 
 
-template <typename ContentType, class Hook> template <typename PredicateType>
-bool IntrusiveLinearRegionMap<ContentType, Hook>::exists(DataAccessRegion const &region, PredicateType condition)
-{
+template <typename ContentType, class Hook>
+bool IntrusiveLinearRegionMap<ContentType, Hook>::exists(
+	DataAccessRegion const &region,
+	std::function<bool(iterator)> condition
+) {
 	VERIFY_MAP();
 	iterator it = BaseType::lower_bound(region.getStartAddress());
 
@@ -459,13 +464,14 @@ bool IntrusiveLinearRegionMap<ContentType, Hook>::contains(DataAccessRegion cons
 }
 
 
-template <typename ContentType, class Hook> template <typename DuplicatorType, typename PostProcessorType>
-typename IntrusiveLinearRegionMap<ContentType, Hook>::iterator IntrusiveLinearRegionMap<ContentType, Hook>::fragmentByIntersection(
+template <typename ContentType, class Hook>
+typename IntrusiveLinearRegionMap<ContentType, Hook>::iterator
+IntrusiveLinearRegionMap<ContentType, Hook>::fragmentByIntersection(
 	typename IntrusiveLinearRegionMap<ContentType, Hook>::iterator position,
 	DataAccessRegion const &fragmenterRegion,
 	bool removeIntersection,
-	DuplicatorType duplicator,
-	PostProcessorType postprocessor
+	std::function<ContentType *(ContentType &)> duplicator,
+	std::function<void(ContentType *, ContentType *)> postprocessor
 ) {
 	iterator intersectionPosition = BaseType::end();
 	DataAccessRegion originalRegion = position->getAccessRegion();
@@ -533,11 +539,11 @@ typename IntrusiveLinearRegionMap<ContentType, Hook>::iterator IntrusiveLinearRe
 }
 
 
-template <typename ContentType, class Hook> template <typename DuplicatorType, typename PostProcessorType>
+template <typename ContentType, class Hook>
 void IntrusiveLinearRegionMap<ContentType, Hook>::fragmentIntersecting(
 	DataAccessRegion const &region,
-	DuplicatorType duplicator,
-	PostProcessorType postprocessor
+	std::function<ContentType *(ContentType &)> duplicator,
+	std::function<void(ContentType *, ContentType *)> postprocessor
 ) {
 	processIntersecting(
 		region,

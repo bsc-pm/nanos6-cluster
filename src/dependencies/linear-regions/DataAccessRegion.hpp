@@ -37,13 +37,13 @@ private:
 
 
 public:
-	DataAccessRegion(void *startAddress, size_t length)
-		: _startAddress(startAddress), _length(length)
+	DataAccessRegion(const void *startAddress, const size_t length)
+		: _startAddress((void *)startAddress), _length(length)
 	{
 	}
 
-	DataAccessRegion(void *startAddress, void *endAddress)
-		: _startAddress(startAddress),
+	DataAccessRegion(const void *startAddress, const void *endAddress)
+		: _startAddress((void *)startAddress),
 		_length((size_t)((char *)endAddress - (char *)startAddress))
 	{
 		assert(endAddress > startAddress);
@@ -107,8 +107,8 @@ public:
 	{
 		FragmentBoundaries boundaries(*this, other);
 
-		void *start = std::max(boundaries._firstStart, boundaries._secondStart);
-		void *end = std::min(boundaries._firstEnd, boundaries._secondEnd);
+		const void *start = std::max(boundaries._firstStart, boundaries._secondStart);
+		const void *end = std::min(boundaries._firstEnd, boundaries._secondEnd);
 
 		if (start < end) {
 			return DataAccessRegion(start, end);

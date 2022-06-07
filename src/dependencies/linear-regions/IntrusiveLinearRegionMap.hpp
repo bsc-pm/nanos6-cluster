@@ -8,6 +8,7 @@
 #define INTRUSIVE_LINEAR_REGION_MAP_HPP
 
 #include <utility>
+#include <functional>
 
 #include <boost/intrusive/avl_set.hpp>
 #include <boost/intrusive/options.hpp>
@@ -120,30 +121,24 @@ public:
 		VERIFY_MAP();
 	}
 
-
-
 	//! \brief Pass all elements through a lambda
 	//!
 	//! \param[in] processor a lambda that receives an iterator to each element that returns a boolean that is false to stop the traversal
 	//!
 	//! \returns false if the traversal was stopped before finishing
-	template <typename ProcessorType>
-	bool processAll(ProcessorType processor);
+	bool processAll(std::function<bool(iterator)> processor);
 
-	template <typename ProcessorType>
-	bool processAllWithErase(ProcessorType processor);
+	bool processAllWithErase(std::function<bool(iterator)> processor);
 
 	//! \brief Pass all elements through a lambda and restart from the last location if instructed
 	//!
 	//! \param[in] processor a lambda that receives an iterator to each element that returns a boolean that is false to have the traversal restart from the current logical position (since the contents may have changed)
-	template <typename ProcessorType>
-	void processAllWithRestart(ProcessorType processor);
+	void processAllWithRestart(std::function<bool(iterator)> processor);
 
 	//! \brief Pass all elements through a lambda but accept changes to the whole contents if instructed
 	//!
 	//! \param[in] processor a lambda that receives an iterator to each element that returns a boolean that is false to have the traversal restart from the next logical position in the event of invasive content changes
-	template <typename ProcessorType>
-	void processAllWithRearangement(ProcessorType processor);
+	void processAllWithRearangement(std::function<bool(iterator)> processor);
 
 	//! \brief Pass all elements that intersect a given region through a lambda
 	//!
@@ -151,8 +146,7 @@ public:
 	//! \param[in] processor a lambda that receives an iterator to each element intersecting the region and that returns a boolean, that is false to stop the traversal
 	//!
 	//! \returns false if the traversal was stopped before finishing
-	template <typename ProcessorType>
-	bool processIntersecting(DataAccessRegion const &region, ProcessorType processor);
+	bool processIntersecting(DataAccessRegion const &region, std::function<bool(iterator)> processor);
 
 	//! \brief Pass all elements that intersect a given region through a lambda
 	//!
@@ -160,8 +154,10 @@ public:
 	//! \param[in] processor a lambda that receives an iterator to each element intersecting the region and that returns a boolean, that is false to stop the traversal. Unless the processor returns false, it should not invalidate the iterator passed as a parameter
 	//!
 	//! \returns false if the traversal was stopped before finishing
-	template <typename ProcessorType>
-	bool processIntersectingWithRecentAdditions(DataAccessRegion const &region, ProcessorType processor);
+	bool processIntersectingWithRecentAdditions(
+		DataAccessRegion const &region,
+		std::function<bool(iterator)> processor
+	);
 
 	//! \brief Pass all elements that intersect a given region through a lambda and any missing subregions through another lambda
 	//!
@@ -170,8 +166,11 @@ public:
 	//! \param[in] missingProcessor a lambda that receives each missing subregion as a DataAccessRegion and that returns a boolean equal to false to stop the traversal
 	//!
 	//! \returns false if the traversal was stopped before finishing
-	template <typename IntersectionProcessorType, typename MissingProcessorType>
-	bool processIntersectingAndMissing(DataAccessRegion const &region, IntersectionProcessorType intersectingProcessor, MissingProcessorType missingProcessor);
+	bool processIntersectingAndMissing(
+		DataAccessRegion const &region,
+		std::function<bool(iterator)> intersectingProcessor,
+		std::function<bool(DataAccessRegion const &region)> missingProcessor
+	);
 
 	//! \brief Pass all elements that intersect a given region through a lambda and any missing subregions through another lambda
 	//!
@@ -180,8 +179,11 @@ public:
 	//! \param[in] missingProcessor a lambda that receives each missing subregion as a DataAccessRegion and that returns a boolean equal to false to stop the traversal
 	//!
 	//! \returns false if the traversal was stopped before finishing
-	template <typename IntersectionProcessorType, typename MissingProcessorType>
-	bool processIntersectingAndMissingWithRecentAdditions(DataAccessRegion const &region, IntersectionProcessorType intersectingProcessor, MissingProcessorType missingProcessor);
+	bool processIntersectingAndMissingWithRecentAdditions(
+		DataAccessRegion const &region,
+		std::function<bool(iterator)> intersectingProcessor,
+		std::function<bool(DataAccessRegion const &region)> missingProcessor
+	);
 
 	//! \brief Pass all elements that intersect a given region through a lambda with the posibility of restarting
 	//! the traversal from the last location if instructed
@@ -190,8 +192,10 @@ public:
 	//! \param[in] processor a lambda that receives an iterator to each element intersecting
 	//! the region and that returns a boolean equal to false to have the traversal restart from the current
 	//! logical position (since the contents may have changed)
-	template <typename ProcessorType>
-	void processIntersectingWithRestart(DataAccessRegion const &region, ProcessorType processor);
+	void processIntersectingWithRestart(
+		DataAccessRegion const &region,
+		std::function<bool(iterator)> processor
+	);
 
 	//! \brief Pass any missing subregions through a lambda
 	//!
@@ -199,8 +203,10 @@ public:
 	//! \param[in] missingProcessor a lambda that receives each missing subregion as a DataAccessRegion and that returns a boolean equal to false to stop the traversal
 	//!
 	//! \returns false if the traversal was stopped before finishing
-	template <typename MissingProcessorType>
-	bool processMissing(DataAccessRegion const &region, MissingProcessorType missingProcessor);
+	bool processMissing(
+		DataAccessRegion const &region,
+		std::function<bool(DataAccessRegion const &region)> missingProcessor
+	);
 
 	//! \brief Traverse a region of elements to check if there is an element that matches a given condition
 	//!
@@ -208,8 +214,7 @@ public:
 	//! \param[in] condition a lambda that receives an iterator to each element intersecting the region and that returns the result of evaluating the condition
 	//!
 	//! \returns true if the condition evaluated to true for any element
-	template <typename PredicateType>
-	bool exists(DataAccessRegion const &region, PredicateType condition);
+	bool exists(DataAccessRegion const &region, std::function<bool(iterator)> condition);
 
 	//! \brief Check if there is any element in a given region
 	//!
@@ -227,16 +232,24 @@ public:
 	//! \param[in] postprocessor a lambda that receives a pointer to each node after it has had its region corrected and has been inserted, and a pointer to the original node (that may have already been updated)
 	//!
 	//! \returns an iterator to the intersecting fragment or end() if removeIntersection is true
-	template <typename DuplicatorType, typename PostProcessorType>
-	iterator fragmentByIntersection(iterator position, DataAccessRegion const &region, bool removeIntersection, DuplicatorType duplicator, PostProcessorType postprocessor);
+	iterator fragmentByIntersection(
+		iterator position,
+		DataAccessRegion const &region,
+		bool removeIntersection,
+		std::function<ContentType *(ContentType &)> duplicator,
+		std::function<void(ContentType *, ContentType *)> postprocessor
+	);
 
 	//! \brief Fragment any node that intersects by a intersection boundary
 	//!
 	//! \param[in] region the DataAccessRegion that determines the fragmentation point(s)
 	//! \param[in] duplicator a lambda that receives a reference to a node and returns a pointer to a new copy
 	//! \param[in] postprocessor a lambda that receives a pointer to each node after it has had its region corrected and has been inserted, and a pointer to the original node (that may have already been updated)
-	template <typename DuplicatorType, typename PostProcessorType>
-	void fragmentIntersecting(DataAccessRegion const &region, DuplicatorType duplicator, PostProcessorType postprocessor);
+	void fragmentIntersecting(
+		DataAccessRegion const &region,
+		std::function<ContentType *(ContentType &)> duplicator,
+		std::function<void(ContentType *, ContentType *)> postprocessor
+	);
 
 
 	void replace(ContentType &toBeReplaced, ContentType &replacement)
@@ -281,8 +294,7 @@ public:
 	//! \brief Delete all the elements
 	//!
 	//! \param[in] processor a lambda that receives a pointer to each element to dispose it
-	template <typename ProcessorType>
-	void deleteAll(ProcessorType processor)
+	void deleteAll(std::function<void(ContentType*)> processor)
 	{
 		BaseType::clear_and_dispose(processor);
 	}
