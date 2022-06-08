@@ -849,12 +849,12 @@ namespace DataAccessRegistration {
 			 */
 			UpdateOperation updateOperation(access->getNext(), access->getAccessRegion());
 			updateOperation._location = access->getLocation();
+			updateOperation._writeID = access->getWriteID();
 
 			if (initialStatus._propagatesReadSatisfiabilityToNext != updatedStatus._propagatesReadSatisfiabilityToNext) {
 				assert(!initialStatus._propagatesReadSatisfiabilityToNext);
 				updateOperation._makeReadSatisfied = true; /* make next task read satisfied */
 				assert(access->hasLocation());
-				updateOperation._writeID = access->getWriteID();
 			}
 
 			// Note: do not pass namespace propagation info to taskwaits
