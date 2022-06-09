@@ -29,7 +29,7 @@
 #include <NodeNamespace.hpp>
 
 #include "cluster/WriteID.hpp"
-#include "cluster/polling-services/MessageDelivery.hpp"
+#include "cluster/polling-services/PendingQueue.hpp"
 #include "OffloadedTasksInfoMap.hpp"
 #include <ClusterUtil.hpp>
 

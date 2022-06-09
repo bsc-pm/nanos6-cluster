@@ -8,7 +8,7 @@
 #define CLUSTER_SERVICES_POLLING_HPP
 
 #include "MessageHandler.hpp"
-#include "MessageDelivery.hpp"
+#include "PendingQueue.hpp"
 
 class ClusterServicesPolling {
 
@@ -63,8 +63,8 @@ public:
 		assert(MemoryAllocator::isInitialized());
 
 		registerService<ClusterPollingServices::MessageHandler<Message>>("MessageHandler");
-		registerService<ClusterPollingServices::PendingQueue<Message>>("MessageDelivery");
-		registerService<ClusterPollingServices::PendingQueue<DataTransfer>>("DataTransfer");
+		registerService<ClusterPollingServices::PendingQueue<Message>>("PendingQueueMessage");
+		registerService<ClusterPollingServices::PendingQueue<DataTransfer>>("PendingQueueDataTransfer");
 	}
 
 	inline static void waitUntilFinished()
@@ -100,8 +100,8 @@ public:
 		// completion before shutting down the polling services.
 		waitUntilFinished();
 
-		unregisterService<ClusterPollingServices::PendingQueue<DataTransfer>>("DataTransfer");
-		unregisterService<ClusterPollingServices::PendingQueue<Message>>("MessageDelivery");
+		unregisterService<ClusterPollingServices::PendingQueue<DataTransfer>>("PendingQueueDataTransfer");
+		unregisterService<ClusterPollingServices::PendingQueue<Message>>("PendingQueueMessage");
 		unregisterService<ClusterPollingServices::MessageHandler<Message>>("MessageHandler");
 
 		assert(_activeClusterPollingServices.load() == 0);

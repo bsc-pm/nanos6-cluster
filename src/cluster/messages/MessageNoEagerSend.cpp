@@ -7,7 +7,7 @@
 #include "MessageNoEagerSend.hpp"
 
 #include <ClusterManager.hpp>
-#include <MessageDelivery.hpp>
+#include <PendingQueue.hpp>
 #include <TaskOffloading.hpp>
 #include "OffloadedTaskId.hpp"
 #include "OffloadedTasksInfoMap.hpp"

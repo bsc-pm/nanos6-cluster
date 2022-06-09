@@ -7,7 +7,7 @@
 #include "MessageDataSend.hpp"
 
 #include <ClusterManager.hpp>
-#include <MessageDelivery.hpp>
+#include <PendingQueue.hpp>
 
 MessageDataSend::MessageDataSend(const ClusterNode *from,
 	size_t numSends,

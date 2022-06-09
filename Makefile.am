@@ -1366,7 +1366,7 @@ noinst_HEADERS += \
 	src/cluster/offloading/NoEagerSendInfo.hpp \
 	src/cluster/polling-services/ClusterServicesTask.hpp \
 	src/cluster/polling-services/ClusterServicesPolling.hpp \
-	src/cluster/polling-services/MessageDelivery.hpp \
+	src/cluster/polling-services/PendingQueue.hpp \
 	src/cluster/polling-services/MessageHandler.hpp \
 	src/cluster/polling-services/ClusterWorker.hpp \
 	src/scheduling/ClusterScheduler.hpp \

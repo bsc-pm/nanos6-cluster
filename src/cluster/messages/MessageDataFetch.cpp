@@ -7,7 +7,7 @@
 #include "MessageDataFetch.hpp"
 
 #include <ClusterManager.hpp>
-#include <MessageDelivery.hpp>
+#include <PendingQueue.hpp>
 
 #include "executors/workflow/cluster/ExecutionWorkflowCluster.hpp"
 
