@@ -25,7 +25,7 @@
 #include <Directory.hpp>
 #include <MessageTaskNew.hpp>
 #include "MessageSatisfiability.hpp"
-#include <MessageNoEagerSend.hpp>
+#include <MessageAccessInfo.hpp>
 #include <NodeNamespace.hpp>
 
 #include "cluster/WriteID.hpp"
@@ -236,17 +236,17 @@ namespace TaskOffloading {
 		);
 	}
 
-	void sendNoEagerSend(Task *task, const std::vector<NoEagerSendInfo> &regions)
+	void sendAccessInfo(Task *task, const std::vector<AccessInfo> &regions)
 	{
 		ClusterTaskContext *context = task->getClusterContext();
 		ClusterNode *offloader = context->getRemoteNode();
-		MessageNoEagerSend *msg = new MessageNoEagerSend(regions.size(), regions);
+		MessageAccessInfo *msg = new MessageAccessInfo(regions.size(), regions);
 		ClusterManager::sendMessage(msg, offloader);
 	}
 
-	void receivedNoEagerSend(Task *task, DataAccessRegion region)
+	void receivedAccessInfo(Task *task, DataAccessRegion region)
 	{
-		DataAccessRegistration::noEagerSend(task, region);
+		DataAccessRegistration::accessInfo(task, region);
 	}
 
 	void remoteTaskCreateAndSubmit(

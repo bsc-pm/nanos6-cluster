@@ -17,7 +17,7 @@
 #include <Message.hpp>
 #include <MessageReleaseAccess.hpp>
 #include <MessageTaskNew.hpp>
-#include <MessageNoEagerSend.hpp>
+#include <MessageAccessInfo.hpp>
 #include <NodeNamespace.hpp>
 
 class Task;
@@ -48,7 +48,7 @@ namespace ClusterPollingServices {
 		// or the finish message.
 		T* _nonStealableLowPriorityMessage;
 
-		// For a given task, keep track of number of RELEASE_ACCESS or NO_EAGER_SEND messages
+		// For a given task, keep track of number of RELEASE_ACCESS or ACCESS_INFO messages
 		// left to handle plus the TASK_FINISHED/RELEASE_ACCESS_AND_FINISH
 		// message, if already received.
 		struct WaitingTaskInfo {
@@ -98,16 +98,17 @@ namespace ClusterPollingServices {
 					_nonStealableLowPriorityMessage = msg;
 					break;
 
-				case NO_EAGER_SEND:
+				case ACCESS_INFO:
 				case RELEASE_ACCESS:
 				{
 					// This message is worth handling by other workers, but we need to ensure it
 					// is done before handling the task's TASK_FINISHED. Increment the number of
-					// RELEASE_ACCESSES or NO_EAGER_SENDs for this task.
+					// RELEASE_ACCESSES or ACCESS_INFOs for this task.
 					const OffloadedTaskIdManager::OffloadedTaskId taskId
-						= (msg->getType() == NO_EAGER_SEND)
-						? dynamic_cast<MessageNoEagerSend *>(msg)->getTaskId()
+						= (msg->getType() == ACCESS_INFO)
+						? dynamic_cast<MessageAccessInfo *>(msg)->getTaskId()
 						: dynamic_cast<MessageReleaseAccess *>(msg)->getTaskId();
+
 					{
 						std::lock_guard<PaddedSpinLock<>> guard(_waitingTaskInfoLock);
 						auto it = _waitingTaskInfo.find(taskId);
@@ -177,14 +178,14 @@ namespace ClusterPollingServices {
 					// These messages have no ordering constraints, so do nothing
 					break;
 
-				case NO_EAGER_SEND:
+				case ACCESS_INFO:
 				case RELEASE_ACCESS:
-					// After handling RELEASE_ACCESS or NO_EAGER_SEND, decrement the number of
+					// After handling RELEASE_ACCESS or ACCESS_INFO, decrement the number of
 					// predecessor messages that must be done before finishing the task
 				{
 					OffloadedTaskIdManager::OffloadedTaskId taskId
-						= (msg->getType() == NO_EAGER_SEND) ?
-							dynamic_cast<MessageNoEagerSend *>(msg)->getTaskId()
+						= (msg->getType() == ACCESS_INFO) ?
+							dynamic_cast<MessageAccessInfo *>(msg)->getTaskId()
 							: dynamic_cast<MessageReleaseAccess *>(msg)->getTaskId();
 
 					std::lock_guard<PaddedSpinLock<>> guard1(_waitingTaskInfoLock);

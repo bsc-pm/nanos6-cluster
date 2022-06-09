@@ -11,22 +11,22 @@
 
 namespace TaskOffloading {
 
-	struct NoEagerSendInfo {
+	struct AccessInfo {
 		//! The region we do not access
 		DataAccessRegion _region;
 
 		//! The offloaded task ID that doesn't access the data
 		OffloadedTaskIdManager::OffloadedTaskId _offloadedTaskId;
 
-		NoEagerSendInfo(
+		AccessInfo(
 			DataAccessRegion region,
 			OffloadedTaskIdManager::OffloadedTaskId offloadedTaskId
 		) : _region(region), _offloadedTaskId(offloadedTaskId)
 		{}
 	};
 
-	typedef std::vector<NoEagerSendInfo> NoEagerSendInfoVector;
-	typedef std::map<ClusterNode *, std::vector<NoEagerSendInfo>> NoEagerSendInfoMap;
+	typedef std::vector<AccessInfo> AccessInfoVector;
+	typedef std::map<ClusterNode *, std::vector<AccessInfo>> AccessInfoMap;
 }
 
 

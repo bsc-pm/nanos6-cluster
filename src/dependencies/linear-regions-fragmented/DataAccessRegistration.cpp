@@ -1820,11 +1820,11 @@ namespace DataAccessRegistration {
 		}
 	}
 
-	static inline void processNoEagerSendInfo(Task *task, /* INOUT */ CPUDependencyData &hpDependencyData)
+	static inline void processAccessInfo(Task *task, /* INOUT */ CPUDependencyData &hpDependencyData)
 	{
-		if (!hpDependencyData._noEagerSendInfoVector.empty()) {
-			TaskOffloading::sendNoEagerSend(task, hpDependencyData._noEagerSendInfoVector);
-			hpDependencyData._noEagerSendInfoVector.clear();
+		if (!hpDependencyData._accessInfoVector.empty()) {
+			TaskOffloading::sendAccessInfo(task, hpDependencyData._accessInfoVector);
+			hpDependencyData._accessInfoVector.clear();
 		}
 	}
 
@@ -3715,7 +3715,7 @@ namespace DataAccessRegistration {
 							&& accessOrFragment->getNext()._objectType == taskwait_type)) {
 
 							if (ClusterManager::getEagerSend()) {
-								hpDependencyData._noEagerSendInfoVector.emplace_back(
+								hpDependencyData._accessInfoVector.emplace_back(
 										accessOrFragment->getAccessRegion(),
 										accessOrFragment->getOriginator()->getOffloadedTaskId());
 							}
@@ -4581,7 +4581,7 @@ namespace DataAccessRegistration {
 					return true;
 				});
 
-			processNoEagerSendInfo(task, hpDependencyData);
+			processAccessInfo(task, hpDependencyData);
 		}
 
 #ifndef NDEBUG
@@ -5137,7 +5137,7 @@ namespace DataAccessRegistration {
 					}
 					return true;
 				});
-			processNoEagerSendInfo(task, hpDependencyData);
+			processAccessInfo(task, hpDependencyData);
 		}
 		processDelayedOperationsSatisfiedOriginatorsAndRemovableTasks(hpDependencyData, computePlace, true);
 		if (didAll) {
@@ -5335,7 +5335,7 @@ namespace DataAccessRegistration {
 
 						return true;
 					});
-				processNoEagerSendInfo(task, hpDependencyData);
+				processAccessInfo(task, hpDependencyData);
 			}
 
 			if (task->isRemoteTask()) {
@@ -5534,7 +5534,7 @@ namespace DataAccessRegistration {
 			assert(!accessStructures.hasBeenDeleted());
 			std::lock_guard<TaskDataAccesses::spinlock_t> guard(accessStructures._lock);
 
-			// For tasks with wait or autowait, send NoEagerSend messages for any regions
+			// For tasks with wait or autowait, send AccessInfo messages for any regions
 			// that were never accessed by the task or a subtask
 			if (task->hasFinished() && task->isRemoteTask() && ClusterManager::getEagerSend()) {
 				accessStructures._accesses.processAll(
@@ -5545,7 +5545,7 @@ namespace DataAccessRegistration {
 						if (!access->getPropagateFromNamespace()
 							&& !access->readSatisfied()) {
 								if (!access->hasSubaccesses()) {
-									hpDependencyData._noEagerSendInfoVector.emplace_back(
+									hpDependencyData._accessInfoVector.emplace_back(
 										access->getAccessRegion(),
 										access->getOriginator()->getOffloadedTaskId());
 								} else {
@@ -5554,7 +5554,7 @@ namespace DataAccessRegistration {
 										[&](TaskDataAccesses::access_fragments_t::iterator fragmentPosition) -> bool {
 											DataAccess *fragment = &(*fragmentPosition);
 											if (!fragment->hasNext()) {
-												hpDependencyData._noEagerSendInfoVector.emplace_back(
+												hpDependencyData._accessInfoVector.emplace_back(
 													fragment->getAccessRegion(),
 													access->getOriginator()->getOffloadedTaskId());
 											}
@@ -5566,7 +5566,7 @@ namespace DataAccessRegistration {
 						return true;
 					}
 				);
-				processNoEagerSendInfo(task, hpDependencyData);
+				processAccessInfo(task, hpDependencyData);
 			}
 
 			/* Create a taskwait fragment for each entry in the bottom map */
@@ -5877,7 +5877,7 @@ namespace DataAccessRegistration {
 		processDelayedOperationsSatisfiedOriginatorsAndRemovableTasks(hpDependencyData, nullptr, false);
 	}
 
-	void noEagerSend(Task *task, DataAccessRegion region)
+	void accessInfo(Task *task, DataAccessRegion region)
 	{
 		TaskDataAccesses &accessStructures = task->getDataAccesses();
 		std::lock_guard<TaskDataAccesses::spinlock_t> guard(accessStructures._lock);

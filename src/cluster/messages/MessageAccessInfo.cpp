@@ -4,7 +4,7 @@
 	Copyright (C) 2021 Barcelona Supercomputing Center (BSC)
 */
 
-#include "MessageNoEagerSend.hpp"
+#include "MessageAccessInfo.hpp"
 
 #include <ClusterManager.hpp>
 #include <PendingQueue.hpp>
@@ -12,20 +12,19 @@
 #include "OffloadedTaskId.hpp"
 #include "OffloadedTasksInfoMap.hpp"
 
-MessageNoEagerSend::MessageNoEagerSend(
+MessageAccessInfo::MessageAccessInfo(
 	size_t numRegions,
-	const std::vector<TaskOffloading::NoEagerSendInfo> &regions
-)
-	: Message(NO_EAGER_SEND,
+	const std::vector<TaskOffloading::AccessInfo> &regions)
+	: Message(ACCESS_INFO,
 		sizeof(OffloadedTaskIdManager::OffloadedTaskId)
 		+ sizeof(size_t)
-		+ numRegions * sizeof(TaskOffloading::NoEagerSendInfo))
+		+ numRegions * sizeof(TaskOffloading::AccessInfo))
 {
-	_content = reinterpret_cast<NoEagerSendMessageContent *>(_deliverable->payload);
+	_content = reinterpret_cast<AccessInfoMessageContent *>(_deliverable->payload);
 	_content->_numRegions = numRegions;
 	size_t index = 0;
-	for (TaskOffloading::NoEagerSendInfo regionInfo : regions) {
-		_content->_noEagerSendInfo[index] = regionInfo;
+	for (TaskOffloading::AccessInfo regionInfo : regions) {
+		_content->_accessInfo[index] = regionInfo;
 		if (index > 0) {
 			assert(regionInfo._offloadedTaskId == _content->_offloadedTaskId);
 		} else {
@@ -35,20 +34,20 @@ MessageNoEagerSend::MessageNoEagerSend(
 	}
 }
 
-bool MessageNoEagerSend::handleMessage()
+bool MessageAccessInfo::handleMessage()
 {
-	// clusterCout << "handle no eager send " << _content->_region << " for " << task->getLabel() << "\n";
+	// clusterCout << "handle access info " << _content->_region << " for " << task->getLabel() << "\n";
 	const size_t numRegions = _content->_numRegions;
 	for(size_t i = 0; i < numRegions; i++) {
-		TaskOffloading::NoEagerSendInfo const &regionInfo = _content->_noEagerSendInfo[i];
+		TaskOffloading::AccessInfo const &regionInfo = _content->_accessInfo[i];
 		TaskOffloading::OffloadedTaskInfo &taskInfo = TaskOffloading::OffloadedTasksInfoMap::getOffloadedTaskInfo(regionInfo._offloadedTaskId);
 		assert(taskInfo.remoteNode && taskInfo.remoteNode->getIndex() == getSenderId());
 		Task *task = taskInfo._origTask;
-		TaskOffloading::receivedNoEagerSend(task, regionInfo._region);
+		TaskOffloading::receivedAccessInfo(task, regionInfo._region);
 	}
 
 	return true;
 }
 
 static const bool __attribute__((unused))_registered_dsend =
-	Message::RegisterMSGClass<MessageNoEagerSend>(NO_EAGER_SEND);
+	Message::RegisterMSGClass<MessageAccessInfo>(ACCESS_INFO);

@@ -4,8 +4,8 @@
 	Copyright (C) 2021 Barcelona Supercomputing Center (BSC)
 */
 
-#ifndef MESSAGE_NO_EAGER_SEND_SEND_HPP
-#define MESSAGE_NO_EAGER_SEND_SEND_HPP
+#ifndef MESSAGE_ACCESS_INFO_HPP
+#define MESSAGE_ACCESS_INFO_HPP
 
 #include <sstream>
 #include <vector>
@@ -14,30 +14,30 @@
 
 #include <OffloadedTaskId.hpp>
 #include <DataAccessRegion.hpp>
-#include "NoEagerSendInfo.hpp"
+#include "AccessInfo.hpp"
 
-class MessageNoEagerSend : public Message {
+class MessageAccessInfo : public Message {
 
 private:
 
-	struct NoEagerSendMessageContent {
+	struct AccessInfoMessageContent {
 		//! The opaque id identifying the offloaded task
 		OffloadedTaskIdManager::OffloadedTaskId _offloadedTaskId;
 		size_t _numRegions;
-		TaskOffloading::NoEagerSendInfo _noEagerSendInfo[];
+		TaskOffloading::AccessInfo _accessInfo[];
 	};
 
 	//! \brief pointer to the message payload
-	NoEagerSendMessageContent *_content;
+	AccessInfoMessageContent *_content;
 
 public:
-	MessageNoEagerSend(
+	MessageAccessInfo(
 		size_t numRegions,
-		const std::vector<TaskOffloading::NoEagerSendInfo> &regions);
+		const std::vector<TaskOffloading::AccessInfo> &regions);
 
-	MessageNoEagerSend(Deliverable *dlv) : Message(dlv)
+	MessageAccessInfo(Deliverable *dlv) : Message(dlv)
 	{
-		_content = reinterpret_cast<NoEagerSendMessageContent *>(_deliverable->payload);
+		_content = reinterpret_cast<AccessInfoMessageContent *>(_deliverable->payload);
 	}
 
 	bool handleMessage() override;
@@ -52,10 +52,10 @@ public:
 		std::stringstream ss;
 
 		const size_t numRegions = _content->_numRegions;
-		ss << "[NoEagerSend(" << numRegions << "): ";
+		ss << "[AccessInfo(" << numRegions << "): ";
 
 		for (size_t i = 0; i < numRegions; ++i) {
-			ss << "[" << _content->_noEagerSendInfo[i]._region << "]";
+			ss << "[" << _content->_accessInfo[i]._region << "]";
 		}
 		ss << "]";
 
@@ -64,4 +64,4 @@ public:
 };
 
 
-#endif /* MESSAGE_NO_EAGER_SEND_SEND_HPP */
+#endif /* MESSAGE_ACCESS_INFO_HPP */
