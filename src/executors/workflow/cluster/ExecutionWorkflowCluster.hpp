@@ -191,7 +191,7 @@ namespace ExecutionWorkflow {
 
 		const bool _registerLocation;
 
-		DataTransfer::data_transfer_callback_t _postcallback;
+		DataTransfer::transfer_callback_t _postcallback;
 
 	public:
 		ClusterDataCopyStep(
@@ -233,7 +233,7 @@ namespace ExecutionWorkflow {
 			return _regionsFragments;
 		}
 
-		DataTransfer::data_transfer_callback_t getPostCallback() const
+		DataTransfer::transfer_callback_t getPostCallback() const
 		{
 			return _postcallback;
 		}

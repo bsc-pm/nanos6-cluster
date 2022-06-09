@@ -334,7 +334,7 @@ namespace ExecutionWorkflow {
 		DataAccessRegion region = _fullRegion;
 
 		int id = 0;
-		bool handled = LiveDataTransfers::check(
+		const bool handled = LiveDataTransfers::check(
 
 			// This lambda is called for all pending data transfers (with the lock taken)
 			[&](DataTransfer *dtPending) {

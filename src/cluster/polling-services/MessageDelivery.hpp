@@ -20,7 +20,6 @@
 #include <Message.hpp>
 #include <DataTransfer.hpp>
 #include <ClusterManager.hpp>
-#include <ClusterUtil.hpp>
 
 #define TIMEOUT 500
 

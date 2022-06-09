@@ -10,13 +10,14 @@
 #include <string>
 
 #include "MessageType.hpp"
+#include "TransferBase.hpp"
 #include "lowlevel/FatalErrorHandler.hpp"
 #include "lowlevel/threads/KernelLevelThread.hpp"
 #include "support/GenericFactory.hpp"
 
 class ClusterNode;
 
-class Message {
+class Message : public TransferBase {
 public:
 	struct msg_header {
 		//! the type of the message
@@ -41,18 +42,6 @@ public:
 		char payload[];
 	} Deliverable;
 
-	typedef std::function<void ()> message_callback_t;
-
-private:
-	//! The callback that we will invoke when the DataTransfer completes
-	std::vector<message_callback_t> _callbacks;
-
-	//! An opaque pointer to Messenger-specific data
-	void * _messengerData;
-
-	//! Flag indicating whether the Message has been delivered
-	bool _completed;
-
 protected:
 	//! The part of the message we actually send over the network
 	Deliverable *_deliverable;
@@ -74,12 +63,8 @@ public:
 		);
 	}
 
-
-
 	//! Construct a message from a received(?) Deliverable structure
-	Message(Deliverable *dlv)
-		: _callbacks(), _messengerData(nullptr), _completed(false),
-		_deliverable(dlv)
+	Message(Deliverable *dlv) : TransferBase(nullptr), _deliverable(dlv)
 	{
 		assert(dlv != nullptr);
 	}
@@ -92,7 +77,7 @@ public:
 
 	inline const std::string getName() const
 	{
-		return std::string(MessageTypeStr[_deliverable->header.type]);
+		return MessageTypeStr[_deliverable->header.type];
 	}
 
 	//! \brief Returns the type of the Message
@@ -123,42 +108,6 @@ public:
 	inline Deliverable *getDeliverable() const
 	{
 		return _deliverable;
-	}
-
-	//! \brief Return the Messenger-specific data
-	inline void *getMessengerData() const
-	{
-		return _messengerData;
-	}
-
-	//! \brief Set the Messenger-specific data
-	inline void setMessengerData(void *data)
-	{
-		_messengerData = data;
-	}
-
-	//! \brief Mark the Message as delivered
-	inline void markAsCompleted()
-	{
-		for (message_callback_t callback : _callbacks) {
-			callback();
-		}
-
-		_completed = true;
-	}
-
-	//! \brief Check if the Message is delivered
-	inline bool isCompleted() const
-	{
-		return _completed;
-	}
-
-	//! \brief Set the callback for the Message
-	//!
-	//! \param[in] callback is the completion callback
-	inline void addCompletionCallback(message_callback_t callback)
-	{
-		_callbacks.push_back(callback);
 	}
 
 	//! \brief Handles the received message

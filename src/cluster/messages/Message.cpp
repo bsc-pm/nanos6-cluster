@@ -10,9 +10,8 @@
 #include <ClusterNode.hpp>
 
 Message::Message(MessageType type, size_t size, const ClusterNode *from)
-	: _messengerData(nullptr), _completed(false)
+	: TransferBase(nullptr), _deliverable((Deliverable *) calloc(1, sizeof(msg_header) + size))
 {
-	_deliverable = (Deliverable *) calloc(1, sizeof(msg_header) + size);
 	FatalErrorHandler::failIf(_deliverable == nullptr, "Could not allocate for creating message");
 
 	_deliverable->header.type = type;

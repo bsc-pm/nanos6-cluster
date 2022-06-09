@@ -21,7 +21,7 @@
 #include <ClusterManager.hpp>
 #include <ClusterNode.hpp>
 #include <MemoryAllocator.hpp>
-
+#include <alloca.h>
 
 #pragma GCC visibility push(default)
 #include <mpi.h>
@@ -172,7 +172,7 @@ void MPIMessenger::sendMessage(Message *msg, ClusterNode const *toNode, bool blo
 	int ret;
 	Message::Deliverable *delv = msg->getDeliverable();
 	const int mpiDst = toNode->getCommIndex();
-	size_t msgSize = sizeof(delv->header) + delv->header.size;
+	const size_t msgSize = sizeof(delv->header) + delv->header.size;
 
 	//! At the moment we use the Message id and the Message type to create
 	//! the MPI tag of the communication
@@ -208,6 +208,7 @@ void MPIMessenger::sendMessage(Message *msg, ClusterNode const *toNode, bool blo
 
 	// Note instrument before add as pending, otherwise can be processed and freed => use-after-free
 	Instrument::clusterSendMessage(msg, -1);
+
 	ClusterPollingServices::PendingQueue<Message>::addPending(msg);
 }
 
@@ -230,7 +231,6 @@ DataTransfer *MPIMessenger::sendData(
 		Instrument::clusterDataSend(address, size, mpiDst, messageId);
 	}
 
-
 	if (block) {
 		Instrument::MPILock();
 		forEachDataPart(
@@ -252,6 +252,9 @@ DataTransfer *MPIMessenger::sendData(
 
 	FatalErrorHandler::failIf(request == nullptr, "Could not allocate memory for MPI_Request");
 
+	// TODO: This code overwrites the request, so the previous request may become missing or cause
+	// some problems as it is not set release. Some implementations may handle differently this
+	// situation.
 	Instrument::MPILock();
 	forEachDataPart(
 		address,
@@ -414,7 +417,7 @@ void MPIMessenger::testCompletionInternal(std::vector<T *> &pendings)
 
 	for (int i = 0; i < completedCount; ++i) {
 		const int index = RequestContainer<T>::finished[i];
-		T *msg = pendings[index];
+		TransferBase *msg = pendings[index];
 
 		msg->markAsCompleted();
 		MPI_Request *req = (MPI_Request *) msg->getMessengerData();
