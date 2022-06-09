@@ -1299,7 +1299,7 @@ namespace DataAccessRegistration {
 					// Either the original access was already local or the new location
 					// is non-local. In either case, we only need to update the location
 					// and writeID of the original access.
-					if (access->getType() != READ_ACCESS_TYPE) {
+					if (originalAccess->getType() != READ_ACCESS_TYPE) {
 						originalAccess->setLocation(location);
 					}
 				} else {
