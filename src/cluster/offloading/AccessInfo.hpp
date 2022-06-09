@@ -28,9 +28,18 @@ namespace TaskOffloading {
 			DataAccessRegion region,
 			OffloadedTaskIdManager::OffloadedTaskId offloadedTaskId,
 			bool noEagerSend,
-			bool isReadOnly
+			bool isReadOnly,
+			__attribute__((unused)) Task *task
 		) : _region(region), _offloadedTaskId(offloadedTaskId), _noEagerSend(noEagerSend), _isReadOnly(isReadOnly)
 		{}
+
+		bool canMergeWith(const AccessInfo &other) const
+		{
+			return other._region.getEndAddress() == _region.getStartAddress()
+					&& other._offloadedTaskId == _offloadedTaskId
+					&& other._noEagerSend == _noEagerSend
+					&& other._isReadOnly == _isReadOnly;
+		}
 
 		friend std::ostream& operator<<(std::ostream& out, const AccessInfo& accessInfo)
 		{

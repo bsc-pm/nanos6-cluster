@@ -354,11 +354,11 @@ namespace ExecutionWorkflow {
 			// ClusterDataReleaseStep is only for remote tasks
 			assert(task->isRemoteTask());
 
-			const bool mustWait = task->mustDelayRelease() && !task->allChildrenHaveFinished();
+			const bool mustWait = task->mustDelayRelease() && !task->allChildrenHaveFinished() && (access->getType() != AUTO_ACCESS_TYPE);
 
 			const bool releases = !access->hasSubaccesses() // no fragments, i.e. access without subtask or top_level_sink
 				&& (access->getObjectType() != taskwait_type) // taskwaits never release
-				&& task->hasFinished()     // must have finished; i.e. not taskwait inside task
+				&& (task->hasFinished() || access->getEarlyReleaseInNamespace()) // must have finished; i.e. not taskwait inside task
 				&& access->readSatisfied() && access->writeSatisfied()
 				&& access->complete()                       // access must be complete
 				&& (!access->hasNext()                      // no next access at the remote side or propagating to an "in" access

@@ -11,6 +11,7 @@
 #include <TaskOffloading.hpp>
 #include "OffloadedTaskId.hpp"
 #include "OffloadedTasksInfoMap.hpp"
+#include <DataAccessRegistration.hpp>
 
 MessageAccessInfo::MessageAccessInfo(
 	size_t numRegions,
@@ -38,13 +39,22 @@ bool MessageAccessInfo::handleMessage()
 {
 	// clusterCout << "handle access info " << _content->_region << " for " << task->getLabel() << "\n";
 	const size_t numRegions = _content->_numRegions;
+
+	// Move to TaskOffloading...
+	WorkerThread *currentThread = WorkerThread::getCurrentWorkerThread();
+	CPU * const cpu = (currentThread == nullptr) ? nullptr : currentThread->getComputePlace();
+	CPUDependencyData localDependencyData;
+	CPUDependencyData &hpDependencyData =
+		(cpu != nullptr) ? cpu->getDependencyData() : localDependencyData;
+
 	for(size_t i = 0; i < numRegions; i++) {
 		TaskOffloading::AccessInfo const &regionInfo = _content->_accessInfo[i];
 		TaskOffloading::OffloadedTaskInfo &taskInfo = TaskOffloading::OffloadedTasksInfoMap::getOffloadedTaskInfo(regionInfo._offloadedTaskId);
 		assert(taskInfo.remoteNode && taskInfo.remoteNode->getIndex() == getSenderId());
 		Task *task = taskInfo._origTask;
-		TaskOffloading::receivedAccessInfo(task, regionInfo._region, regionInfo._noEagerSend, regionInfo._isReadOnly);
+		DataAccessRegistration::accessInfo(task, regionInfo._region, hpDependencyData, regionInfo._noEagerSend, regionInfo._isReadOnly);
 	}
+	TaskOffloading::sendSatisfiabilityAndDataSends(hpDependencyData._satisfiabilityMap, hpDependencyData._dataSendRegionInfoMap);
 
 	return true;
 }

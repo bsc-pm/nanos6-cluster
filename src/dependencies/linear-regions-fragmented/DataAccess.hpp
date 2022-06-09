@@ -87,6 +87,7 @@ private:
 		DISABLE_EAGER_SEND_BIT,
 		NAMESPACE_NEXT_IS_IN_BIT,
 		IS_STRONG_LOCAL_ACCESS,
+		AUTO_HAS_BEEN_ACCESSED_BIT,
 		AUTO_READONLY_BIT,
 		TOTAL_STATUS_BITS
 	};
@@ -906,6 +907,17 @@ public:
 	{
 		assert(_type == AUTO_ACCESS_TYPE);
 		_status[AUTO_READONLY_BIT] = true;
+	}
+
+	bool isAutoHasBeenAccessed() const
+	{
+		return _status[AUTO_HAS_BEEN_ACCESSED_BIT];
+	}
+
+	void setAutoHasBeenAccessed()
+	{
+		assert(_type == AUTO_ACCESS_TYPE);
+		_status[AUTO_HAS_BEEN_ACCESSED_BIT] = true;
 	}
 
 	// Get and set the initial location to a group of concurrent accesses.

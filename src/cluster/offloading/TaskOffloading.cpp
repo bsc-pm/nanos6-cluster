@@ -36,6 +36,27 @@
 
 namespace TaskOffloading {
 
+	template <class T>
+	static void mergeList(const std::vector<T> &invec, std::vector <T> &outvec)
+	{
+		assert(outvec.empty());
+		outvec.reserve(invec.size());
+		T *last = nullptr;
+		for(const T &in : invec) {
+			if (last) {
+				// Accesses must already be ordered correctly
+				assert(in._region.getStartAddress() >= last->_region.getEndAddress());
+			}
+
+			if (last && in.canMergeWith(*last)) {
+				last->_region = DataAccessRegion(last->_region.getStartAddress(), in._region.getEndAddress());
+			} else {
+				outvec.emplace_back(in);
+				last = &outvec.back();
+			}
+		}
+	}
+
 	static inline void handleEagerSend(SatisfiabilityInfo const &satInfo)
 	{
 		MemoryPlace const *loc =
@@ -236,20 +257,18 @@ namespace TaskOffloading {
 		);
 	}
 
-	void sendAccessInfo(ClusterNode *offloader, const std::vector<AccessInfo> &regions)
+	void sendAccessInfo(ClusterNode *offloader, std::vector<AccessInfo> &regions)
 	{
-		MessageAccessInfo *msg = new MessageAccessInfo(regions.size(), regions);
+		std::vector<AccessInfo> unfragmented;
+		std::sort(
+			regions.begin(),
+			regions.end(),
+			[](const AccessInfo &a, const AccessInfo &b) -> bool {
+				return a._region.getStartAddress() < b._region.getStartAddress();
+			});
+		mergeList(regions, unfragmented);
+		MessageAccessInfo *msg = new MessageAccessInfo(unfragmented.size(), unfragmented);
 		ClusterManager::sendMessage(msg, offloader);
-	}
-
-	void receivedAccessInfo(Task *task, DataAccessRegion region, bool noEagerSend, bool isReadOnly)
-	{
-		WorkerThread *currentThread = WorkerThread::getCurrentWorkerThread();
-		CPU * const cpu = (currentThread == nullptr) ? nullptr : currentThread->getComputePlace();
-		CPUDependencyData localDependencyData;
-		CPUDependencyData &hpDependencyData =
-			(cpu != nullptr) ? cpu->getDependencyData() : localDependencyData;
-		DataAccessRegistration::accessInfo(task, region, hpDependencyData, noEagerSend, isReadOnly);
 	}
 
 	void remoteTaskCreateAndSubmit(
