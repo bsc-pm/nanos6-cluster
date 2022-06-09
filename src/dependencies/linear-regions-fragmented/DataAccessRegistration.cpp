@@ -3717,7 +3717,9 @@ namespace DataAccessRegistration {
 							if (ClusterManager::getEagerSend()) {
 								hpDependencyData._accessInfoVector.emplace_back(
 										accessOrFragment->getAccessRegion(),
-										accessOrFragment->getOriginator()->getOffloadedTaskId());
+										accessOrFragment->getOriginator()->getOffloadedTaskId(),
+										/* noEagerSend */ true,
+										/* isReadOnly */ false);
 							}
 						}
 				}
@@ -5547,7 +5549,9 @@ namespace DataAccessRegistration {
 								if (!access->hasSubaccesses()) {
 									hpDependencyData._accessInfoVector.emplace_back(
 										access->getAccessRegion(),
-										access->getOriginator()->getOffloadedTaskId());
+										access->getOriginator()->getOffloadedTaskId(),
+										/* noEagerSend */ true,
+										/* isReadOnly */ false);
 								} else {
 									accessStructures._accessFragments.processIntersecting(
 										access->getAccessRegion(),
@@ -5556,7 +5560,9 @@ namespace DataAccessRegistration {
 											if (!fragment->hasNext()) {
 												hpDependencyData._accessInfoVector.emplace_back(
 													fragment->getAccessRegion(),
-													access->getOriginator()->getOffloadedTaskId());
+													access->getOriginator()->getOffloadedTaskId(),
+													/* noEagerSend */ true,
+													/* isReadOnly */ false);
 											}
 											return true;
 										}
@@ -5877,8 +5883,10 @@ namespace DataAccessRegistration {
 		processDelayedOperationsSatisfiedOriginatorsAndRemovableTasks(hpDependencyData, nullptr, false);
 	}
 
-	void accessInfo(Task *task, DataAccessRegion region)
+	void accessInfo(Task *task, DataAccessRegion region, bool noEagerSend, __attribute__((unused)) bool isReadOnly)
 	{
+		assert(noEagerSend);
+		assert(!isReadOnly); // not implemented yet
 		TaskDataAccesses &accessStructures = task->getDataAccesses();
 		std::lock_guard<TaskDataAccesses::spinlock_t> guard(accessStructures._lock);
 		accessStructures._accesses.processIntersecting(
@@ -5888,7 +5896,9 @@ namespace DataAccessRegistration {
 				assert(dataAccess != nullptr);
 				assert(!dataAccess->hasBeenDiscounted());
 				dataAccess = fragmentAccess(dataAccess, region, accessStructures);
-				dataAccess->setDisableEagerSend();
+				if (noEagerSend) {
+					dataAccess->setDisableEagerSend();
+				}
 				return true;
 			}
 		);

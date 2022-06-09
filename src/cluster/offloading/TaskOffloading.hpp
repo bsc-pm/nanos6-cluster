@@ -72,7 +72,7 @@ namespace TaskOffloading {
 	void sendAccessInfo(Task *task, const std::vector<AccessInfo> &regions);
 
 	//! \brief Handle an info message for offloaded task, e.g. disable eager send of data for offloaded task's dependency that is not accessed
-	void receivedAccessInfo(Task *task, DataAccessRegion region);
+	void receivedAccessInfo(Task *task, DataAccessRegion region, bool noEagerSend, bool isReadOnly);
 }
 
 #endif // TASK_OFFLOADING_HPP

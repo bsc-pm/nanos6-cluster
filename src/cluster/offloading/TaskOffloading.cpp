@@ -244,9 +244,9 @@ namespace TaskOffloading {
 		ClusterManager::sendMessage(msg, offloader);
 	}
 
-	void receivedAccessInfo(Task *task, DataAccessRegion region)
+	void receivedAccessInfo(Task *task, DataAccessRegion region, bool noEagerSend, bool isReadOnly)
 	{
-		DataAccessRegistration::accessInfo(task, region);
+		DataAccessRegistration::accessInfo(task, region, noEagerSend, isReadOnly);
 	}
 
 	void remoteTaskCreateAndSubmit(

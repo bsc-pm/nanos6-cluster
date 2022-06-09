@@ -43,7 +43,7 @@ bool MessageAccessInfo::handleMessage()
 		TaskOffloading::OffloadedTaskInfo &taskInfo = TaskOffloading::OffloadedTasksInfoMap::getOffloadedTaskInfo(regionInfo._offloadedTaskId);
 		assert(taskInfo.remoteNode && taskInfo.remoteNode->getIndex() == getSenderId());
 		Task *task = taskInfo._origTask;
-		TaskOffloading::receivedAccessInfo(task, regionInfo._region);
+		TaskOffloading::receivedAccessInfo(task, regionInfo._region, regionInfo._noEagerSend, regionInfo._isReadOnly);
 	}
 
 	return true;

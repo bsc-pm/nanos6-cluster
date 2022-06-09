@@ -12,17 +12,34 @@
 namespace TaskOffloading {
 
 	struct AccessInfo {
-		//! The region we do not access
+		//! The region
 		DataAccessRegion _region;
 
 		//! The offloaded task ID that doesn't access the data
 		OffloadedTaskIdManager::OffloadedTaskId _offloadedTaskId;
 
+		//! Disable eager send for this region
+		bool _noEagerSend;
+
+		//! An allmemory access is in fact only read
+		bool _isReadOnly;
+
 		AccessInfo(
 			DataAccessRegion region,
-			OffloadedTaskIdManager::OffloadedTaskId offloadedTaskId
-		) : _region(region), _offloadedTaskId(offloadedTaskId)
+			OffloadedTaskIdManager::OffloadedTaskId offloadedTaskId,
+			bool noEagerSend,
+			bool isReadOnly
+		) : _region(region), _offloadedTaskId(offloadedTaskId), _noEagerSend(noEagerSend), _isReadOnly(isReadOnly)
 		{}
+
+		friend std::ostream& operator<<(std::ostream& out, const AccessInfo& accessInfo)
+		{
+			out << accessInfo._region
+				<< " task-id: " << accessInfo._offloadedTaskId
+				<< " unused: " << accessInfo._noEagerSend
+				<< " read-only: " << accessInfo._isReadOnly;
+			return out;
+		}
 	};
 
 	typedef std::vector<AccessInfo> AccessInfoVector;

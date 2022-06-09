@@ -227,7 +227,7 @@ namespace DataAccessRegistration {
 	typedef std::vector<DataAccessRegion> DataAccessRegionVector;
 	void checkNamespacePropagation(DataAccessRegionVector regions, Task *offloadedTask);
 
-	void accessInfo(Task *task, DataAccessRegion region);
+	void accessInfo(Task *task, DataAccessRegion region, bool noEagerSend, bool isReadOnly);
 
 	bool supportsDataTracking();
 } // namespace DataAccessRegistration
