@@ -224,6 +224,12 @@ public:
 		return _type;
 	}
 
+	inline void setType(DataAccessType newType)
+	{
+		assert(!isRegistered());
+		_type = newType;
+	}
+
 	inline bool isWeak() const
 	{
 		return _weak;

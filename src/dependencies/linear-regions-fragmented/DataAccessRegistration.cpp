@@ -3431,6 +3431,8 @@ namespace DataAccessRegistration {
 					DataAccessRegion accessRegion = access.getAccessRegion();
 					char *startAddr = (char *)accessRegion.getStartAddress();
 					char *endAddr = (char *)accessRegion.getEndAddress();
+
+					/* Remove allmemory regions in the parent's gap */
 					if (accessRegion.getStartAddress() > curAddress) {
 						DataAccessRegion gap = DataAccessRegion(curAddress, startAddr);
 						accessStructures._accesses.processIntersecting(
@@ -3441,6 +3443,21 @@ namespace DataAccessRegistration {
 								childAccess->markAsDiscounted();
 								accessStructures._accesses.erase(childAccess);
 								ObjectAllocator<DataAccess>::deleteObject(childAccess);
+								return true;
+							}
+						);
+					}
+
+					/* Demote any allmemory regions inside an in or weakin to be weakin */
+					if (access.getType() == READ_ACCESS_TYPE) {
+						accessStructures._accesses.processIntersecting(
+							accessRegion,
+							[&](TaskDataAccesses::accesses_t::iterator childPosition) -> bool {
+								DataAccess *childAccess = &(*childPosition);
+								childAccess = fragmentUnregisteredAccessObject(childAccess, accessRegion, accessStructures);
+								if (childAccess->getType() == ALLMEMORY_ACCESS_TYPE) {
+									childAccess->setType(READ_ACCESS_TYPE);
+								}
 								return true;
 							}
 						);
