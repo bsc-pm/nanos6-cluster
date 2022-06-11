@@ -3141,7 +3141,9 @@ namespace DataAccessRegistration {
 						Instrument::namespacePropagation(Instrument::NamespacePredecessorFinished, dataAccess->getAccessRegion());
 					} else if (dataAccess->getNamespacePredecessor() == previous->getOriginator()->getOffloadedTaskId()
 								|| (dataAccess->getNamespacePredecessor() != OffloadedTaskIdManager::InvalidOffloadedTaskId
-									&& dataAccess->getNamespacePredecessor() == previous->getNamespacePredecessor())) {
+									&& dataAccess->getNamespacePredecessor() == previous->getNamespacePredecessor())
+									&& dataAccess->getType() != AUTO_ACCESS_TYPE
+									&& previous->getType() != AUTO_ACCESS_TYPE) {
 
 						// We should never connect in the namespace from a read access to a non-read access.
 						// In the usual case, this is prevented by the offloader, which is responsible
@@ -3432,7 +3434,7 @@ namespace DataAccessRegistration {
 					char *startAddr = (char *)accessRegion.getStartAddress();
 					char *endAddr = (char *)accessRegion.getEndAddress();
 
-					/* Remove allmemory regions in the parent's gap */
+					/* Remove auto regions in the parent's gap */
 					if (accessRegion.getStartAddress() > curAddress) {
 						DataAccessRegion gap = DataAccessRegion(curAddress, startAddr);
 						accessStructures._accesses.processIntersecting(
@@ -3448,14 +3450,14 @@ namespace DataAccessRegistration {
 						);
 					}
 
-					/* Demote any allmemory regions inside an in or weakin to be weakin */
+					/* Demote any auto regions inside an in or weakin to be weakin */
 					if (access.getType() == READ_ACCESS_TYPE) {
 						accessStructures._accesses.processIntersecting(
 							accessRegion,
 							[&](TaskDataAccesses::accesses_t::iterator childPosition) -> bool {
 								DataAccess *childAccess = &(*childPosition);
 								childAccess = fragmentUnregisteredAccessObject(childAccess, accessRegion, accessStructures);
-								if (childAccess->getType() == ALLMEMORY_ACCESS_TYPE) {
+								if (childAccess->getType() == AUTO_ACCESS_TYPE) {
 									childAccess->setType(READ_ACCESS_TYPE);
 								}
 								return true;
