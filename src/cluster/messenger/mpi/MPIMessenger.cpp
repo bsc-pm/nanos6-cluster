@@ -424,3 +424,43 @@ void MPIMessenger::testCompletionInternal(std::vector<T *> &pendings)
 		MemoryAllocator::free(req, sizeof(MPI_Request));
 	}
 }
+
+void MPIMessenger::waitAllCompletion(std::vector<TransferBase *> &pendings)
+{
+	const size_t total = (int) pendings.size();
+	assert(total > 0);
+
+	// This function is not intended to be used for a huge number of requests, so we can use alloca
+	// and live with it and will be faster.
+	MPI_Request *requests = (MPI_Request *) alloca(total * sizeof(MPI_Request));
+	MPI_Status *statuses = (MPI_Status *) alloca(total * sizeof(MPI_Status));
+	assert(requests != nullptr);
+	assert(statuses != nullptr);
+
+	for (size_t i = 0; i < total; ++i) {
+		assert(pendings[i] != nullptr);
+
+		MPI_Request *req = (MPI_Request *) pendings[i]->getMessengerData();
+		assert(req != nullptr);
+
+		requests[i] = *req;
+	}
+
+	Instrument::MPILock();
+	const int ret = MPI_Waitall(total, requests, statuses);
+	Instrument::MPIUnLock();
+	MPIErrorHandler::handleErrorInStatus(ret, INTRA_COMM, total, statuses);
+
+	for (size_t i = 0; i < total; ++i) {
+		TransferBase *msg = pendings[i];
+		assert(msg != nullptr);
+
+		msg->markAsCompleted();
+		MPI_Request *req = (MPI_Request *) msg->getMessengerData();
+		MemoryAllocator::free(req, sizeof(MPI_Request));
+
+		assert(msg->isCompleted());
+		delete msg;
+	}
+}
+

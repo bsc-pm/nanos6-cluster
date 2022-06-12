@@ -160,6 +160,8 @@ public:
 		testCompletionInternal<DataTransfer>(pending);
 	}
 
+	void waitAllCompletion(std::vector<TransferBase *> &pendings) override;
+
 	inline int getNodeIndex() const override
 	{
 		assert(_wrank >= 0);

@@ -17,6 +17,7 @@
 #include <DataAccessRegion.hpp>
 #include <support/GenericFactory.hpp>
 
+class TransferBase;
 class ClusterNode;
 class DataTransfer;
 
@@ -143,6 +144,8 @@ public:
 	//! \param[in] messages holds the pending outgoing messages
 	virtual void testCompletion(std::vector<Message *> &pendings) = 0;
 	virtual void testCompletion(std::vector<DataTransfer *> &pendings) = 0;
+
+	virtual void waitAllCompletion(std::vector<TransferBase *> &pendings) = 0;
 
 };
 

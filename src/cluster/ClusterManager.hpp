@@ -11,7 +11,9 @@
 #include <cassert>
 #include <string>
 #include <vector>
+#include <type_traits>
 
+#include "cluster/messenger/TransferBase.hpp"
 #include "cluster/messenger/Messenger.hpp"
 #include "cluster/messenger/DataTransfer.hpp"
 
@@ -275,8 +277,27 @@ public:
 	{
 		assert(_singleton != nullptr);
 		assert(_singleton->_msn != nullptr);
+		static_assert(std::is_base_of<TransferBase,T>::value);
+
 		_singleton->_msn->testCompletion(messages);
 	}
+
+	template<typename T>
+	static inline void waitAllCompletion(std::vector<T *> &messages)
+	{
+		assert(_singleton != nullptr);
+		assert(_singleton->_msn != nullptr);
+		static_assert(std::is_base_of<TransferBase,T>::value);
+
+		if (messages.size() == 0) {
+			return;
+		}
+
+		std::vector<TransferBase *> &tmp = reinterpret_cast<std::vector<TransferBase *>&>(messages);
+
+		_singleton->_msn->waitAllCompletion(tmp);
+	}
+
 
 	//! \brief Fetch a DataAccessRegion from a remote node
 	//!
