@@ -3972,7 +3972,6 @@ namespace DataAccessRegistration {
 						assert(bottomMapEntry != nullptr);
 						DataAccessRegion region = bottomMapEntry->_region;
 						void *addr = nullptr;
-						bool done = false;
 						accessStructures._accesses.processIntersectingWithRestart(
 							region,
 							[&](TaskDataAccesses::accesses_t::iterator position) -> bool {
@@ -3980,41 +3979,27 @@ namespace DataAccessRegistration {
 								DataAccess *dataAccess = &(*position);
 								assert(dataAccess != nullptr);
 								DataAccessRegion accessRegion = dataAccess->getAccessRegion();
-								if (done || accessRegion.getEndAddress() <= addr) {
+								if (accessRegion.getEndAddress() <= addr) {
 									// Restart revisits the same access a second time; skip the second
 									// time a region is visited
 									return true;
 								}
 								addr = accessRegion.getEndAddress();
-								if (dataAccess->getEarlyReleaseInNamespace() && !dataAccess->getNamespaceNextIsIn()) {
-									// This access has early release in the namespace
-									if (dataAccess->getAccessRegion().getStartAddress() > region.getStartAddress()) {
-										// There is a bit before this complete access
-										DataAccessRegion subregion(region.getStartAddress(),
-																	std::min<void*>(dataAccess->getAccessRegion().getStartAddress(),
-																	region.getEndAddress()));
-										// Non early-released access that needs a taskwait fragment
-										bottomMapEntry = fragmentBottomMapEntry(bottomMapEntry, subregion, accessStructures);
-										createTaskwaitFragment(task, bottomMapEntry, computePlace, subregion, accessStructures, hpDependencyData, /* fetchData */ false);
-										mustWait = true;
-										continueWithoutRestart = false;
-										bottomMapEntry = &(*(++bottomMapPosition));
-									}
-									if (dataAccess->getAccessRegion().getEndAddress() < region.getEndAddress()) {
-										// There is a part of the region after this complete access, so keep going
-										region = DataAccessRegion(dataAccess->getAccessRegion().getEndAddress(), region.getEndAddress());
-									} else {
-										// Otherwise stop
-									    done = true;
-									}
+								if (dataAccess->getEarlyReleaseInNamespace()
+									&& !dataAccess->getNamespaceNextIsIn()) {
+									// This access has early release in the namespace, so
+									// don't make a taskwait fragment
+								} else {
+									// Make a taskwait fragment covering this access
+									DataAccessRegion subregion = accessRegion.intersect(region);
+									bottomMapEntry = fragmentBottomMapEntry(bottomMapEntry, subregion, accessStructures);
+									createTaskwaitFragment(task, bottomMapEntry, computePlace, subregion, accessStructures, hpDependencyData, /* fetchData */ false);
+									mustWait = true;
+									continueWithoutRestart = false;
+									bottomMapEntry = &(*(++bottomMapPosition));
 								}
 								return continueWithoutRestart;
 							});
-							if (!done) {
-								bottomMapEntry = fragmentBottomMapEntry(bottomMapEntry, region, accessStructures);
-								createTaskwaitFragment(task, bottomMapEntry, computePlace, region, accessStructures, hpDependencyData, /* fetchData */ false);
-								mustWait = true;
-							}
 						/* Always continue with the rest of the accesses */
 						return true;
 						});
