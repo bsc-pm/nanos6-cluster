@@ -7,6 +7,7 @@
 #ifndef LINEAR_REGION_MAP_HPP
 #define LINEAR_REGION_MAP_HPP
 
+#include <functional>
 #include <utility>
 
 #include <boost/intrusive/avl_set.hpp>
@@ -285,8 +286,7 @@ public:
 	//! \param[in] processor a lambda that receives an iterator to each element and that returns a boolean, that is false to stop the traversal
 	//!
 	//! \returns false if the traversal was stopped before finishing
-	template <typename ProcessorType>
-	bool processAll(ProcessorType processor);
+	bool processAll(std::function<bool(LinearRegionMap::iterator)> processor);
 
 	//! \brief Pass all elements that intersect a given region through a lambda
 	//!
@@ -294,8 +294,10 @@ public:
 	//! \param[in] processor a lambda that receives an iterator to each element intersecting the region and that returns a boolean, that is false to stop the traversal
 	//!
 	//! \returns false if the traversal was stopped before finishing
-	template <typename ProcessorType>
-	bool processIntersecting(DataAccessRegion const &region, ProcessorType processor);
+	bool processIntersecting(
+		DataAccessRegion const &region,
+		std::function<bool(LinearRegionMap::iterator)> processor
+	);
 
 	//! \brief Pass all elements that intersect a given region through a lambda and any missing subregions through another lambda
 	//!
@@ -304,11 +306,10 @@ public:
 	//! \param[in] missingProcessor a lambda that receives each missing subregion as a DataAccessRegion  and that returns a boolean equal to false to stop the traversal
 	//!
 	//! \returns false if the traversal was stopped before finishing
-	template <typename IntersectionProcessorType, typename MissingProcessorType>
 	bool processIntersectingAndMissing(
 		DataAccessRegion const &region,
-		IntersectionProcessorType intersectingProcessor,
-		MissingProcessorType missingProcessor
+		std::function<bool(LinearRegionMap::iterator)> intersectingProcessor,
+		std::function<bool(DataAccessRegion const &region)> missingProcessor
 	);
 
 	//! \brief Traverse a region of elements to check if there is an element that matches a given condition
@@ -317,8 +318,10 @@ public:
 	//! \param[in] condition a lambda that receives an iterator to each element intersecting the region and that returns the result of evaluating the condition
 	//!
 	//! \returns true if the condition evaluated to true for any element
-	template <typename PredicateType>
-	bool exists(DataAccessRegion const &region, PredicateType condition);
+	bool exists(
+		DataAccessRegion const &region,
+		std::function<bool(LinearRegionMap::iterator)> condition
+	);
 
 
 	//! \brief Check if there is any element in a given region

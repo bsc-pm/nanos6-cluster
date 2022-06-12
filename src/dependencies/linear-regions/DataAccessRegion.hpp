@@ -13,6 +13,7 @@
 #include <cstddef>
 #include <ostream>
 #include <utility>
+#include <functional>
 
 class DataAccessRegion {
 private:
@@ -147,14 +148,11 @@ public:
 	}
 
 
-	template <typename ThisOnlyProcessorType,
-		typename IntersectingProcessorType,
-		typename OtherOnlyProcessorType>
 	void processIntersectingFragments(
 		DataAccessRegion const &fragmeterRegion,
-		ThisOnlyProcessorType thisOnlyProcessor,
-		IntersectingProcessorType intersectingProcessor,
-		OtherOnlyProcessorType otherOnlyProcessor
+		std::function<void(DataAccessRegion &)> thisOnlyProcessor,
+		std::function<void(DataAccessRegion &)> intersectingProcessor,
+		std::function<void(DataAccessRegion &)> otherOnlyProcessor
 	) const {
 		FragmentBoundaries boundaries(*this, fragmeterRegion);
 

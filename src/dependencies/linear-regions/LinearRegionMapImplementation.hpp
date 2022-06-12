@@ -10,13 +10,15 @@
 
 #include <cassert>
 #include <mutex>
+#include <functional>
 
 #include "LinearRegionMap.hpp"
 
 
-template <typename ContentType> template <typename ProcessorType>
-bool LinearRegionMap<ContentType>::processAll(ProcessorType processor)
-{
+template <typename ContentType>
+bool LinearRegionMap<ContentType>::processAll(
+	std::function<bool(LinearRegionMap::iterator)> processor
+) {
 	for (iterator it = _map.begin(); it != _map.end(); ) {
 		iterator position = it;
 		it++; // Advance before processing to allow the processor to fragment the node without
@@ -33,10 +35,10 @@ bool LinearRegionMap<ContentType>::processAll(ProcessorType processor)
 }
 
 
-template <typename ContentType> template <typename ProcessorType>
+template <typename ContentType>
 bool LinearRegionMap<ContentType>::processIntersecting(
 	DataAccessRegion const &region,
-	ProcessorType processor
+	std::function<bool(LinearRegionMap::iterator)> processor
 ) {
 	iterator it = _map.lower_bound(region.getStartAddress());
 
@@ -64,11 +66,10 @@ bool LinearRegionMap<ContentType>::processIntersecting(
 
 
 template <typename ContentType>
-template <typename IntersectingProcessorType, typename MissingProcessorType>
 bool LinearRegionMap<ContentType>::processIntersectingAndMissing(
 	DataAccessRegion const &region,
-	IntersectingProcessorType intersectingProcessor,
-	MissingProcessorType missingProcessor
+	std::function<bool(LinearRegionMap::iterator)> intersectingProcessor,
+	std::function<bool(DataAccessRegion const &region)> missingProcessor
 ) {
 	if (_map.empty()) {
 		return missingProcessor(region); // NOTE: an error here indicates that the lambda is missing
@@ -138,9 +139,10 @@ bool LinearRegionMap<ContentType>::processIntersectingAndMissing(
 
 
 template <typename ContentType>
-template <typename PredicateType>
-bool LinearRegionMap<ContentType>::exists(DataAccessRegion const &region, PredicateType condition)
-{
+bool LinearRegionMap<ContentType>::exists(
+	DataAccessRegion const &region,
+	std::function<bool(LinearRegionMap::iterator)> condition
+) {
 	iterator it = _map.lower_bound(region.getStartAddress());
 
 	if (it != _map.begin()) {
