@@ -286,7 +286,7 @@ public:
 	//! \param[in] processor a lambda that receives an iterator to each element and that returns a boolean, that is false to stop the traversal
 	//!
 	//! \returns false if the traversal was stopped before finishing
-	bool processAll(std::function<bool(LinearRegionMap::iterator)> processor);
+	bool processAll(std::function<bool(LinearRegionMap::iterator &)> processor);
 
 	//! \brief Pass all elements that intersect a given region through a lambda
 	//!
@@ -296,7 +296,7 @@ public:
 	//! \returns false if the traversal was stopped before finishing
 	bool processIntersecting(
 		DataAccessRegion const &region,
-		std::function<bool(LinearRegionMap::iterator)> processor
+		std::function<bool(LinearRegionMap::iterator &)> processor
 	);
 
 	//! \brief Pass all elements that intersect a given region through a lambda and any missing subregions through another lambda
@@ -308,7 +308,7 @@ public:
 	//! \returns false if the traversal was stopped before finishing
 	bool processIntersectingAndMissing(
 		DataAccessRegion const &region,
-		std::function<bool(LinearRegionMap::iterator)> intersectingProcessor,
+		std::function<bool(LinearRegionMap::iterator &)> intersectingProcessor,
 		std::function<bool(DataAccessRegion const &region)> missingProcessor
 	);
 
@@ -320,7 +320,7 @@ public:
 	//! \returns true if the condition evaluated to true for any element
 	bool exists(
 		DataAccessRegion const &region,
-		std::function<bool(LinearRegionMap::iterator)> condition
+		std::function<bool(LinearRegionMap::iterator &)> condition
 	);
 
 

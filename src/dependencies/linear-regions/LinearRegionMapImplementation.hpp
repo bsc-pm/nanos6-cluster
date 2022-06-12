@@ -17,7 +17,7 @@
 
 template <typename ContentType>
 bool LinearRegionMap<ContentType>::processAll(
-	std::function<bool(LinearRegionMap::iterator)> processor
+	std::function<bool(LinearRegionMap::iterator &)> processor
 ) {
 	for (iterator it = _map.begin(); it != _map.end(); ) {
 		iterator position = it;
@@ -38,7 +38,7 @@ bool LinearRegionMap<ContentType>::processAll(
 template <typename ContentType>
 bool LinearRegionMap<ContentType>::processIntersecting(
 	DataAccessRegion const &region,
-	std::function<bool(LinearRegionMap::iterator)> processor
+	std::function<bool(LinearRegionMap::iterator &)> processor
 ) {
 	iterator it = _map.lower_bound(region.getStartAddress());
 
@@ -68,7 +68,7 @@ bool LinearRegionMap<ContentType>::processIntersecting(
 template <typename ContentType>
 bool LinearRegionMap<ContentType>::processIntersectingAndMissing(
 	DataAccessRegion const &region,
-	std::function<bool(LinearRegionMap::iterator)> intersectingProcessor,
+	std::function<bool(LinearRegionMap::iterator &)> intersectingProcessor,
 	std::function<bool(DataAccessRegion const &region)> missingProcessor
 ) {
 	if (_map.empty()) {
@@ -141,7 +141,7 @@ bool LinearRegionMap<ContentType>::processIntersectingAndMissing(
 template <typename ContentType>
 bool LinearRegionMap<ContentType>::exists(
 	DataAccessRegion const &region,
-	std::function<bool(LinearRegionMap::iterator)> condition
+	std::function<bool(LinearRegionMap::iterator &)> condition
 ) {
 	iterator it = _map.lower_bound(region.getStartAddress());
 
