@@ -480,7 +480,6 @@ cluster_sources += \
 	src/cluster/messenger/LiveDataTransfers.cpp \
 	src/cluster/messenger/mpi/MPIMessenger.cpp \
 	src/cluster/offloading/TaskOffloading.cpp \
-	src/cluster/polling-services/ClusterWorker.cpp \
 	src/executors/workflow/cluster/ExecutionWorkflowCluster.cpp \
 	src/memory/directory/cluster/DistributionPolicy.cpp \
 	src/scheduling/schedulers/cluster/ClusterSchedulerInterface.cpp \

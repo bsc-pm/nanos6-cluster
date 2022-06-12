@@ -426,7 +426,7 @@ public:
 		return _singleton->_mergeReleaseAndFinish;
 	}
 
-	static bool getNumMessageHandlerWorkers()
+	static int getNumMessageHandlerWorkers()
 	{
 		assert(_singleton != nullptr);
 		return _singleton->_numMessageHandlerWorkers;

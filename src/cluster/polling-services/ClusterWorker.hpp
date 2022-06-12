@@ -12,14 +12,11 @@
 #include "lowlevel/PaddedSpinLock.hpp"
 #include "system/ompss/SpawnFunction.hpp"
 
-#include <Message.hpp>
-#include <ClusterManager.hpp>
 #include "MessageHandler.hpp"
-
-class Message;
 
 namespace ClusterPollingServices {
 
+	template<typename T>
 	class ClusterWorker {
 
 	private:
@@ -35,20 +32,17 @@ namespace ClusterPollingServices {
 				return false;
 			}
 
-			Message *msg = nullptr;
+			T *msg = nullptr;
 
-			do {
-				// Try to steal a message, and, if successful, handle it
-				msg = MessageHandler<Message>::stealMessage();
-				if (msg) {
-					const bool shouldDelete = msg->handleMessage();
-					MessageHandler<Message>::notifyDone(msg);
+			// Try to steal a message, and, if successful, handle it
+			while ((msg = MessageHandler<T>::stealMessage()) != nullptr) {
+				const bool shouldDelete = msg->handleMessage();
+				MessageHandler<T>::notifyDone(msg);
 
-					if (shouldDelete) {
-						delete msg;
-					}
+				if (shouldDelete) {
+					delete msg;
 				}
-			} while (msg);
+			}
 
 			return true;
 		}
@@ -63,6 +57,8 @@ namespace ClusterPollingServices {
 			_singleton._live.fetch_sub(1);
 		}
 	};
+
+	template <typename T> ClusterWorker<T> ClusterWorker<T>::_singleton;
 }
 
 #endif /* CLUSTER_WORKER_HPP */

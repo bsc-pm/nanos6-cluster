@@ -64,8 +64,8 @@ public:
 
 	inline static void initializeWorkers(int numWorkers)
 	{
-		for(int i=0; i< numWorkers; i++) {
-			registerService<ClusterPollingServices::ClusterWorker>("ClusterWorker");
+		for(int i = 0; i < numWorkers; ++i) {
+			registerService<ClusterPollingServices::ClusterWorker<Message>>("ClusterWorker");
 		}
 	}
 
@@ -76,8 +76,8 @@ public:
 
 	inline static void shutdownWorkers(int numWorkers)
 	{
-		for(int i = 0; i < numWorkers; i++) {
-			unregisterService<ClusterPollingServices::ClusterWorker>();
+		for(int i = 0; i < numWorkers; ++i) {
+			unregisterService<ClusterPollingServices::ClusterWorker<Message>>();
 		}
 		// To assert shutdown the services before the CPUManager
 		// Wait for cluster polling services before returning

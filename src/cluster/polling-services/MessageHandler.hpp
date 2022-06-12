@@ -33,13 +33,17 @@ namespace ClusterPollingServices {
 		int _numWorkers;
 
 		// Current number of stolen messages
-		int _numStolen;
+		std::atomic<size_t> _numStolen;
 
 		// Messages that can be stolen by other workers
 		std::deque<T*> _stealableMessages;
 
 		// Messages that cannot be stolen (and that have lower priority)
 		std::deque<T*> _nonStealableMessages;
+
+		// Only one _nonStealableLowPriorityMessage may exist at the time as they are malleability
+		// or the finish message.
+		T* _nonStealableLowPriorityMessage;
 
 		// For a given task, keep track of number of RELEASE_ACCESS messages
 		// left to handle plus the TASK_FINISHED/RELEASE_ACCESS_AND_FINISH
@@ -49,15 +53,12 @@ namespace ClusterPollingServices {
 			Message *_waitingTaskFinished;
 		};
 
+		PaddedSpinLock<> _waitingTaskInfoLock;
 		std::unordered_map<OffloadedTaskIdManager::OffloadedTaskId, WaitingTaskInfo> _waitingTaskInfo;
 
 		// Queue a received message
 		void queueMessage(T *msg)
 		{
-			std::lock_guard<PaddedSpinLock<>> guard(_lock);
-			OffloadedTaskIdManager::OffloadedTaskId taskId
-				= OffloadedTaskIdManager::InvalidOffloadedTaskId;
-
 			switch(msg->getType()) {
 				case DMALLOC:
 				case DFREE:
@@ -65,101 +66,128 @@ namespace ClusterPollingServices {
 				case DATA_SEND: // Not sure whether worth offloading to workers as just an MPI call
 				case SATISFIABILITY:
 				case NO_EAGER_SEND:
+				{
 					// These messages have no ordering constraints and are worth handling
 					// by other workers. All involve dependency system operations, which may
 					// potentially be a lot of work. So put the message into _stealableMessages
+					std::lock_guard<PaddedSpinLock<>> guard(_lock);
 					_stealableMessages.push_back(msg);
-					break;
+				}
+				break;
 
 				case TASK_NEW:
-				case SYS_FINISH:
-					// These messages are handled by the polling service itself.
-					// * TASK_NEW is too trivial: as it only requires queuing the task to be
-					// created and submitted by the namespace
-					// * SYS_FINISH must be the last message of all to be handled
+					// * TASK_NEW is generally too trivial: as it only requires queuing the task to
+					// be created and submitted by the namespace but many of those may arrive
+					// sequentially and from time to time the first one may require to wakeup the
+					// namespace task which may be a relatively expensive call. So we enqueue those
+					// messages here to process them latter in order too enqueue all the stealable
+					// ones for the workers first.
 					_nonStealableMessages.push_back(msg);
 					break;
 
+				case SYS_FINISH:
+					// * These messages are the last ones to be processes... they must be the last
+					// * of all to be handled ones
+					assert(_nonStealableLowPriorityMessage == nullptr);
+					_nonStealableLowPriorityMessage = msg;
+					break;
+
 				case RELEASE_ACCESS:
+				{
 					// This message is worth handling by other workers, but we need to ensure it
 					// is done before handling the task's TASK_FINISHED. Increment the number of
 					// RELEASE_ACCESSES for this task.
-					taskId = dynamic_cast<MessageReleaseAccess *>(msg)->getTaskId();
+					OffloadedTaskIdManager::OffloadedTaskId taskId
+						= dynamic_cast<MessageReleaseAccess *>(msg)->getTaskId();
+
 					{
+						std::lock_guard<PaddedSpinLock<>> guard(_waitingTaskInfoLock);
 						auto it = _waitingTaskInfo.find(taskId);
 						if (it == _waitingTaskInfo.end()) {
 							_waitingTaskInfo[taskId] = WaitingTaskInfo({1, nullptr});
 						} else {
 							it->second._numReleaseAccesses++;
 						}
-						_stealableMessages.push_back(msg);
 					}
-					break;
+
+					std::lock_guard<PaddedSpinLock<>> guard(_lock);
+					_stealableMessages.push_back(msg);
+				}
+				break;
 
 				case TASK_FINISHED:
 				case RELEASE_ACCESS_AND_FINISH:
-					taskId = dynamic_cast<MessageReleaseAccess *>(msg)->getTaskId();
-					{
-						auto it = _waitingTaskInfo.find(taskId);
-						if (it == _waitingTaskInfo.end()) {
-							// No prior RELEASE_ACCESS messages, so it can be handled immediately
-							_stealableMessages.push_back(msg);
-						} else {
-							// There are some RELEASE_ACCESS messages left to be handled first
-							assert(it->second._waitingTaskFinished == nullptr);
-							it->second._waitingTaskFinished = msg;
-						}
+				{
+					OffloadedTaskIdManager::OffloadedTaskId taskId
+						= dynamic_cast<MessageReleaseAccess *>(msg)->getTaskId();
+
+					std::lock_guard<PaddedSpinLock<>> guard(_waitingTaskInfoLock);
+					auto it = _waitingTaskInfo.find(taskId);
+
+					if (it == _waitingTaskInfo.end()) {
+						// No prior RELEASE_ACCESS messages, so it can be handled immediately
+						std::lock_guard<PaddedSpinLock<>> guard2(_lock);
+						_stealableMessages.push_back(msg);
+					} else {
+						// There are some RELEASE_ACCESS messages left to be handled first
+						assert(it->second._waitingTaskFinished == nullptr);
+						it->second._waitingTaskFinished = msg;
 					}
-					break;
+				}
+				break;
 
 				case DATA_RAW:
 				case TOTAL_MESSAGE_TYPES:
 					// We should never see these messages
-					assert(0);
+					FatalErrorHandler::fail(
+						"Message handler tried to queue a message type: ", msg->getName()
+					);
 			}
 		}
 
 		// Steal a message
-		T *stealMessageInternal(__attribute__((unused)) bool isMessageHandlerItself)
+		T *stealMessageInternal(bool isMessageHandlerItself)
 		{
-			std::lock_guard<PaddedSpinLock<>> guard(_lock);
-
 			// Try to take a stealable task
 			Message *msg = nullptr;
-			if (_stealableMessages.size() > 0) {
+
+			_lock.lock();
+			if (!_stealableMessages.empty()) {
 				msg = _stealableMessages.front();
 				_stealableMessages.pop_front();
+				assert(msg != nullptr);
+
+				if (!isMessageHandlerItself) {
+					_numStolen.fetch_add(1);
+				}
 			}
+			_lock.unlock();
 
 			// If not, and this is the polling service itself, take a non-stealable one
-			if (!msg && isMessageHandlerItself) {
-				if (_nonStealableMessages.size() > 0) {
+			if (isMessageHandlerItself && msg == nullptr) {
+				if (!_nonStealableMessages.empty()) {
 					msg = _nonStealableMessages.front();
-					if (msg->getType() == SYS_FINISH) {
-						if (_numStolen > 0) {
-							// Don't handle SYS_FINISH until all other messages
-							// have been handled.
-							return nullptr;
-						}
-					}
 					_nonStealableMessages.pop_front();
+					assert(msg != nullptr);
+				} else if (_numStolen.load() == 0 && _nonStealableLowPriorityMessage != nullptr) {
+					msg = _nonStealableLowPriorityMessage;
+					_nonStealableLowPriorityMessage = nullptr;
 				}
 			}
 			if (msg) {
 				Instrument::clusterHandleMessage(msg, msg->getSenderId());
-				_numStolen++;
 			}
 			return msg;
 		}
 
 		// Finished handling a Message
-		void notifyDoneInternal(T *msg, __attribute__((unused)) bool isMessageHandlerItself)
+		void notifyDoneInternal(T *msg, bool isMessageHandlerItself)
 		{
 			Instrument::clusterHandleMessage(msg, -1);
-			std::lock_guard<PaddedSpinLock<>> guard(_lock);
-			_numStolen--;
-			OffloadedTaskIdManager::OffloadedTaskId taskId
-				= OffloadedTaskIdManager::InvalidOffloadedTaskId;
+
+			if (!isMessageHandlerItself) {
+				_numStolen.fetch_sub(1);
+			}
 
 			switch (msg->getType()) {
 				case SYS_FINISH:
@@ -170,6 +198,8 @@ namespace ClusterPollingServices {
 				case TASK_NEW:
 				case SATISFIABILITY:
 				case NO_EAGER_SEND:
+				case RELEASE_ACCESS_AND_FINISH:
+				case TASK_FINISHED:
 					// These messages have no ordering constraints, so do nothing
 					break;
 
@@ -177,31 +207,34 @@ namespace ClusterPollingServices {
 					// After handling RELEASE_ACCESS, decrement the number of
 					// RELEASE_ACCESS messages that must be done before finishing
 					// the task
-					taskId = dynamic_cast<MessageReleaseAccess *>(msg)->getTaskId();
-					{
-						auto it = _waitingTaskInfo.find(taskId);
-						assert(it != _waitingTaskInfo.end());
-						WaitingTaskInfo &w = it->second;
-						assert(w._numReleaseAccesses > 0);
-						w._numReleaseAccesses--;
-						if (w._numReleaseAccesses == 0) {
-							if (w._waitingTaskFinished != nullptr) {
-								_stealableMessages.push_back(w._waitingTaskFinished);
-							}
-							_waitingTaskInfo.erase(it);
-						}
-					}
-					break;
+				{
+					OffloadedTaskIdManager::OffloadedTaskId taskId
+						= dynamic_cast<MessageReleaseAccess *>(msg)->getTaskId();
 
-				case RELEASE_ACCESS_AND_FINISH:
-				case TASK_FINISHED:
-					// Nothing to do
-					break;
+					std::lock_guard<PaddedSpinLock<>> guard1(_waitingTaskInfoLock);
+
+					auto it = _waitingTaskInfo.find(taskId);
+					assert(it != _waitingTaskInfo.end());
+
+					WaitingTaskInfo &w = it->second;
+					assert(w._numReleaseAccesses > 0);
+					w._numReleaseAccesses--;
+					if (w._numReleaseAccesses == 0) {
+						if (w._waitingTaskFinished != nullptr) {
+							std::lock_guard<PaddedSpinLock<>> guard2(_lock);
+							_stealableMessages.push_back(w._waitingTaskFinished);
+						}
+						_waitingTaskInfo.erase(it);
+					}
+				}
+				break;
 
 				case DATA_RAW:
 				case TOTAL_MESSAGE_TYPES:
 					// We should never see these messages
-					assert(0);
+					FatalErrorHandler::fail(
+						"Message handler tried to notifyDone a message type: ", msg->getName()
+					);
 			}
 		}
 
@@ -282,8 +315,14 @@ namespace ClusterPollingServices {
 		{
 			assert(_singleton._live.load() == false);
 			_singleton._numWorkers = ClusterManager::getNumMessageHandlerWorkers();
-			_singleton._numStolen = 0;
-			_singleton._live = true;
+			_singleton._numStolen.store(0);
+			_singleton._live.store(true);
+		}
+
+		static void waitUntilFinished()
+		{
+			assert(_singleton._live.load() == true);
+			executeService();
 		}
 
 		static void unregisterService()
