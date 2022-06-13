@@ -22,10 +22,12 @@ public:
 		const size_t _initialClusterSize;
 		const std::vector<size_t> _dimensions;
 
-		DmallocInfo(const MessageDmalloc::DmallocMessageContent *dmallocContent)
-			: _region(dmallocContent->_dptr, dmallocContent->_allocationSize),
-			  _policy(dmallocContent->_policy), _initialClusterSize(dmallocContent->_clusterSize),
-			  _dimensions(dmallocContent->_dimensions, dmallocContent->_dimensions + dmallocContent->_nrDim)
+		DmallocInfo(const MessageDmalloc::MessageDmallocDataInfo *dmallocDataInfo)
+			: _region(dmallocDataInfo->_dptr, dmallocDataInfo->_allocationSize),
+			  _policy(dmallocDataInfo->_policy),
+			  _initialClusterSize(dmallocDataInfo->_clusterSize),
+			  _dimensions(dmallocDataInfo->_dimensions,
+				  dmallocDataInfo->_dimensions + dmallocDataInfo->_nrDim)
 		{
 		}
 	};

@@ -73,18 +73,21 @@ void ClusterMemoryManagement::redistributeDmallocs(size_t newsize)
 
 void ClusterMemoryManagement::handleDmallocMessage(const MessageDmalloc *msg, Task *task)
 {
-	const MessageDmalloc::DmallocMessageContent *content = msg->getContent();
+	for (size_t i = 0; i < msg->getContent()->_ndmallocs; ++i) {
 
-	assert(content->_dptr != nullptr);
-	assert(content->_allocationSize > 0);
-	assert(content->_clusterSize > 0);
+		const MessageDmalloc::MessageDmallocDataInfo *dataInfo = msg->getContent()->getData(i);
 
-	const DmallocInfo dmallocInfo(content);
+		assert(dataInfo->_dptr != nullptr);
+		assert(dataInfo->_allocationSize > 0);
+		assert(dataInfo->_clusterSize > 0);
 
-	//! Register region in the home node map This call adds the region to the list of Dmallocs
-	//! that are automatically rebalanced and registers it with the cluster directory. Note that
-	//! it is only registered in cluster mode.
-	ClusterMemoryManagement::_singleton.registerDmalloc(dmallocInfo, task, content->_clusterSize);
+		const DmallocInfo dmallocInfo(dataInfo);
+
+		//! Register region in the home node map This call adds the region to the list of Dmallocs
+		//! that are automatically rebalanced and registers it with the cluster directory. Note that
+		//! it is only registered in cluster mode.
+		ClusterMemoryManagement::_singleton.registerDmalloc(dmallocInfo, task, dataInfo->_clusterSize);
+	}
 
 	//! Synchronize across all nodes
 	ClusterManager::synchronizeAll();
@@ -139,15 +142,17 @@ void *ClusterMemoryManagement::dmalloc(
 
 	//! Send a message to everyone else to let them know about the allocation
 	MessageDmalloc msg(current, dptr, size, clusterSize, policy, numDimensions, dimensions);
+	assert(msg.getContent()->_ndmallocs == 1);
+	MessageDmalloc::MessageDmallocDataInfo *data = msg.getContent()->getData(0);
 
 	if (ClusterManager::inClusterMode()) {
 
 		if (ClusterManager::isMasterNode()) {
-			assert(msg.getContent()->_dptr != nullptr);
+			assert(data->_dptr != nullptr);
 			ClusterManager::sendMessageToAll(&msg, true);
 		} else {
 			// Send a dmalloc message to master without pointer,
-			assert(msg.getContent()->_dptr == nullptr);
+			assert(data->_dptr == nullptr);
 
 			ClusterNode *master = ClusterManager::getMasterNode();
 			ClusterManager::sendMessage(&msg, master, true);
@@ -156,7 +161,7 @@ void *ClusterMemoryManagement::dmalloc(
 			DataAccessRegion region(&dptr, sizeof(void *));
 			ClusterManager::fetchDataRaw(region, master->getMemoryNode(), msg.getId(), true);
 			assert(dptr != nullptr);
-			msg.setPointer(dptr);
+			data->_dptr = dptr;
 		}
 
 	} else {
