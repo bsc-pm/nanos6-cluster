@@ -12,6 +12,7 @@
 
 #include "Message.hpp"
 
+#include <OffloadedTaskId.hpp>
 #include <DataAccessRegion.hpp>
 #include "NoEagerSendInfo.hpp"
 
@@ -20,6 +21,8 @@ class MessageNoEagerSend : public Message {
 private:
 
 	struct NoEagerSendMessageContent {
+		//! The opaque id identifying the offloaded task
+		OffloadedTaskIdManager::OffloadedTaskId _offloadedTaskId;
 		size_t _numRegions;
 		TaskOffloading::NoEagerSendInfo _noEagerSendInfo[];
 	};
@@ -39,6 +42,11 @@ public:
 	}
 
 	bool handleMessage();
+
+	OffloadedTaskIdManager::OffloadedTaskId getTaskId() const
+	{
+		return _content->_offloadedTaskId;
+	}
 
 	inline std::string toString() const
 	{

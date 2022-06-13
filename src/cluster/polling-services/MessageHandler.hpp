@@ -16,6 +16,7 @@
 #include <InstrumentThreadInstrumentationContext.hpp>
 #include <Message.hpp>
 #include <MessageReleaseAccess.hpp>
+#include <MessageNoEagerSend.hpp>
 
 class Task;
 
@@ -45,11 +46,11 @@ namespace ClusterPollingServices {
 		// or the finish message.
 		T* _nonStealableLowPriorityMessage;
 
-		// For a given task, keep track of number of RELEASE_ACCESS messages
+		// For a given task, keep track of number of RELEASE_ACCESS or NO_EAGER_SEND messages
 		// left to handle plus the TASK_FINISHED/RELEASE_ACCESS_AND_FINISH
 		// message, if already received.
 		struct WaitingTaskInfo {
-			int _numReleaseAccesses;
+			int _numPredecessors;
 			Message *_waitingTaskFinished;
 		};
 
@@ -65,7 +66,6 @@ namespace ClusterPollingServices {
 				case DATA_FETCH:
 				case DATA_SEND: // Not sure whether worth offloading to workers as just an MPI call
 				case SATISFIABILITY:
-				case NO_EAGER_SEND:
 				{
 					// These messages have no ordering constraints and are worth handling
 					// by other workers. All involve dependency system operations, which may
@@ -92,21 +92,23 @@ namespace ClusterPollingServices {
 					_nonStealableLowPriorityMessage = msg;
 					break;
 
+				case NO_EAGER_SEND:
 				case RELEASE_ACCESS:
 				{
 					// This message is worth handling by other workers, but we need to ensure it
 					// is done before handling the task's TASK_FINISHED. Increment the number of
-					// RELEASE_ACCESSES for this task.
+					// RELEASE_ACCESSES or NO_EAGER_SENDs for this task.
 					OffloadedTaskIdManager::OffloadedTaskId taskId
-						= dynamic_cast<MessageReleaseAccess *>(msg)->getTaskId();
-
+						= (msg->getType() == NO_EAGER_SEND) ?
+							dynamic_cast<MessageNoEagerSend *>(msg)->getTaskId()
+							: dynamic_cast<MessageReleaseAccess *>(msg)->getTaskId();
 					{
 						std::lock_guard<PaddedSpinLock<>> guard(_waitingTaskInfoLock);
 						auto it = _waitingTaskInfo.find(taskId);
 						if (it == _waitingTaskInfo.end()) {
 							_waitingTaskInfo[taskId] = WaitingTaskInfo({1, nullptr});
 						} else {
-							it->second._numReleaseAccesses++;
+							it->second._numPredecessors++;
 						}
 					}
 
@@ -125,11 +127,11 @@ namespace ClusterPollingServices {
 					auto it = _waitingTaskInfo.find(taskId);
 
 					if (it == _waitingTaskInfo.end()) {
-						// No prior RELEASE_ACCESS messages, so it can be handled immediately
+						// No predecessors, so it can be handled immediately
 						std::lock_guard<PaddedSpinLock<>> guard2(_lock);
 						_stealableMessages.push_back(msg);
 					} else {
-						// There are some RELEASE_ACCESS messages left to be handled first
+						// There are some predecessor messages left to be handled first
 						assert(it->second._waitingTaskFinished == nullptr);
 						it->second._waitingTaskFinished = msg;
 					}
@@ -197,19 +199,20 @@ namespace ClusterPollingServices {
 				case DATA_SEND:
 				case TASK_NEW:
 				case SATISFIABILITY:
-				case NO_EAGER_SEND:
 				case RELEASE_ACCESS_AND_FINISH:
 				case TASK_FINISHED:
 					// These messages have no ordering constraints, so do nothing
 					break;
 
+				case NO_EAGER_SEND:
 				case RELEASE_ACCESS:
-					// After handling RELEASE_ACCESS, decrement the number of
-					// RELEASE_ACCESS messages that must be done before finishing
-					// the task
+					// After handling RELEASE_ACCESS or NO_EAGER_SEND, decrement the number of
+					// predecessor messages that must be done before finishing the task
 				{
 					OffloadedTaskIdManager::OffloadedTaskId taskId
-						= dynamic_cast<MessageReleaseAccess *>(msg)->getTaskId();
+						= (msg->getType() == NO_EAGER_SEND) ?
+							dynamic_cast<MessageNoEagerSend *>(msg)->getTaskId()
+							: dynamic_cast<MessageReleaseAccess *>(msg)->getTaskId();
 
 					std::lock_guard<PaddedSpinLock<>> guard1(_waitingTaskInfoLock);
 
@@ -217,9 +220,9 @@ namespace ClusterPollingServices {
 					assert(it != _waitingTaskInfo.end());
 
 					WaitingTaskInfo &w = it->second;
-					assert(w._numReleaseAccesses > 0);
-					w._numReleaseAccesses--;
-					if (w._numReleaseAccesses == 0) {
+					assert(w._numPredecessors > 0);
+					w._numPredecessors--;
+					if (w._numPredecessors == 0) {
 						if (w._waitingTaskFinished != nullptr) {
 							std::lock_guard<PaddedSpinLock<>> guard2(_lock);
 							_stealableMessages.push_back(w._waitingTaskFinished);

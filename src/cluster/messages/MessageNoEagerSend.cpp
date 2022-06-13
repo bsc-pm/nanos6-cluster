@@ -15,14 +15,18 @@
 MessageNoEagerSend::MessageNoEagerSend(const ClusterNode *from,
 	size_t numRegions,
 	const std::vector<TaskOffloading::NoEagerSendInfo> &regions)
-	: Message(NO_EAGER_SEND, sizeof(size_t) + numRegions * sizeof(TaskOffloading::NoEagerSendInfo), from)
+	: Message(NO_EAGER_SEND, sizeof(OffloadedTaskIdManager::OffloadedTaskId) + sizeof(size_t) + numRegions * sizeof(TaskOffloading::NoEagerSendInfo), from)
 {
 	_content = reinterpret_cast<NoEagerSendMessageContent *>(_deliverable->payload);
 	_content->_numRegions = numRegions;
 	size_t index = 0;
 	for (TaskOffloading::NoEagerSendInfo regionInfo : regions) {
-		_content->_noEagerSendInfo[index]._region = regionInfo._region;
-		_content->_noEagerSendInfo[index]._offloadedTaskId = regionInfo._offloadedTaskId;
+		_content->_noEagerSendInfo[index] = regionInfo;
+		if (index > 0) {
+			assert(regionInfo._offloadedTaskId == _content->_offloadedTaskId);
+		} else {
+			_content->_offloadedTaskId = regionInfo._offloadedTaskId;
+		}
 		index++;
 	}
 }
