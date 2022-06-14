@@ -20,16 +20,22 @@ ClusterMemoryManagement ClusterMemoryManagement::_singleton;
 
 // Register a dmalloc by putting it on the list and registering the allocation with the directory.
 void ClusterMemoryManagement::registerDmalloc(
-	const DmallocInfo &dmallocInfo, Task *task, size_t clusterSize
+	const MessageDmalloc::MessageDmallocDataInfo *dmallocDataInfo, Task *task, size_t clusterSize
 ) {
+	MessageDmalloc::MessageDmallocDataInfo *ptr
+		= (MessageDmalloc::MessageDmallocDataInfo *) malloc(dmallocDataInfo->getSize());
+	assert(ptr != nullptr);
+
+	memcpy(ptr, dmallocDataInfo, dmallocDataInfo->getSize());
+
 	// Take write lock on the directory, which also protects _dmallocs.
 	Directory::writeLock();
 	// Construct a new DmallocInfo and place at the beginning of the _dmallocs list. Note that the
 	// dimensions array, if not null, will be deep copied by the DmallocInfo constructor.
-	_dmallocs.emplace_back(dmallocInfo);
+	_dmallocs.emplace_back(ptr);
 
 	// Now register the allocation with the directory.
-	ClusterDirectory::registerAllocation(dmallocInfo, task, clusterSize);
+	ClusterDirectory::registerAllocation(dmallocDataInfo, task, clusterSize);
 
 	Directory::writeUnlock();
 }
@@ -42,16 +48,23 @@ bool ClusterMemoryManagement::unregisterDmalloc(DataAccessRegion const &region)
 
 	// Take write lock on the directory, which also protects _dmallocs.
 	Directory::writeLock();
-	for (std::list<DmallocInfo>::iterator it=_dmallocs.begin(); it != _dmallocs.end(); it++) {
-		if (it->_region.getStartAddress() == startAddress) {
-			assert(it->_region.getSize() == region.getSize());
+	for (std::list<MessageDmalloc::MessageDmallocDataInfo *>::iterator it=_dmallocs.begin();
+		 it != _dmallocs.end();
+		 it++
+	) {
+
+		MessageDmalloc::MessageDmallocDataInfo *info = *it;
+
+		if (info->_region.getStartAddress() == startAddress) {
+			assert(info->_region.getSize() == region.getSize());
 			ClusterDirectory::unregisterAllocation(region);    // Unregister from directory.
+			free(info);
 			_dmallocs.erase(it);                               // Remove from the list of Dmallocs
 			Directory::writeUnlock();
 			return true;
 		} else {
 			// The regions are not supposed to intersect
-			assert(it->_region.intersect(region).empty());
+			assert(info->_region.intersect(region).empty());
 		}
 	}
 	Directory::writeUnlock();
@@ -63,8 +76,8 @@ void ClusterMemoryManagement::redistributeDmallocs(size_t newsize)
 {
 	// Take write lock on the directory, which also protects _dmallocs.
 	Directory::writeLock();
-	for (DmallocInfo &dmalloc : ClusterMemoryManagement::_singleton._dmallocs) {
-		ClusterDirectory::unregisterAllocation(dmalloc._region);
+	for (MessageDmalloc::MessageDmallocDataInfo *dmalloc : _singleton._dmallocs) {
+		ClusterDirectory::unregisterAllocation(dmalloc->_region);
 		ClusterDirectory::registerAllocation(dmalloc, nullptr, newsize);
 	}
 	Directory::writeUnlock();
@@ -77,16 +90,14 @@ void ClusterMemoryManagement::handleDmallocMessage(const MessageDmalloc *msg, Ta
 
 		const MessageDmalloc::MessageDmallocDataInfo *dataInfo = msg->getContent()->getData(i);
 
-		assert(dataInfo->_dptr != nullptr);
-		assert(dataInfo->_allocationSize > 0);
+		assert(dataInfo->_region.getStartAddress() != nullptr);
+		assert(dataInfo->_region.getSize() > 0);
 		assert(dataInfo->_clusterSize > 0);
-
-		const DmallocInfo dmallocInfo(dataInfo);
 
 		//! Register region in the home node map This call adds the region to the list of Dmallocs
 		//! that are automatically rebalanced and registers it with the cluster directory. Note that
 		//! it is only registered in cluster mode.
-		ClusterMemoryManagement::_singleton.registerDmalloc(dmallocInfo, task, dataInfo->_clusterSize);
+		ClusterMemoryManagement::_singleton.registerDmalloc(dataInfo, task, dataInfo->_clusterSize);
 	}
 
 	//! Synchronize across all nodes
@@ -140,19 +151,21 @@ void *ClusterMemoryManagement::dmalloc(
 	const size_t clusterSize = ClusterManager::clusterSize();
 	assert(clusterSize > 0);
 
+	DataAccessRegion memoryRegion(dptr, size);
+
 	//! Send a message to everyone else to let them know about the allocation
-	MessageDmalloc msg(current, dptr, size, clusterSize, policy, numDimensions, dimensions);
+	MessageDmalloc msg(current, memoryRegion, clusterSize, policy, numDimensions, dimensions);
 	assert(msg.getContent()->_ndmallocs == 1);
 	MessageDmalloc::MessageDmallocDataInfo *data = msg.getContent()->getData(0);
 
 	if (ClusterManager::inClusterMode()) {
 
 		if (ClusterManager::isMasterNode()) {
-			assert(data->_dptr != nullptr);
+			assert(data->_region.getStartAddress() != nullptr);
 			ClusterManager::sendMessageToAll(&msg, true);
 		} else {
 			// Send a dmalloc message to master without pointer,
-			assert(data->_dptr == nullptr);
+			assert(data->_region.getStartAddress() == nullptr);
 
 			ClusterNode *master = ClusterManager::getMasterNode();
 			ClusterManager::sendMessage(&msg, master, true);
@@ -161,7 +174,7 @@ void *ClusterMemoryManagement::dmalloc(
 			DataAccessRegion region(&dptr, sizeof(void *));
 			ClusterManager::fetchDataRaw(region, master->getMemoryNode(), msg.getId(), true);
 			assert(dptr != nullptr);
-			data->_dptr = dptr;
+			data->_region = DataAccessRegion(dptr, data->_region.getSize());
 		}
 
 	} else {

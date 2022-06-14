@@ -17,10 +17,7 @@ class MessageDmalloc : public Message {
 public:
 	struct MessageDmallocDataInfo {
 		//! Address pointer.
-		void *_dptr;
-
-		//! size in bytes of the requested allocation
-		size_t _allocationSize;
+		DataAccessRegion _region;
 
 		//! Cluster size in allocation moment.
 		size_t _clusterSize;
@@ -43,12 +40,11 @@ public:
 		}
 
 		MessageDmallocDataInfo(
-			void *dptr, size_t allocationSize, size_t clusterSize,
-			nanos6_data_distribution_t policy, size_t nrDim, size_t *dimensions
-		) : _dptr(dptr), _allocationSize(allocationSize), _clusterSize(clusterSize),
-			_policy(policy), _nrDim(nrDim)
+			const DataAccessRegion &region, size_t clusterSize,
+			nanos6_data_distribution_t policy, size_t nrDim, const size_t *dimensions
+		) : _region(region), _clusterSize(clusterSize), _policy(policy), _nrDim(nrDim)
 		{
-			memcpy(_dimensions, dimensions, sizeof(size_t) * nrDim);
+			memcpy(_dimensions, dimensions, nrDim * sizeof(size_t));
 		}
 	};
 
@@ -81,8 +77,8 @@ private:
 
 public:
 	MessageDmalloc(const ClusterNode *from,
-		void *dptr, size_t size, size_t clusterSize, nanos6_data_distribution_t policy,
-		size_t numDimensions, size_t *dimensions
+		const DataAccessRegion &region, size_t clusterSize, nanos6_data_distribution_t policy,
+		size_t numDimensions, const size_t *dimensions
 	);
 
 	MessageDmalloc(Deliverable *dlv) : Message(dlv)
@@ -102,10 +98,11 @@ public:
 	{
 		std::stringstream ss;
 
+		ss << "[dmalloc:";
 		for (size_t i = 0; i < _content->_ndmallocs; ++i) {
-			MessageDmallocDataInfo *info = _content->getData(i);
-			ss << "[dmalloc:"<< info->_dptr << ":" << info->_allocationSize << "]";
+			ss << "(" << _content->getData(i)->_region << ")";
 		}
+		ss << "]";
 
 		return ss.str();
 	}

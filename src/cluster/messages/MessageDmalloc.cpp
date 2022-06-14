@@ -6,14 +6,16 @@
 
 #include "MessageDmalloc.hpp"
 
+#include <list>
+
 #include <ClusterManager.hpp>
 #include "ClusterMemoryManagement.hpp"
 #include <DistributionPolicy.hpp>
 #include <VirtualMemoryManagement.hpp>
 
 MessageDmalloc::MessageDmalloc(const ClusterNode *from,
-	void *dptr, size_t size, size_t clusterSize, nanos6_data_distribution_t policy,
-	size_t nrDim, size_t *dimensions
+	const DataAccessRegion &region, size_t clusterSize,
+	nanos6_data_distribution_t policy, size_t nrDim, const size_t *dimensions
 )
 	: Message(DMALLOC,
 		2 * sizeof(size_t)
@@ -25,7 +27,7 @@ MessageDmalloc::MessageDmalloc(const ClusterNode *from,
 	_content->getOffsetPtr()[0] = 0;
 	MessageDmallocDataInfo *ptr = _content->getData(0);
 
-	new (ptr) MessageDmallocDataInfo(dptr, size, clusterSize, policy, nrDim, dimensions);
+	new (ptr) MessageDmallocDataInfo(region, clusterSize, policy, nrDim, dimensions);
 }
 
 bool MessageDmalloc::handleMessage()
@@ -35,13 +37,15 @@ bool MessageDmalloc::handleMessage()
 
 		MessageDmallocDataInfo *data = this->getContent()->getData(0);
 
-		assert(data->_dptr == nullptr);
+		assert(data->_region.getStartAddress() == nullptr);
 
-		const size_t allocationSize = data->_allocationSize;
+		const size_t allocationSize = data->_region.getSize();
 
-		data->_dptr = VirtualMemoryManagement::allocDistrib(allocationSize);
-		FatalErrorHandler::failIf(data->_dptr == nullptr,
+		void *dptr = VirtualMemoryManagement::allocDistrib(allocationSize);
+		FatalErrorHandler::failIf(dptr == nullptr,
 			"Master node couldn't allocate distributed memory with size: ", allocationSize);
+
+		data->_region = DataAccessRegion(dptr, allocationSize);
 
 		const ClusterNode *node = ClusterManager::getClusterNode(this->getSenderId());
 		assert(node != nullptr);
@@ -51,7 +55,7 @@ bool MessageDmalloc::handleMessage()
 		ClusterManager::sendMessageToAll(this, true);
 
 		// And send only address to the original sender.
-		DataAccessRegion region(&data->_dptr, sizeof(void *));
+		DataAccessRegion region(&dptr, sizeof(void *));
 		ClusterManager::sendDataRaw(region, node->getMemoryNode(), this->getId(), true);
 	}
 

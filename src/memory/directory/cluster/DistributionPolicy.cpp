@@ -64,7 +64,7 @@ namespace ClusterDirectory {
 	}
 
 	void registerAllocation(
-		const ClusterMemoryManagement::DmallocInfo &dmallocInfo, Task *task, size_t clusterSize
+		const MessageDmalloc::MessageDmallocDataInfo *dmallocInfo, Task *task, size_t clusterSize
 	) {
 		// If numa.tracking is set to "auto", then a dmalloc enables NUMA tracking on all nodes
 		NUMAManager::enableTrackingIfAuto();
@@ -73,15 +73,15 @@ namespace ClusterDirectory {
 			// Register local access. A location of nullptr means that the data is currently
 			// uninitialized so the first access doesn't need a copy.
 			DataAccessRegistration::registerLocalAccess(
-				task, dmallocInfo._region, /* location */ nullptr, /* isStack */ false
+				task, dmallocInfo->_region, /* location */ nullptr, /* isStack */ false
 			);
 		}
 
-		switch (dmallocInfo._policy) {
+		switch (dmallocInfo->_policy) {
 			case nanos6_equpart_distribution:
-				assert(dmallocInfo._dimensions.size() == 0);
+				assert(dmallocInfo->_nrDim == 0);
 
-				registerAllocationEqupart(dmallocInfo._region, clusterSize);
+				registerAllocationEqupart(dmallocInfo->_region, clusterSize);
 				break;
 			case nanos6_block_distribution:
 			case nanos6_cyclic_distribution:
