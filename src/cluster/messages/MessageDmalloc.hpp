@@ -81,6 +81,8 @@ public:
 		size_t numDimensions, const size_t *dimensions
 	);
 
+	MessageDmalloc(const ClusterNode *from, std::list<MessageDmallocDataInfo *> &dmallocs);
+
 	MessageDmalloc(Deliverable *dlv) : Message(dlv)
 	{
 		_content = reinterpret_cast<DmallocMessageContent *>(_deliverable->payload);

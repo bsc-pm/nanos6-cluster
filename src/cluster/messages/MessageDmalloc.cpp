@@ -30,6 +30,39 @@ MessageDmalloc::MessageDmalloc(const ClusterNode *from,
 	new (ptr) MessageDmallocDataInfo(region, clusterSize, policy, nrDim, dimensions);
 }
 
+MessageDmalloc::MessageDmalloc(const ClusterNode *from,
+	std::list<MessageDmalloc::MessageDmallocDataInfo *> &dmallocs
+)
+	: Message(DMALLOC,
+		sizeof(size_t)
+		+ dmallocs.size() * sizeof(size_t)
+		+ ClusterMemoryManagement::getSerializedDmallocsSize(),
+		from)
+{
+	_content = reinterpret_cast<DmallocMessageContent *>(_deliverable->payload);
+	_content->_ndmallocs = dmallocs.size();
+
+	size_t i = 0;
+	size_t offset = 0;
+	for (const MessageDmalloc::MessageDmallocDataInfo *it : dmallocs) {
+		_content->getOffsetPtr()[i] = offset;
+		MessageDmalloc::MessageDmallocDataInfo *data = _content->getData(i);
+
+		new (data) MessageDmallocDataInfo(
+			it->_region,
+			it->_clusterSize,
+			it->_policy,
+			it->_nrDim,
+			it->_dimensions
+		);
+
+		assert(it->getSize() == data->getSize());
+
+		offset += it->getSize();
+		++i;
+	}
+}
+
 bool MessageDmalloc::handleMessage()
 {
 	if (ClusterManager::isMasterNode()) {
