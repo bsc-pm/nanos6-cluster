@@ -1071,6 +1071,7 @@ namespace DataAccessRegistration {
 			if (!dontUpdateConcurrentLocation) {
 				// This adds the access to the ClusterDataReleaseStep::_releaseInfo vector.
 				// The accesses will be released latter.
+				assert(access->getObjectType() != taskwait_type); // Never release a taskwait fragment
 				access->getOriginator()->getDataReleaseStep()->addToReleaseList(access);
 			}
 

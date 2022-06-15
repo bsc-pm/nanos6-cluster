@@ -359,8 +359,8 @@ namespace ExecutionWorkflow {
 
 			const bool mustWait = task->mustDelayRelease() && !task->allChildrenHaveFinished();
 
-			const bool releases = ( (access->getObjectType() == taskwait_type) // top level sink
-			                        || !access->hasSubaccesses()) // or no fragments (i.e. no subtask to wait for)
+			const bool releases = !access->hasSubaccesses() // no fragments, i.e. access without subtask or top_level_sink
+				&& (access->getObjectType() != taskwait_type) // taskwaits never release
 				&& task->hasFinished()     // must have finished; i.e. not taskwait inside task
 				&& access->readSatisfied() && access->writeSatisfied()
 				&& access->complete()                       // access must be complete
