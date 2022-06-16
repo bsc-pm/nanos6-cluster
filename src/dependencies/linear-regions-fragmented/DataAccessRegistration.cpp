@@ -358,7 +358,7 @@ namespace DataAccessRegistration {
 					assert(!access->hasSubaccesses());
 
 					// A regular access without subaccesses but with a next
-					bool propagateAllMemory = (access->getType() == AUTO_ACCESS_TYPE) && access->getDisableEagerSend();
+					bool propagateAllMemory = (access->getType() == AUTO_ACCESS_TYPE) && access->getDisableEagerSend() && ClusterManager::autoOptimizeNonAccessed();
 					_propagatesReadSatisfiabilityToNext =
 						access->canPropagateReadSatisfiability()
 						&& access->readSatisfied()
@@ -1082,7 +1082,7 @@ namespace DataAccessRegistration {
 			// another concurrent task do the write and in case (b) gives the correct location already.
 			bool dontRelease = (access->getType() == CONCURRENT_ACCESS_TYPE
 								&& (access->getLocation() == access->getConcurrentInitialLocation()))
-								|| (access->getType() == AUTO_ACCESS_TYPE && access->getDisableEagerSend());
+								|| (access->getType() == AUTO_ACCESS_TYPE && access->getDisableEagerSend() && ClusterManager::autoOptimizeNonAccessed());
 
 			if (access->getLocation() != nullptr && !dontRelease) {
 
@@ -1116,7 +1116,7 @@ namespace DataAccessRegistration {
 		bool linksRead = initialStatus._triggersDataLinkRead < updatedStatus._triggersDataLinkRead;
 		bool linksWrite = initialStatus._triggersDataLinkWrite < updatedStatus._triggersDataLinkWrite;
 		bool linksConcurrent = initialStatus._triggersDataLinkConcurrent < updatedStatus._triggersDataLinkConcurrent;
-		if (!(access->getType() == AUTO_ACCESS_TYPE && access->getDisableEagerSend())
+		if (!(access->getType() == AUTO_ACCESS_TYPE && access->getDisableEagerSend() && ClusterManager::autoOptimizeNonAccessed())
 			&& (linksRead || linksWrite || linksConcurrent)) {
 			assert(access->hasDataLinkStep());
 
@@ -2048,6 +2048,7 @@ namespace DataAccessRegistration {
 				}
 
 				if ((access->getObjectType() == taskwait_type  || access->getObjectType() == top_level_sink_type)
+					&& ClusterManager::autoOptimizeReadOnly()
 					&& access->getType() == AUTO_ACCESS_TYPE
 					&& access->getOriginator()->isRemoteTask()
 					&& access->getOriginator()->hasFinished() // and not a taskwait in the middle of the task! TODO: check this also
@@ -3796,6 +3797,7 @@ namespace DataAccessRegistration {
 				// Send AccessInfo messages for any regions that were never accessed by
 				// the task or a subtask
 				if (finishedTask->isRemoteTask()
+					&& ClusterManager::autoOptimizeNonAccessed()
 					&& !propagateFromNamespace
 					&& !accessOrFragment->getDisableEagerSend()) {
 					if ((accessOrFragment->getObjectType() == access_type
@@ -4257,7 +4259,7 @@ namespace DataAccessRegistration {
 									// Make a taskwait fragment covering this access
 									DataAccessRegion subregion = accessRegion.intersect(region);
 									bottomMapEntry = fragmentBottomMapEntry(bottomMapEntry, subregion, accessStructures);
-									bool dontRelease = (bottomMapEntry->_link._objectType == fragment_type);
+									bool dontRelease = (bottomMapEntry->_link._objectType == fragment_type) && ClusterManager::autoOptimizeNonAccessed();
 									createTaskwaitFragment(task, bottomMapEntry, computePlace, subregion, accessStructures, hpDependencyData, /* fetchData */ false, dontRelease);
 									mustWait = true;
 									continueWithoutRestart = false;
@@ -4423,7 +4425,7 @@ namespace DataAccessRegistration {
 								// Make a top-level sink fragment covering this access
 								DataAccessRegion subregion = accessRegion.intersect(region);
 								bottomMapEntry = fragmentBottomMapEntry(bottomMapEntry, subregion, accessStructures);
-								bool dontRelease = (bottomMapEntry->_link._objectType == fragment_type);
+								bool dontRelease = (bottomMapEntry->_link._objectType == fragment_type) && ClusterManager::autoOptimizeNonAccessed();
 								createTopLevelSinkFragment(task, bottomMapEntry, subregion, accessStructures, hpDependencyData, dontRelease);
 								continueWithoutRestart = false;
 								bottomMapEntry = &(*(++bottomMapPosition));
@@ -5237,6 +5239,7 @@ namespace DataAccessRegistration {
 
 					bool finalizeNow =
 						(dataAccess->getType() == AUTO_ACCESS_TYPE
+							&& ClusterManager::autoOptimizeNonAccessed()
 							&& !dataAccess->isStrongLocalAccess()
 							&& accessStructures._subaccessBottomMap.empty()) // Allmemory access with no subaccesses
 							||
@@ -5673,7 +5676,7 @@ namespace DataAccessRegistration {
 			// that were never accessed by the task or a subtask
 			if (task->hasFinished()
 				&& task->isRemoteTask()
-				&& (ClusterManager::getEagerSend() || task->hasAllMemory())) {
+				&& (ClusterManager::getEagerSend() || (task->hasAllMemory() && ClusterManager::autoOptimizeNonAccessed()))) {
 				accessStructures._accesses.processAll(
 					/* processor: called for each task access */
 					[&](TaskDataAccesses::accesses_t::iterator position) -> bool {
@@ -6041,7 +6044,7 @@ namespace DataAccessRegistration {
 				assert(!dataAccess->hasBeenDiscounted());
 				dataAccess = fragmentAccess(dataAccess, region, accessStructures);
 
-				if (dataAccess->getType() == AUTO_ACCESS_TYPE) {
+				if (dataAccess->getType() == AUTO_ACCESS_TYPE && ClusterManager::autoOptimizeNonAccessed()) {
 					DataAccessStatusEffects initialStatus(dataAccess);
 					if (noEagerSend) {
 						assert(!dataAccess->getDisableEagerSend());

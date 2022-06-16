@@ -354,7 +354,8 @@ namespace ExecutionWorkflow {
 			// ClusterDataReleaseStep is only for remote tasks
 			assert(task->isRemoteTask());
 
-			const bool mustWait = task->mustDelayRelease() && !task->allChildrenHaveFinished() && (access->getType() != AUTO_ACCESS_TYPE);
+			const bool mustWait = task->mustDelayRelease() && !task->allChildrenHaveFinished() &&
+									!(access->getType() == AUTO_ACCESS_TYPE && ClusterManager::autoOptimizeNonAccessed());
 
 			const bool releases = !access->hasSubaccesses() // no fragments, i.e. access without subtask or top_level_sink
 				&& (access->getObjectType() != taskwait_type) // taskwaits never release
