@@ -19,17 +19,19 @@ MessageDmalloc::MessageDmalloc(
 )
 	: Message(DMALLOC,
 		2 * sizeof(size_t)
-		+ sizeof(MessageDmallocDataInfo) + nrDim * sizeof(size_t))
+		+ sizeof(ClusterMemoryManagement::DmallocDataInfo) + nrDim * sizeof(size_t))
 {
 	_content = reinterpret_cast<DmallocMessageContent *>(_deliverable->payload);
 	_content->_ndmallocs = 1;
 	_content->getOffsetPtr()[0] = 0;
-	MessageDmallocDataInfo *ptr = _content->getData(0);
+	ClusterMemoryManagement::DmallocDataInfo *ptr = _content->getData(0);
 
-	new (ptr) MessageDmallocDataInfo(region, clusterSize, policy, nrDim, dimensions);
+	new (ptr) ClusterMemoryManagement::DmallocDataInfo(
+		region, clusterSize, policy, nrDim, dimensions
+	);
 }
 
-MessageDmalloc::MessageDmalloc(std::list<MessageDmalloc::MessageDmallocDataInfo *> &dmallocs)
+MessageDmalloc::MessageDmalloc(std::list<ClusterMemoryManagement::DmallocDataInfo *> &dmallocs)
 	: Message(DMALLOC,
 		sizeof(size_t)
 		+ dmallocs.size() * sizeof(size_t)
@@ -40,11 +42,11 @@ MessageDmalloc::MessageDmalloc(std::list<MessageDmalloc::MessageDmallocDataInfo 
 
 	size_t i = 0;
 	size_t offset = 0;
-	for (const MessageDmalloc::MessageDmallocDataInfo *it : dmallocs) {
+	for (const ClusterMemoryManagement::DmallocDataInfo *it : dmallocs) {
 		_content->getOffsetPtr()[i] = offset;
-		MessageDmalloc::MessageDmallocDataInfo *data = _content->getData(i);
+		ClusterMemoryManagement::DmallocDataInfo *data = _content->getData(i);
 
-		new (data) MessageDmallocDataInfo(
+		new (data) ClusterMemoryManagement::DmallocDataInfo(
 			it->_region,
 			it->_clusterSize,
 			it->_policy,
@@ -64,7 +66,7 @@ bool MessageDmalloc::handleMessage()
 	if (ClusterManager::isMasterNode()) {
 		assert(_content->_ndmallocs == 1);
 
-		MessageDmallocDataInfo *data = this->getContent()->getData(0);
+		ClusterMemoryManagement::DmallocDataInfo *data = this->getContent()->getData(0);
 
 		assert(data->_region.getStartAddress() == nullptr);
 

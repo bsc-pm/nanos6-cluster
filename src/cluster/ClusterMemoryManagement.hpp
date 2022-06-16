@@ -8,17 +8,50 @@
 #define CLUSTER_MEMORY_MANAGEMENT_HPP
 
 #include <nanos6/cluster.h>
-#include "messages/MessageDmalloc.hpp"
 
+class MessageDmalloc;
 class MessageDfree;
 
 class ClusterMemoryManagement {
+public:
+	struct DmallocDataInfo {
+		//! Address pointer.
+		DataAccessRegion _region;
+
+		//! Cluster size in allocation moment.
+		size_t _clusterSize;
+
+		//! distribution policy for the region
+		nanos6_data_distribution_t _policy;
+
+		//! number of dimensions for distribution
+		size_t _nrDim;
+
+		//! dimensions of the distribution
+		size_t _dimensions[];
+
+		size_t getSize() const
+		{
+			return sizeof(void*)
+				+ 3 * sizeof(size_t)
+				+ sizeof(nanos6_data_distribution_t)
+				+ _nrDim * sizeof(size_t);
+		}
+
+		DmallocDataInfo(
+			const DataAccessRegion &region, size_t clusterSize,
+			nanos6_data_distribution_t policy, size_t nrDim, const size_t *dimensions
+		) : _region(region), _clusterSize(clusterSize), _policy(policy), _nrDim(nrDim)
+		{
+			memcpy(_dimensions, dimensions, nrDim * sizeof(size_t));
+		}
+	};
 
 private:
-	std::list<MessageDmalloc::MessageDmallocDataInfo *> _dmallocs;
+	std::list<DmallocDataInfo *> _dmallocs;
 
 	void registerDmalloc(
-		const MessageDmalloc::MessageDmallocDataInfo *dmallocDataInfo,
+		const DmallocDataInfo *dmallocDataInfo,
 		Task *task, size_t clusterSize
 	);
 	bool unregisterDmalloc(DataAccessRegion const &region);
@@ -27,10 +60,15 @@ private:
 
 public:
 
+	static inline const std::list<DmallocDataInfo *> &getMallocsList()
+	{
+		return _singleton._dmallocs;
+	}
+
 	static size_t getSerializedDmallocsSize()
 	{
 		size_t size = 0;
-		for (MessageDmalloc::MessageDmallocDataInfo *it : _singleton._dmallocs) {
+		for (DmallocDataInfo *it : _singleton._dmallocs) {
 			size += it->getSize();
 		}
 		return size;

@@ -20,10 +20,9 @@ ClusterMemoryManagement ClusterMemoryManagement::_singleton;
 
 // Register a dmalloc by putting it on the list and registering the allocation with the directory.
 void ClusterMemoryManagement::registerDmalloc(
-	const MessageDmalloc::MessageDmallocDataInfo *dmallocDataInfo, Task *task, size_t clusterSize
+	const DmallocDataInfo *dmallocDataInfo, Task *task, size_t clusterSize
 ) {
-	MessageDmalloc::MessageDmallocDataInfo *ptr
-		= (MessageDmalloc::MessageDmallocDataInfo *) malloc(dmallocDataInfo->getSize());
+	DmallocDataInfo *ptr = (DmallocDataInfo *) malloc(dmallocDataInfo->getSize());
 	assert(ptr != nullptr);
 
 	memcpy(ptr, dmallocDataInfo, dmallocDataInfo->getSize());
@@ -48,12 +47,12 @@ bool ClusterMemoryManagement::unregisterDmalloc(DataAccessRegion const &region)
 
 	// Take write lock on the directory, which also protects _dmallocs.
 	Directory::writeLock();
-	for (std::list<MessageDmalloc::MessageDmallocDataInfo *>::iterator it=_dmallocs.begin();
+	for (std::list<DmallocDataInfo *>::iterator it=_dmallocs.begin();
 		 it != _dmallocs.end();
 		 it++
 	) {
 
-		MessageDmalloc::MessageDmallocDataInfo *info = *it;
+		DmallocDataInfo *info = *it;
 
 		if (info->_region.getStartAddress() == startAddress) {
 			assert(info->_region.getSize() == region.getSize());
@@ -76,7 +75,7 @@ void ClusterMemoryManagement::redistributeDmallocs(size_t newsize)
 {
 	// Take write lock on the directory, which also protects _dmallocs.
 	Directory::writeLock();
-	for (MessageDmalloc::MessageDmallocDataInfo *dmalloc : _singleton._dmallocs) {
+	for (DmallocDataInfo *dmalloc : _singleton._dmallocs) {
 		ClusterDirectory::unregisterAllocation(dmalloc->_region);
 		ClusterDirectory::registerAllocation(dmalloc, nullptr, newsize);
 	}
@@ -88,7 +87,7 @@ void ClusterMemoryManagement::handleDmallocMessage(const MessageDmalloc *msg, Ta
 {
 	for (size_t i = 0; i < msg->getContent()->_ndmallocs; ++i) {
 
-		const MessageDmalloc::MessageDmallocDataInfo *dataInfo = msg->getContent()->getData(i);
+		const DmallocDataInfo *dataInfo = msg->getContent()->getData(i);
 
 		assert(dataInfo->_region.getStartAddress() != nullptr);
 		assert(dataInfo->_region.getSize() > 0);
@@ -153,7 +152,7 @@ void *ClusterMemoryManagement::dmalloc(
 	//! Send a message to everyone else to let them know about the allocation
 	MessageDmalloc msg(memoryRegion, clusterSize, policy, numDimensions, dimensions);
 	assert(msg.getContent()->_ndmallocs == 1);
-	MessageDmalloc::MessageDmallocDataInfo *data = msg.getContent()->getData(0);
+	DmallocDataInfo *data = msg.getContent()->getData(0);
 
 	if (ClusterManager::inClusterMode()) {
 

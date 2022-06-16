@@ -10,45 +10,12 @@
 #include <sstream>
 
 #include "Message.hpp"
+#include "ClusterMemoryManagement.hpp"
 
 #include <nanos6/cluster.h>
 
 class MessageDmalloc : public Message {
 public:
-	struct MessageDmallocDataInfo {
-		//! Address pointer.
-		DataAccessRegion _region;
-
-		//! Cluster size in allocation moment.
-		size_t _clusterSize;
-
-		//! distribution policy for the region
-		nanos6_data_distribution_t _policy;
-
-		//! number of dimensions for distribution
-		size_t _nrDim;
-
-		//! dimensions of the distribution
-		size_t _dimensions[];
-
-		size_t getSize() const
-		{
-			return sizeof(void*)
-				+ 3 * sizeof(size_t)
-				+ sizeof(nanos6_data_distribution_t)
-				+ _nrDim * sizeof(size_t);
-		}
-
-		MessageDmallocDataInfo(
-			const DataAccessRegion &region, size_t clusterSize,
-			nanos6_data_distribution_t policy, size_t nrDim, const size_t *dimensions
-		) : _region(region), _clusterSize(clusterSize), _policy(policy), _nrDim(nrDim)
-		{
-			memcpy(_dimensions, dimensions, nrDim * sizeof(size_t));
-		}
-	};
-
-
 	// The content will have {nallocs, offsets[nallocs], data[nallocs]} but data is actually an
 	// array of variable size elements, so each element starts in the offset[i] position.
 	struct DmallocMessageContent {
@@ -60,13 +27,13 @@ public:
 			return (size_t*)_msgData;
 		}
 
-		MessageDmallocDataInfo *getData(size_t idx)
+		ClusterMemoryManagement::DmallocDataInfo *getData(size_t idx)
 		{
 			assert(idx < _ndmallocs);
 
 			const size_t offset = _ndmallocs * sizeof(size_t) + this->getOffsetPtr()[idx];
 
-			return reinterpret_cast<MessageDmallocDataInfo *>(_msgData + offset);
+			return reinterpret_cast<ClusterMemoryManagement::DmallocDataInfo *>(_msgData + offset);
 		}
 	};
 
@@ -84,7 +51,7 @@ public:
 		const size_t *dimensions
 	);
 
-	MessageDmalloc(std::list<MessageDmallocDataInfo *> &dmallocs);
+	MessageDmalloc(std::list<ClusterMemoryManagement::DmallocDataInfo *> &dmallocs);
 
 	MessageDmalloc(Deliverable *dlv) : Message(dlv)
 	{

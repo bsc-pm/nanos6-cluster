@@ -64,7 +64,7 @@ namespace ClusterDirectory {
 	}
 
 	void registerAllocation(
-		const MessageDmalloc::MessageDmallocDataInfo *dmallocInfo, Task *task, size_t clusterSize
+		const ClusterMemoryManagement::DmallocDataInfo *dmallocInfo, Task *task, size_t clusterSize
 	) {
 		// If numa.tracking is set to "auto", then a dmalloc enables NUMA tracking on all nodes
 		NUMAManager::enableTrackingIfAuto();
