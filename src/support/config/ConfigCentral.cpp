@@ -35,6 +35,8 @@ ConfigCentral::ConfigCentral() :
 	registerOption<bool_t>("cluster.eager_weak_fetch", true);
 	registerOption<bool_t>("cluster.eager_send", false);
 	registerOption<bool_t>("cluster.merge_release_and_finish", true);
+	registerOption<bool_t>("cluster.auto.optimize_nonaccessed", true);
+	registerOption<bool_t>("cluster.auto.optimize_readonly", true);
 
 
 	// CPU manager

@@ -84,6 +84,12 @@ ClusterManager::ClusterManager(std::string const &commType, int argc, char **arg
 	ConfigVariable<bool> mergeReleaseAndFinish("cluster.merge_release_and_finish");
 	_mergeReleaseAndFinish = mergeReleaseAndFinish.getValue();
 
+	ConfigVariable<bool> autoOptimizeNonAccessed("cluster.auto.optimize_nonaccessed");
+	_autoOptimizeNonAccessed = autoOptimizeNonAccessed.getValue();
+
+	ConfigVariable<bool> autoOptimizeReadOnly("cluster.auto.optimize_readonly");
+	_autoOptimizeReadOnly = autoOptimizeReadOnly.getValue();
+
 	ConfigVariable<int> numMessageHandlerWorkers("cluster.num_message_handler_workers");
 	_numMessageHandlerWorkers = numMessageHandlerWorkers.getValue();
 }
