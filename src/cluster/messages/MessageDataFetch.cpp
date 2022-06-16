@@ -12,11 +12,10 @@
 #include "executors/workflow/cluster/ExecutionWorkflowCluster.hpp"
 
 MessageDataFetch::MessageDataFetch(
-	const ClusterNode *from,
 	size_t numFragments,
 	std::vector<ExecutionWorkflow::ClusterDataCopyStep *> const &copySteps
 )
-	: Message(DATA_FETCH, sizeof(size_t) + numFragments * sizeof(DataAccessRegionInfo), from)
+	: Message(DATA_FETCH, sizeof(size_t) + numFragments * sizeof(DataAccessRegionInfo))
 {
 	_content = reinterpret_cast<DataFetchMessageContent *>(_deliverable->payload);
 

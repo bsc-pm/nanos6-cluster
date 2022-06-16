@@ -196,7 +196,7 @@ void ClusterManager::shutdownPhase1()
 
 	if (ClusterManager::isMasterNode()) {
 		if (inClusterMode()) {
-			MessageSysFinish msg(_singleton->_thisNode);
+			MessageSysFinish msg;
 			ClusterManager::sendMessageToAll(&msg, true);
 		}
 
@@ -251,7 +251,7 @@ void ClusterManager::fetchVector(
 	//! At the moment we do not translate addresses on remote
 	//! nodes, so the region we are fetching, on the remote node is
 	//! the same as the local one
-	MessageDataFetch *msg = new MessageDataFetch(_singleton->_thisNode, nFragments, copySteps);
+	MessageDataFetch *msg = new MessageDataFetch(nFragments, copySteps);
 
 	__attribute__((unused)) MessageDataFetch::DataFetchMessageContent *content = msg->getContent();
 

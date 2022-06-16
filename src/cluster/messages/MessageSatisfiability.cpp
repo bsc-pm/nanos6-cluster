@@ -10,12 +10,10 @@
 #include <TaskOffloading.hpp>
 
 MessageSatisfiability::MessageSatisfiability(
-	const ClusterNode *from,
 	TaskOffloading::SatisfiabilityInfoVector &satInfoVector
 )
 	: Message(SATISFIABILITY,
-		sizeof(size_t) + satInfoVector.size() * sizeof(TaskOffloading::SatisfiabilityInfo),
-		from)
+		sizeof(size_t) + satInfoVector.size() * sizeof(TaskOffloading::SatisfiabilityInfo))
 {
 	_content = reinterpret_cast<SatisfiabilityMessageContent *>(_deliverable->payload);
 	_content->_nSatisfiabilities = satInfoVector.size();

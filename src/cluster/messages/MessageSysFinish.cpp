@@ -9,8 +9,7 @@
 
 #include <nanos6/bootstrap.h>
 
-MessageSysFinish::MessageSysFinish(const ClusterNode *from)
-	: Message(SYS_FINISH, 1, from)
+MessageSysFinish::MessageSysFinish() : Message(SYS_FINISH, 1)
 {}
 
 bool MessageSysFinish::handleMessage()

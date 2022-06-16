@@ -39,7 +39,6 @@ private:
 
 public:
 	MessageDataFetch(
-		const ClusterNode *from,
 		size_t numFragments,
 		std::vector<ExecutionWorkflow::ClusterDataCopyStep *> const &copySteps
 	);

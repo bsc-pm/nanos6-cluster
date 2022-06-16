@@ -48,7 +48,7 @@ protected:
 
 public:
 	Message() = delete;
-	Message(MessageType type, size_t size, const ClusterNode *from);
+	Message(MessageType type, size_t size);
 
 	template<typename T>
 	static bool RegisterMSGClass(int id)

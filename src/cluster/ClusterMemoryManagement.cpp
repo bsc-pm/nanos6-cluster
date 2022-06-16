@@ -145,16 +145,13 @@ void *ClusterMemoryManagement::dmalloc(
 	assert(currentThread != nullptr);
 	Task *task = currentThread->getTask();
 
-	ClusterNode *current = ClusterManager::getCurrentClusterNode();
-	assert(current != nullptr);
-
 	const size_t clusterSize = ClusterManager::clusterSize();
 	assert(clusterSize > 0);
 
 	DataAccessRegion memoryRegion(dptr, size);
 
 	//! Send a message to everyone else to let them know about the allocation
-	MessageDmalloc msg(current, memoryRegion, clusterSize, policy, numDimensions, dimensions);
+	MessageDmalloc msg(memoryRegion, clusterSize, policy, numDimensions, dimensions);
 	assert(msg.getContent()->_ndmallocs == 1);
 	MessageDmalloc::MessageDmallocDataInfo *data = msg.getContent()->getData(0);
 
@@ -200,7 +197,7 @@ void ClusterMemoryManagement::dfree(void *ptr, size_t size)
 	DataAccessRegistration::unregisterLocalAccess(currentTask, distributedRegion, /* isStack */ false);
 
 	if (ClusterManager::inClusterMode()) {
-		MessageDfree msg(ClusterManager::getCurrentClusterNode(), distributedRegion);
+		MessageDfree msg(distributedRegion);
 
 		//! Here we should deallocate the memory once we fix the memory allocator API
 		ClusterManager::sendMessageToAll(&msg, true);

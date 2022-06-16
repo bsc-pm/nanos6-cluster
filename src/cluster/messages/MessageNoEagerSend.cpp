@@ -12,10 +12,14 @@
 #include "OffloadedTaskId.hpp"
 #include "OffloadedTasksInfoMap.hpp"
 
-MessageNoEagerSend::MessageNoEagerSend(const ClusterNode *from,
+MessageNoEagerSend::MessageNoEagerSend(
 	size_t numRegions,
-	const std::vector<TaskOffloading::NoEagerSendInfo> &regions)
-	: Message(NO_EAGER_SEND, sizeof(OffloadedTaskIdManager::OffloadedTaskId) + sizeof(size_t) + numRegions * sizeof(TaskOffloading::NoEagerSendInfo), from)
+	const std::vector<TaskOffloading::NoEagerSendInfo> &regions
+)
+	: Message(NO_EAGER_SEND,
+		sizeof(OffloadedTaskIdManager::OffloadedTaskId)
+		+ sizeof(size_t)
+		+ numRegions * sizeof(TaskOffloading::NoEagerSendInfo))
 {
 	_content = reinterpret_cast<NoEagerSendMessageContent *>(_deliverable->payload);
 	_content->_numRegions = numRegions;

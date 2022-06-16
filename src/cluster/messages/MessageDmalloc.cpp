@@ -13,14 +13,13 @@
 #include <DistributionPolicy.hpp>
 #include <VirtualMemoryManagement.hpp>
 
-MessageDmalloc::MessageDmalloc(const ClusterNode *from,
+MessageDmalloc::MessageDmalloc(
 	const DataAccessRegion &region, size_t clusterSize,
 	nanos6_data_distribution_t policy, size_t nrDim, const size_t *dimensions
 )
 	: Message(DMALLOC,
 		2 * sizeof(size_t)
-		+ sizeof(MessageDmallocDataInfo) + nrDim * sizeof(size_t),
-		from)
+		+ sizeof(MessageDmallocDataInfo) + nrDim * sizeof(size_t))
 {
 	_content = reinterpret_cast<DmallocMessageContent *>(_deliverable->payload);
 	_content->_ndmallocs = 1;
@@ -30,14 +29,11 @@ MessageDmalloc::MessageDmalloc(const ClusterNode *from,
 	new (ptr) MessageDmallocDataInfo(region, clusterSize, policy, nrDim, dimensions);
 }
 
-MessageDmalloc::MessageDmalloc(const ClusterNode *from,
-	std::list<MessageDmalloc::MessageDmallocDataInfo *> &dmallocs
-)
+MessageDmalloc::MessageDmalloc(std::list<MessageDmalloc::MessageDmallocDataInfo *> &dmallocs)
 	: Message(DMALLOC,
 		sizeof(size_t)
 		+ dmallocs.size() * sizeof(size_t)
-		+ ClusterMemoryManagement::getSerializedDmallocsSize(),
-		from)
+		+ ClusterMemoryManagement::getSerializedDmallocsSize())
 {
 	_content = reinterpret_cast<DmallocMessageContent *>(_deliverable->payload);
 	_content->_ndmallocs = dmallocs.size();

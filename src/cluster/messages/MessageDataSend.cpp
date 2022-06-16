@@ -9,10 +9,10 @@
 #include <ClusterManager.hpp>
 #include <PendingQueue.hpp>
 
-MessageDataSend::MessageDataSend(const ClusterNode *from,
+MessageDataSend::MessageDataSend(
 	size_t numSends,
 	std::vector<TaskOffloading::DataSendRegionInfo> const &dataSends)
-	: Message(DATA_SEND, sizeof(size_t) + numSends * sizeof(DataSendRegionInfoElem), from)
+	: Message(DATA_SEND, sizeof(size_t) + numSends * sizeof(DataSendRegionInfoElem))
 {
 	_content = reinterpret_cast<DataSendMessageContent *>(_deliverable->payload);
 	_content->_numSends = numSends;

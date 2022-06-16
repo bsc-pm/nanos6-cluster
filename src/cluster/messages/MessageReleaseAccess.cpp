@@ -15,7 +15,6 @@
 #include "scheduling/Scheduler.hpp"
 
 MessageReleaseAccess::MessageReleaseAccess(
-	const ClusterNode *from,
 	OffloadedTaskIdManager::OffloadedTaskId offloadedTaskId,
 	bool release,
 	ReleaseAccessInfoVector &InfoVector
@@ -24,7 +23,7 @@ MessageReleaseAccess::MessageReleaseAccess(
 		(release && !InfoVector.empty()) ? RELEASE_ACCESS_AND_FINISH
 		: !InfoVector.empty() ? RELEASE_ACCESS
 		: TASK_FINISHED,
-		sizeof(void*) + 2 * sizeof(size_t) + InfoVector.size() * sizeof(ReleaseAccessInfo), from)
+		sizeof(void*) + 2 * sizeof(size_t) + InfoVector.size() * sizeof(ReleaseAccessInfo))
 {
 	_content = reinterpret_cast<ReleaseAccessMessageContent *>(_deliverable->payload);
 

@@ -80,7 +80,6 @@ class MessageTaskNew : public Message {
 
 public:
 	MessageTaskNew(
-		const ClusterNode *from,
 		nanos6_task_info_t *taskInfo,
 		nanos6_task_invocation_info_t *taskInvokationInfo,
 		size_t flags,

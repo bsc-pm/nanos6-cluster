@@ -255,10 +255,7 @@ namespace ExecutionWorkflow {
 #endif // NDEBUG
 
 			MessageReleaseAccess *msg = new MessageReleaseAccess(
-				ClusterManager::getCurrentClusterNode(),
-				_remoteTaskIdentifier,
-				releaseTask,
-				_releaseInfo
+				_remoteTaskIdentifier, releaseTask, _releaseInfo
 			);
 
 			_releaseInfo.clear();

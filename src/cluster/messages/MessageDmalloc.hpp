@@ -76,12 +76,15 @@ private:
 	DmallocMessageContent *_content;
 
 public:
-	MessageDmalloc(const ClusterNode *from,
-		const DataAccessRegion &region, size_t clusterSize, nanos6_data_distribution_t policy,
-		size_t numDimensions, const size_t *dimensions
+	MessageDmalloc(
+		const DataAccessRegion &region,
+		size_t clusterSize,
+		nanos6_data_distribution_t policy,
+		size_t numDimensions,
+		const size_t *dimensions
 	);
 
-	MessageDmalloc(const ClusterNode *from, std::list<MessageDmallocDataInfo *> &dmallocs);
+	MessageDmalloc(std::list<MessageDmallocDataInfo *> &dmallocs);
 
 	MessageDmalloc(Deliverable *dlv) : Message(dlv)
 	{

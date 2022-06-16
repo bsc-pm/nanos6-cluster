@@ -22,7 +22,7 @@ class MessageDfree : public Message {
 	DfreeMessageContent *_content;
 
 public:
-	MessageDfree(const ClusterNode *from, DataAccessRegion &region);
+	MessageDfree(DataAccessRegion &region);
 
 	MessageDfree(Deliverable *dlv) : Message(dlv)
 	{

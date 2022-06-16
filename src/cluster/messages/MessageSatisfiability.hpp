@@ -20,10 +20,7 @@ private:
 	SatisfiabilityMessageContent *_content;
 
 public:
-	MessageSatisfiability(
-		const ClusterNode *from,
-		TaskOffloading::SatisfiabilityInfoVector &satInfo
-	);
+	MessageSatisfiability(TaskOffloading::SatisfiabilityInfoVector &satInfo);
 
 	MessageSatisfiability(Deliverable *dlv) : Message(dlv)
 	{

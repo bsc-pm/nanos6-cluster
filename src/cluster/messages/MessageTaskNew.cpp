@@ -15,7 +15,6 @@
 #include "NodeNamespace.hpp"
 
 MessageTaskNew::MessageTaskNew(
-	const ClusterNode *from,
 	nanos6_task_info_t *taskInfo,
 	nanos6_task_invocation_info_t *taskInvocationInfo,
 	size_t flags,
@@ -31,8 +30,7 @@ MessageTaskNew::MessageTaskNew(
 		sizeof(TaskNewMessageContent) +
 		numImplementations * sizeof(nanos6_task_implementation_info_t) +
 		numSatInfo * sizeof(TaskOffloading::SatisfiabilityInfo) +
-		argsBlockSize,
-		from)
+		argsBlockSize)
 {
 	assert(taskInfo != nullptr);
 	assert(taskInvocationInfo != nullptr);

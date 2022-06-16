@@ -85,7 +85,6 @@ namespace TaskOffloading {
 		assert(remoteNode != nullptr);
 
 		remoteNode->incNumOffloadedTasks(1);
-		ClusterNode const *thisNode = ClusterManager::getCurrentClusterNode();
 		nanos6_task_info_t *taskInfo = task->getTaskInfo();
 		nanos6_task_invocation_info_t *taskInvocationInfo = task->getTaskInvokationInfo();
 		size_t flags = task->getFlags();
@@ -101,8 +100,7 @@ namespace TaskOffloading {
 		task->markAsOffloaded();
 
 		MessageTaskNew *msg = new MessageTaskNew(
-			thisNode, taskInfo,
-			taskInvocationInfo, flags,
+			taskInfo, taskInvocationInfo, flags,
 			taskInfo->implementation_count, taskInfo->implementations,
 			nrSatInfo, satInfoPtr,
 			argsBlockSize, argsBlock,
@@ -131,12 +129,10 @@ namespace TaskOffloading {
 			return;
 		}
 
-		ClusterNode *current = ClusterManager::getCurrentClusterNode();
-
 		for (auto &it: satInfoMap) {
 			assert(it.first != nullptr);
-			assert(it.first != current);
-			MessageSatisfiability *msg = new MessageSatisfiability(current, it.second);
+			assert(it.first != ClusterManager::getCurrentClusterNode());
+			MessageSatisfiability *msg = new MessageSatisfiability(it.second);
 			ClusterManager::sendMessage(msg, it.first);
 		}
 
@@ -144,7 +140,7 @@ namespace TaskOffloading {
 
 		for (auto &it: regionInfoMap) {
 			assert(it.first != nullptr);
-			MessageDataSend *msg = new MessageDataSend(current, it.second.size(), it.second);
+			MessageDataSend *msg = new MessageDataSend(it.second.size(), it.second);
 			ClusterManager::sendMessage(msg, it.first);
 		}
 
@@ -242,9 +238,8 @@ namespace TaskOffloading {
 	void sendNoEagerSend(Task *task, const std::vector<NoEagerSendInfo> &regions)
 	{
 		ClusterTaskContext *context = task->getClusterContext();
-		ClusterNode const *thisNode = ClusterManager::getCurrentClusterNode();
 		ClusterNode *offloader = context->getRemoteNode();
-		MessageNoEagerSend *msg = new MessageNoEagerSend(thisNode, regions.size(), regions);
+		MessageNoEagerSend *msg = new MessageNoEagerSend(regions.size(), regions);
 		ClusterManager::sendMessage(msg, offloader);
 	}
 

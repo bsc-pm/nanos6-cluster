@@ -189,8 +189,7 @@ namespace ExecutionWorkflow {
 					ClusterNode *sourceNode = ClusterManager::getClusterNode(location);
 					std::vector<TaskOffloading::DataSendRegionInfo> sends;
 					sends.push_back(dataSendRegionInfo);
-					ClusterNode *from = ClusterManager::getCurrentClusterNode();
-					MessageDataSend *msg = new MessageDataSend(from, 1, sends);
+					MessageDataSend *msg = new MessageDataSend(1, sends);
 					ClusterManager::sendMessage(msg, sourceNode);
 				}
 			}

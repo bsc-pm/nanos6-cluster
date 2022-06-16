@@ -31,12 +31,11 @@ private:
 	NoEagerSendMessageContent *_content;
 
 public:
-	MessageNoEagerSend(const ClusterNode *from,
+	MessageNoEagerSend(
 		size_t numRegions,
 		const std::vector<TaskOffloading::NoEagerSendInfo> &regions);
 
-	MessageNoEagerSend(Deliverable *dlv)
-		: Message(dlv)
+	MessageNoEagerSend(Deliverable *dlv) : Message(dlv)
 	{
 		_content = reinterpret_cast<NoEagerSendMessageContent *>(_deliverable->payload);
 	}

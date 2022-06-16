@@ -7,9 +7,10 @@
 #include "Message.hpp"
 #include "MessageId.hpp"
 
+#include <ClusterManager.hpp>
 #include <ClusterNode.hpp>
 
-Message::Message(MessageType type, size_t size, const ClusterNode *from)
+Message::Message(MessageType type, size_t size)
 	: TransferBase(nullptr), _deliverable((Deliverable *) calloc(1, sizeof(msg_header) + size))
 {
 	FatalErrorHandler::failIf(_deliverable == nullptr, "Could not allocate for creating message");
@@ -20,5 +21,5 @@ Message::Message(MessageType type, size_t size, const ClusterNode *from)
 	 * future, it will probably be something related to
 	 * the Task related with this message. */
 	_deliverable->header.id = MessageId::nextMessageId();
-	_deliverable->header.senderId = from->getIndex();
+	_deliverable->header.senderId = ClusterManager::getCurrentClusterNode()->getIndex();
 }

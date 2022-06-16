@@ -11,8 +11,8 @@
 #include <DataAccessRegion.hpp>
 #include <memory/directory/cluster/DistributionPolicy.hpp>
 
-MessageDfree::MessageDfree(const ClusterNode *from, DataAccessRegion &region) :
-	Message(DFREE, sizeof(DfreeMessageContent), from)
+MessageDfree::MessageDfree(DataAccessRegion &region) :
+	Message(DFREE, sizeof(DfreeMessageContent))
 {
 	_content = reinterpret_cast<DfreeMessageContent *>(_deliverable->payload);
 	_content->_region = region;

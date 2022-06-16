@@ -59,7 +59,6 @@ private:
 public:
 
 	MessageReleaseAccess(
-		const ClusterNode *from,
 		OffloadedTaskIdManager::OffloadedTaskId offloadedTaskId,
 		bool release,
 		ReleaseAccessInfoVector &vector

@@ -38,7 +38,7 @@ class MessageDataSend : public Message {
 	DataSendMessageContent *_content;
 
 public:
-	MessageDataSend(const ClusterNode *from,
+	MessageDataSend(
 		size_t numSends,
 		std::vector<TaskOffloading::DataSendRegionInfo> const &dataSends);
 
