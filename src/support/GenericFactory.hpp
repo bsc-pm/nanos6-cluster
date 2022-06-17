@@ -44,11 +44,11 @@ public:
 		try {
 			return _callbacks.at(id)(input...);
 		} catch (const std::out_of_range &oor) {
-			FatalErrorHandler::fail("Not registered object");
+			FatalErrorHandler::fail(
+				"Not registered object: ", typeid(T).name(), " with ID: ", id," in GenericFactory"
+			);
 		}
-
-		/* Should never reach here anyway. This is just to silence the
-		 * annoying compiler warning */
+		// Should never reach here anyway. This is just to silence the annoying compiler warning
 		return T();
 	}
 
