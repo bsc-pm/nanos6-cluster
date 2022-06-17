@@ -31,7 +31,7 @@ MessageDmalloc::MessageDmalloc(
 	);
 }
 
-MessageDmalloc::MessageDmalloc(std::list<ClusterMemoryManagement::DmallocDataInfo *> &dmallocs)
+MessageDmalloc::MessageDmalloc(const ClusterMemoryManagement::dmalloc_container_t &dmallocs)
 	: Message(DMALLOC,
 		sizeof(size_t)
 		+ dmallocs.size() * sizeof(size_t)

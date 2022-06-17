@@ -51,7 +51,7 @@ public:
 		const size_t *dimensions
 	);
 
-	MessageDmalloc(std::list<ClusterMemoryManagement::DmallocDataInfo *> &dmallocs);
+	MessageDmalloc(const ClusterMemoryManagement::dmalloc_container_t &dmallocs);
 
 	MessageDmalloc(Deliverable *dlv) : Message(dlv)
 	{

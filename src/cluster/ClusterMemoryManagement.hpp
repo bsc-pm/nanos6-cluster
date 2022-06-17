@@ -47,8 +47,10 @@ public:
 		}
 	};
 
+	typedef std::list<DmallocDataInfo *> dmalloc_container_t;
+
 private:
-	std::list<DmallocDataInfo *> _dmallocs;
+	dmalloc_container_t _dmallocs;
 
 	void registerDmalloc(
 		const DmallocDataInfo *dmallocDataInfo,
@@ -60,7 +62,7 @@ private:
 
 public:
 
-	static inline const std::list<DmallocDataInfo *> &getMallocsList()
+	static inline const dmalloc_container_t &getMallocsList()
 	{
 		return _singleton._dmallocs;
 	}
