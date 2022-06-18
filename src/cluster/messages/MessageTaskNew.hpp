@@ -194,7 +194,9 @@ public:
 		return getArgsBlockPtr();
 	}
 
-	bool handleMessage();
+	bool handleMessage() override;
+
+	bool handleMessageNamespace() override;
 
 	inline std::string toString() const override
 	{

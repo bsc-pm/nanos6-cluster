@@ -61,9 +61,16 @@ MessageTaskNew::MessageTaskNew(
 
 bool MessageTaskNew::handleMessage()
 {
-	NodeNamespace::enqueueTaskMessage(this);
+	NodeNamespace::enqueueMessage(this);
+	return false;
+}
 
-	// The Message will be deleted by remoteTaskCleanup
+bool MessageTaskNew::handleMessageNamespace()
+{
+	Task *namespaceTask = NodeNamespace::getNamespaceTask();
+	TaskOffloading::remoteTaskCreateAndSubmit(this, namespaceTask, true);
+
+	// The Message will be deleted by remoteTaskCleanup;
 	return false;
 }
 

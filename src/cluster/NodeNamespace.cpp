@@ -21,6 +21,7 @@ NodeNamespace *NodeNamespace::_singleton = nullptr;
 
 NodeNamespace::NodeNamespace(SpawnFunction::function_t mainCallback, void *args)
 	: _mustShutdown(false),
+	_messageAction(nullptr),
 	_blockedTask(nullptr),
 	_callback(mainCallback, args),
 	_invocationInfo({"Spawned as a NodeNamespace"})
@@ -89,31 +90,36 @@ void NodeNamespace::bodyPrivate()
 	cv.notify_all();
 
 	while (true) {
-		_spinlock.lock();
+		Message *msg = nullptr;
 
-		if (!_queue.empty()) {
-			// Get the first function in the stream's queue
-			MessageTaskNew *msg = _queue.front();
-			assert(msg != nullptr);
-			_queue.pop_front();
-			_spinlock.unlock();
+		{  // locked section just to get the message to handle.
+			std::lock_guard<SpinLock> guard(_spinlock);
 
-			TaskOffloading::remoteTaskCreateAndSubmit(msg, _namespaceTask, true);
-
-		} else {
-
-			if (_mustShutdown.load()) {
-				// If we receive the shutdown indication we still need to repeat loops to offload
-				// all the pending tasks. _queue.empty requires to be in the lock;
-				_spinlock.unlock();
-				break;
+			if (!_queue.empty()) {
+				// Try to get a tasknew message first.
+				msg = _queue.front();
+				assert(msg != nullptr);
+				_queue.pop_front();
+			} else if (_messageAction != nullptr) {
+				// If no pending tasknews, then process action messages.
+				msg = _messageAction;
+				_messageAction = nullptr;
 			}
-			// Release the lock and block the task
-			_spinlock.unlock();
+		}
 
+		if (msg != nullptr) {
+			bool mustDelete = msg->handleMessageNamespace();
+			if (mustDelete) {
+				delete msg;
+			}
+		} else if (_mustShutdown.load()) {
+			// If we receive the shutdown indication we still need to repeat loops to offload all
+			// the pending tasks. _queue.empty requires to be in the lock;
+			break;
+		} else {
 			_blockedTask.store(_namespaceTask);
-			BlockingAPI::blockCurrentTask(false);
 			Instrument::stateNodeNamespace(2);
+			BlockingAPI::blockCurrentTask(false);
 		}
 	}
 
@@ -154,21 +160,3 @@ bool NodeNamespace::tryWakeUp()
 	}
 	return false;
 }
-
-//! \brief Add a function to this executor's stream queue
-//! \param[in] function The kernel to execute
-void NodeNamespace::enqueueTaskMessagePrivate(MessageTaskNew *message)
-{
-	// We shouldn't receive any task-new after Shutdown message.
-	assert(!_mustShutdown.load());
-
-	_spinlock.lock();
-
-	_queue.push_back(message);
-
-	_spinlock.unlock();
-
-	// Unblock the executor if it was blocked
-	tryWakeUp();
-}
-

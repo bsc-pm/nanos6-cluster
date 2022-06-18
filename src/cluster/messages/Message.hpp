@@ -117,6 +117,16 @@ public:
 	//! can be delete or false otherwise.
 	virtual bool handleMessage() = 0;
 
+	// This function is optional to implement in the derived classes. It is intended to be executed
+	// if the message goes into the namespace message queue.
+	virtual bool handleMessageNamespace() {
+		FatalErrorHandler::fail(
+			"Message ", this->getName(), " attempted to be executed in the namespace."
+		);
+
+		return false;
+	};
+
 	//! \brief prints info about the message
 	virtual std::string toString() const = 0;
 

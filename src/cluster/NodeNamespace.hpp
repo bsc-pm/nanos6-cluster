@@ -38,6 +38,9 @@ private:
 	//! The executor's function queue
 	std::deque<MessageTaskNew *> _queue;
 
+	//! The actions function
+	Message *_messageAction;
+
 	// Pointers to this task
 	std::atomic<Task *> _blockedTask;  // This will be used to know if the task
 									   // is actually blocked to restart it
@@ -161,10 +164,26 @@ public:
 
 	//! \brief Add a function to this executor's stream queue
 	//! \param[in] function The kernel to execute
-	static void enqueueTaskMessage(MessageTaskNew *message)
+	static void enqueueMessage(Message *message)
 	{
-		_singleton->enqueueTaskMessagePrivate(message);
+		assert(!_singleton->_mustShutdown.load());
+
+		const MessageType type = message->getType();
+
+		_singleton->_spinlock.lock();
+		if (type == TASK_NEW) {
+			MessageTaskNew* tasknew = dynamic_cast<MessageTaskNew*>(message);
+			assert(tasknew != nullptr);
+			_singleton->_queue.push_back(tasknew);
+		} else {
+			assert(_singleton->_messageAction == nullptr);
+			_singleton->_messageAction = message;
+		}
+		_singleton->_spinlock.unlock();
+
+		_singleton->tryWakeUp();
 	}
+
 
 	static bool isEnabled()
 	{
