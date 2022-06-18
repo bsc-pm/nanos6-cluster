@@ -7,6 +7,8 @@
 #ifndef MPI_ERROR_HANDLER_HPP
 #define MPI_ERROR_HANDLER_HPP
 
+#include <unistd.h>
+
 #pragma GCC visibility push(default)
 #include <mpi.h>
 #pragma GCC visibility pop
@@ -23,10 +25,10 @@ private:
 
 		MPI_Error_class(err, &errorClass);
 		MPI_Error_string(errorClass, errorString, &stringLength);
-		oss << errorString << " ";
+		oss << "class:" << errorString << " ";
 
 		MPI_Error_string(err, errorString, &stringLength);
-		oss << errorString;
+		oss << "message:" << errorString << " ";
 	}
 
 public:
@@ -41,7 +43,20 @@ public:
 		int rank = -1, size = 0;
 		MPI_Comm_rank(comm, &rank);
 		MPI_Comm_size(comm, &size);
-		oss << "MPI_error:" << rank << "/" << size << " ";
+
+		oss << "MPI_error: (rank:" << rank << " pid:"<< getpid() <<")" << "/" << size << " ";
+
+		char this_hostname[HOST_NAME_MAX];
+		if (gethostname(this_hostname, HOST_NAME_MAX) == 0) {
+			oss << "host:" << this_hostname << " ";
+		}
+
+		int len;
+		char commname[MPI_MAX_OBJECT_NAME];
+		MPI_Comm_get_name(comm, commname, &len);
+		if (len > 0) {
+			oss << "comm:" << commname << " ";
+		}
 
 		printMPIError(oss, rc);
 		emitReasonParts(oss, reasonParts...);

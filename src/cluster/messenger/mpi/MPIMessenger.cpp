@@ -15,7 +15,7 @@
 #include "cluster/polling-services/ClusterServicesPolling.hpp"
 #include "cluster/polling-services/ClusterServicesTask.hpp"
 #include "lowlevel/FatalErrorHandler.hpp"
-#include "lowlevel/mpi/MPIErrorHandler.hpp"
+#include "MPIErrorHandler.hpp"
 #include "MessageId.hpp"
 
 #include <ClusterManager.hpp>

@@ -1189,7 +1189,6 @@ noinst_HEADERS = \
 	src/lowlevel/apple/SpinLockImplementation.hpp \
 	src/lowlevel/cuda/CUDAErrorHandler.hpp \
 	src/lowlevel/cxx/SpinLockImplementation.hpp \
-	src/lowlevel/mpi/MPIErrorHandler.hpp \
 	src/lowlevel/posix/SpinLockImplementation.hpp \
 	src/lowlevel/threads/ExternalThread.hpp \
 	src/lowlevel/threads/ExternalThreadGroup.hpp \
@@ -1356,6 +1355,7 @@ noinst_HEADERS += \
 	src/cluster/messenger/Messenger.hpp \
 	src/cluster/messenger/mpi/MPIDataTransfer.hpp \
 	src/cluster/messenger/mpi/MPIMessenger.hpp \
+	src/cluster/messenger/mpi/MPIErrorHandler.hpp \
 	src/cluster/offloading/DataSendInfo.hpp \
 	src/cluster/offloading/RemoteTasksInfoMap.hpp \
 	src/cluster/offloading/ClusterTaskContext.hpp \
