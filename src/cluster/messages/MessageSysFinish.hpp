@@ -10,16 +10,28 @@
 #include <sstream>
 
 #include "Message.hpp"
+#include "cluster/ClusterManager.hpp"
 
 class MessageSysFinish : public Message {
 public:
-	MessageSysFinish();
+
+	MessageSysFinish() : Message(SYS_FINISH, 1)
+	{}
 
 	MessageSysFinish(Deliverable *dlv) : Message(dlv)
 	{
 	}
 
-	bool handleMessage();
+	bool handleMessage()
+	{
+		assert(_singleton != nullptr);
+		do {} while (!NodeNamespace::isEnabled());
+
+		NodeNamespace::notifyShutdown();
+		ClusterManager::synchronizeAll();
+
+		return true;
+	}
 
 	inline std::string toString() const
 	{

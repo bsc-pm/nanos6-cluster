@@ -474,7 +474,6 @@ cluster_sources += \
 	src/cluster/messages/MessageNoEagerSend.cpp \
 	src/cluster/messages/MessageReleaseAccess.cpp \
 	src/cluster/messages/MessageSatisfiability.cpp \
-	src/cluster/messages/MessageSysFinish.cpp \
 	src/cluster/messages/MessageTaskNew.cpp \
 	src/cluster/messages/MessageType.cpp \
 	src/cluster/messenger/LiveDataTransfers.cpp \

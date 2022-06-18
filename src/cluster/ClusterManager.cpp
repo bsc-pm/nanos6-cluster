@@ -110,16 +110,6 @@ void ClusterManager::initClusterNamespace(void (*func)(void *), void *args)
 	NodeNamespace::init(func, args);
 }
 
-void ClusterManager::finishClusterNamespace()
-{
-	assert(_singleton != nullptr);
-	do {} while (!NodeNamespace::isEnabled());
-
-	NodeNamespace::notifyShutdown();
-	ClusterManager::synchronizeAll();
-}
-
-
 
 void ClusterManager::internal_reset() {
 
@@ -195,13 +185,11 @@ void ClusterManager::shutdownPhase1()
 	}
 
 	if (ClusterManager::isMasterNode()) {
-		if (inClusterMode()) {
-			MessageSysFinish msg;
-			ClusterManager::sendMessageToAll(&msg, true);
-		}
+		MessageSysFinish msg;
+		ClusterManager::sendMessageToAll(&msg, true);
 
 		// Master needs to do the same than others
-		ClusterManager::finishClusterNamespace();
+		msg.handleMessage();
 	}
 
 	if (ClusterManager::inClusterMode()) {
