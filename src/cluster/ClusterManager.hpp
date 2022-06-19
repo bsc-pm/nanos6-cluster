@@ -383,9 +383,9 @@ public:
 	//! synchronization point.
 	static inline void synchronizeAll()
 	{
+		assert(_singleton != nullptr);
+		assert(_singleton->_msn != nullptr);
 		if (inClusterMode()) {
-			assert(_singleton != nullptr);
-			assert(_singleton->_msn != nullptr);
 			_singleton->_msn->synchronizeAll();
 		}
 	}

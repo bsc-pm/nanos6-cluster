@@ -12,10 +12,10 @@
 #include <unistd.h>
 
 #include <ClusterShutdownCallback.hpp>
-#include "messages/MessageTaskNew.hpp"
 #include "system/ompss/AddTask.hpp"
-#include "tasks/Task.hpp"
+#include "messages/MessageTaskNew.hpp"
 
+class Task;
 
 class NodeNamespace {
 private:
