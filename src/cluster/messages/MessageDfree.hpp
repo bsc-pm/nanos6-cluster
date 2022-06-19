@@ -37,10 +37,10 @@ public:
 	}
 
 	//! \brief Return a string with a description of the Message
-	inline std::string toString() const
+	inline std::string toString() const override
 	{
 		std::stringstream ss;
-		ss << "[region:" << _content->_region << "]";
+		ss << "[dfree:" << _content->_region << "]";
 
 		return ss.str();
 	}

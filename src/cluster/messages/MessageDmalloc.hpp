@@ -66,13 +66,15 @@ public:
 	}
 
 	//! \brief Return a string with a description of the Message
-	inline std::string toString() const
+	inline std::string toString() const override
 	{
 		std::stringstream ss;
 
-		ss << "[dmalloc:";
-		for (size_t i = 0; i < _content->_ndmallocs; ++i) {
-			ss << "(" << _content->getData(i)->_region << ")";
+		const size_t nMallocs = _content->_ndmallocs;
+		ss << "[dmalloc(" << nMallocs << "):";
+
+		for (size_t i = 0; i < nMallocs; ++i) {
+			ss << "[" << _content->getData(i)->_region << "]";
 		}
 		ss << "]";
 

@@ -29,12 +29,12 @@ public:
 
 	bool handleMessage();
 
-	inline std::string toString() const
+	inline std::string toString() const override
 	{
 		std::stringstream ss;
 
 		const size_t nRegions = _content->_nSatisfiabilities;
-		ss << "Satisfiability :" << nRegions;
+		ss << "Satisfiability(" << nRegions << "):";
 
 		for (size_t i = 0; i < nRegions; ++i) {
 			ss << _content->_SatisfiabilityInfo[i];

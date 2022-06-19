@@ -50,16 +50,16 @@ public:
 
 	bool handleMessage();
 
-	inline std::string toString() const
+	inline std::string toString() const override
 	{
 		std::stringstream ss;
 		const size_t nregions = _content->_nregions;
-		ss << "[regions(" << nregions << "): ";
+		ss << "[DataFetch(" << nregions << "):";
 
 		for (size_t i = 0; i < nregions; ++i) {
-			ss << _content->_remoteRegionInfo[i]._remoteRegion
-				<< (i < nregions - 1 ? "; " : "]");
+			ss << "[" << _content->_remoteRegionInfo[i]._remoteRegion << "]";
 		}
+		ss << "]";
 
 		return ss.str();
 	}

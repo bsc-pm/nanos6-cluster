@@ -40,6 +40,12 @@ public:
 			assert(location->getType() == nanos6_cluster_device
 					|| location->isDirectoryMemoryPlace());
 		}
+
+		friend std::ostream& operator<<(std::ostream &o, const ReleaseAccessInfo &info)
+		{
+			o << "[RelReg:" << info._region << " loc:" << info._location << "]";
+			return o;
+		}
 	};
 
 	typedef std::vector<MessageReleaseAccess::ReleaseAccessInfo> ReleaseAccessInfoVector;
@@ -76,18 +82,17 @@ public:
 		return _content->_offloadedTaskId;
 	}
 
-	inline std::string toString() const
+	inline std::string toString() const override
 	{
 		std::stringstream ss;
 
 		const size_t nRegions = _content->_ninfos;
-		ss << "ReleaseAccess:" << nRegions;
+		ss << "[ReleaseAccess(" << nRegions << "):";
 
 		for (size_t i = 0; i < nRegions; ++i) {
-			ReleaseAccessInfo &accessinfo = _content->_regionInfoList[i];
-
-			ss << "[RelReg:" << accessinfo._region << " location:" << accessinfo._location << "]";
+			ss << "[" << _content->_regionInfoList[i] << "]";
 		}
+		ss << "]";
 
 		return ss.str();
 	}

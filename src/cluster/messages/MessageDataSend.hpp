@@ -49,17 +49,17 @@ public:
 
 	bool handleMessage();
 
-	inline std::string toString() const
+	inline std::string toString() const override
 	{
 		std::stringstream ss;
 
 		const size_t numSends = _content->_numSends;
-		ss << "[regions(" << numSends << "): ";
+		ss << "[DataSend(" << numSends << "):";
 
 		for (size_t i = 0; i < numSends; ++i) {
-			ss << _content->_dataSendRegionInfo[i]._remoteRegion
-				<< (i < numSends - 1 ? "; " : "]");
+			ss << "[" << _content->_dataSendRegionInfo[i]._remoteRegion << "]";
 		}
+		ss << "]";
 
 		return ss.str();
 	}

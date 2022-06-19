@@ -196,10 +196,10 @@ public:
 
 	bool handleMessage();
 
-	inline std::string toString() const
+	inline std::string toString() const override
 	{
 		std::stringstream ss;
-		ss << "[offloadedTaskId:" << _content->_offloadedTaskId
+		ss << "[TaskNew(1):offloadedTaskId:" << _content->_offloadedTaskId
 			<< " numSatInfo:" << _content->_numSatInfo
 			<< "]";
 

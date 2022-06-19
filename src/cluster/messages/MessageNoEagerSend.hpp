@@ -47,17 +47,17 @@ public:
 		return _content->_offloadedTaskId;
 	}
 
-	inline std::string toString() const
+	inline std::string toString() const override
 	{
 		std::stringstream ss;
 
 		const size_t numRegions = _content->_numRegions;
-		ss << "[regions(" << numRegions << "): ";
+		ss << "[NoEagerSend(" << numRegions << "): ";
 
 		for (size_t i = 0; i < numRegions; ++i) {
-			ss << _content->_noEagerSendInfo[i]._region
-				<< (i < numRegions - 1 ? "; " : "]");
+			ss << "[" << _content->_noEagerSendInfo[i]._region << "]";
 		}
+		ss << "]";
 
 		return ss.str();
 	}

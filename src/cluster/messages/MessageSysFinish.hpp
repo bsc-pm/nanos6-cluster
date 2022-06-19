@@ -10,7 +10,8 @@
 #include <sstream>
 
 #include "Message.hpp"
-#include "cluster/ClusterManager.hpp"
+#include "NodeNamespace.hpp"
+#include "ClusterManager.hpp"
 
 class MessageSysFinish : public Message {
 public:
@@ -24,7 +25,6 @@ public:
 
 	bool handleMessage()
 	{
-		assert(_singleton != nullptr);
 		do {} while (!NodeNamespace::isEnabled());
 
 		NodeNamespace::notifyShutdown();
@@ -33,9 +33,9 @@ public:
 		return true;
 	}
 
-	inline std::string toString() const
+	inline std::string toString() const override
 	{
-		return "Node Shutdown";
+		return "[Shutdown]";
 	}
 };
 
