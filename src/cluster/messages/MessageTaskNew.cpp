@@ -61,7 +61,14 @@ MessageTaskNew::MessageTaskNew(
 
 bool MessageTaskNew::handleMessage()
 {
-	NodeNamespace::enqueueMessage(this);
+	// This function is called when there are not Worker helpers to handle messages. Because every
+	// tasknew is handled one by one in order.
+	assert(ClusterManager::getNumMessageHandlerWorkers() == 0);
+
+	std::deque<MessageTaskNew *> tasknews(1, this);
+
+	NodeNamespace::enqueueMessagesTaskNew(tasknews);
+
 	return false;
 }
 

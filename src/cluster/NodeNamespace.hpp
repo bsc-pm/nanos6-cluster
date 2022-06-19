@@ -164,23 +164,29 @@ public:
 
 	//! \brief Add a function to this executor's stream queue
 	//! \param[in] function The kernel to execute
-	static void enqueueMessage(Message *message)
+	static void enqueueMessagesTaskNew(const std::deque<MessageTaskNew*> &messages)
 	{
 		assert(!_singleton->_mustShutdown.load());
+		assert(!messages.empty());
 
-		const MessageType type = message->getType();
+		{
+			std::lock_guard<SpinLock> guard(_singleton->_spinlock);
+			_singleton->_queue.insert(_singleton->_queue.end(), messages.begin(), messages.end());
+		}
+		_singleton->tryWakeUp();
+	}
 
-		_singleton->_spinlock.lock();
-		if (type == TASK_NEW) {
-			MessageTaskNew* tasknew = dynamic_cast<MessageTaskNew*>(message);
-			assert(tasknew != nullptr);
-			_singleton->_queue.push_back(tasknew);
-		} else {
+	//! \brief Add a function to this executor's stream queue
+	//! \param[in] function The kernel to execute
+	static void setActionMessage(Message* message)
+	{
+		assert(!_singleton->_mustShutdown.load());
+		assert(message != nullptr);
+		{
+			std::lock_guard<SpinLock> guard(_singleton->_spinlock);
 			assert(_singleton->_messageAction == nullptr);
 			_singleton->_messageAction = message;
 		}
-		_singleton->_spinlock.unlock();
-
 		_singleton->tryWakeUp();
 	}
 

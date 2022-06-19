@@ -16,7 +16,9 @@
 #include <InstrumentThreadInstrumentationContext.hpp>
 #include <Message.hpp>
 #include <MessageReleaseAccess.hpp>
+#include <MessageTaskNew.hpp>
 #include <MessageNoEagerSend.hpp>
+#include <NodeNamespace.hpp>
 
 class Task;
 
@@ -39,8 +41,8 @@ namespace ClusterPollingServices {
 		// Messages that can be stolen by other workers
 		std::deque<T*> _stealableMessages;
 
-		// Messages that cannot be stolen (and that have lower priority)
-		std::deque<T*> _nonStealableMessages;
+		// Messages that cannot be stolen (and that have lower priority, only tasknew for now)
+		std::deque<MessageTaskNew*> _nonStealableTaskNew;
 
 		// Only one _nonStealableLowPriorityMessage may exist at the time as they are malleability
 		// or the finish message.
@@ -76,14 +78,18 @@ namespace ClusterPollingServices {
 				break;
 
 				case TASK_NEW:
+				{
 					// * TASK_NEW is generally too trivial: as it only requires queuing the task to
 					// be created and submitted by the namespace but many of those may arrive
 					// sequentially and from time to time the first one may require to wakeup the
 					// namespace task which may be a relatively expensive call. So we enqueue those
 					// messages here to process them latter in order too enqueue all the stealable
 					// ones for the workers first.
-					_nonStealableMessages.push_back(msg);
-					break;
+					MessageTaskNew* tasknew = dynamic_cast<MessageTaskNew *>(msg);
+					assert(tasknew != nullptr);
+					_nonStealableTaskNew.push_back(tasknew);
+				}
+				break;
 
 				case SYS_FINISH:
 					// * These messages are the last ones to be processes... they must be the last
@@ -98,10 +104,10 @@ namespace ClusterPollingServices {
 					// This message is worth handling by other workers, but we need to ensure it
 					// is done before handling the task's TASK_FINISHED. Increment the number of
 					// RELEASE_ACCESSES or NO_EAGER_SENDs for this task.
-					OffloadedTaskIdManager::OffloadedTaskId taskId
-						= (msg->getType() == NO_EAGER_SEND) ?
-							dynamic_cast<MessageNoEagerSend *>(msg)->getTaskId()
-							: dynamic_cast<MessageReleaseAccess *>(msg)->getTaskId();
+					const OffloadedTaskIdManager::OffloadedTaskId taskId
+						= (msg->getType() == NO_EAGER_SEND)
+						? dynamic_cast<MessageNoEagerSend *>(msg)->getTaskId()
+						: dynamic_cast<MessageReleaseAccess *>(msg)->getTaskId();
 					{
 						std::lock_guard<PaddedSpinLock<>> guard(_waitingTaskInfoLock);
 						auto it = _waitingTaskInfo.find(taskId);
@@ -147,45 +153,12 @@ namespace ClusterPollingServices {
 			}
 		}
 
-		// Steal a message
-		T *stealMessageInternal(bool isMessageHandlerItself)
-		{
-			// Try to take a stealable task
-			Message *msg = nullptr;
-
-			_lock.lock();
-			if (!_stealableMessages.empty()) {
-				msg = _stealableMessages.front();
-				_stealableMessages.pop_front();
-				assert(msg != nullptr);
-
-				if (!isMessageHandlerItself) {
-					_numStolen.fetch_add(1);
-				}
-			}
-			_lock.unlock();
-
-			// If not, and this is the polling service itself, take a non-stealable one
-			if (isMessageHandlerItself && msg == nullptr) {
-				if (!_nonStealableMessages.empty()) {
-					msg = _nonStealableMessages.front();
-					_nonStealableMessages.pop_front();
-					assert(msg != nullptr);
-				} else if (_numStolen.load() == 0 && _nonStealableLowPriorityMessage != nullptr) {
-					msg = _nonStealableLowPriorityMessage;
-					_nonStealableLowPriorityMessage = nullptr;
-				}
-			}
-			if (msg) {
-				Instrument::clusterHandleMessage(msg, msg->getSenderId());
-			}
-			return msg;
-		}
-
 		// Finished handling a Message
 		void notifyDoneInternal(T *msg, bool isMessageHandlerItself)
 		{
-			Instrument::clusterHandleMessage(msg, -1);
+			if (ClusterManager::getNumMessageHandlerWorkers() == 0) {
+				return;
+			};
 
 			if (!isMessageHandlerItself) {
 				_numStolen.fetch_sub(1);
@@ -243,16 +216,39 @@ namespace ClusterPollingServices {
 
 	public:
 
-		// Called by worker to steal a message
-		static T *stealMessage()
+		static void handleMessageWrapper(T *msg, bool isMessageHandlerItself)
 		{
-			return _singleton.stealMessageInternal(/* isMessageHandlerItself */ false);
+			Instrument::clusterHandleMessage(msg, msg->getSenderId());
+			const bool autodelete = msg->handleMessage();
+			Instrument::clusterHandleMessage(msg, -1);
+
+			if (_singleton._numWorkers > 0) {
+				_singleton.notifyDoneInternal(msg, isMessageHandlerItself);
+			}
+
+			if (autodelete) {
+				delete msg;
+			}
 		}
 
-		// Called by worker to notify finished handling a message
-		static void notifyDone(T *msg)
+		// Called by worker to steal a message
+		static T *stealMessage(bool isMessageHandlerItself)
 		{
-			_singleton.notifyDoneInternal(msg, /* isMessageHandlerItself */ false);
+			// Try to take a stealable task
+			Message *msg = nullptr;
+
+			std::lock_guard<PaddedSpinLock<>> guard(_singleton._lock);
+			if (!_singleton._stealableMessages.empty()) {
+				msg = _singleton._stealableMessages.front();
+				_singleton._stealableMessages.pop_front();
+				assert(msg != nullptr);
+
+				if (!isMessageHandlerItself) {
+					_singleton._numStolen.fetch_add(1);
+				}
+			}
+
+			return msg;
 		}
 
 		// When the function returns false the service stops.
@@ -263,51 +259,53 @@ namespace ClusterPollingServices {
 				return false;
 			}
 
+			T *msg = nullptr;
+
 			if (_singleton._numWorkers == 0) {
-				// No other worker tasks, so handle the messages right away and
-				// sequentially here (more efficient than below)
-				T *msg = nullptr;
-				do {
-					msg = ClusterManager::checkMail();
-
-					if (msg != nullptr) {
-						Instrument::clusterHandleMessage(msg, msg->getSenderId());
-						const bool shouldDelete = msg->handleMessage();
-						Instrument::clusterHandleMessage(msg, msg->getSenderId());
-
-						if (shouldDelete) {
-							delete msg;
-						}
-					}
-				} while (msg != nullptr);
+				// No other worker tasks, so handle the messages right away and sequentially here
+				// (more efficient than below)
+				while ((msg = ClusterManager::checkMail()) != nullptr) {
+					handleMessageWrapper(msg, true);
+				};
 
 			} else {
 				// At least one other worker, so let other threads steal messages
-				bool keepGoing = true;
-				while (keepGoing) {
+				while (true) {
 					// First take all the messages (from the Messenger)
-					T *msg = nullptr;
-					do {
-						msg = ClusterManager::checkMail();
+					while ((msg = ClusterManager::checkMail()) != nullptr) {
+						// Queue the message, taking account of ordering constraints
+						_singleton.queueMessage(msg);
+					}
 
-						if (msg != nullptr) {
-							// Queue the message, taking account of ordering constraints
-							_singleton.queueMessage(msg);
+					// Now handle ONE message
+					msg = stealMessage(true);
+
+					// If not, then try to process non stealable messages
+					if (msg == nullptr) {
+						// Enqueue all the taskNew if possible taking the lock only once but also
+						// calling tryWakeUp also only one time (tryWakeUp) may be expensive because
+						// it calls the BlockingAPI.
+						if (!_singleton._nonStealableTaskNew.empty()) {
+							NodeNamespace::enqueueMessagesTaskNew(_singleton._nonStealableTaskNew);
+							_singleton._nonStealableTaskNew.clear();
+							// We added many tasks at once, so we can continue because this is
+							// equivalent to handling many tasknews.
+							continue;
 						}
-					} while (msg != nullptr);
 
-					// Now handle a message
-					msg = _singleton.stealMessageInternal(true);
-					if (!msg) {
-						keepGoing = false;
+						// Set the action message in the namespace if
+						if (_singleton._numStolen.load() == 0
+							&& _singleton._nonStealableLowPriorityMessage != nullptr) {
+							msg = _singleton._nonStealableLowPriorityMessage;
+							_singleton._nonStealableLowPriorityMessage = nullptr;
+						}
+					}
+
+					if (msg == nullptr) {
 						break;
 					}
-					const bool shouldDelete = msg->handleMessage();
-					_singleton.notifyDoneInternal(msg, true);
 
-					if (shouldDelete) {
-						delete msg;
-					}
+					handleMessageWrapper(msg, true);
 				}
 			}
 

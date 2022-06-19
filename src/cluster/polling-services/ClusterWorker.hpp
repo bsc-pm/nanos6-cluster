@@ -35,13 +35,8 @@ namespace ClusterPollingServices {
 			T *msg = nullptr;
 
 			// Try to steal a message, and, if successful, handle it
-			while ((msg = MessageHandler<T>::stealMessage()) != nullptr) {
-				const bool shouldDelete = msg->handleMessage();
-				MessageHandler<T>::notifyDone(msg);
-
-				if (shouldDelete) {
-					delete msg;
-				}
+			while ((msg = MessageHandler<T>::stealMessage(false)) != nullptr) {
+				MessageHandler<T>::handleMessageWrapper(msg, false);
 			}
 
 			return true;
