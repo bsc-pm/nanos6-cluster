@@ -1333,7 +1333,7 @@ namespace DataAccessRegistration {
 					task,
 					access_type,
 					NO_ACCESS_TYPE,
-					/* not weak */ false,
+					/* weak */ true, // keep location but do not normally fetch
 					missingRegion
 				);
 
