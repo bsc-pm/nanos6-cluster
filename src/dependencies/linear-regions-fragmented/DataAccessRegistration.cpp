@@ -5543,16 +5543,15 @@ namespace DataAccessRegistration {
 				DataAccessStatusEffects initialStatus(taskwaitFragment);
 				assert(initialStatus._isRemovable);
 #endif
-				if (!taskwaitFragment->hasNext()) {
-					assert ((taskwaitFragment->getObjectType() == taskwait_type)
-						|| (taskwaitFragment->getObjectType() == top_level_sink_type));
-					taskwaitFragment->markAsDiscounted();
-					removeBottomMapTaskwaitOrTopLevelSink(taskwaitFragment, accessStructures, task, hpDependencyData);
-					accessStructures._removalBlockers--;
-					if (accessStructures._removalBlockers == 0) {
-						if (task->decreaseRemovalBlockingCount()) {
-							hpDependencyData._removableTasks.push_back(task);
-						}
+				assert(!taskwaitFragment->hasNext());
+				assert ((taskwaitFragment->getObjectType() == taskwait_type)
+					|| (taskwaitFragment->getObjectType() == top_level_sink_type));
+				taskwaitFragment->markAsDiscounted();
+				removeBottomMapTaskwaitOrTopLevelSink(taskwaitFragment, accessStructures, task, hpDependencyData);
+				accessStructures._removalBlockers--;
+				if (accessStructures._removalBlockers == 0) {
+					if (task->decreaseRemovalBlockingCount()) {
+						hpDependencyData._removableTasks.push_back(task);
 					}
 				}
 				return true;
