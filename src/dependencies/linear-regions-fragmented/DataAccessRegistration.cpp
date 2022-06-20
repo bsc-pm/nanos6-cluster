@@ -4755,6 +4755,11 @@ namespace DataAccessRegistration {
 				assert(access != nullptr);
 				assert(!access->hasBeenDiscounted());
 
+				/*
+				 * Fragment access, as only part inside region becomes complete.
+				 */
+				access = fragmentAccess(access, region, accessStructures);
+
 				if (access->getType() != NO_ACCESS_TYPE) {
 
 					// A local access is typically registered as NO_ACCESS_TYPE. The
@@ -4781,10 +4786,6 @@ namespace DataAccessRegistration {
 
 				// A local access (that is not part of a larger access) is created strong.
 				assert(!access->isWeak());
-				/*
-				 * Fragment access, as only part inside region becomes complete.
-				 */
-				access = fragmentAccess(access, region, accessStructures);
 
 				/* Set access as complete */
 				DataAccessStatusEffects initialStatus(access);
