@@ -427,12 +427,6 @@ namespace ExecutionWorkflow {
 		task->setWorkflow(workflow);
 		task->setComputePlace(targetComputePlace);
 
-		// Starting the workflow will either execute the task to
-		// completion (if there are not pending transfers for the
-		// task), or it will setup all the Execution Step will
-		// execute when ready.
-		workflow->start();
-
 		// There may be some delayed operations from setLocationFromWorkflow, which
 		// is called when a data transfer is not created because it is found by
 		// WriteID.
@@ -447,7 +441,15 @@ namespace ExecutionWorkflow {
 		// We couldn't do either while holding the lock on our task's access
 		// structures (taken by DataAccessRegistration::processAllDataAccesses),
 		// so do all the delayed operations now.
+		// Do this BEFORE starting the workflow, as the access could otherwise be
+		// removed before getting the namespace info.
 		DataAccessRegistration::processDelayedOperationsSatisfiedOriginatorsAndRemovableTasks(hpDependencyData2, cpu, false);
+
+		// Starting the workflow will either execute the task to
+		// completion (if there are not pending transfers for the
+		// task), or it will setup all the Execution Step will
+		// execute when ready.
+		workflow->start();
 	}
 
 	void setupTaskwaitWorkflow(
