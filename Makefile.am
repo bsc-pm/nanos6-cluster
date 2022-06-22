@@ -1350,6 +1350,7 @@ noinst_HEADERS += \
 	src/cluster/messages/MessageSysFinish.hpp \
 	src/cluster/messages/MessageTaskNew.hpp \
 	src/cluster/messages/MessageType.hpp \
+	src/cluster/messenger/TransferBase.hpp \
 	src/cluster/messenger/DataTransfer.hpp \
 	src/cluster/messenger/LiveDataTransfers.hpp \
 	src/cluster/messenger/Messenger.hpp \
