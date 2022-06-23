@@ -12,6 +12,7 @@
 #include <vector>
 #include "lowlevel/PaddedSpinLock.hpp"
 #include <DataAccessRegion.hpp>
+#include <DataTransfer.hpp>
 
 class DataTransfer;
 
@@ -20,12 +21,24 @@ class LiveDataTransfers {
 	static PaddedSpinLock<> _lock;
 	static std::vector<DataTransfer *> _liveDataTransfers;
 
+	static void addUnlocked(DataTransfer *dataTransfer)
+	{
+		_liveDataTransfers.push_back(dataTransfer);
+
+		// Important: remove from live data transfers before calling the no priority callbacks
+		// (priority > 0) (otherwise callbacks could potentially be lost)
+		dataTransfer->addCompletionCallback(
+			[=]() -> void { LiveDataTransfers::remove(dataTransfer); }, 1
+		);
+	}
+
+
 public:
 
 	static void add(DataTransfer *dataTransfer)
 	{
 		std::lock_guard<PaddedSpinLock<>> guard(_lock);
-		_liveDataTransfers.push_back(dataTransfer);
+		LiveDataTransfers::addUnlocked(dataTransfer);
 	}
 
 	static void remove(DataTransfer *dataTransfer)
@@ -50,7 +63,7 @@ public:
 		}
 		/* Return not done */
 		DataTransfer *dataTransferNew = createNew();
-		_liveDataTransfers.push_back(dataTransferNew);
+		LiveDataTransfers::addUnlocked(dataTransferNew);
 		return false;
 	}
 };

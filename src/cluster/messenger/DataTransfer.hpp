@@ -15,8 +15,6 @@
 
 #include <InstrumentCluster.hpp>
 
-#include "LiveDataTransfers.hpp"
-
 #include "TransferBase.hpp"
 
 class MemoryPlace;
@@ -38,9 +36,6 @@ public:
 	//! rank of MPI source for instrumenting the transferred region (non-blocking case)
 	const int _MPISource;
 
-	//! Is it a data fetch
-	const bool _isFetch;
-
 public:
 	DataTransfer(
 		const DataAccessRegion &region,
@@ -51,9 +46,23 @@ public:
 		int id,
 		bool isFetch
 	) : TransferBase(messengerData),
-		_region(region), _source(source), _target(target), _id(id), _MPISource(MPISource),
-		_isFetch(isFetch)
-	{}
+		_region(region), _source(source), _target(target), _id(id), _MPISource(MPISource)
+	{
+
+		if (isFetch) {
+			addCompletionCallback([&]() {
+				Instrument::clusterDataReceived(
+					_region.getStartAddress(), _region.getSize(), _MPISource, _id
+				);
+			}, 10); // priority 10 to execute before. Any normal callback.
+
+			addCompletionCallback([&]() {
+				Instrument::clusterDataReceived(
+					_region.getStartAddress(), _region.getSize(), _MPISource, -1
+				);
+			}, -10); // -10 priority to execute after the non-priority callbacks.
+		}
+	}
 
 	virtual ~DataTransfer()
 	{}
@@ -83,27 +92,6 @@ public:
 	{
 		return _id;
 	}
-
-	//! \brief Mark the DataTransfer as completed
-	//!
-	//! If there is a valid callback assigned to the DataTransfer it will
-	//! be invoked
-	inline void markAsCompleted() override
-	{
-		if (_isFetch) {
-			Instrument::clusterDataReceived(_region.getStartAddress(), _region.getSize(), _MPISource, _id);
-			// Important: remove from live data transfers before calling the callbacks (otherwise
-			// callbacks could potentially be lost)
-			LiveDataTransfers::remove(this);
-		}
-
-		TransferBase::markAsCompleted();
-
-		if (_isFetch) {
-			Instrument::clusterDataReceived(_region.getStartAddress(), _region.getSize(), _MPISource, -1);
-		}
-	}
-
 
 	friend std::ostream& operator<<(std::ostream &out, const DataTransfer &dt)
 	{

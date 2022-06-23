@@ -32,6 +32,7 @@
 #include "cluster/polling-services/PendingQueue.hpp"
 #include "OffloadedTasksInfoMap.hpp"
 #include <ClusterUtil.hpp>
+#include <LiveDataTransfers.hpp>
 
 namespace TaskOffloading {
 

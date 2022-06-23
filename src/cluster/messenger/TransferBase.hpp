@@ -9,15 +9,18 @@
 
 #include <atomic>
 #include <functional>
-#include <vector>
+#include <map>
+#include <cassert>
 
 class TransferBase {
 public:
 	typedef std::function<void ()> transfer_callback_t;
 
 private:
-	//! The callback that we will invoke when the DataTransfer completes
-	std::vector<transfer_callback_t> _callbacks;
+	//! The callback that we will invoke when the DataTransfer completes.  The int will be used as a
+	// priority and the std::greater function asserts that the entries are iterated in reverse order
+	// (so higher values first). This enables to define the order of the callbacks..
+	std::multimap<int, transfer_callback_t, std::greater<int>> _callbacks;
 
 	//! An opaque pointer to Messenger-specific data
 	void * _messengerData;
@@ -47,10 +50,12 @@ public:
 	}
 
 	//! \brief Mark the Message as delivered
-	inline virtual void markAsCompleted()
+	inline void markAsCompleted()
 	{
-		for (transfer_callback_t callback : _callbacks) {
-			callback();
+		// this function executes the callbacks; they are executed in priority order from higher
+		// priority to lower. callbacks with same priority are executed in any order between them.
+		for (auto callback : _callbacks) {
+			callback.second();
 		}
 
 		_completed = true;
@@ -65,9 +70,9 @@ public:
 	//! \brief Set the callback for the Message
 	//!
 	//! \param[in] callback is the completion callback
-	inline void addCompletionCallback(transfer_callback_t callback)
+	inline void addCompletionCallback(transfer_callback_t callback, int priority = 0)
 	{
-		_callbacks.push_back(callback);
+		_callbacks.insert({priority, callback});
 	}
 };
 
