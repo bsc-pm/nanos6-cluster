@@ -93,12 +93,8 @@ protected:
 public:
 
 	template<typename... TS>
-	static inline void failIf(bool failure, TS... reasonParts)
+	static inline void fail(TS... reasonParts)
 	{
-		if (__builtin_expect(!failure, 1)) {
-			return;
-		}
-
 		std::ostringstream oss;
 		oss << "Error: " << getErrorPrefix();
 		emitReasonParts(oss, reasonParts...);
@@ -113,29 +109,28 @@ public:
 	}
 
 	template<typename... TS>
-	static inline void fail(TS... reasonParts)
+	static inline void failIf(bool failure, TS... reasonParts)
 	{
-		failIf(true, reasonParts...);
+		if (__builtin_expect(failure, 0)) {
+			fail(reasonParts...);
+		}
 	}
 
 	template<typename... TS>
 	static inline void handle(int rc, TS... reasonParts)
 	{
-		failIf(rc != 0, reasonParts...);
+		if (__builtin_expect(rc != 0, 0)) {
+			fail(reasonParts...);
+		}
 	}
 
 	template<typename... TS>
-	static inline void warnIf(bool failure, TS... reasonParts)
+	static inline void warn(TS... reasonParts)
 	{
-		if (__builtin_expect(!failure, 1)) {
-			return;
-		}
-
 		std::ostringstream oss;
 		oss << "Warning: " << getErrorPrefix();
 		emitReasonParts(oss, reasonParts...);
 		oss << std::endl;
-
 		{
 			std::lock_guard<SpinLock> guard(_errorLock);
 			std::cerr << oss.str();
@@ -143,22 +138,20 @@ public:
 	}
 
 	template<typename... TS>
-	static inline void warn(TS... reasonParts)
+	static inline void warnIf(bool condition, TS... reasonParts)
 	{
-		warnIf(true, reasonParts...);
+		if (__builtin_expect(condition, 0)) {
+			warn(reasonParts...);
+		}
 	}
 
 	template<typename... TS>
-	static inline void printIf(bool condition, TS... reasonParts)
+	static inline void print(TS... reasonParts)
 	{
-		if (__builtin_expect(!condition, 1)) {
-			return;
-		}
-
 		std::ostringstream oss;
+		oss << getErrorPrefix();
 		emitReasonParts(oss, reasonParts...);
 		oss << std::endl;
-
 		{
 			std::lock_guard<SpinLock> guard(_infoLock);
 			std::cout << oss.str();
@@ -166,10 +159,13 @@ public:
 	}
 
 	template<typename... TS>
-	static inline void print(TS... reasonParts)
+	static inline void printIf(bool condition, TS... reasonParts)
 	{
-		printIf(true, reasonParts...);
+		if (__builtin_expect(condition, 0)) {
+			print(reasonParts...);
+		}
 	}
+
 };
 
 
