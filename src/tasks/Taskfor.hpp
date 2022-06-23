@@ -192,13 +192,20 @@ public:
 		assert(!isRunnable());
 		assert(cpu != nullptr);
 
-		// This assertion is just to be sure that the taskfor was not rescheduled in a CPU in a
-		// different TaskforGroup since it was initialized. The initialization assumes that the task
-		// will be executed in the same group, so it counts the number of collaborators only
-		// there. If this assertion somehow fails in the future, we need to make it weaker like
-		// checking only that the old and new group has the same number of collaborators. and ignore
-		// if they are different.
-		assert(_initGroup == cpu->getGroupId());
+		// The chunksize was determined when the Taskfor was initialized,
+		// counting the number of CPUs (excluding the LeaderThread) on the
+		// TaskforGroup where it was initialized. But a taskfor may be
+		// preempted by a higher-priority task or taskfor, and then it may be
+		// rescheduled on a different TaskforGroup. The problem is that the new
+		// TaskforGroup may have a different number of CPUs so the chunksize
+		// may be wrong. The worst case is when the chunksize is slightly too
+		// small, so there aren't the same number of chunks per CPU.
+		// Preemption implies that there are multiple simultaneous taskfors, so
+		// hopefully this is not a major problem. It's not clear how it could
+		// be fixed properly, because it's too late to change the chunksize and
+		// constraining the scheduler to not migrate taskfors could be even
+		// worse.
+		// assert(_initGroup == cpu->getGroupId());
 
 		const long cpuId = cpu->getIndex();
 		const size_t totalIterations = _bounds.upper_bound - _bounds.lower_bound;
