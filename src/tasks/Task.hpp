@@ -201,6 +201,8 @@ private:
 
 	//! Offloaded task ID
 	OffloadedTaskIdManager::OffloadedTaskId _offloadedTaskId;
+	//! Offloaded task ID used by child tasks namespace predecessor to refer to the parent's access
+	OffloadedTaskIdManager::OffloadedTaskId _offloadedTaskIdAsParent;
 
 	//! _clusterNode if set by call to setNode()
 	nanos6_task_constraints_t *_constraints; // -1 is same as nanos6_cluster_no_hint, so not overridden by runtime
@@ -1113,6 +1115,11 @@ public:
 	void setOffloadedTaskId(OffloadedTaskIdManager::OffloadedTaskId taskId)
 	{
 		_offloadedTaskId = taskId;
+	}
+
+	OffloadedTaskIdManager::OffloadedTaskId getOffloadedTaskIdAsParent() const
+	{
+		return _offloadedTaskIdAsParent;
 	}
 
 	inline void computeNUMAAffinity(ComputePlace *computePlace)

@@ -881,9 +881,14 @@ namespace DataAccessRegistration {
 					// Read access: we allow multiple concurrent readers propagating
 					// in different namespaces. To do this, pass the same namespace previous
 					// to the next access, so all concurrent reads get the same namespace
-					// predecessor.
-					updateOperation._validNamespace = access->getValidNamespacePrevious();
-					updateOperation._namespacePredecessor = access->getNamespacePredecessor();
+					// predecessor, but only if the tasks are siblings.
+					if (access->getNext()._task->getParent() == access->getOriginator()->getParent()) {
+						updateOperation._validNamespace = access->getValidNamespacePrevious();
+						updateOperation._namespacePredecessor = access->getNamespacePredecessor();
+					} else {
+						updateOperation._validNamespace = VALID_NAMESPACE_NONE;
+						updateOperation._namespacePredecessor = OffloadedTaskIdManager::InvalidOffloadedTaskId;
+					}
 					updateOperation._namespaceAccessType = READ_ACCESS_TYPE;
 					access->setPropagatedNamespaceInfo();
 				} else if ((access->getObjectType() != access_type
@@ -892,7 +897,11 @@ namespace DataAccessRegistration {
 					// Other object types or non-read accesses: propagate own namespace info
 					// to allow remote namespace propagation from this access to the next.
 					updateOperation._validNamespace = access->getValidNamespaceSelf();
-					updateOperation._namespacePredecessor = access->getOriginator()->getOffloadedTaskId();
+					if (access->getObjectType() == fragment_type) {
+						updateOperation._namespacePredecessor = access->getOriginator()->getOffloadedTaskIdAsParent();
+					} else {
+						updateOperation._namespacePredecessor = access->getOriginator()->getOffloadedTaskId();
+					}
 					updateOperation._namespaceAccessType = access->getType();
 					access->setPropagatedNamespaceInfo();
 				}
@@ -3076,7 +3085,7 @@ namespace DataAccessRegistration {
 						//     looks like we can connect in the namespace from B to A1, but we cannot (due
 						//     to the clear dependence from A1's inout to B's in and the fact that in to
 						//     inout is never allowed to propagate in the namespace)
-						if(!(previous->getType() == READ_ACCESS_TYPE) && (dataAccess->getType() != READ_ACCESS_TYPE)) {
+						if(!((previous->getType() == READ_ACCESS_TYPE) && (dataAccess->getType() != READ_ACCESS_TYPE))) {
 							canPropagateInNamespace = true;
 							Instrument::namespacePropagation(Instrument::NamespaceSuccessful, dataAccess->getAccessRegion());
 						} else {

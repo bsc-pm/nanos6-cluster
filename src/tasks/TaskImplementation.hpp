@@ -65,6 +65,7 @@ inline Task::Task(
 	_parentSpawnCallback(nullptr),
 	_nestingLevel(0),
 	_offloadedTaskId(OffloadedTaskIdManager::nextOffloadedTaskId()),
+	_offloadedTaskIdAsParent(OffloadedTaskIdManager::nextOffloadedTaskId()),
 	_constraints(nullptr)
 {
 	// This asserts that the interface is used properly.
@@ -132,6 +133,7 @@ inline void Task::reinitialize(
 	}
 
 	_offloadedTaskId = OffloadedTaskIdManager::nextOffloadedTaskId();
+	_offloadedTaskIdAsParent = OffloadedTaskIdManager::nextOffloadedTaskId();
 
 	// Re-use hardware counters and monitoring statistics
 	TrackingPoints::taskReinitialized(this);
