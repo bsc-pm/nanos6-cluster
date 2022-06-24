@@ -134,14 +134,6 @@ namespace DataAccessRegistration {
 		MemoryPlace const *location,
 		OffloadedTaskIdManager::OffloadedTaskId namespacePredecessor
 	);
-
-	void setNamespacePredecessor(
-		Task *task,
-		Task *parentTask,
-		DataAccessRegion region,
-		ClusterNode *remoteNode,
-		OffloadedTaskIdManager::OffloadedTaskId namespacePredecessor
-	);
 #endif // USE_CLUSTER
 
 	void handleEnterTaskwait(Task *task,

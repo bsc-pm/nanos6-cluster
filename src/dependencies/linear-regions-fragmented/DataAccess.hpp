@@ -140,7 +140,6 @@ private:
 	int _validNamespacePrevious;
 	int _validNamespaceSelf;
 	OffloadedTaskIdManager::OffloadedTaskId _namespacePredecessor;
-	Task *_namespaceSuccessor;
 
 public:
 	DataAccess(
@@ -173,8 +172,7 @@ public:
 		_dataLinkStep(dataLinkStep),
 		_validNamespacePrevious(VALID_NAMESPACE_UNKNOWN),
 		_validNamespaceSelf(VALID_NAMESPACE_UNKNOWN),
-		_namespacePredecessor(OffloadedTaskIdManager::InvalidOffloadedTaskId),
-		_namespaceSuccessor(nullptr)
+		_namespacePredecessor(OffloadedTaskIdManager::InvalidOffloadedTaskId)
 	{
 		assert(originator != nullptr);
 
@@ -206,8 +204,7 @@ public:
 		_dataLinkStep(other.getDataLinkStep()),
 		_validNamespacePrevious(other.getValidNamespacePrevious()),
 		_validNamespaceSelf(other.getValidNamespaceSelf()),
-		_namespacePredecessor(other.getNamespacePredecessor()),
-		_namespaceSuccessor(other.getNamespaceSuccessor())
+		_namespacePredecessor(other.getNamespacePredecessor())
 	{}
 
 	~DataAccess()
@@ -803,16 +800,6 @@ public:
 		_validNamespaceSelf = validNamespaceSelf;
 	}
 
-	Task *getNamespaceSuccessor() const
-	{
-		return _namespaceSuccessor;
-	}
-
-	void setNamespaceSuccessor(Task *namespaceSuccessor)
-	{
-		_namespaceSuccessor = namespaceSuccessor;
-	}
-
 	bool getPropagatedNamespaceInfo() const
 	{
 		return _status[PROPAGATED_NAMESPACE_INFO_BIT];
@@ -942,8 +929,7 @@ public:
 			&& ((this->getValidNamespacePrevious() == other->getValidNamespacePrevious())
 				|| (!enforceSameNamespacePrevious
 					&& this->getValidNamespacePrevious() >= 0
-					&& other->getValidNamespacePrevious() >= 0))
-			&& this->getNamespaceSuccessor() == other->getNamespaceSuccessor();
+					&& other->getValidNamespacePrevious() >= 0));
 	}
 
 	friend std::ostream& operator<<(std::ostream& out, const DataAccess& access)

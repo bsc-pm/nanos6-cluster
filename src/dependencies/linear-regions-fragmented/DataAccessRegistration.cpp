@@ -3071,7 +3071,9 @@ namespace DataAccessRegistration {
 				if (parent->isNodeNamespace()) {
 					if (previous->getDataReleased()) {
 						Instrument::namespacePropagation(Instrument::NamespacePredecessorFinished, dataAccess->getAccessRegion());
-					} else if (previous->getNamespaceSuccessor() == dataAccess->getOriginator()) {
+					} else if (dataAccess->getNamespacePredecessor() == previous->getOriginator()->getOffloadedTaskId()
+								|| (dataAccess->getNamespacePredecessor() != OffloadedTaskIdManager::InvalidOffloadedTaskId
+									&& dataAccess->getNamespacePredecessor() == previous->getNamespacePredecessor())) {
 
 						// We should never connect in the namespace from a read access to a non-read access.
 						// In the usual case, this is prevented by the offloader, which is responsible
@@ -3085,15 +3087,18 @@ namespace DataAccessRegistration {
 						//     looks like we can connect in the namespace from B to A1, but we cannot (due
 						//     to the clear dependence from A1's inout to B's in and the fact that in to
 						//     inout is never allowed to propagate in the namespace)
-						if(!((previous->getType() == READ_ACCESS_TYPE) && (dataAccess->getType() != READ_ACCESS_TYPE))) {
-							canPropagateInNamespace = true;
+						canPropagateInNamespace = true;
+						if ((previous->getType() == READ_ACCESS_TYPE) && (dataAccess->getType() != READ_ACCESS_TYPE)) {
+							canPropagateInNamespace = false;
+						} else if (previous->getType() == CONCURRENT_ACCESS_TYPE || previous->getType() == COMMUTATIVE_ACCESS_TYPE) {
+							canPropagateInNamespace = false;
+						}
+						if (canPropagateInNamespace) {
 							Instrument::namespacePropagation(Instrument::NamespaceSuccessful, dataAccess->getAccessRegion());
 						} else {
 							Instrument::namespacePropagation(Instrument::NamespaceWrongPredecessor, dataAccess->getAccessRegion());
 						}
-						assert(dataAccess->getNamespacePredecessor() == previous->getOriginator()->getOffloadedTaskId()
-								|| dataAccess->getNamespacePredecessor() == previous->getNamespacePredecessor());
-					} else if (previous->getNamespaceSuccessor() != nullptr) {
+					} else if (dataAccess->getNamespacePredecessor() != OffloadedTaskIdManager::InvalidOffloadedTaskId) {
 						Instrument::namespacePropagation(Instrument::NamespaceWrongPredecessor, dataAccess->getAccessRegion());
 					} else {
 						Instrument::namespacePropagation(Instrument::NamespaceNotHintedWithAncestor, dataAccess->getAccessRegion());
@@ -3202,6 +3207,14 @@ namespace DataAccessRegistration {
 			 */
 			[&](DataAccessRegion missingRegion) -> bool {
 				assert(!parentAccessStructures._accesses.contains(missingRegion));
+
+				if (parent->isNodeNamespace()) {
+					if (dataAccess->getNamespacePredecessor() != OffloadedTaskIdManager::InvalidOffloadedTaskId) {
+						Instrument::namespacePropagation(Instrument::NamespacePredecessorFinished, region);
+					} else {
+						Instrument::namespacePropagation(Instrument::NamespaceNotHintedNoPredecessor, region);
+					}
+				}
 
 				// Not part of the parent
 				local = true;
@@ -5301,118 +5314,6 @@ namespace DataAccessRegistration {
 		}
 #endif
 		Instrument::exitPropagateSatisfiability();
-	}
-
-	/*
-	 * Link accesses inside a namespace. The sequence of operations is:
-	 *
-	 *   (1)  TaskOffloading::remoteTaskCreateAndSubmit creates the task.
-	 *   (2)  setNamespacePredecessor checks the bottom map of the namespace and,
-	 *        if the task on the bottom map matches namespacePredecessor provided
-	 *        by the offloader node, it sets that task's namespaceSuccessor to the
-	 *        newly-created offloaded task.
-	 *   (3)  The newly offloaded task is submitted and registered in the
-	 *        dependency system.
-	 *   (4a) If there is no race condition, i.e. no new task was added to the
-	 *        namespace's bottom map for this region between (1) and (4a), then
-	 *        linkTaskAccesses will find that the task on the bottom map (still)
-	 *        has a namespaceSuccessor that matches the new task, so remote 
-	 *        propagation will be enabled.
-	 *   (4b) In case of a race condition, a different task will be on the bottom
-	 *        map for this region, and its namespaceSuccessor will either be
-	 *        nullptr or maybe even a different task. Alteratively there may no
-	 *        longer be any task on the bottom map. In either case it is impossible
-	 *        for there to be a different task on the bottom map whose
-	 *        namespaceSuccessor is our new task. In this case remote namespace
-	 *        propagation will be disabled.
-	 *
-	 * A cleaner alternative may be to store the namespacePredecessor in the
-	 * data access rather than the namespaceSuccessor, and change the condition in
-	 * replaceMatchingInBottomMapLinkAndPropagate in the natural way. But there
-	 * seems to be no clean way to do this. This would require setting the
-	 * namespacePredecessor within registerTaskDataAccesses, and that would
-	 * need a new interface between registerTaskDataAccesses and 
-	 * TaskOffloading::remoteTaskCreateAndSubmit (e.g. a callback) that doesn't
-	 * exist. In the end it would likely be no more convoluted than this way of
-	 * doing it.
-	 */
-	void setNamespacePredecessor(
-		Task *task,
-		Task *parent,
-		DataAccessRegion region,
-		__attribute((unused)) ClusterNode *remoteNode,
-		OffloadedTaskIdManager::OffloadedTaskId namespacePredecessor
-	) {
-		assert(parent != nullptr);
-		assert(parent->isNodeNamespace());
-
-#ifndef INSTRUMENT_STATS_CLUSTER_HPP
-		if (namespacePredecessor == OffloadedTaskIdManager::InvalidOffloadedTaskId) {
-			return;
-		}
-#endif
-
-		TaskDataAccesses &parentAccessStructures = parent->getDataAccesses();
-		assert(!parentAccessStructures.hasBeenDeleted());
-		std::lock_guard<TaskDataAccesses::spinlock_t> parentGuard(parentAccessStructures._lock);
-		bool found = false;
-		bool foundWrong = false;
-		foreachBottomMapMatch(
-			region,
-			parentAccessStructures, parent,
-			[&] (DataAccess *access, TaskDataAccesses &currentAccessStructures, Task *currentTask) {
-				(void)currentAccessStructures;
-				(void)currentTask;
-
-				Task *previousTask = access->getOriginator();
-				assert(previousTask->isRemoteTask());
-
-				/* We can connect in the namespace if either
-				 *
-				 * (1) The previous task is exactly the indicated namespace predecessor.
-				 *
-				 * (2) The previous task has a read access to the same namespace
-				 *     predecessor (being the task that wrote the data). In this case
-				 *     we must also make sure that the accesses respect the sequential
-				 *     order of the original program. The reader numbers may not be
-				 *     consecutive, because we can skip some read accesses, presumably
-				 *     other reads offloaded to other nodes and running concurrently.
-				 *     But we cannot connect them backwards. Otherwise when we receive
-				 *     satisfiability to the first access in sequential order we will
-				 *     never propagate satisfiability to the next access in sequential
-				 *     order. It is not worth checking whether the access is already
-				 *     read and write satisfied, and allowing "backwards" connections
-				 *     if it is, because (1) if the data is already satisfied there is
-				 *     less benefit from remote namespace propagation and (2) it seems
-				 *     like a dangerous optimization that will one day backfire.
-				 */
-				if (previousTask->getOffloadedTaskId() == namespacePredecessor
-					|| (access->getNamespacePredecessor() == namespacePredecessor
-						&& access->getType() == READ_ACCESS_TYPE)) {
-
-					// Cannot connect from concurrent or commutative access
-					if (access->getType() != CONCURRENT_ACCESS_TYPE
-							&& access->getType() != COMMUTATIVE_ACCESS_TYPE) {
-						access->setNamespaceSuccessor(task);
-						found = true;
-					} else {
-						foundWrong = true;
-					}
-				} else {
-					foundWrong = true;
-				}
-			},
-			[] (BottomMapEntry *) {}
-		);
-		if (!found) {
-			if (namespacePredecessor && foundWrong) {
-				Instrument::namespacePropagation(Instrument::NamespaceWrongPredecessor, region);
-			} else if (namespacePredecessor && !foundWrong) {
-				Instrument::namespacePropagation(Instrument::NamespacePredecessorFinished, region);
-			} else {
-				Instrument::namespacePropagation(Instrument::NamespaceNotHintedNoPredecessor, region);
-			}
-		}
 	}
 #endif // USE_CLUSTER
 

@@ -270,7 +270,6 @@ namespace TaskOffloading {
 		void *argsBlock = msg->getArgsBlock(argsBlockSize);
 
 		OffloadedTaskIdManager::OffloadedTaskId remoteTaskIdentifier = msg->getOffloadedTaskId();
-		ClusterNode *remoteNode = ClusterManager::getClusterNode(msg->getSenderId());
 
 		size_t flags = msg->getFlags();
 		flags |= (size_t)Task::nanos6_task_runtime_flag_t::nanos6_remote_flag;
@@ -316,13 +315,6 @@ namespace TaskOffloading {
 				0, /* TODO: send symbol list, ignored for the moment */
 				no_reduction_type_and_operator,
 				no_reduction_index,
-				satInfo[i]._id);
-				
-			DataAccessRegistration::setNamespacePredecessor(
-				task,
-				parent,
-				satInfo[i]._region,
-				remoteNode,
 				satInfo[i]._id);
 		}
 
