@@ -1231,9 +1231,11 @@ namespace DataAccessRegistration {
 					accessStructures._accessFragments.erase(access);
 					ObjectAllocator<DataAccess>::deleteObject(access);
 				} else {
-					assert(access->getOriginator()->isRemoteTask()
-						|| (access->getObjectType() == access_type
-							&& access->getType() == NO_ACCESS_TYPE));
+					// This also happens if a task finishes and there are subtasks
+					// on the bottom map accessing an lmalloc'ed (or dmalloc'ed) region.
+					// assert(access->getOriginator()->isRemoteTask()
+					// 	|| (access->getObjectType() == access_type
+					// 		&& access->getType() == NO_ACCESS_TYPE));
 
 					Instrument::removedDataAccess(access->getInstrumentationId());
 					accessStructures._accesses.erase(access);
@@ -5129,6 +5131,38 @@ namespace DataAccessRegistration {
 						if (dataAccess->complete()) {
 							assert(dataAccess->hasNext());
 							return true;
+						}
+
+						if (dataAccess->getType() == NO_ACCESS_TYPE) {
+							// Finalize an access of NO_ACCESS_TYPE. This is a region from
+							// registerLocalAccess, i.e. an lmalloc'ed (or dmalloc'ed) region that
+							// has not been unregistered. It is not part of one of the original
+							// task accesses, otherwise it would have the other access type. We
+							// check whether there are any tasks on the bottom map accessing this
+							// region. If there are, then they need to have their "on bottom map"
+							// status bit cleared, as they will never have a next and would otherwise
+							// never become removable.
+							accessStructures._subaccessBottomMap.processIntersecting(
+								dataAccess->getAccessRegion(),
+								[&](TaskDataAccesses::subaccess_bottom_map_t::iterator bottomMapPosition) -> bool {
+									BottomMapEntry *bottomMapEntry = &(*bottomMapPosition);
+									assert(bottomMapEntry != nullptr);
+
+									DataAccessLink target = bottomMapEntry->_link;
+									DataAccessRegion subregion = bottomMapEntry->_region;
+									followLink(
+										target,
+										subregion,
+										[&](DataAccess *previous) -> bool {
+											previous->unsetInBottomMap();
+											return true;
+										}
+									);
+									accessStructures._subaccessBottomMap.erase(*bottomMapEntry);
+									ObjectAllocator<BottomMapEntry>::deleteObject(bottomMapEntry);
+									return true;
+								}
+							);
 						}
 
 						finalizeAccess(
