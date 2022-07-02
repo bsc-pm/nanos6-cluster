@@ -40,13 +40,7 @@ namespace Instrument {
 		ce.Types[0] = (extrae_type_t) EventType::REDUCTION_STATE;
 		ce.Values[0] = (extrae_value_t) NANOS_ALLOCATE_REDUCTION_INFO;
 
-		if (Extrae::_traceAsThreads) {
-			_extraeThreadCountLock.readLock();
-		}
-		ExtraeAPI::emit_CombinedEvents ( &ce );
-		if (Extrae::_traceAsThreads) {
-			_extraeThreadCountLock.readUnlock();
-		}
+		Extrae::emit_CombinedEvents ( &ce );
 	}
 	void exitAllocateReductionInfo(
             __attribute__((unused)) data_access_id_t dataAccessId,
@@ -66,13 +60,7 @@ namespace Instrument {
 		ce.Types[0] = (extrae_type_t) EventType::REDUCTION_STATE;
 		ce.Values[0] = (extrae_value_t) NANOS_OUTSIDE_REDUCTION;
 
-		if (Extrae::_traceAsThreads) {
-			_extraeThreadCountLock.readLock();
-		}
-		ExtraeAPI::emit_CombinedEvents ( &ce );
-		if (Extrae::_traceAsThreads) {
-			_extraeThreadCountLock.readUnlock();
-		}
+		Extrae::emit_CombinedEvents ( &ce );
 	}
 	void enterRetrievePrivateReductionStorage(
             __attribute__((unused)) const DataAccessRegion& originalRegion,
@@ -91,13 +79,7 @@ namespace Instrument {
 		ce.Types[0] = (extrae_type_t) EventType::REDUCTION_STATE;
 		ce.Values[0] = (extrae_value_t) NANOS_RETRIEVE_REDUCTION_STORAGE;
 
-		if (Extrae::_traceAsThreads) {
-			_extraeThreadCountLock.readLock();
-		}
-		ExtraeAPI::emit_CombinedEvents ( &ce );
-		if (Extrae::_traceAsThreads) {
-			_extraeThreadCountLock.readUnlock();
-		}
+		Extrae::emit_CombinedEvents ( &ce );
 	}
 	void exitRetrievePrivateReductionStorage(
             __attribute__((unused)) const ReductionInfo& reductionInfo,
@@ -118,13 +100,7 @@ namespace Instrument {
 		ce.Types[0] = (extrae_type_t) EventType::REDUCTION_STATE;
 		ce.Values[0] = (extrae_value_t) NANOS_OUTSIDE_REDUCTION;
 
-		if (Extrae::_traceAsThreads) {
-			_extraeThreadCountLock.readLock();
-		}
-		ExtraeAPI::emit_CombinedEvents ( &ce );
-		if (Extrae::_traceAsThreads) {
-			_extraeThreadCountLock.readUnlock();
-		}
+		Extrae::emit_CombinedEvents ( &ce );
 	}
 	void enterAllocatePrivateReductionStorage(
             __attribute__((unused)) const ReductionInfo& reductionInfo,
@@ -143,13 +119,7 @@ namespace Instrument {
 		ce.Types[0] = (extrae_type_t) EventType::REDUCTION_STATE;
 		ce.Values[0] = (extrae_value_t) NANOS_ALLOCATE_REDUCTION_STORAGE;
 
-		if (Extrae::_traceAsThreads) {
-			_extraeThreadCountLock.readLock();
-		}
-		ExtraeAPI::emit_CombinedEvents ( &ce );
-		if (Extrae::_traceAsThreads) {
-			_extraeThreadCountLock.readUnlock();
-		}
+		Extrae::emit_CombinedEvents ( &ce );
 	}
 	void exitAllocatePrivateReductionStorage(
             __attribute__((unused)) const ReductionInfo& reductionInfo,
@@ -169,13 +139,7 @@ namespace Instrument {
 		ce.Types[0] = (extrae_type_t) EventType::REDUCTION_STATE;
 		ce.Values[0] = (extrae_value_t) NANOS_OUTSIDE_REDUCTION;
 
-		if (Extrae::_traceAsThreads) {
-			_extraeThreadCountLock.readLock();
-		}
-		ExtraeAPI::emit_CombinedEvents ( &ce );
-		if (Extrae::_traceAsThreads) {
-			_extraeThreadCountLock.readUnlock();
-		}
+		Extrae::emit_CombinedEvents ( &ce );
 	}
 	void enterInitializePrivateReductionStorage(
             __attribute__((unused)) const ReductionInfo& reductionInfo,
@@ -195,13 +159,7 @@ namespace Instrument {
 		ce.Types[0] = (extrae_type_t) EventType::REDUCTION_STATE;
 		ce.Values[0] = (extrae_value_t) NANOS_INITIALIZE_REDUCTION_STORAGE;
 
-		if (Extrae::_traceAsThreads) {
-			_extraeThreadCountLock.readLock();
-		}
-		ExtraeAPI::emit_CombinedEvents ( &ce );
-		if (Extrae::_traceAsThreads) {
-			_extraeThreadCountLock.readUnlock();
-		}
+		Extrae::emit_CombinedEvents ( &ce );
 	}
 	void exitInitializePrivateReductionStorage(
             __attribute__((unused)) const ReductionInfo& reductionInfo,
@@ -221,13 +179,7 @@ namespace Instrument {
 		ce.Types[0] = (extrae_type_t) EventType::REDUCTION_STATE;
 		ce.Values[0] = (extrae_value_t) NANOS_OUTSIDE_REDUCTION;
 
-		if (Extrae::_traceAsThreads) {
-			_extraeThreadCountLock.readLock();
-		}
-		ExtraeAPI::emit_CombinedEvents ( &ce );
-		if (Extrae::_traceAsThreads) {
-			_extraeThreadCountLock.readUnlock();
-		}
+		Extrae::emit_CombinedEvents ( &ce );
 	}
 	void enterCombinePrivateReductionStorage(
             __attribute__((unused)) const ReductionInfo& reductionInfo,
@@ -248,13 +200,7 @@ namespace Instrument {
 		ce.Types[0] = (extrae_type_t) EventType::REDUCTION_STATE;
 		ce.Values[0] = (extrae_value_t) NANOS_COMBINE_REDUCTION_STORAGE;
 
-		if (Extrae::_traceAsThreads) {
-			_extraeThreadCountLock.readLock();
-		}
-		ExtraeAPI::emit_CombinedEvents ( &ce );
-		if (Extrae::_traceAsThreads) {
-			_extraeThreadCountLock.readUnlock();
-		}
+		Extrae::emit_CombinedEvents ( &ce );
 	}
 	void exitCombinePrivateReductionStorage(
             __attribute__((unused)) const ReductionInfo& reductionInfo,
@@ -275,12 +221,6 @@ namespace Instrument {
 		ce.Types[0] = (extrae_type_t) EventType::REDUCTION_STATE;
 		ce.Values[0] = (extrae_value_t) NANOS_OUTSIDE_REDUCTION;
 
-		if (Extrae::_traceAsThreads) {
-			_extraeThreadCountLock.readLock();
-		}
-		ExtraeAPI::emit_CombinedEvents ( &ce );
-		if (Extrae::_traceAsThreads) {
-			_extraeThreadCountLock.readUnlock();
-		}
+		Extrae::emit_CombinedEvents ( &ce );
 	}
 }

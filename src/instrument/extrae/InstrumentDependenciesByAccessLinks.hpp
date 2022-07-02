@@ -121,13 +121,7 @@ namespace Instrument {
 		ce.Communications[0].id
 			= (context._taskId._taskInfo->_taskId << 32) + targetTaskId._taskInfo->_taskId;
 
-		if (Extrae::_traceAsThreads) {
-			_extraeThreadCountLock.readLock();
-		}
-		ExtraeAPI::emit_CombinedEvents ( &ce );
-		if (Extrae::_traceAsThreads) {
-			_extraeThreadCountLock.readUnlock();
-		}
+		Extrae::emit_CombinedEvents ( &ce );
 	}
 
 

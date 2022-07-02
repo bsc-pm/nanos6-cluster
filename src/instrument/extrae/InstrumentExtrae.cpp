@@ -26,6 +26,9 @@ namespace Instrument {
 
 		SpinLock _userFunctionMapLock;
 		user_fct_map_t _userFunctionMap;
+
+		RWSpinLock _extraeThreadCountLock;
+		PaddedTicketSpinLock<int> _lockMPI;
 	}
 
 	std::map<tracing_point_type_t, std::string> _delayedNumericTracingPoints;
@@ -57,11 +60,6 @@ namespace Instrument {
 	std::atomic<size_t> _liveTasks(0);
 	std::atomic<size_t> _nextTracingPointKey(1);
 
-	RWSpinLock _extraeThreadCountLock;
-	PaddedTicketSpinLock<int> _lockMPI;
-
-	int _externalThreadCount = 0;
-
 	unsigned int extrae_nanos6_get_num_threads()
 	{
 		assert(Extrae::_traceAsThreads);
@@ -78,13 +76,4 @@ namespace Instrument {
 		return nanos6_get_total_num_cpus() + GenericIds::getTotalExternalThreads();
 	}
 
-	void ExtraeMPILock()
-	{
-		_lockMPI.lock();
-	}
-
-	void ExtraeMPIUnLock()
-	{
-		_lockMPI.unlock();
-	}
 } // namespace Instrument

@@ -106,6 +106,40 @@ namespace Instrument {
 
 		extern SpinLock _userFunctionMapLock;
 		extern user_fct_map_t _userFunctionMap;
+
+		// lock instrumentation's events
+		extern RWSpinLock _extraeThreadCountLock;
+
+		// lock MPI calls
+		extern PaddedTicketSpinLock<int> _lockMPI;
+
+		inline void emit_SimpleEvent (extrae_type_t type, extrae_value_t value)
+		{
+			if (_traceAsThreads) {
+				_extraeThreadCountLock.readLock();
+			}
+
+			ExtraeAPI::emit_SimpleEvent(type, value);
+
+			ExtraeSymbolResolver<void, &Instrument::_Extrae_event_symbolName, extrae_type_t, extrae_value_t>::call(type, value);
+
+			if (_traceAsThreads) {
+				_extraeThreadCountLock.readUnlock();
+			}
+		}
+
+		inline void emit_CombinedEvents (struct extrae_CombinedEvents *ce)
+		{
+			if (_traceAsThreads) {
+				_extraeThreadCountLock.readLock();
+			}
+
+			ExtraeAPI::emit_CombinedEvents(ce);
+
+			if (_traceAsThreads) {
+				_extraeThreadCountLock.readUnlock();
+			}
+		}
 	}
 
 	enum {
@@ -250,15 +284,6 @@ namespace Instrument {
 	extern std::atomic<size_t> _liveTasks;
 	extern std::atomic<size_t> _nextTracingPointKey;
 
-	// lock instrumentation's events
-	extern RWSpinLock _extraeThreadCountLock;
-
-	// lock MPI calls
-	extern PaddedTicketSpinLock<int> _lockMPI;
-
-
-	extern int _externalThreadCount;
-
 	enum dependency_tag_t {
 		instantiation_dependency_tag = 0xffffff00,
 		strong_data_dependency_tag,
@@ -300,12 +325,6 @@ namespace Instrument {
 
 	unsigned int extrae_nanos6_get_num_threads();
 	unsigned int extrae_nanos6_get_num_cpus_and_external_threads();
-
-
-	//! \brief Unlocks MPI calls when using EXTRAE instrumentations.
-	//! A wrapper that exposes the MPI Messanger's internal call.
-	void ExtraeMPILock();
-	void ExtraeMPIUnLock();
 }
 
 #endif

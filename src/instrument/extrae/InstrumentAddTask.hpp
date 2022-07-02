@@ -90,7 +90,7 @@ namespace Instrument {
 		}
 
 		if (Extrae::_traceAsThreads) {
-			_extraeThreadCountLock.readLock();
+			Extrae::_extraeThreadCountLock.readLock();
 		}
 
 		assert(taskInfo != nullptr);
@@ -101,10 +101,11 @@ namespace Instrument {
 			Extrae::_userFunctionMap.insert(user_fct);
 		}
 
+		// Use the ExtraeAPI directly because the lock is already taken.
 		ExtraeAPI::emit_CombinedEvents(&ce);
 
 		if (Extrae::_traceAsThreads) {
-			_extraeThreadCountLock.readUnlock();
+			Extrae::_extraeThreadCountLock.readUnlock();
 		}
 
 		return task_id_t(_extraeTaskInfo);
@@ -158,13 +159,7 @@ namespace Instrument {
 		ce.Types[1] = (extrae_type_t) EventType::INSTANTIATING_CODE_LOCATION;
 		ce.Values[1] = (extrae_value_t) nullptr;
 
-		if (Extrae::_traceAsThreads) {
-			_extraeThreadCountLock.readLock();
-		}
-		ExtraeAPI::emit_CombinedEvents(&ce);
-		if (Extrae::_traceAsThreads) {
-			_extraeThreadCountLock.readUnlock();
-		}
+		Extrae::emit_CombinedEvents(&ce);
 	}
 
 	inline task_id_t enterInitTaskforCollaborator(
@@ -192,18 +187,10 @@ namespace Instrument {
 		// initialization. We are just setting up some data structures, and so, it is not fine to
 		// emmit NANOS_CREATION.
 
-		if (Extrae::_traceAsThreads) {
-			_extraeThreadCountLock.readLock();
-		}
-
-		ExtraeAPI::emit_SimpleEvent(
+		Extrae::emit_SimpleEvent(
 			(extrae_type_t) EventType::INSTANTIATING_CODE_LOCATION,
 			(extrae_value_t) taskInfo->implementations[0].run
 		);
-
-		if (Extrae::_traceAsThreads) {
-			_extraeThreadCountLock.readUnlock();
-		}
 
 		return task_id_t(_extraeTaskInfo);
 	}
@@ -215,19 +202,10 @@ namespace Instrument {
 	) {
 		// As we did not changed the runtime state in "enterInitTaskforCollaborator", we do not have
 		// to restore it here.  Thus, emmit only code location.
-
-		if (Extrae::_traceAsThreads) {
-			_extraeThreadCountLock.readLock();
-		}
-
-		ExtraeAPI::emit_SimpleEvent (
+		Extrae::emit_SimpleEvent (
 			(extrae_type_t) EventType::INSTANTIATING_CODE_LOCATION,
 			(extrae_value_t) nullptr
 		);
-
-		if (Extrae::_traceAsThreads) {
-			_extraeThreadCountLock.readUnlock();
-		}
 	}
 
 	inline void registeredNewSpawnedTaskType(__attribute__((unused)) nanos6_task_info_t *taskInfo)

@@ -22,7 +22,7 @@ namespace Instrument {
 		ThreadLocalData &threadLocal = getThreadLocalData();
 		threadLocal._dependencyNesting.push_back(value);
 
-		ExtraeAPI::event((extrae_type_t) EventType::DEPENDENCIES_SUBSYSTEM, value);
+		Extrae::emit_SimpleEvent((extrae_type_t) EventType::DEPENDENCIES_SUBSYSTEM, value);
 	}
 
 	inline static void popDependency(__attribute__((unused)) extrae_value_t value)
@@ -36,9 +36,9 @@ namespace Instrument {
 		assert(threadLocal._dependencyNesting.back() == value);
 		threadLocal._dependencyNesting.pop_back();
 		if (threadLocal._dependencyNesting.empty()) {
-			ExtraeAPI::event((extrae_type_t) EventType::DEPENDENCIES_SUBSYSTEM, 0);
+			Extrae::emit_SimpleEvent((extrae_type_t) EventType::DEPENDENCIES_SUBSYSTEM, 0);
 		} else {
-			ExtraeAPI::event((extrae_type_t) EventType::DEPENDENCIES_SUBSYSTEM, threadLocal._dependencyNesting.back());
+			Extrae::emit_SimpleEvent((extrae_type_t) EventType::DEPENDENCIES_SUBSYSTEM, threadLocal._dependencyNesting.back());
 		}
 	}
 

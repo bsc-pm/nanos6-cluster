@@ -112,13 +112,7 @@ namespace Instrument {
 		ThreadLocalData &threadLocal = getThreadLocalData();
 		threadLocal._nestingLevels.push_back(taskId._taskInfo->_nestingLevel);
 
-		if (Extrae::_traceAsThreads) {
-			_extraeThreadCountLock.readLock();
-		}
-		ExtraeAPI::emit_CombinedEvents ( &ce );
-		if (Extrae::_traceAsThreads) {
-			_extraeThreadCountLock.readUnlock();
-		}
+		Extrae::emit_CombinedEvents ( &ce );
 
 		if (ce.nCommunications >= 100) {
 			free(ce.Communications);
@@ -211,13 +205,7 @@ namespace Instrument {
 			}
 		}
 
-		if (Extrae::_traceAsThreads) {
-			_extraeThreadCountLock.readLock();
-		}
-		ExtraeAPI::emit_CombinedEvents ( &ce );
-		if (Extrae::_traceAsThreads) {
-			_extraeThreadCountLock.readUnlock();
-		}
+		Extrae::emit_CombinedEvents ( &ce );
 
 		ThreadLocalData &threadLocal = getThreadLocalData();
 		assert(!threadLocal._nestingLevels.empty());
@@ -331,13 +319,7 @@ namespace Instrument {
 		ThreadLocalData &threadLocal = getThreadLocalData();
 		threadLocal._nestingLevels.push_back(taskforId._taskInfo->_nestingLevel);
 
-		if (Extrae::_traceAsThreads) {
-			_extraeThreadCountLock.readLock();
-		}
-		ExtraeAPI::emit_CombinedEvents(&ce);
-		if (Extrae::_traceAsThreads) {
-			_extraeThreadCountLock.readUnlock();
-		}
+		Extrae::emit_CombinedEvents(&ce);
 
 		if (ce.nCommunications >= 100) {
 			free(ce.Communications);
@@ -437,13 +419,7 @@ namespace Instrument {
 			}
 		}
 
-		if (Extrae::_traceAsThreads) {
-			_extraeThreadCountLock.readLock();
-		}
-		ExtraeAPI::emit_CombinedEvents ( &ce );
-		if (Extrae::_traceAsThreads) {
-			_extraeThreadCountLock.readUnlock();
-		}
+		Extrae::emit_CombinedEvents ( &ce );
 
 		ThreadLocalData &threadLocal = getThreadLocalData();
 		assert(!threadLocal._nestingLevels.empty());
@@ -459,18 +435,10 @@ namespace Instrument {
 		const int value = chunk + 1;
 		assert(value >= 0);
 
-		if (Extrae::_traceAsThreads) {
-			_extraeThreadCountLock.readLock();
-		}
-
-		ExtraeAPI::emit_SimpleEvent(
+		Extrae::emit_SimpleEvent(
 			(extrae_type_t) EventType::RUNNING_TASKFOR_CHUNK,
 			(extrae_value_t) value
 		);
-
-		if (Extrae::_traceAsThreads) {
-			_extraeThreadCountLock.readUnlock();
-		}
 	}
 }
 

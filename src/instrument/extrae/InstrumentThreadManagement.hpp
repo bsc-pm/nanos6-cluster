@@ -49,13 +49,7 @@ namespace Instrument {
 			ce.Communications[0].id = threadId;
 		}
 
-		if (Extrae::_traceAsThreads) {
-			_extraeThreadCountLock.readLock();
-		}
-		ExtraeAPI::emit_CombinedEvents ( &ce );
-		if (Extrae::_traceAsThreads) {
-			_extraeThreadCountLock.readUnlock();
-		}
+		Extrae::emit_CombinedEvents ( &ce );
 	}
 
 	inline void recordRuntimeState(extrae_value_t value) 
@@ -74,13 +68,7 @@ namespace Instrument {
 		ce.Types[0] = (extrae_type_t) EventType::RUNTIME_STATE;
 		ce.Values[0] = value;
 
-		if (Extrae::_traceAsThreads) {
-			_extraeThreadCountLock.readLock();
-		}
-		ExtraeAPI::emit_CombinedEvents ( &ce );
-		if (Extrae::_traceAsThreads) {
-			_extraeThreadCountLock.readUnlock();
-		}
+		Extrae::emit_CombinedEvents ( &ce );
 	}
 
 	inline void exitThreadCreation(__attribute__((unused)) thread_id_t threadId)
@@ -107,11 +95,11 @@ namespace Instrument {
 		threadLocal._currentThreadId = threadId;
 
 		if (Extrae::_traceAsThreads) {
-			_extraeThreadCountLock.writeLock();
-			_lockMPI.lock();
+			Extrae::_extraeThreadCountLock.writeLock();
+			Extrae::_lockMPI.lock();
 			ExtraeAPI::change_num_threads(extrae_nanos6_get_num_threads());
-			_lockMPI.unlock();
-			_extraeThreadCountLock.writeUnlock();
+			Extrae::_lockMPI.unlock();
+			Extrae::_extraeThreadCountLock.writeUnlock();
 		}
 
 		extrae_combined_events_t ce;
@@ -164,13 +152,7 @@ namespace Instrument {
 			ce.Communications[0].id = threadId;
 		}
 
-		if (Extrae::_traceAsThreads) {
-			_extraeThreadCountLock.readLock();
-		}
-		ExtraeAPI::emit_CombinedEvents ( &ce );
-		if (Extrae::_traceAsThreads) {
-			_extraeThreadCountLock.readUnlock();
-		}
+		Extrae::emit_CombinedEvents ( &ce );
 	}
 
 	inline void precreatedExternalThread(/* OUT */ external_thread_id_t &threadId)
@@ -210,23 +192,17 @@ namespace Instrument {
 		ce.Types[0] = (extrae_type_t) EventType::RUNTIME_STATE;
 		ce.Values[0] = (extrae_value_t) NANOS_IDLE;
 
-		_extraeThreadCountLock.writeLock();
-		_lockMPI.lock();
+		Extrae::_extraeThreadCountLock.writeLock();
+		Extrae::_lockMPI.lock();
 		if (Extrae::_traceAsThreads) {
 			ExtraeAPI::change_num_threads(extrae_nanos6_get_num_threads());
 		} else {
 			ExtraeAPI::change_num_threads(extrae_nanos6_get_num_cpus_and_external_threads());
 		}
-		_lockMPI.unlock();
-		_extraeThreadCountLock.writeUnlock();
+		Extrae::_lockMPI.unlock();
+		Extrae::_extraeThreadCountLock.writeUnlock();
 
-		if (Extrae::_traceAsThreads) {
-			_extraeThreadCountLock.readLock();
-		}
-		ExtraeAPI::emit_CombinedEvents ( &ce );
-		if (Extrae::_traceAsThreads) {
-			_extraeThreadCountLock.readUnlock();
-		}
+		Extrae::emit_CombinedEvents ( &ce );
 	}
 
 	inline void threadSynchronizationCompleted(
@@ -274,13 +250,7 @@ namespace Instrument {
 				}
 			}
 
-			if (Extrae::_traceAsThreads) {
-				_extraeThreadCountLock.readLock();
-			}
-			ExtraeAPI::emit_CombinedEvents ( &ce );
-			if (Extrae::_traceAsThreads) {
-				_extraeThreadCountLock.readUnlock();
-			}
+			Extrae::emit_CombinedEvents ( &ce );
 		}
 	}
 
@@ -324,13 +294,7 @@ namespace Instrument {
 				}
 			}
 
-			if (Extrae::_traceAsThreads) {
-				_extraeThreadCountLock.readLock();
-			}
-			ExtraeAPI::emit_CombinedEvents ( &ce );
-			if (Extrae::_traceAsThreads) {
-				_extraeThreadCountLock.readUnlock();
-			}
+			Extrae::emit_CombinedEvents ( &ce );
 		}
 	}
 
@@ -350,13 +314,7 @@ namespace Instrument {
 		ce.Types[0] = (extrae_type_t) EventType::RUNTIME_STATE;
 		ce.Values[0] = (extrae_value_t) NANOS_NOT_RUNNING;
 
-		if (Extrae::_traceAsThreads) {
-			_extraeThreadCountLock.readLock();
-		}
-		ExtraeAPI::emit_CombinedEvents ( &ce );
-		if (Extrae::_traceAsThreads) {
-			_extraeThreadCountLock.readUnlock();
-		}
+		Extrae::emit_CombinedEvents ( &ce );
 	}
 
 	inline void threadHasResumed(__attribute__((unused)) external_thread_id_t threadId)
@@ -375,13 +333,7 @@ namespace Instrument {
 		ce.Types[0] = (extrae_type_t) EventType::RUNTIME_STATE;
 		ce.Values[0] = (extrae_value_t) NANOS_RUNTIME;
 
-		if (Extrae::_traceAsThreads) {
-			_extraeThreadCountLock.readLock();
-		}
-		ExtraeAPI::emit_CombinedEvents ( &ce );
-		if (Extrae::_traceAsThreads) {
-			_extraeThreadCountLock.readUnlock();
-		}
+		Extrae::emit_CombinedEvents ( &ce );
 	}
 
 	static inline void extraeThreadWillShutdown()
@@ -421,13 +373,7 @@ namespace Instrument {
 				}
 			}
 
-			if (Extrae::_traceAsThreads) {
-				_extraeThreadCountLock.readLock();
-			}
-			ExtraeAPI::emit_CombinedEvents ( &ce );
-			if (Extrae::_traceAsThreads) {
-				_extraeThreadCountLock.readUnlock();
-			}
+			Extrae::emit_CombinedEvents ( &ce );
 		}
 	}
 

@@ -112,13 +112,7 @@ namespace Instrument {
 		
 		Extrae::fillEventTypeAndValues(ce.Types, ce.Values, tracePointInstances...);
 		
-		if (_traceAsThreads) {
-			_extraeThreadCountLock.readLock();
-		}
-		ExtraeAPI::emit_CombinedEvents ( &ce );
-		if (_traceAsThreads) {
-			_extraeThreadCountLock.readUnlock();
-		}
+		Extrae::emit_CombinedEvents ( &ce );
 	}
 }
 

@@ -47,13 +47,7 @@ namespace Instrument {
 			ce.Values[0] = 0;
 		}
 
-		if (Extrae::_traceAsThreads) {
-			_extraeThreadCountLock.readLock();
-		}
-		ExtraeAPI::emit_CombinedEvents ( &ce );
-		if (Extrae::_traceAsThreads) {
-			_extraeThreadCountLock.readUnlock();
-		}
+		Extrae::emit_CombinedEvents ( &ce );
 	}
 
 	inline void taskIsExecuting(
@@ -125,13 +119,7 @@ namespace Instrument {
 		ce.Types[0] = (extrae_type_t) EventType::NUMA_HINT;
 		ce.Values[0] = numaHint;
 
-		if (Extrae::_traceAsThreads) {
-			_extraeThreadCountLock.readLock();
-		}
-		ExtraeAPI::emit_CombinedEvents ( &ce );
-		if (Extrae::_traceAsThreads) {
-			_extraeThreadCountLock.readUnlock();
-		}
+		Extrae::emit_CombinedEvents ( &ce );
 	}
 
 }

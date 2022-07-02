@@ -113,13 +113,7 @@ namespace Instrument {
 			ce.Communications[0].id = msg->getId();
 		}
 
-		if (Extrae::_traceAsThreads) {
-			_extraeThreadCountLock.readLock();
-		}
-		ExtraeAPI::emit_CombinedEvents(&ce);
-		if (Extrae::_traceAsThreads) {
-			_extraeThreadCountLock.readUnlock();
-		}
+		Extrae::emit_CombinedEvents(&ce);
 	}
 
 	void clusterHandleMessage(Message const *msg, int senderId)
@@ -159,13 +153,7 @@ namespace Instrument {
 			ce.Communications[0].id = msg->getId();
 		}
 
-		if (Extrae::_traceAsThreads) {
-			_extraeThreadCountLock.readLock();
-		}
-		ExtraeAPI::emit_CombinedEvents(&ce);
-		if (Extrae::_traceAsThreads) {
-			_extraeThreadCountLock.readUnlock();
-		}
+		Extrae::emit_CombinedEvents(&ce);
 	}
 
 	//! This function is called when sending raw data
@@ -211,13 +199,7 @@ namespace Instrument {
 			ce.Communications[0].id = messageId;
 		}
 
-		if (Extrae::_traceAsThreads) {
-			_extraeThreadCountLock.readLock();
-		}
-		ExtraeAPI::emit_CombinedEvents(&ce);
-		if (Extrae::_traceAsThreads) {
-			_extraeThreadCountLock.readUnlock();
-		}
+		Extrae::emit_CombinedEvents(&ce);
 	}
 
 	//! This function is called when receiving raw data
@@ -243,7 +225,7 @@ namespace Instrument {
 		ce.nCommunications = 0;
 		ce.Communications = NULL;
 
-		if(messageId >= 0)
+		if (messageId >= 0)
 		{
 			value = (extrae_value_t)(messageType + 1);
 			ce.Values = &value;
@@ -261,47 +243,29 @@ namespace Instrument {
 			ce.Communications[0].id = messageId;
 		}
 
-		if (Extrae::_traceAsThreads) {
-			_extraeThreadCountLock.readLock();
-		}
-		ExtraeAPI::emit_CombinedEvents(&ce);
-		if (Extrae::_traceAsThreads) {
-			_extraeThreadCountLock.readUnlock();
-		}
+		Extrae::emit_CombinedEvents(&ce);
 	}
 
 	void taskIsOffloaded(__attribute__((unused)) task_id_t taskId,
 		__attribute__((unused)) InstrumentationContext const &context) {
 		// Do not add an event for now, but decrement _readyTasks
 		_readyTasks--;
-		Instrument::emitClusterEvent(ClusterEventType::OffloadedTasksWaiting, ++_totalOffloadedTasksWaiting);
+		Instrument::emitClusterEvent(
+			ClusterEventType::OffloadedTasksWaiting, ++_totalOffloadedTasksWaiting
+		);
 	}
 
-	void emitClusterEvent(ClusterEventType clusterEventType, int eventValue, InstrumentationContext const &)
-	{
+	void emitClusterEvent(
+		ClusterEventType clusterEventType,
+		int eventValue,
+		InstrumentationContext const &
+	) {
 		if (!Extrae::_extraeInstrumentCluster || clusterEventType == ClusterNoEvent)
 			return;
 
 		extrae_type_t type = clusterEventTypeToExtraeType[clusterEventType];
-		extrae_value_t value = eventValue;
 
-		extrae_combined_events_t ce;
-		ce.HardwareCounters = 0;
-		ce.Callers = 0;
-		ce.UserFunction = EXTRAE_USER_FUNCTION_NONE;
-		ce.nEvents = 1;
-		ce.nCommunications = 0;
-		ce.Communications = NULL;
-		ce.Types = &type;
-		ce.Values = &value;
-
-		if (Extrae::_traceAsThreads) {
-			_extraeThreadCountLock.readLock();
-		}
-		ExtraeAPI::emit_CombinedEvents(&ce);
-		if (Extrae::_traceAsThreads) {
-			_extraeThreadCountLock.readUnlock();
-		}
+		Extrae::emit_SimpleEvent(type, (extrae_value_t) eventValue);
 	}
 
 	void stateNodeNamespace(int state, InstrumentationContext const &)
@@ -326,13 +290,7 @@ namespace Instrument {
 		ce.Types = &type;
 		ce.Values = &value;
 
-		if (Extrae::_traceAsThreads) {
-			_extraeThreadCountLock.readLock();
-		}
-		ExtraeAPI::emit_CombinedEvents(&ce);
-		if (Extrae::_traceAsThreads) {
-			_extraeThreadCountLock.readUnlock();
-		}
+		Extrae::emit_CombinedEvents(&ce);
 	}
 
 	void offloadedTaskCompletes(task_id_t, InstrumentationContext const &context)
@@ -342,11 +300,11 @@ namespace Instrument {
 
 	void MPILock()
 	{
-		Instrument::ExtraeMPILock();
+		Instrument::Extrae::_lockMPI.lock();
 	}
 
 	void MPIUnLock()
 	{
-		Instrument::ExtraeMPIUnLock();
+		Instrument::Extrae::_lockMPI.unlock();
 	}
 }

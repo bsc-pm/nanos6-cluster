@@ -33,7 +33,7 @@ namespace Instrument {
 
 	inline void emitInstrumentationEvent(size_t event, size_t value)
 	{
-		ExtraeAPI::event((extrae_type_t)event, (extrae_value_t) value);
+		Extrae::emit_SimpleEvent((extrae_type_t)event, (extrae_value_t) value);
 	}
 
 }

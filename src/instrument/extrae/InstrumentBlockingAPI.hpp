@@ -73,13 +73,7 @@ namespace Instrument {
 			taskId._taskInfo->_lock.unlock();
 		}
 
-		if (Extrae::_traceAsThreads) {
-			_extraeThreadCountLock.readLock();
-		}
-		ExtraeAPI::emit_CombinedEvents ( &ce );
-		if (Extrae::_traceAsThreads) {
-			_extraeThreadCountLock.readUnlock();
-		}
+		Extrae::emit_CombinedEvents ( &ce );
 	}
 
 	inline void exitBlockCurrentTask(
@@ -132,13 +126,7 @@ namespace Instrument {
 		taskId._taskInfo->_predecessors.emplace(0, control_dependency_tag);
 		taskId._taskInfo->_lock.unlock();
 
-		if (Extrae::_traceAsThreads) {
-			_extraeThreadCountLock.readLock();
-		}
-		ExtraeAPI::emit_CombinedEvents ( &ce );
-		if (Extrae::_traceAsThreads) {
-			_extraeThreadCountLock.readUnlock();
-		}
+		Extrae::emit_CombinedEvents ( &ce );
 	}
 
 	inline void exitUnblockTask(

@@ -154,8 +154,8 @@ namespace Instrument {
 			ExtraeAPI::set_numtasks_function(extrae_nanos6_get_numtasks);
 		}
 
-		_extraeThreadCountLock.writeLock();
-		_lockMPI.lock();
+		Extrae::_extraeThreadCountLock.writeLock();
+		Extrae::_lockMPI.lock();
 		if (_traceAsThreads) {
 			ExtraeAPI::set_threadid_function(extrae_nanos6_get_thread_id);
 			ExtraeAPI::set_numthreads_function(extrae_nanos6_get_num_threads);
@@ -167,8 +167,8 @@ namespace Instrument {
 			ExtraeAPI::change_num_threads(extrae_nanos6_get_num_cpus_and_external_threads());
 			RuntimeInfo::addEntry("extrae_tracing_target", "Extrae Tracing Target", "cpu");
 		}
-		_lockMPI.unlock();
-		_extraeThreadCountLock.writeUnlock();
+		Extrae::_lockMPI.unlock();
+		Extrae::_extraeThreadCountLock.writeUnlock();
 
 		if (ExtraeAPI::is_initialized() == EXTRAE_NOT_INITIALIZED) {
 			// Initialize extrae library. It may be already initialized by the MPI_Init. So we
@@ -305,13 +305,7 @@ namespace Instrument {
 			ce.Types[0] = 9200001;
 			ce.Values[0] = 0;
 
-			if (Extrae::_traceAsThreads) {
-				_extraeThreadCountLock.readLock();
-			}
-			ExtraeAPI::emit_CombinedEvents ( &ce );
-			if (Extrae::_traceAsThreads) {
-				_extraeThreadCountLock.readUnlock();
-			}
+			Extrae::emit_CombinedEvents ( &ce );
 		}
 
 		_initialized = true;
