@@ -362,21 +362,25 @@ Message *MPIMessenger::checkMail(void)
 
 	ret = MPI_Get_count(&status, MPI_BYTE, &count);
 	MPIErrorHandler::handle(ret, INTRA_COMM);
-
-	Message::Deliverable *msg = (Message::Deliverable *) malloc(count);
-	if (msg == nullptr) {
-		perror("malloc for message");
-		MPI_Abort(INTRA_COMM, 1);
-	}
-
 	assert(count != 0);
+
+	Message::Deliverable *dlv = (Message::Deliverable *) malloc(count);
+	FatalErrorHandler::failIf(dlv == nullptr, "malloc for message returned null");
+
+	Instrument::clusterReceiveMessage(type, nullptr);
+
 	Instrument::MPILock();
-	ret = MPI_Recv((void *)msg, count, MPI_BYTE, status.MPI_SOURCE,
+	ret = MPI_Recv((void *)dlv, count, MPI_BYTE, status.MPI_SOURCE,
 		status.MPI_TAG, INTRA_COMM, MPI_STATUS_IGNORE);
 	Instrument::MPIUnLock();
 	MPIErrorHandler::handle(ret, INTRA_COMM);
 
-	return GenericFactory<int, Message*, Message::Deliverable*>::getInstance().create(type, msg);
+	Message *msg
+		= GenericFactory<int, Message*, Message::Deliverable*>::getInstance().create(type, dlv);
+
+	Instrument::clusterReceiveMessage(type, msg);
+
+	return msg;
 }
 
 

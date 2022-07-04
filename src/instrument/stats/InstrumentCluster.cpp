@@ -60,18 +60,20 @@ namespace Instrument {
 		bytesMessagesSent[messageType] += msg->getSize() + sizeof(Message::msg_header);
 	}
 
-	void clusterHandleMessage(Message const *msg, int senderId)
+	void clusterHandleMessage(size_t n, Message **msgs, int start)
 	{
 		if (senderId < 0) {
 			return;
 		}
-		size_t messageType = static_cast<size_t>(msg->getType());
-		assert(messageType < TOTAL_MESSAGE_TYPES);
-		countMessagesReceived[messageType] ++;
-		bytesMessagesReceived[messageType] += msg->getSize() + sizeof(Message::msg_header);
+		for (size_t i = 0; i < n; ++i) {
+			size_t messageType = static_cast<size_t>(msgs[i]->getType());
+			assert(messageType < TOTAL_MESSAGE_TYPES);
+			countMessagesReceived[messageType] ++;
+			bytesMessagesReceived[messageType] += msgs[i]->getSize() + sizeof(Message::msg_header);
+		}
 	}
 
-	void clusterDataSend(void *, size_t size, int, int messageId, InstrumentationContext const &)
+	void clusterDataSend(void *, size_t size, int, int messageId)
 	{
 		if (messageId >=0 ) {
 			// Only count entering data send not leaving it

@@ -218,9 +218,9 @@ namespace ClusterPollingServices {
 
 		static void handleMessageWrapper(T *msg, bool isMessageHandlerItself)
 		{
-			Instrument::clusterHandleMessage(msg, msg->getSenderId());
+			Instrument::clusterHandleMessage(1, &msg, 1);
 			const bool autodelete = msg->handleMessage();
-			Instrument::clusterHandleMessage(msg, -1);
+			Instrument::clusterHandleMessage(1, &msg, 0);
 
 			if (_singleton._numWorkers > 0) {
 				_singleton.notifyDoneInternal(msg, isMessageHandlerItself);
@@ -286,7 +286,16 @@ namespace ClusterPollingServices {
 						// calling tryWakeUp also only one time (tryWakeUp) may be expensive because
 						// it calls the BlockingAPI.
 						if (!_singleton._nonStealableTaskNew.empty()) {
+							Instrument::clusterHandleMessage(
+								_singleton._nonStealableTaskNew.size(),
+								(Message **)_singleton._nonStealableTaskNew.data(), 1);
+
 							NodeNamespace::enqueueMessagesTaskNew(_singleton._nonStealableTaskNew);
+
+							Instrument::clusterHandleMessage(
+								_singleton._nonStealableTaskNew.size(),
+								(Message **)_singleton._nonStealableTaskNew.data(), 0);
+
 							_singleton._nonStealableTaskNew.clear();
 							// We added many tasks at once, so we can continue because this is
 							// equivalent to handling many tasknews.

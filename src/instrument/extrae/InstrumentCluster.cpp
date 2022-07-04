@@ -10,8 +10,8 @@
 
 #include <Message.hpp>
 
-#define CLUSTER_EVENTS 2
-#define EVENT_PREFIX_SIZE 8
+#define CLUSTER_EVENTS 3
+#define EVENT_PREFIX_SIZE 16
 
 namespace Instrument {
 	/* NOTE: this must match the order of HybridClusterEventType */
@@ -39,10 +39,11 @@ namespace Instrument {
 			return;
 
 		//! Event variables
-		const char evtStr[CLUSTER_EVENTS][EVENT_PREFIX_SIZE] = { "Send ", "Handle "};
+		const char evtStr[CLUSTER_EVENTS][EVENT_PREFIX_SIZE] = { "Send ", "Receive ", "Handle "};
 
-		extrae_type_t extraeType[CLUSTER_EVENTS] = {
+		const extrae_type_t extraeType[CLUSTER_EVENTS] = {
 			(extrae_type_t) EventType::MESSAGE_SEND,
+			(extrae_type_t) EventType::MESSAGE_RECEIVE,
 			(extrae_type_t) EventType::MESSAGE_HANDLE
 		};
 
@@ -99,29 +100,79 @@ namespace Instrument {
 		ce.nCommunications = 0;
 		ce.Communications = NULL;
 
+		extrae_user_communication_t com;
+
 		if (receiver >= 0) {
+			com.type = EXTRAE_USER_SEND;
+			com.tag = (extrae_comm_tag_t)EventType::MESSAGE_SEND;
+			com.size = messageType;
+			com.partner = receiver;
+			com.id = msg->getId();
+
 			value = (extrae_value_t)(messageType + 1);
 			ce.Values = &value;
 			ce.nCommunications = 1;
-			ce.Communications =
-				(extrae_user_communication_t *) alloca(sizeof(extrae_user_communication_t));
-
-			ce.Communications[0].type = EXTRAE_USER_SEND;
-			ce.Communications[0].tag = (extrae_comm_tag_t)EventType::MESSAGE_SEND;
-			ce.Communications[0].size = messageType;
-			ce.Communications[0].partner = receiver;
-			ce.Communications[0].id = msg->getId();
+			ce.Communications = &com;
 		}
 
 		Extrae::emit_CombinedEvents(&ce);
 	}
 
-	void clusterHandleMessage(Message const *msg, int senderId)
+	void clusterReceiveMessage(int msgType, Message const *msg)
 	{
 		if (!Extrae::_extraeInstrumentCluster)
 			return;
 
-		const unsigned int messageType = msg->getType();
+		extrae_combined_events_t ce;
+		ce.HardwareCounters = 0;
+		ce.Callers = 0;
+		ce.UserFunction = EXTRAE_USER_FUNCTION_NONE;
+
+		extrae_type_t type = (extrae_type_t)EventType::MESSAGE_RECEIVE;
+		ce.Types = &type;
+
+		// Default values.
+		ce.nEvents = 1;
+		extrae_value_t value = 0;
+		ce.Values = &value;
+
+		ce.nCommunications = 0;
+		ce.Communications = NULL;
+
+		if (msg == nullptr) {
+			// msg is null BEFORE MPI_Recv, when we start this event.
+			value = (extrae_value_t)(msgType + 1);
+			ce.Values = &value;
+		} else {
+			// We finish the communication AFTER the MPI_Recv; when we have a msg already here,
+			// because we need some info to finalize the communication correctly because the tag
+			// doesn't contain all the information.
+
+			ce.nCommunications = 2;
+			ce.Communications =
+				(extrae_user_communication_t *) alloca(2 * sizeof(extrae_user_communication_t));
+
+			// End point to the send counterpart message
+			ce.Communications[0].type = EXTRAE_USER_RECV;
+			ce.Communications[0].tag = (extrae_comm_tag_t)EventType::MESSAGE_SEND;
+			ce.Communications[0].size = msg->getType();
+			ce.Communications[0].partner = msg->getSenderId();
+			ce.Communications[0].id = msg->getId();
+
+			ce.Communications[1].type = EXTRAE_USER_SEND;
+			ce.Communications[1].tag = (extrae_comm_tag_t)EventType::MESSAGE_RECEIVE;
+			ce.Communications[1].size = msg->getType();
+			ce.Communications[1].partner = EXTRAE_COMM_PARTNER_MYSELF;
+			ce.Communications[1].id = msg->getId();
+		}
+
+		Extrae::emit_CombinedEvents(&ce);
+	}
+
+	void clusterHandleMessage(size_t n, Message **msgs, int start)
+	{
+		if (!Extrae::_extraeInstrumentCluster)
+			return;
 
 		extrae_combined_events_t ce;
 		ce.HardwareCounters = 0;
@@ -139,25 +190,31 @@ namespace Instrument {
 		ce.nCommunications = 0;
 		ce.Communications = NULL;
 
-		if (senderId >= 0) {
-			value = (extrae_value_t)(messageType + 1);
-			ce.Values = &value;
-			ce.nCommunications = 1;
-			ce.Communications =
-				(extrae_user_communication_t *) alloca(sizeof(extrae_user_communication_t));
+		if (start != 0) {
+			// We asume all of them are the same type
+			ce.Values[0] = (extrae_value_t)(msgs[0]->getType() + 1);;
 
-			ce.Communications[0].type = EXTRAE_USER_RECV;
-			ce.Communications[0].tag = (extrae_comm_tag_t)EventType::MESSAGE_SEND;
-			ce.Communications[0].size = messageType;
-			ce.Communications[0].partner = senderId;
-			ce.Communications[0].id = msg->getId();
+			// As we handle multiple messages together we need to terminate all the communications
+			// started in the clusterReceiveMessage event.
+			ce.nCommunications = n;
+			ce.Communications =
+				(extrae_user_communication_t *) alloca(n * sizeof(extrae_user_communication_t));
+			assert(ce.Communications != nullptr);
+
+			for (size_t i = 0; i < n; ++i) {
+				ce.Communications[i].type = EXTRAE_USER_RECV;
+				ce.Communications[i].tag = (extrae_comm_tag_t)EventType::MESSAGE_RECEIVE;
+				ce.Communications[i].size = msgs[i]->getType();
+				ce.Communications[i].partner = EXTRAE_COMM_PARTNER_MYSELF;
+				ce.Communications[i].id = msgs[i]->getId();
+			}
 		}
 
 		Extrae::emit_CombinedEvents(&ce);
 	}
 
 	//! This function is called when sending raw data
-	void clusterDataSend(void *, size_t, int dest, int messageId, InstrumentationContext const &)
+	void clusterDataSend(void *, size_t, int dest, int messageId)
 	{
 		if (!Extrae::_extraeInstrumentCluster)
 		return;
@@ -179,8 +236,7 @@ namespace Instrument {
 		ce.nCommunications = 0;
 		ce.Communications = NULL;
 
-		if(messageId >= 0)
-		{
+		if (messageId >= 0) {
 			value = (extrae_value_t)(messageType + 1);
 			ce.Values = &value;
 			ce.nCommunications = 1;
@@ -225,8 +281,7 @@ namespace Instrument {
 		ce.nCommunications = 0;
 		ce.Communications = NULL;
 
-		if (messageId >= 0)
-		{
+		if (messageId >= 0) {
 			value = (extrae_value_t)(messageType + 1);
 			ce.Values = &value;
 			ce.nCommunications = 1;

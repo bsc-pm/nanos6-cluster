@@ -41,7 +41,7 @@ namespace Instrument {
 		addLogEntry(logEntry);
 	}
 
-	void clusterHandleMessage(Message const *msg, int senderId)
+	void clusterReceiveMessage(int type, Message const *msg)
 	{
 		if (!_verboseClusterMessages) {
 			return;
@@ -54,20 +54,44 @@ namespace Instrument {
 
 		logEntry->appendLocation(context);
 
-		if (senderId >= 0) {
-			logEntry->_contents << " --> HandleClusterMessage "
-				<< msg->getName()
+		if (msg == nullptr) {
+			logEntry->_contents << " <-- ReceiveClusterMessage id:" <<  type;
+		} else {
+			logEntry->_contents << " --> ReceiveClusterMessage " << msg->getName()
 				<< " id:" << msg->getId() << " "
 				<< msg->toString()
-				<< " sourceNode:" << senderId;
-		} else {
-			logEntry->_contents << " <-- HandleClusterMessage id:" <<  msg->getId();
+				<< " sourceNode:" << msg->getSenderId();
 		}
 
 		addLogEntry(logEntry);
 	}
 
-	void clusterDataSend(void *, size_t dataSize, int dest, int messageId, InstrumentationContext const &)
+	void clusterHandleMessage(size_t n, Message **msgs, int start)
+	{
+		if (!_verboseClusterMessages) {
+			return;
+		}
+
+		InstrumentationContext const &context = ThreadInstrumentationContext::getCurrent();
+
+		LogEntry *logEntry = getLogEntry(context);
+		assert(logEntry != nullptr);
+
+		logEntry->appendLocation(context);
+
+		for (size_t i = 0; i < n; ++i) {
+			if (start > 0) {
+				logEntry->_contents << " --> HandleClusterMessage " << msgs[i]->getName()
+					<< " id:" << msgs[i]->getId();
+			} else {
+				logEntry->_contents << " <-- HandleClusterMessage id:" << msgs[i]->getId();
+			}
+		}
+
+		addLogEntry(logEntry);
+	}
+
+	void clusterDataSend(void *, size_t dataSize, int dest, int messageId)
 	{
 		if(!_verboseClusterMessages) {
 			return;

@@ -40,6 +40,10 @@ namespace Instrument {
 	inline void MPIUnLock()
 	{
 	}
+
+	inline void clusterReceiveMessage(int, Message const *)
+	{
+	}
 }
 
 #endif //! INSTRUMENT_STATS_CLUSTER_HPP

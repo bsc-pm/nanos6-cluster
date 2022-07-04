@@ -16,11 +16,15 @@ namespace Instrument {
 	{
 	}
 
-	inline void clusterHandleMessage(Message const *, int)
+	inline void clusterReceiveMessage(int, Message const *)
 	{
 	}
 
-	inline void clusterDataSend(void *, size_t, int, int, InstrumentationContext const &)
+	inline void clusterHandleMessage(size_t, Message **, int)
+	{
+	}
+
+	inline void clusterDataSend(void *, size_t, int, int)
 	{
 	}
 

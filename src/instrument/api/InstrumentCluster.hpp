@@ -49,20 +49,23 @@ namespace Instrument {
 	//! If this parameter is -1 then this means it is the end of an event.
 	void clusterSendMessage(Message const *msg, int receiverId);
 
-	//! This function is called when we start handling a received Message
+	// Receive and enqueue message.
+	//! This function is called when we receive a Message
 	//!
 	//! \param[in] msg is the Message we received and currently handling
 	//! \param[in] senderId is the index of the sender node.
 	//! If this parameter is -1 then this means it is the end of an event.
-	void clusterHandleMessage(Message const *msg, int senderId);
+	void clusterReceiveMessage(int type, Message const *msg);
+
+	// This function is called when we handle a Message. As we separate handle from receive.
+	void clusterHandleMessage(size_t n, Message **msgs, int start);
 
 	//! This function is called when sending raw data
 	void clusterDataSend(
 		void *address,
 		size_t size,
 		int dest,
-		int messageId,
-		InstrumentationContext const &context = ThreadInstrumentationContext::getCurrent()
+		int messageId
 	);
 
 	//! This function is called when receiving raw data
