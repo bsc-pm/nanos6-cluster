@@ -164,7 +164,7 @@ public:
 
 	//! \brief Add a function to this executor's stream queue
 	//! \param[in] function The kernel to execute
-	static void enqueueMessagesTaskNew(const std::deque<MessageTaskNew*> &messages)
+	static void enqueueMessagesTaskNew(const std::vector<MessageTaskNew*> &messages)
 	{
 		assert(!_singleton->_mustShutdown.load());
 		assert(!messages.empty());

@@ -42,7 +42,7 @@ namespace ClusterPollingServices {
 		std::deque<T*> _stealableMessages;
 
 		// Messages that cannot be stolen (and that have lower priority, only tasknew for now)
-		std::deque<MessageTaskNew*> _nonStealableTaskNew;
+		std::vector<MessageTaskNew*> _nonStealableTaskNew;
 
 		// Only one _nonStealableLowPriorityMessage may exist at the time as they are malleability
 		// or the finish message.

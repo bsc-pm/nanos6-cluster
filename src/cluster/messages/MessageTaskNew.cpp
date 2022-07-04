@@ -65,7 +65,7 @@ bool MessageTaskNew::handleMessage()
 	// tasknew is handled one by one in order.
 	assert(ClusterManager::getNumMessageHandlerWorkers() == 0);
 
-	std::deque<MessageTaskNew *> tasknews(1, this);
+	std::vector<MessageTaskNew *> tasknews(1, this);
 
 	NodeNamespace::enqueueMessagesTaskNew(tasknews);
 
