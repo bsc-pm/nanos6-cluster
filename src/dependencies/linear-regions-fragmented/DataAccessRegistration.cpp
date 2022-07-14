@@ -2035,7 +2035,9 @@ namespace DataAccessRegistration {
 						updateLocation = true;
 					}
 
-					if ((access->getType() == AUTO_ACCESS_TYPE)
+					if (access->isStrongLocalAccess()) {
+						access->setReadSatisfied(access->getLocation());
+					} else if ((access->getType() == AUTO_ACCESS_TYPE)
 						&& updateOperation._location == nullptr
 						&& !access->hasLocation()) {
 						access->setReadSatisfied(Directory::getDirectoryMemoryPlace());
