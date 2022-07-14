@@ -4259,7 +4259,9 @@ namespace DataAccessRegistration {
 									// Make a taskwait fragment covering this access
 									DataAccessRegion subregion = accessRegion.intersect(region);
 									bottomMapEntry = fragmentBottomMapEntry(bottomMapEntry, subregion, accessStructures);
-									bool dontRelease = (bottomMapEntry->_link._objectType == fragment_type) && ClusterManager::autoOptimizeNonAccessed();
+									bool dontRelease = (bottomMapEntry->_link._objectType == fragment_type)
+														&& !dataAccess->isStrongLocalAccess()
+														&& ClusterManager::autoOptimizeNonAccessed();
 									createTaskwaitFragment(task, bottomMapEntry, computePlace, subregion, accessStructures, hpDependencyData, /* fetchData */ false, dontRelease);
 									mustWait = true;
 									continueWithoutRestart = false;
