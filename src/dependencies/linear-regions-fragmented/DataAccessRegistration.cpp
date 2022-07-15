@@ -5029,6 +5029,42 @@ namespace DataAccessRegistration {
 				task,
 				hpDependencyData
 			);
+		} else { // foundIt
+			// There may already be fragments covering the newly registered region. This may happen
+			// if part of the access containing the region has already been split, so all of its 
+			// fragments have already been created
+			if (location) {
+				accessStructures._accessFragments.processIntersecting(
+					region,
+					/* processor: called for each task access fragment */
+					[&](TaskDataAccesses::access_fragments_t::iterator position) -> bool {
+						DataAccess *fragment = &(*position);
+						assert(fragment != nullptr);
+
+						// If the fragment has a next and the location is already wrong then there is a problem
+						assert(!fragment->hasNext() || fragment->getLocation() == location);
+
+						fragment = fragmentAccess(fragment, region, accessStructures);
+						DataAccessStatusEffects initialStatus(fragment);
+						fragment->setLocation(location);
+						if (location->isClusterLocalMemoryPlace()) {
+							fragment->setIsStrongLocalAccess();
+						}
+						DataAccessStatusEffects updatedStatus(fragment);
+						updatedStatus._allowNamespacePropagation = false;
+
+						/* Handle the above data access status changes */
+						handleDataAccessStatusChanges(
+							initialStatus,
+							updatedStatus,
+							fragment,
+							accessStructures,
+							task,
+							hpDependencyData
+						);
+						return true;
+					});
+			};
 		}
 
 		/* Do not expect any delayed operations */
