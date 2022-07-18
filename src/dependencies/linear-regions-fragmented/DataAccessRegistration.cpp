@@ -5095,14 +5095,15 @@ namespace DataAccessRegistration {
 				DataAccess *access = &(*position);
 				assert(access != nullptr);
 				assert(!access->hasBeenDiscounted());
-				if (access->isStrongLocalAccess()) {
-					access->unsetIsStrongLocalAccess();
-				}
-
+				
 				/*
 				 * Fragment access, as only part inside region becomes complete.
 				 */
 				access = fragmentAccess(access, region, accessStructures);
+				
+				if (access->isStrongLocalAccess()) {
+					access->unsetIsStrongLocalAccess();
+				}
 
 				if (access->getType() != NO_ACCESS_TYPE) {
 
