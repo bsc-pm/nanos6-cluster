@@ -11,6 +11,7 @@
 #include <config.h>
 #endif
 
+#include <ClusterUtil.hpp>
 #include <cstring>
 #include <map>
 #include <numa.h>
@@ -38,9 +39,8 @@ struct DirectoryInfo {
 	size_t _size;
 	uint8_t _homeNode;
 
-	DirectoryInfo(size_t size, uint8_t homeNode) :
-		_size(size),
-		_homeNode(homeNode)
+	DirectoryInfo(size_t size, uint8_t homeNode)
+		: _size(size), _homeNode(homeNode)
 	{
 	}
 };
@@ -264,11 +264,6 @@ public:
 			_lock.writeUnlock();
 		}
 		numa_bitmask_free(tmpBitmask);
-
-#ifndef NDEBUG
-		checkAllocationCorrectness(ptr, size, bitmask, blockSize);
-#endif
-
 	}
 
 	static void unsetNUMAAffinity(void *ptr, size_t size)
@@ -366,6 +361,10 @@ public:
 		_allocationsLock.unlock();
 
 		setNUMAAffinity(res, size, bitmask, blockSize);
+
+#ifndef NDEBUG
+	    checkAllocationCorrectness(res, size, bitmask, blockSize);
+#endif // NDEBUG
 
 		return res;
 	}
