@@ -62,7 +62,7 @@ namespace Instrument {
 
 	void clusterHandleMessage(size_t n, Message **msgs, int start)
 	{
-		if (senderId < 0) {
+		if (!start) {
 			return;
 		}
 		for (size_t i = 0; i < n; ++i) {
