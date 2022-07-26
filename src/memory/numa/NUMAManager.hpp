@@ -271,7 +271,6 @@ public:
 		_lock.writeLock();
 		// Find the initial element in the directory
 		auto begin = _directory.lower_bound(ptr);
-		assert(begin != _directory.end());
 
 		// Find the next element after the allocation
 		auto end = _directory.lower_bound((void *) ((uintptr_t) ptr + size));
