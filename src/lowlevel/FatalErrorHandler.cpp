@@ -10,7 +10,7 @@
 SpinLock FatalErrorHandler::_errorLock;
 SpinLock FatalErrorHandler::_infoLock;
 
-void FatalErrorHandler::nanos6Abort()
+[[ noreturn ]] void FatalErrorHandler::nanos6Abort()
 {
 #ifdef USE_CLUSTER
 	ClusterManager::tryAbortAll();

@@ -25,7 +25,6 @@ private:
 	//! A lock for the information channel (cout)
 	static SpinLock _infoLock;
 
-	static void nanos6Abort();
 	static std::string getErrorPrefix();
 
 protected:
@@ -92,8 +91,10 @@ protected:
 
 public:
 
+	[[ noreturn ]] static void nanos6Abort();
+
 	template<typename... TS>
-	static inline void fail(TS... reasonParts)
+	[[ noreturn ]] static inline void fail(TS... reasonParts)
 	{
 		std::ostringstream oss;
 		oss << "Error: " << getErrorPrefix();
