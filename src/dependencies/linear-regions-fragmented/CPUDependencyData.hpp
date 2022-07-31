@@ -46,16 +46,16 @@ struct CPUDependencyData {
 		bool _makeCommutativeSatisfied;
 		bool _propagateSatisfiability;
 		bool _setPropagateFromNamespace;
+		bool _setReductionInfo; // Note: Both this and _reductionInfo are required, as a null ReductionInfo can be propagated
+		bool _previousIsCommutative;
 		MemoryPlace const *_location;
 		WriteID _writeID;
-		bool _setReductionInfo; // Note: Both this and next field are required, as a null ReductionInfo can be propagated
 		ReductionInfo *_reductionInfo;
-		int _validNamespace;
 		OffloadedTaskIdManager::OffloadedTaskId _namespacePredecessor;
 		DataAccessType _namespaceAccessType;
+		int _validNamespace;
 
 		boost::dynamic_bitset<> _reductionSlotSet;
-		bool _previousIsCommutative;
 
 		UpdateOperation()
 			: _target(), _region(),
@@ -63,13 +63,14 @@ struct CPUDependencyData {
 			_makeConcurrentSatisfied(false), _makeCommutativeSatisfied(false),
 			 _propagateSatisfiability(false),
 			 _setPropagateFromNamespace(false),
+			_setReductionInfo(false),
+			_previousIsCommutative(false),
 			_location(nullptr),
 			_writeID(0),
-			_setReductionInfo(false), _reductionInfo(nullptr),
-			_validNamespace(-1),
+			_reductionInfo(nullptr),
 			_namespacePredecessor(OffloadedTaskIdManager::InvalidOffloadedTaskId),
 			_namespaceAccessType(NO_ACCESS_TYPE),
-			_previousIsCommutative(false)
+			_validNamespace(-1)
 		{
 		}
 
@@ -79,13 +80,14 @@ struct CPUDependencyData {
 			_makeConcurrentSatisfied(false), _makeCommutativeSatisfied(false),
 			 _propagateSatisfiability(false),
 			 _setPropagateFromNamespace(false),
+			_setReductionInfo(false),
+			_previousIsCommutative(false),
 			_location(nullptr),
 			_writeID(0),
-			_setReductionInfo(false), _reductionInfo(nullptr),
-			_validNamespace(-1),
+			_reductionInfo(nullptr),
 			_namespacePredecessor(OffloadedTaskIdManager::InvalidOffloadedTaskId),
 			_namespaceAccessType(NO_ACCESS_TYPE),
-			_previousIsCommutative(false)
+			_validNamespace(-1)
 		{
 		}
 
