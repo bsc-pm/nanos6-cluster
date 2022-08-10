@@ -34,7 +34,7 @@ namespace Instrument {
 				};
 
 			for (size_t type = 0; type < NANOS_DEPENDENCY_STATE_TYPES; ++type) {
-				output << "STATE\t"
+				output << "# STATE\t"
 					<< std::left << std::setw(48) << dependency_state_names[type]
 					<< std::setw(0) << std::right << "\t" << nanos6_dependency_state_stats[type]
 					<< std::endl;
