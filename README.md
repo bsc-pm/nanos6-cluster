@@ -4,6 +4,12 @@ Nanos6 is a runtime that implements the OmpSs-2 parallel programming model,
 developed by the [*Programming Models group*](https://pm.bsc.es/)
 at the [**Barcelona Supercomputing Center**](http://www.bsc.es/).
 
+## Citation
+
+The primary academic publication describing OmpSs-2@Cluster is:
+
+- Jimmy Aguilar Mena, Omar Shaaban, Vicenç Beltran, Paul Carpenter, Eduard Ayguade, and Jesus Labarta Mancho. OmpSs-2@Cluster: Distributed Memory Execution of Nested OpenMP-style Tasks. In: Euro-Par 2022: Parallel Processing. Ed. by José Cano and Phil Trinder. Springer International Publishing, 2022, pp. 319--334. isbn: 978-3-031-12597- 3. doi: 10.1007/978-3-031-12597-3_20
+
 ## Installation
 
 ### Build requirements
