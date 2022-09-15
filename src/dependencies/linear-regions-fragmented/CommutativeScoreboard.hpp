@@ -16,7 +16,7 @@
 
 class Task;
 struct CPUDependencyData;
-struct MemoryPlace;
+class MemoryPlace;
 
 
 struct CommutativeScoreboard {
