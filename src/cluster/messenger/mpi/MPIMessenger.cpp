@@ -393,6 +393,7 @@ Message *MPIMessenger::checkMail(void)
 
 	Message *msg
 		= GenericFactory<int, Message*, Message::Deliverable*>::getInstance().create(type, dlv);
+	assert(msg->getType() == type);
 
 	Instrument::clusterReceiveMessage(type, msg);
 
