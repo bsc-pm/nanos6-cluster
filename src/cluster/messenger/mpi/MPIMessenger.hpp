@@ -38,6 +38,8 @@ private:
 	// this
 	SpinLock _abortLock;
 
+	int convertToBitMask(int mpi_ub_tag) const;
+
 	int createTag(const Message::Deliverable *delv) const
 	{
 		return _mpi_ub_tag & ((delv->header.id << 8) | delv->header.type);

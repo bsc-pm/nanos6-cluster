@@ -52,6 +52,22 @@ void MPIMessenger::forEachDataPart(
 	}
 }
 
+// Given the upper bound on the MPI tag, return the largest value that can be
+// used as a bitmask for the message tag. The returned value will be used as a
+// bitmask inside createTag, effectively as a substitute for the module operator.
+// For this reason, we need to take the largest power of two minus one that is no
+// larger than the maximum permissible message tag.
+int MPIMessenger::convertToBitMask(int mpi_ub_tag) const
+{
+	// Do it the simple way. No need to try to be clever.
+	int curr = INT_MAX;
+	while (curr && curr > mpi_ub_tag) {
+		curr >>= 1; // Too big: divide it by two
+	}
+	assert((curr & 0xff) == 0xff); // Need bottom eight bits set to extract the message type
+	return curr;
+}
+
 MPIMessenger::MPIMessenger(int argc, char **argv) : Messenger(argc, argv)
 {
 	int support, ret;
@@ -70,7 +86,7 @@ MPIMessenger::MPIMessenger(int argc, char **argv) : Messenger(argc, argv)
 	assert(mpi_ub_tag != nullptr);
 	assert(ubIsSetFlag != 0);
 
-	_mpi_ub_tag = *mpi_ub_tag;
+	_mpi_ub_tag = convertToBitMask(*mpi_ub_tag);
 	assert(_mpi_ub_tag > 0);
 
 	// Set the error handler to MPI_ERRORS_RETURN so we can use a check latter.  The error handler
