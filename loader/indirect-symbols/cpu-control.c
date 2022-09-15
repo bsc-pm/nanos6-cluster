@@ -45,7 +45,7 @@ long nanos6_get_current_numa(void)
 		symbol = (nanos6_get_current_numa_t *) _nanos6_resolve_symbol("nanos6_get_current_numa", "cpu control", NULL);
 	}
 
-	return (*symbol)(cpuIterator);
+	return (*symbol)();
 }
 
 
