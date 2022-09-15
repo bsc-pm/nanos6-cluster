@@ -277,7 +277,7 @@ public:
 	{
 		assert(_singleton != nullptr);
 		assert(_singleton->_msn != nullptr);
-		static_assert(std::is_base_of<TransferBase,T>::value);
+		static_assert(std::is_base_of<TransferBase,T>::value, "messages must be subclasses of TransferBase");
 
 		_singleton->_msn->testCompletion(messages);
 	}
@@ -287,7 +287,7 @@ public:
 	{
 		assert(_singleton != nullptr);
 		assert(_singleton->_msn != nullptr);
-		static_assert(std::is_base_of<TransferBase,T>::value);
+		static_assert(std::is_base_of<TransferBase,T>::value, "messages must be subclasses of TransferBase");
 
 		if (messages.size() == 0) {
 			return;
