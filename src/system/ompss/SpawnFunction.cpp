@@ -143,8 +143,7 @@ void SpawnFunction::spawnFunction(
 
 	// Increase the number of spawned functions in case it is
 	// spawned from outside the runtime system
-	if (fromUserCode) {
-		assert(!task->isPolling());
+	if (!task->isPolling()) {
 		_pendingSpawnedFunctions++;
 	}
 
