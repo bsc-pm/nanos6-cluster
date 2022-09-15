@@ -23,7 +23,7 @@ public:
 	{
 	}
 
-	bool handleMessage()
+	bool handleMessage() override
 	{
 		do {} while (!NodeNamespace::isEnabled());
 

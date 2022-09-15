@@ -48,7 +48,7 @@ public:
 		_content = reinterpret_cast<DataFetchMessageContent *>(_deliverable->payload);
 	}
 
-	bool handleMessage();
+	bool handleMessage() override;
 
 	inline std::string toString() const override
 	{

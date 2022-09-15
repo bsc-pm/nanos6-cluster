@@ -29,7 +29,7 @@ public:
 		_content = reinterpret_cast<DfreeMessageContent *>(_deliverable->payload);
 	}
 
-	bool handleMessage();
+	bool handleMessage() override;
 
 	const DataAccessRegion &getRegion() const
 	{

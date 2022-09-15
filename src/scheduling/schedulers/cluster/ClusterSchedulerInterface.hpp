@@ -192,7 +192,7 @@ public:
 		}
 	}
 
-	inline std::string getName() const
+	inline std::string getName() const override
 	{
 		return _defaultScheduler->getName();
 	}
@@ -230,7 +230,7 @@ public:
 		_defaultScheduler->offloadedTaskFinished(remoteNode);
 	}
 
-	virtual inline Task *getReadyTask(ComputePlace *computePlace)
+	virtual inline Task *getReadyTask(ComputePlace *computePlace) override
 	{
 		// Get ready task: first try local scheduler
 		Task *readyTask = SchedulerInterface::getReadyTask(computePlace);

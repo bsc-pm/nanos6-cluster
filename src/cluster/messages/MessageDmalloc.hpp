@@ -58,7 +58,7 @@ public:
 		_content = reinterpret_cast<DmallocMessageContent *>(_deliverable->payload);
 	}
 
-	bool handleMessage();
+	bool handleMessage() override;
 
 	DmallocMessageContent *getContent() const
 	{

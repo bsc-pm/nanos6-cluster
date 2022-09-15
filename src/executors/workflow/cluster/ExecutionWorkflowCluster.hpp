@@ -278,7 +278,7 @@ namespace ExecutionWorkflow {
 			assert(_releaseInfo.size() == 0);
 		}
 
-		void addAccess(DataAccess *access)
+		void addAccess(DataAccess *access) override
 		{
 			_bytesToRelease.fetch_add(access->getAccessRegion().getSize());
 		}

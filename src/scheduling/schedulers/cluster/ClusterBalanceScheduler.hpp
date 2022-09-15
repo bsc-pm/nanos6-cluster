@@ -73,24 +73,24 @@ public:
 		ReadyTaskHint hint
 	) override;
 
-	Task *stealTask(ComputePlace *computePlace);
+	Task *stealTask(ComputePlace *computePlace) override;
 
-	void offloadedTaskFinished(ClusterNode *remoteNode);
+	void offloadedTaskFinished(ClusterNode *remoteNode) override;
 
 	void checkSendMoreAllNodes();
 
-	void decNumLocalReadyTasks()
+	void decNumLocalReadyTasks() override
 	{
 		_numLocalReadyTasks--;
 		assert(_numLocalReadyTasks >= 0);
 	}
 
-	void incNumLocalReadyTasks()
+	void incNumLocalReadyTasks() override
 	{
 		_numLocalReadyTasks++;
 	}
 
-	int getNumLocalReadyTasks()
+	int getNumLocalReadyTasks() override
 	{
 		return _numLocalReadyTasks;
 	}

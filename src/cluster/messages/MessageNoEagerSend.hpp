@@ -40,7 +40,7 @@ public:
 		_content = reinterpret_cast<NoEagerSendMessageContent *>(_deliverable->payload);
 	}
 
-	bool handleMessage();
+	bool handleMessage() override;
 
 	OffloadedTaskIdManager::OffloadedTaskId getTaskId() const
 	{
