@@ -3232,11 +3232,9 @@ namespace DataAccessRegistration {
 				if (parent->isNodeNamespace()) {
 					if (previous->getDataReleased()) {
 						Instrument::namespacePropagation(Instrument::NamespacePredecessorFinished, dataAccess->getAccessRegion());
-					} else if (dataAccess->getNamespacePredecessor() == previous->getOriginator()->getOffloadedTaskId()
-								|| (dataAccess->getNamespacePredecessor() != OffloadedTaskIdManager::InvalidOffloadedTaskId
-									&& dataAccess->getNamespacePredecessor() == previous->getNamespacePredecessor())
-									&& dataAccess->getType() != AUTO_ACCESS_TYPE
-									&& previous->getType() != AUTO_ACCESS_TYPE) {
+					} else if ((dataAccess->getNamespacePredecessor() == previous->getOriginator()->getOffloadedTaskId())
+						|| ((dataAccess->getNamespacePredecessor() != OffloadedTaskIdManager::InvalidOffloadedTaskId)
+							&& (dataAccess->getNamespacePredecessor() == previous->getNamespacePredecessor()))) {
 
 						// We should never connect in the namespace from a read access to a non-read access.
 						// In the usual case, this is prevented by the offloader, which is responsible
@@ -3253,7 +3251,9 @@ namespace DataAccessRegistration {
 						canPropagateInNamespace = true;
 						if ((previous->getType() == READ_ACCESS_TYPE) && (dataAccess->getType() != READ_ACCESS_TYPE)) {
 							canPropagateInNamespace = false;
-						} else if (previous->getType() == CONCURRENT_ACCESS_TYPE || previous->getType() == COMMUTATIVE_ACCESS_TYPE) {
+						} else if ((previous->getType() == CONCURRENT_ACCESS_TYPE) || (previous->getType() == COMMUTATIVE_ACCESS_TYPE)) {
+							canPropagateInNamespace = false;
+						} else if((dataAccess->getType() == AUTO_ACCESS_TYPE) || (previous->getType() == AUTO_ACCESS_TYPE)) {
 							canPropagateInNamespace = false;
 						}
 						if (canPropagateInNamespace) {
