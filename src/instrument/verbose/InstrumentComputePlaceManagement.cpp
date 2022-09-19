@@ -35,7 +35,7 @@ namespace Instrument {
 	}
 	
 	
-	compute_place_id_t createdCUDAGPU()
+	compute_place_id_t createdGPU()
 	{
 		return compute_place_id_t(-2, Verbose::_concurrentUnorderedListSlotManager.getSlot());
 	}

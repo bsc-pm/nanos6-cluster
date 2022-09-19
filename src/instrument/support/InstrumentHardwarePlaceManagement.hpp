@@ -25,9 +25,9 @@ namespace Instrument {
 	//! This function is called when the runtime creates a new CUDA GPU and
 	//! must return an instrumentation-specific computePlace identifier that will
 	//! be used to identify it throughout the rest of the instrumentation API.
-	inline compute_place_id_t createdCUDAGPU()
+	inline compute_place_id_t createdGPU()
 	{
-		return compute_place_id_t(-2);
+		return compute_place_id_t();
 	}
 	
 	inline void suspendingComputePlace(__attribute__((unused)) compute_place_id_t const &computePlace)
