@@ -73,6 +73,9 @@ namespace Instrument {
 				case CONCURRENT_ACCESS_TYPE:
 					logEntry->_contents << " concurrent";
 					break;
+				case AUTO_ACCESS_TYPE:
+					logEntry->_contents << " auto";
+					break;
 				case COMMUTATIVE_ACCESS_TYPE:
 					logEntry->_contents << " commutative";
 					break;

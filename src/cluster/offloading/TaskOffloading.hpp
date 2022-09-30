@@ -16,7 +16,7 @@
 #include "dependencies/DataAccessType.hpp"
 
 #include <MessageReleaseAccess.hpp>
-#include <NoEagerSendInfo.hpp>
+#include <AccessInfo.hpp>
 
 class ClusterNode;
 class MemoryPlace;
@@ -68,11 +68,11 @@ namespace TaskOffloading {
 	//! \param[in] args the MessageTaskNew of the remote Task as a void pointer
 	void remoteTaskCleanup(void *args);
 
-	//! \brief Send no eager send message
-	void sendNoEagerSend(Task *task, const std::vector<NoEagerSendInfo> &regions);
+	//! \brief Send AccessInfo message
+	void sendAccessInfo(ClusterNode *offloader, std::vector<AccessInfo> &regions);
 
-	//! \brief Handle disable eager send of data for offloaded task's dependency that is not accessed
-	void receivedNoEagerSend(Task *task, DataAccessRegion region);
+	//! \brief Handle an info message for offloaded task, e.g. disable eager send of data for offloaded task's dependency that is not accessed
+	void receivedAccessInfo(Task *task, DataAccessRegion region, bool noEagerSend, bool isReadOnly);
 }
 
 #endif // TASK_OFFLOADING_HPP

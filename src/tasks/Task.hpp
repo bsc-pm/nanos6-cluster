@@ -77,6 +77,7 @@ public:
 		polling_flag,
 		nonlocal_wait_flag, // autowait is enabled
 		offloaded_flag,  // offloaded from this node
+		has_allmemory_flag, // task has at least one allmemory access
 		total_flags
 	};
 
@@ -1131,6 +1132,18 @@ public:
 	{
 		return _NUMAHint;
 	}
+
+	//! \brief Set or unset the final flag
+	void setHasAllMemory()
+	{
+		_flags[has_allmemory_flag] = true;
+	}
+	//! \brief Check if the task is final
+	bool hasAllMemory() const
+	{
+		return _flags[has_allmemory_flag];
+	}
+
 };
 
 

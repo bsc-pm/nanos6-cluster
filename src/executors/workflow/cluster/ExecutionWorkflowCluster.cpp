@@ -72,8 +72,10 @@ namespace ExecutionWorkflow {
 				// is propagated before read satisfiability, which happens
 				// very rarely. In this case, we send -1 as the location
 				// index.
-				assert(write);
-				assert(!read);
+				if (!((access->getType() == AUTO_ACCESS_TYPE) && access->getDisableEagerSend())) {
+					assert(write);
+					assert(!read);
+				}
 				locationIndex = -1; // means nullptr
 			} else {
 				if (!location->isDirectoryMemoryPlace()

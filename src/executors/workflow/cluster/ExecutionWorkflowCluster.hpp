@@ -354,11 +354,12 @@ namespace ExecutionWorkflow {
 			// ClusterDataReleaseStep is only for remote tasks
 			assert(task->isRemoteTask());
 
-			const bool mustWait = task->mustDelayRelease() && !task->allChildrenHaveFinished();
+			const bool mustWait = task->mustDelayRelease() && !task->allChildrenHaveFinished() &&
+									!(access->getType() == AUTO_ACCESS_TYPE && ClusterManager::autoOptimizeNonAccessed());
 
 			const bool releases = !access->hasSubaccesses() // no fragments, i.e. access without subtask or top_level_sink
 				&& (access->getObjectType() != taskwait_type) // taskwaits never release
-				&& task->hasFinished()     // must have finished; i.e. not taskwait inside task
+				&& (task->hasFinished() || access->getEarlyReleaseInNamespace()) // must have finished; i.e. not taskwait inside task
 				&& access->readSatisfied() && access->writeSatisfied()
 				&& access->complete()                       // access must be complete
 				&& (!access->hasNext()                      // no next access at the remote side or propagating to an "in" access
@@ -559,9 +560,11 @@ namespace ExecutionWorkflow {
 				//! that the data is not yet initialized)
 				&& !source->isDirectoryMemoryPlace()
 				//! and, if it is a weak access, then only if cluster.eager_weak_fetch == true.
-				//! Also don't eagerly fetch weak concurrent accesses, as usually we will
+				//! Also don't eagerly fetch weak concurrent or auto accesses, as usually we will
 				//! only access part of them.
-				&& (!isWeak || (ClusterManager::getEagerWeakFetch() && access->getType() != CONCURRENT_ACCESS_TYPE))
+				&& (!isWeak || (ClusterManager::getEagerWeakFetch()
+				                && access->getType() != CONCURRENT_ACCESS_TYPE
+				                && access->getType() != AUTO_ACCESS_TYPE))
 			);
 
 		//! If no data transfer is needed, then register the new location if

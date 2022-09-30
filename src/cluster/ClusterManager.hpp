@@ -61,6 +61,10 @@ private:
 
 	bool _mergeReleaseAndFinish;
 
+	bool _autoOptimizeNonAccessed;
+
+	bool _autoOptimizeReadOnly;
+
 	int _numMessageHandlerWorkers;
 
 	//! private constructors. This is a singleton.
@@ -444,6 +448,18 @@ public:
 	{
 		assert(_singleton != nullptr);
 		return _singleton->_mergeReleaseAndFinish;
+	}
+
+	static bool autoOptimizeNonAccessed()
+	{
+		assert(_singleton != nullptr);
+		return _singleton->_autoOptimizeNonAccessed;
+	}
+
+	static bool autoOptimizeReadOnly()
+	{
+		assert(_singleton != nullptr);
+		return _singleton->_autoOptimizeReadOnly;
 	}
 
 	static int getNumMessageHandlerWorkers()

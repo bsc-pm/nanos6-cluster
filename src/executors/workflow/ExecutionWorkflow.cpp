@@ -336,7 +336,12 @@ namespace ExecutionWorkflow {
 								}
 							}
 						);
-
+					} else {
+						// If the task has allmemory accesses that are early released when it
+						// finishes (without waiting for subtasks), then release them now
+						if (task->hasDataReleaseStep()) {
+							task->getDataReleaseStep()->releasePendingAccesses(false);
+						}
 					}
 				}
 			);

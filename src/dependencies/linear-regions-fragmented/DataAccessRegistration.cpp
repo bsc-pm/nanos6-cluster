@@ -53,7 +53,7 @@
 #pragma GCC visibility push(hidden)
 
 const char *dataAccessTypeNames[] = {
-	"none", "read", "write", "readwrite", "concurrent", "commutative", "reduction"};
+	"none", "read", "write", "readwrite", "concurrent", "commutative", "reduction", "auto"};
 
 namespace DataAccessRegistration {
 
@@ -323,7 +323,8 @@ namespace DataAccessRegistration {
 						&& (access->receivedReductionInfo() || access->allocatedReductionInfo())
 						// For 'write' and 'readwrite' accesses we need to propagate the ReductionInfo through fragments only,
 						// in order to be able to propagate a nested reduction ReductionInfo outside
-						&& ((access->getType() != WRITE_ACCESS_TYPE) && (access->getType() != READWRITE_ACCESS_TYPE));
+						&& ((access->getType() != WRITE_ACCESS_TYPE) && (access->getType() != READWRITE_ACCESS_TYPE)
+							&& (access->getType() != AUTO_ACCESS_TYPE));
 					_propagatesReductionSlotSetToNext = false; // ReductionSlotSet is propagated through the fragments
 					// Occasionally data release step needs to be propagated here
 				} else if (
@@ -357,19 +358,25 @@ namespace DataAccessRegistration {
 					assert(!access->hasSubaccesses());
 
 					// A regular access without subaccesses but with a next
+					bool propagateAllMemory = (access->getType() == AUTO_ACCESS_TYPE) && access->getDisableEagerSend() && ClusterManager::autoOptimizeNonAccessed();
 					_propagatesReadSatisfiabilityToNext =
 						access->canPropagateReadSatisfiability()
 						&& access->readSatisfied()
 						// Note: 'satisfied' as opposed to 'readSatisfied', because otherwise read
 						// satisfiability could be propagated before reductions are combined
-						&& _isSatisfied
-						&& ((access->getType() == READ_ACCESS_TYPE) || (access->getType() == NO_ACCESS_TYPE) || access->complete());
+						&& (propagateAllMemory
+							|| access->isAutoReadOnly() ||
+							( _isSatisfied &&
+							 ((access->getType() == READ_ACCESS_TYPE) || (access->getType() == NO_ACCESS_TYPE) || access->complete())
+							));
 					_propagatesWriteSatisfiabilityToNext =
-						access->writeSatisfied() && access->complete()
+						access->writeSatisfied()
 						&& !access->getNamespaceNextIsIn()
-						// Note: This is important for not propagating write
-						// satisfiability before reductions are combined
-						&& _isSatisfied;
+						&& (propagateAllMemory
+							|| (access->complete()
+								// Note: This is important for not propagating write
+								// satisfiability before reductions are combined
+								&& _isSatisfied));
 
 					_propagatesConcurrentSatisfiabilityToNext =
 						access->canPropagateConcurrentSatisfiability()
@@ -378,26 +385,30 @@ namespace DataAccessRegistration {
 						// and 'complete' should allow it to be done before propagating this satisfiability
 						&& _isSatisfied
 						&& !access->getNamespaceNextIsIn()
-						&& ((access->getType() == CONCURRENT_ACCESS_TYPE) || access->complete());
+						&& (propagateAllMemory
+							|| (access->getType() == CONCURRENT_ACCESS_TYPE || access->complete()));
 					_propagatesCommutativeSatisfiabilityToNext =
 						access->canPropagateCommutativeSatisfiability()
 						&& access->commutativeSatisfied()
 						&& !access->getNamespaceNextIsIn()
-						&& ((access->getType() == COMMUTATIVE_ACCESS_TYPE) || access->complete());
+						&& (propagateAllMemory
+							|| ((access->getType() == COMMUTATIVE_ACCESS_TYPE) || access->complete()));
 					_propagatesReductionInfoToNext =
 						access->canPropagateReductionInfo()
 						&& (access->receivedReductionInfo() || access->allocatedReductionInfo())
 						// For 'write' and 'readwrite' accesses we need to propagate the ReductionInfo to next only when
 						// complete, otherwise subaccesses can still appear
-						&& (((access->getType() != WRITE_ACCESS_TYPE) && (access->getType() != READWRITE_ACCESS_TYPE))
-							|| access->complete());
+						&& (propagateAllMemory ||
+							(((access->getType() != WRITE_ACCESS_TYPE) && (access->getType() != READWRITE_ACCESS_TYPE)
+							&& (access->getType() != AUTO_ACCESS_TYPE))
+							|| access->complete()));
 					_propagatesReductionSlotSetToNext =
 						(access->getType() == REDUCTION_ACCESS_TYPE)
-						&& access->complete()
-						// && !access->getNamespaceNextIsIn()
-						&& !access->closesReduction()
-						&& (access->allocatedReductionInfo()
-							|| access->receivedReductionSlotSet());
+						&& (propagateAllMemory || access->complete())
+							// && !access->getNamespaceNextIsIn()
+							&& !access->closesReduction()
+							&& (access->allocatedReductionInfo()
+								|| access->receivedReductionSlotSet());
 				}
 			} else {
 				assert(!access->hasNext());
@@ -467,7 +478,6 @@ namespace DataAccessRegistration {
 			_triggersTaskwaitWorkflow = (access->getObjectType() == taskwait_type)
 										&& access->readSatisfied()
 										&& access->writeSatisfied();
-										// && access->hasOutputLocation();
 
 			_triggersDataLinkRead = access->hasDataLinkStep()
 									&& access->readSatisfied();
@@ -854,7 +864,7 @@ namespace DataAccessRegistration {
 			if (initialStatus._propagatesReadSatisfiabilityToNext != updatedStatus._propagatesReadSatisfiabilityToNext) {
 				assert(!initialStatus._propagatesReadSatisfiabilityToNext);
 				updateOperation._makeReadSatisfied = true; /* make next task read satisfied */
-				assert(access->hasLocation());
+				// assert(access->hasLocation());
 			}
 
 			// Note: do not pass namespace propagation info to taskwaits
@@ -962,7 +972,7 @@ namespace DataAccessRegistration {
 				assert(!initialStatus._propagatesReadSatisfiabilityToFragments);
 				updateOperation._makeReadSatisfied = true;
 				updateOperation._writeID = access->getWriteID();
-				assert(access->hasLocation());
+				// assert(access->hasLocation());
 			}
 
 			if (initialStatus._propagatesWriteSatisfiabilityToFragments != updatedStatus._propagatesWriteSatisfiabilityToFragments) {
@@ -1023,7 +1033,7 @@ namespace DataAccessRegistration {
 				// Subaccesses of an access that can't have a nested reduction which is visible outside
 				// should never propagate the ReductionInfo (it is already propagated by the parent access)
 				bottomMapUpdateOperation._inhibitReductionInfoPropagation =
-					(access->getType() != WRITE_ACCESS_TYPE) && (access->getType() != READWRITE_ACCESS_TYPE);
+					(access->getType() != WRITE_ACCESS_TYPE) && (access->getType() != READWRITE_ACCESS_TYPE) && (access->getType() != AUTO_ACCESS_TYPE);
 
 				bottomMapUpdateOperation._setCloseReduction = (access->getType() != REDUCTION_ACCESS_TYPE) || access->closesReduction();
 
@@ -1056,10 +1066,6 @@ namespace DataAccessRegistration {
 			// sink). So set the dataReleased flag to prevent propagation on the namespace.
 			access->setDataReleased();
 
-			// Any access that does a data release must be read satisfied, so its location must
-			// be known.
-			assert(access->hasLocation());
-
 			// Unmap the task's access from the namespace bottom map. This can be
 			// done as a delayed operation, because the dataReleased flag is now
 			// set, so despite the access still being on the bottom map, the
@@ -1074,10 +1080,16 @@ namespace DataAccessRegistration {
 			// because we did write to it, but on the same node that it was on before the concurrent tasks.
 			// By sending no message we will not change the location, which in case (a) will let
 			// another concurrent task do the write and in case (b) gives the correct location already.
-			bool dontUpdateConcurrentLocation = (access->getType() == CONCURRENT_ACCESS_TYPE)
-								&& (access->getLocation() == access->getConcurrentInitialLocation());
+			bool dontRelease = (access->getType() == CONCURRENT_ACCESS_TYPE
+								&& (access->getLocation() == access->getConcurrentInitialLocation()))
+								|| (access->getType() == AUTO_ACCESS_TYPE && access->getDisableEagerSend() && ClusterManager::autoOptimizeNonAccessed());
 
-			if (!dontUpdateConcurrentLocation) {
+			if (access->getLocation() != nullptr && !dontRelease) {
+
+				// Any access that does a data release must be read satisfied, so its location must
+				// be known. Unless it is a non-accessed auto
+				assert(access->hasLocation());
+
 				// This adds the access to the ClusterDataReleaseStep::_releaseInfo vector.
 				// The accesses will be released latter.
 				assert(access->getObjectType() != taskwait_type); // Never release a taskwait fragment
@@ -1104,7 +1116,8 @@ namespace DataAccessRegistration {
 		bool linksRead = initialStatus._triggersDataLinkRead < updatedStatus._triggersDataLinkRead;
 		bool linksWrite = initialStatus._triggersDataLinkWrite < updatedStatus._triggersDataLinkWrite;
 		bool linksConcurrent = initialStatus._triggersDataLinkConcurrent < updatedStatus._triggersDataLinkConcurrent;
-		if (linksRead || linksWrite || linksConcurrent) {
+		if (!(access->getType() == AUTO_ACCESS_TYPE && access->getDisableEagerSend() && ClusterManager::autoOptimizeNonAccessed())
+			&& (linksRead || linksWrite || linksConcurrent)) {
 			assert(access->hasDataLinkStep());
 
 			ExecutionWorkflow::DataLinkStep *step = access->getDataLinkStep();
@@ -1285,6 +1298,18 @@ namespace DataAccessRegistration {
 						access->getAccessRegion(),
 						accessStructures);
 
+				if (originalAccess->getType() == AUTO_ACCESS_TYPE) {
+					if (!access->getDisableEagerSend()) {
+						originalAccess->setAutoHasBeenAccessed();
+					} else {
+						// Wait or autowait at end of task. If the region was not actually
+						// accessed, then record this in the original access so that we don't
+						// send a second, redundant NoEagerSend.
+						assert(task->hasFinished());
+						originalAccess->setDisableEagerSend();
+					}
+				}
+
 				const MemoryPlace *location;
 
 				if (access->getOutputLocation() && access->getOutputLocation()->isClusterLocalMemoryPlace()) {
@@ -1421,6 +1446,40 @@ namespace DataAccessRegistration {
 	}
 
 	/*
+	 * The upgrade rules are summarized in the below table. Only the upper triangle is shown,
+	 * as the table is symmetric. The entries on the diagonal are indicated by "#".
+	 *
+	 *  		     NONE READ WRITE READWRITE  CONCURRENT COMMUTATIVE REDUCTION ALLMEMORY
+	 *  NONE         #    R    W     RW         concurrent commutative reduction None
+	 *  READ              #    RW    RW         RW         RW          Invalid   R
+	 *  WRITE                  #     RW         RW         RW          Invalid   W
+	 *  READWRITE                    #          RW         RW          Invalid   RW
+	 *  CONCURRENT                              #          commutative Invalid   concurrent
+	 *  COMMUTATIVE                                        #           Invalid   commutative
+	 *  REDUCTION                                                      #         reduction
+	 *  ALLMEMORY                                                                #
+	 */
+
+	static DataAccessType upgradeAccessTable[AUTO_ACCESS_TYPE+1][AUTO_ACCESS_TYPE+1] = {
+		/* NO_ACCESS_TYPE */
+			{ NO_ACCESS_TYPE, READ_ACCESS_TYPE, WRITE_ACCESS_TYPE, READWRITE_ACCESS_TYPE, CONCURRENT_ACCESS_TYPE, COMMUTATIVE_ACCESS_TYPE, REDUCTION_ACCESS_TYPE, NO_ACCESS_TYPE },
+		/* READ_ACCESS_TYPE */
+			{ READ_ACCESS_TYPE, READ_ACCESS_TYPE, READWRITE_ACCESS_TYPE, READWRITE_ACCESS_TYPE, READWRITE_ACCESS_TYPE, READWRITE_ACCESS_TYPE, NO_ACCESS_TYPE, READ_ACCESS_TYPE },
+		/* WRITE_ACCESS_TYPE */
+			{ WRITE_ACCESS_TYPE, READWRITE_ACCESS_TYPE, WRITE_ACCESS_TYPE, READWRITE_ACCESS_TYPE, READWRITE_ACCESS_TYPE, READWRITE_ACCESS_TYPE, NO_ACCESS_TYPE, WRITE_ACCESS_TYPE },
+		/* READWRITE_ACCESS_TYPE */
+			{ READWRITE_ACCESS_TYPE, READWRITE_ACCESS_TYPE, READWRITE_ACCESS_TYPE, READWRITE_ACCESS_TYPE, READWRITE_ACCESS_TYPE, READWRITE_ACCESS_TYPE, NO_ACCESS_TYPE, READWRITE_ACCESS_TYPE },
+		/* CONCURRENT_ACCESS_TYPE */
+			{ CONCURRENT_ACCESS_TYPE, READWRITE_ACCESS_TYPE, READWRITE_ACCESS_TYPE, READWRITE_ACCESS_TYPE, READWRITE_ACCESS_TYPE, COMMUTATIVE_ACCESS_TYPE, NO_ACCESS_TYPE, CONCURRENT_ACCESS_TYPE },
+		/* COMMUTATIVE_ACCESS_TYPE */
+			{ COMMUTATIVE_ACCESS_TYPE, READWRITE_ACCESS_TYPE, READWRITE_ACCESS_TYPE, READWRITE_ACCESS_TYPE, COMMUTATIVE_ACCESS_TYPE, CONCURRENT_ACCESS_TYPE, NO_ACCESS_TYPE, COMMUTATIVE_ACCESS_TYPE },
+		/* REDUCTION_ACCESS_TYPE */
+			{ REDUCTION_ACCESS_TYPE, NO_ACCESS_TYPE, NO_ACCESS_TYPE, NO_ACCESS_TYPE, NO_ACCESS_TYPE, NO_ACCESS_TYPE, REDUCTION_ACCESS_TYPE, REDUCTION_ACCESS_TYPE },
+		/* AUTO_ACCESS_TYPE */
+			{ NO_ACCESS_TYPE, READ_ACCESS_TYPE, WRITE_ACCESS_TYPE, READWRITE_ACCESS_TYPE, CONCURRENT_ACCESS_TYPE, COMMUTATIVE_ACCESS_TYPE, REDUCTION_ACCESS_TYPE, AUTO_ACCESS_TYPE },
+	};
+
+	/*
 	 * Upgrade an access: called by registerTaskDataAccess when a task's access
 	 * intersects a previously-registered access of the same task.
 	 */
@@ -1443,26 +1502,12 @@ namespace DataAccessRegistration {
 				"Task ",
 				(dataAccess->getOriginator()->getTaskInfo()->implementations[0].task_label != nullptr ? dataAccess->getOriginator()->getTaskInfo()->implementations[0].task_label : dataAccess->getOriginator()->getTaskInfo()->implementations[0].declaration_source),
 				" has non-reduction accesses that overlap a reduction");
-			if (
-				((accessType == COMMUTATIVE_ACCESS_TYPE) && (dataAccess->getType() == CONCURRENT_ACCESS_TYPE))
-				|| ((accessType == CONCURRENT_ACCESS_TYPE) && (dataAccess->getType() == COMMUTATIVE_ACCESS_TYPE))) {
-				newDataAccessType = COMMUTATIVE_ACCESS_TYPE;
-			} else {
-				/*
-				 * Every other remaining case is READWRITE. The rules are summarized
-				 * in the below table. Only the upper triangle is shown, as the table
-				 * is symmetric. The entries on the diagonal are indicated by "#".
-				 *
-				 *  		        READ WRITE READWRITE  CONCURRENT COMMUTATIVE REDUCTION
-				 *  READ            #    RW    RW         RW         RW          Invalid
-				 *  WRITE                #     RW         RW         RW          Invalid
-				 *  READWRITE                  #          RW         RW          Invalid
-				 *  CONCURRENT                            #          commutative Invalid
-				 *  COMMUTATIVE                                      #           Invalid
-				 *  REDUCTION                                                    #
-				 */
-				newDataAccessType = READWRITE_ACCESS_TYPE;
-			}
+
+			assert(accessType <= AUTO_ACCESS_TYPE);
+			assert(dataAccess->getType() <= AUTO_ACCESS_TYPE);
+			newDataAccessType = upgradeAccessTable[accessType][dataAccess->getType()];
+			assert(newDataAccessType == upgradeAccessTable[dataAccess->getType()][accessType]);
+
 		} else {
 			FatalErrorHandler::failIf(
 				(accessType == REDUCTION_ACCESS_TYPE)
@@ -1624,6 +1669,50 @@ namespace DataAccessRegistration {
 		return dataAccess;
 	}
 
+	/*
+	 * fragmentUnregisteredAccessObject: Fragment an unregistered access if necessary to match a region.
+	 *
+	 * The task access structures must not be reachable.
+	 *
+	 */
+	static inline DataAccess *fragmentUnregisteredAccessObject(
+		DataAccess *dataAccess, DataAccessRegion const &region,
+		TaskDataAccesses &accessStructures)
+	{
+		assert(!dataAccess->hasBeenDiscounted());
+		assert(!dataAccess->isRegistered());
+		assert(dataAccess->getObjectType() == access_type);
+
+		if (dataAccess->getAccessRegion().fullyContainedIn(region)) {
+			// Nothing to fragment
+			return dataAccess;
+		}
+
+		TaskDataAccesses::accesses_t::iterator position =
+			accessStructures._accesses.iterator_to(*dataAccess);
+		position = accessStructures._accesses.fragmentByIntersection(
+			position, region,
+			/* removeIntersection */ false,
+			/* duplicator */
+			[&](DataAccess const &toBeDuplicated) -> DataAccess * {
+				assert(!toBeDuplicated.isRegistered());
+				return duplicateDataAccess(toBeDuplicated, accessStructures);
+			},
+			/* postprocessor */
+			[&](DataAccess *fragment, DataAccess *originalDataAccess) {
+				fragment->setUpNewFragment(originalDataAccess->getInstrumentationId());
+			});
+
+		/*
+		 * Return the part of this access that is fully inside the given region
+		 */
+		dataAccess = &(*position);
+		assert(dataAccess != nullptr);
+		assert(dataAccess->getAccessRegion().fullyContainedIn(region));
+
+		return dataAccess;
+	}
+
 
 	static inline DataAccess *fragmentFragmentObject(
 		DataAccess *dataAccess, DataAccessRegion const &region,
@@ -1754,11 +1843,15 @@ namespace DataAccessRegistration {
 		}
 	}
 
-	static inline void processNoEagerSendInfo(Task *task, /* INOUT */ CPUDependencyData &hpDependencyData)
+	static inline void processAccessInfo(/* INOUT */ CPUDependencyData &hpDependencyData)
 	{
-		if (!hpDependencyData._noEagerSendInfoVector.empty()) {
-			TaskOffloading::sendNoEagerSend(task, hpDependencyData._noEagerSendInfoVector);
-			hpDependencyData._noEagerSendInfoVector.clear();
+		if (!hpDependencyData._accessInfoMap.empty()) {
+			for (auto &it : hpDependencyData._accessInfoMap) {
+				ClusterNode *node = it.first;
+				std::vector<TaskOffloading::AccessInfo> &accessInfoVector = it.second;
+				TaskOffloading::sendAccessInfo(node, accessInfoVector);
+			}
+			hpDependencyData._accessInfoMap.clear();
 		}
 	}
 
@@ -1894,11 +1987,15 @@ namespace DataAccessRegistration {
 		if (access->getPropagateFromNamespace()) {
 			// If propagated into this access in the remote namespace, then... 
 			if (updateOperation._propagateSatisfiability) {
-				// (1) Only read accesses get read and write satisfiability (note:
+				// (1) Normally, only read accesses get read and write satisfiability (note:
 				// the setting of the node namespace predecessor is a different
-				// type of satisfiability operation, which is allowed).
+				// type of satisfiability operation, which is allowed). The only exception
+				// is if the access is the immediate successor of an auto access of an
+				// offloaded task that is actually read-only, so it sends back a message to the
+				// offloader to propagate read satisfiability. But after doing so, a successor
+				// gets offloaded to the same node with propagation in the namespace
 				if (access->getType() != READ_ACCESS_TYPE) {
-					assert(!updateOperation._makeReadSatisfied && !updateOperation._makeWriteSatisfied);
+					assert(!updateOperation._makeWriteSatisfied);
 				}
 			} else {
 				// and (2) Read accesses never get write satisfiability in the namespace (case c)
@@ -1938,7 +2035,13 @@ namespace DataAccessRegistration {
 						updateLocation = true;
 					}
 
-					if (updateLocation) {
+					if (access->isStrongLocalAccess()) {
+						access->setReadSatisfied(access->getLocation());
+					} else if ((access->getType() == AUTO_ACCESS_TYPE)
+						&& updateOperation._location == nullptr
+						&& !access->hasLocation()) {
+						access->setReadSatisfied(Directory::getDirectoryMemoryPlace());
+					} else if (updateLocation) {
 						access->setReadSatisfied(updateOperation._location);
 						access->setWriteID(updateOperation._writeID);
 					} else {
@@ -1946,6 +2049,50 @@ namespace DataAccessRegistration {
 					}
 				}
 
+				if ((access->getObjectType() == taskwait_type  || access->getObjectType() == top_level_sink_type)
+					&& ClusterManager::autoOptimizeReadOnly()
+					&& access->getType() == AUTO_ACCESS_TYPE
+					&& access->getOriginator()->isRemoteTask()
+					&& access->getOriginator()->hasFinished() // and not a taskwait in the middle of the task! TODO: check this also
+					&& !updateOperation._makeWriteSatisfied
+					&& !access->writeSatisfied()) {
+						// The taskwait gets read satisfiability before write satisfiability.
+						// So the *last* subtask that accessed the data was read-only. Maybe
+						// an earlier subtask did modify it though. Check the write ID to
+						// see if it is still the same as the original access. If so, this
+						// task and its subtasks will not modified the data.
+						bool modified = false;
+						accessStructures._accesses.processIntersecting(
+							access->getAccessRegion(),
+							[&](TaskDataAccesses::accesses_t::iterator position) -> bool {
+								DataAccess *originalAccess = &(*position);
+								if (originalAccess->isAutoHasBeenAccessed()
+									|| originalAccess->getWriteID() != access->getWriteID()) {
+									modified = true;
+									return false;
+								}
+								return true;
+							}
+						);
+
+						if (!modified) {
+							// Note: [READONLY_ALLMEMORY] we cannot rely on the
+							// access type being precisely right when a subtask's
+							// access (perhaps an auto access) covers multiple
+							// (parent) task accesses. This happens when the parent
+							// task has more precise dependencies than the subtask,
+							// so it is hopefully not the common case.  So there
+							// may be some spurious ReadOnly hint messages that
+							// will be ignored at the other end.
+							ClusterNode *node = access->getOriginator()->getClusterContext()->getRemoteNode();
+							hpDependencyData._accessInfoMap[node].emplace_back(
+									access->getAccessRegion(),
+									access->getOriginator()->getOffloadedTaskId(),
+									/* noEagerSend */ false,
+									/* isReadOnly */ true,
+									access->getOriginator());
+						}
+					}
 			}
 
 			/*
@@ -1985,7 +2132,9 @@ namespace DataAccessRegistration {
 			if (updateOperation._makeConcurrentSatisfied
 				|| propagateSatisfiabilityMakesConcurrentAndCommutative) {
 				access->setConcurrentSatisfied();
-				assert(updateOperation._location);
+				if (access->getType() != AUTO_ACCESS_TYPE) {
+					assert(updateOperation._location);
+				}
 				if (access->getType() == CONCURRENT_ACCESS_TYPE) {
 					access->setLocation(updateOperation._location);
 					access->setWriteID(updateOperation._writeID);
@@ -1997,7 +2146,9 @@ namespace DataAccessRegistration {
 			if (updateOperation._makeCommutativeSatisfied
 				|| propagateSatisfiabilityMakesConcurrentAndCommutative) {
 				access->setCommutativeSatisfied();
-				assert(updateOperation._location);
+				if (access->getType() != AUTO_ACCESS_TYPE) {
+					assert(updateOperation._location);
+				}
 				if (!access->hasLocation()) {
 					access->setLocation(updateOperation._location);
 					access->setWriteID(updateOperation._writeID);
@@ -2044,7 +2195,13 @@ namespace DataAccessRegistration {
 					*updateOperation._reductionInfo);
 			}
 
-			access->setReceivedReductionInfo();
+			if (!access->receivedReductionInfo()) {
+				// It is possible now to receive the reduction information more than once, when the
+				// previous task is offloaded and it has an auto access that is only read-only.
+				// We get the reduction info set when our access is finalized. We get it again when
+				// the previous access completes. TODO: fix this.
+				access->setReceivedReductionInfo();
+			}
 		}
 
 		// ReductionSlotSet
@@ -2183,6 +2340,7 @@ namespace DataAccessRegistration {
 		}
 
 		assert(ClusterManager::inClusterMode() || hpDependencyData._delayedOperations.empty());
+		processAccessInfo(hpDependencyData);
 	}
 
 
@@ -2219,6 +2377,7 @@ namespace DataAccessRegistration {
 		if (lastLocked != nullptr) {
 			lastLocked->getDataAccesses()._lock.unlock();
 		}
+		processAccessInfo(hpDependencyData);
 	}
 
 
@@ -3073,9 +3232,9 @@ namespace DataAccessRegistration {
 				if (parent->isNodeNamespace()) {
 					if (previous->getDataReleased()) {
 						Instrument::namespacePropagation(Instrument::NamespacePredecessorFinished, dataAccess->getAccessRegion());
-					} else if (dataAccess->getNamespacePredecessor() == previous->getOriginator()->getOffloadedTaskId()
-								|| (dataAccess->getNamespacePredecessor() != OffloadedTaskIdManager::InvalidOffloadedTaskId
-									&& dataAccess->getNamespacePredecessor() == previous->getNamespacePredecessor())) {
+					} else if ((dataAccess->getNamespacePredecessor() == previous->getOriginator()->getOffloadedTaskId())
+						|| ((dataAccess->getNamespacePredecessor() != OffloadedTaskIdManager::InvalidOffloadedTaskId)
+							&& (dataAccess->getNamespacePredecessor() == previous->getNamespacePredecessor()))) {
 
 						// We should never connect in the namespace from a read access to a non-read access.
 						// In the usual case, this is prevented by the offloader, which is responsible
@@ -3092,7 +3251,9 @@ namespace DataAccessRegistration {
 						canPropagateInNamespace = true;
 						if ((previous->getType() == READ_ACCESS_TYPE) && (dataAccess->getType() != READ_ACCESS_TYPE)) {
 							canPropagateInNamespace = false;
-						} else if (previous->getType() == CONCURRENT_ACCESS_TYPE || previous->getType() == COMMUTATIVE_ACCESS_TYPE) {
+						} else if ((previous->getType() == CONCURRENT_ACCESS_TYPE) || (previous->getType() == COMMUTATIVE_ACCESS_TYPE)) {
+							canPropagateInNamespace = false;
+						} else if((dataAccess->getType() == AUTO_ACCESS_TYPE) || (previous->getType() == AUTO_ACCESS_TYPE)) {
 							canPropagateInNamespace = false;
 						}
 						if (canPropagateInNamespace) {
@@ -3354,6 +3515,54 @@ namespace DataAccessRegistration {
 		std::lock_guard<TaskDataAccesses::spinlock_t> parentGuard(parentAccessStructures._lock);
 		std::lock_guard<TaskDataAccesses::spinlock_t> guard(accessStructures._lock);
 
+		if (task->hasAllMemory()
+			&& parent->getParent() != nullptr
+			&& !parent->isNodeNamespace()) {
+			// Inherit all the none accesses from the parent
+			char *curAddress = (char *)(0x1); // ignore nullptr
+			parentAccessStructures._accesses.processAll(
+				[&](TaskDataAccesses::accesses_t::iterator position) -> bool {
+					DataAccess &access = *position;
+					DataAccessRegion accessRegion = access.getAccessRegion();
+					char *startAddr = (char *)accessRegion.getStartAddress();
+					char *endAddr = (char *)accessRegion.getEndAddress();
+
+					/* Remove auto regions in the parent's gap */
+					if (accessRegion.getStartAddress() > curAddress) {
+						DataAccessRegion gap = DataAccessRegion(curAddress, startAddr);
+						accessStructures._accesses.processIntersecting(
+							gap,
+							[&](TaskDataAccesses::accesses_t::iterator childPosition) -> bool {
+								DataAccess *childAccess = &(*childPosition);
+								childAccess = fragmentUnregisteredAccessObject(childAccess, gap, accessStructures);
+								childAccess->markAsDiscounted();
+								accessStructures._accesses.erase(childAccess);
+								ObjectAllocator<DataAccess>::deleteObject(childAccess);
+								return true;
+							}
+						);
+					}
+
+					/* Demote any auto regions inside an in or weakin to be weakin */
+					if (access.getType() == READ_ACCESS_TYPE) {
+						accessStructures._accesses.processIntersecting(
+							accessRegion,
+							[&](TaskDataAccesses::accesses_t::iterator childPosition) -> bool {
+								DataAccess *childAccess = &(*childPosition);
+								childAccess = fragmentUnregisteredAccessObject(childAccess, accessRegion, accessStructures);
+								if (childAccess->getType() == AUTO_ACCESS_TYPE) {
+									childAccess->setType(READ_ACCESS_TYPE);
+								}
+								return true;
+							}
+						);
+					}
+					curAddress = endAddr;
+					return true;
+				}
+			);
+		}
+
 		// Create any initial missing fragments in the parent, link the previous accesses
 		// and possibly some parent fragments to the new task, and create propagation
 		// operations from the previous accesses to the new task.
@@ -3370,6 +3579,20 @@ namespace DataAccessRegistration {
 				DataAccess *dataAccess = &(*position);
 				assert(dataAccess != nullptr);
 				assert(!dataAccess->hasBeenDiscounted());
+
+				if (dataAccess->getType() == NO_ACCESS_TYPE) {
+
+					/* Remove any data accesses of type NO_ACCESS_TYPE that result from a non-upgraded
+					 * none() pragma clause. Note: other accesses of NO_ACCESS_TYPE may be added later,
+					 * for various reasons, but the ones that result from the none() pragma clause do
+					 * not need to be kept.
+					 */
+
+					dataAccess->markAsDiscounted();
+					accessStructures._accesses.erase(dataAccess);
+					ObjectAllocator<DataAccess>::deleteObject(dataAccess);
+					return true;
+				}
 
 				DataAccessStatusEffects initialStatus(dataAccess);
 				dataAccess->setNewInstrumentationId(task->getInstrumentationTaskId());
@@ -3573,21 +3796,29 @@ namespace DataAccessRegistration {
 					}
 				}
 
-				// Send EagerNoSend messages for any regions that were never accessed by
+				// Send AccessInfo messages for any regions that were never accessed by
 				// the task or a subtask
 				if (finishedTask->isRemoteTask()
-					&& !accessOrFragment->readSatisfied()
-					&& !propagateFromNamespace) {
+					&& ClusterManager::autoOptimizeNonAccessed()
+					&& !propagateFromNamespace
+					&& !accessOrFragment->getDisableEagerSend()) {
 					if ((accessOrFragment->getObjectType() == access_type
+							&& !accessOrFragment->isAutoHasBeenAccessed()
+							&& !dataAccess->isStrongLocalAccess()
 							&& !accessOrFragment->hasSubaccesses())
 						|| (accessOrFragment->getObjectType() == fragment_type
 							&& accessOrFragment->hasNext()
 							&& accessOrFragment->getNext()._objectType == taskwait_type)) {
 
-							if (ClusterManager::getEagerSend()) {
-								hpDependencyData._noEagerSendInfoVector.emplace_back(
+							if (ClusterManager::getEagerSend() || accessOrFragment->getType() == AUTO_ACCESS_TYPE) {
+								ClusterNode *node = accessOrFragment->getOriginator()->getClusterContext()->getRemoteNode();
+								accessOrFragment->setDisableEagerSend();
+								hpDependencyData._accessInfoMap[node].emplace_back(
 										accessOrFragment->getAccessRegion(),
-										accessOrFragment->getOriginator()->getOffloadedTaskId());
+										accessOrFragment->getOriginator()->getOffloadedTaskId(),
+										/* noEagerSend */ true,
+										/* isReadOnly */ false,
+										accessOrFragment->getOriginator());
 							}
 						}
 				}
@@ -3618,6 +3849,11 @@ namespace DataAccessRegistration {
 								accessOrFragment->setWriteSatisfied();
 							}
 							notSat = true;
+						}
+						if (!accessOrFragment->concurrentSatisfied()) {
+							if (!accessOrFragment->remoteHasPseudowrite()) {
+								accessOrFragment->setConcurrentSatisfied();
+							}
 						}
 						if (!accessOrFragment->receivedReductionInfo()) {
 							accessOrFragment->setReceivedReductionInfo();
@@ -3723,7 +3959,8 @@ namespace DataAccessRegistration {
 		DataAccessRegion region,
 		TaskDataAccesses &accessStructures,
 		CPUDependencyData &hpDependencyData,
-		bool fetchData)
+		bool fetchData,
+		bool dontRelease = false)
 	{
 		DataAccessLink previous = bottomMapEntry->_link;
 
@@ -3731,13 +3968,13 @@ namespace DataAccessRegistration {
 		// task's accesses.  So if a child task covers multiple task accesses
 		// of different type, then bottomMapEntry->_accessType may not be
 		// correct for all. We keep it for now since this access type is only
-		// used (1) in the workflow to not fetch dmallocs in non-allmemory
+		// used (1) in the workflow to not fetch dmallocs in non-auto
 		// tasks (i.e. accesses of NO_ACCESS_TYPE in the distributed region),
 		// which will not be in the same dependency as accesses of a different
 		// type, and (2) in createTaskwait to not fetch weakconcurrent or
-		// allmemory accesses when cluster.eager_weak_fetch=true, which may
+		// auto accesses when cluster.eager_weak_fetch=true, which may
 		// cause a few redundant eager fetches but not in the problematic case
-		// of allmemory tasks (for which cluster.eager_weak_fetch=false).
+		// of auto tasks (for which cluster.eager_weak_fetch=false).
 		DataAccessType accessType = bottomMapEntry->_accessType;
 
 		reduction_type_and_operator_index_t reductionTypeAndOperatorIndex =
@@ -3759,6 +3996,9 @@ namespace DataAccessRegistration {
 			if (fetchData) {
 				assert(computePlace != nullptr);
 				taskwaitFragment->setOutputLocation(computePlace->getMemoryPlace(0));
+			}
+			if (dontRelease) {
+				taskwaitFragment->setDisableEagerSend();
 			}
 			// taskwaitFragment->setComplete();
 
@@ -3943,23 +4183,24 @@ namespace DataAccessRegistration {
 							createTaskwaitFragment(task, bottomMapEntry, computePlace, region, accessStructures, hpDependencyData, /* fetchData */ false);
 						} else if (ClusterManager::getEagerWeakFetch()
 									&& bottomMapEntry->_accessType != CONCURRENT_ACCESS_TYPE) {
-							// Eager weak fetch and not concurrent or allmemory, so always fetch, even if weak
+							// Eager weak fetch and not concurrent or auto, so always fetch, even if weak
 							// **WARNING**: bottomMapEntry->_accessType might not be correct if a single bottom map entry
 							// covers multiple task accesses, as bottom map entries are not fragmented for task accesses.
-							// So we might do some unnecessary eager fetches of weakconcurrent or allmemory accesses. This
-							// is only likely to be problematic for allmemory tasks, but in that case
+							// So we might do some unnecessary eager fetches of weakconcurrent or auto accesses. This
+							// is only likely to be problematic for auto tasks, but in that case
 							// cluster.eager_weak_fetch=false.
 							createTaskwaitFragment(task, bottomMapEntry, computePlace, region, accessStructures, hpDependencyData, /* fetchData */ true);
 						 } else {
 							// Not eager weak fetch: so fetch data only for strong accesses. We need to check the accesses
 							// to find out which parts are parts of strong accesses. Note a single bottom map entry may
-							// cover multiple accesses.
+							// cover multiple accesses. We also fetch lmalloc and stack local accesses even if they are
+							// covered by a weak (auto) access.
 							accessStructures._accesses.processIntersectingAndMissing(region,
 								[&](TaskDataAccesses::accesses_t::iterator position) -> bool {
 									// Create taskwait fragment for an access, fetching the data if the access is strong
 									DataAccess *dataAccess = &(*position);
 									assert(dataAccess != nullptr);
-									bool fetchData = !dataAccess->isWeak();
+									bool fetchData = !dataAccess->isWeak() || dataAccess->isStrongLocalAccess();
 									DataAccessRegion subregion = region.intersect(dataAccess->getAccessRegion());
 									bottomMapEntry = fragmentBottomMapEntry(bottomMapEntry, subregion, accessStructures);
 									createTaskwaitFragment(task, bottomMapEntry, computePlace, subregion, accessStructures, hpDependencyData, fetchData);
@@ -4020,7 +4261,10 @@ namespace DataAccessRegistration {
 									// Make a taskwait fragment covering this access
 									DataAccessRegion subregion = accessRegion.intersect(region);
 									bottomMapEntry = fragmentBottomMapEntry(bottomMapEntry, subregion, accessStructures);
-									createTaskwaitFragment(task, bottomMapEntry, computePlace, subregion, accessStructures, hpDependencyData, /* fetchData */ false);
+									bool dontRelease = (bottomMapEntry->_link._objectType == fragment_type)
+														&& !dataAccess->isStrongLocalAccess()
+														&& ClusterManager::autoOptimizeNonAccessed();
+									createTaskwaitFragment(task, bottomMapEntry, computePlace, subregion, accessStructures, hpDependencyData, /* fetchData */ false, dontRelease);
 									mustWait = true;
 									continueWithoutRestart = false;
 									bottomMapEntry = &(*(++bottomMapPosition));
@@ -4045,7 +4289,8 @@ namespace DataAccessRegistration {
 		BottomMapEntry *bottomMapEntry,
 		DataAccessRegion region,
 		TaskDataAccesses &accessStructures,
-		CPUDependencyData &hpDependencyData)
+		CPUDependencyData &hpDependencyData,
+		bool dontRelease = false)
 	{
 		DataAccessLink previous = bottomMapEntry->_link;
 		DataAccessType accessType = bottomMapEntry->_accessType;
@@ -4062,6 +4307,10 @@ namespace DataAccessRegistration {
 			topLevelSinkFragment->setNewInstrumentationId(task->getInstrumentationTaskId());
 			topLevelSinkFragment->setInBottomMap();
 			topLevelSinkFragment->setRegistered();
+
+			if (dontRelease) {
+				topLevelSinkFragment->setDisableEagerSend();
+			}
 
 			// NOTE: Do not set as complete until linked to access' next (if it has one)
 #ifndef NDEBUG
@@ -4180,7 +4429,8 @@ namespace DataAccessRegistration {
 								// Make a top-level sink fragment covering this access
 								DataAccessRegion subregion = accessRegion.intersect(region);
 								bottomMapEntry = fragmentBottomMapEntry(bottomMapEntry, subregion, accessStructures);
-								createTopLevelSinkFragment(task, bottomMapEntry, subregion, accessStructures, hpDependencyData);
+								bool dontRelease = (bottomMapEntry->_link._objectType == fragment_type) && ClusterManager::autoOptimizeNonAccessed();
+								createTopLevelSinkFragment(task, bottomMapEntry, subregion, accessStructures, hpDependencyData, dontRelease);
 								continueWithoutRestart = false;
 								bottomMapEntry = &(*(++bottomMapPosition));
 							}
@@ -4214,6 +4464,10 @@ namespace DataAccessRegistration {
 
 		TaskDataAccesses &accessStructures = task->getDataAccesses();
 		assert(!accessStructures.hasBeenDeleted());
+
+		if (accessType == AUTO_ACCESS_TYPE) {
+			task->setHasAllMemory();
+		}
 
 		/*
 		 * This access may fragment an existing access.
@@ -4446,7 +4700,7 @@ namespace DataAccessRegistration {
 					return true;
 				});
 
-			processNoEagerSendInfo(task, hpDependencyData);
+			processAccessInfo(hpDependencyData);
 		}
 
 #ifndef NDEBUG
@@ -4660,11 +4914,34 @@ namespace DataAccessRegistration {
 				// with accesses changing from weak to strong.
 				DataAccessStatusEffects initialStatus(access);
 				if (location) {
+
+					// Set the location. If it is the current node, then we
+					// have to ensure that taskwaits fetch the data (it could
+					// be an lmalloc or stack).  We do this by setting the
+					// "strong local access" bit in the original access.  It is
+					// tempting to instead change the existing access, if it is
+					// weak, into a strong one (calling access->upgrade). But
+					// there is no logic in the dependency system to deal with
+					// accesses changing from weak to strong (e.g. a dependency
+					// that previously wasn't enforcing a dependency may now be
+					// enforcing one, but the task has already started).
+
+					// Note: dmallocs pass a location of nullptr, so taskwaits
+					// in the same auto task will not fetch dmalloc'ed
+					// data, even if the home is the current node. Check that
+					// this is the case, otherwise we may end up fetching the
+					// parts of a dmalloc that are on this node.
+					assert(location->isClusterLocalMemoryPlace());
+
 					access->setLocation(location);
-					if (location->isClusterLocalMemoryPlace() && !location->isDirectoryMemoryPlace()) {
-						access->setNewLocalWriteID();
+					if (location->isClusterLocalMemoryPlace()) {
+						access->setIsStrongLocalAccess();
+						if (!location->isDirectoryMemoryPlace()) {
+							access->setNewLocalWriteID();
+						}
 					}
 				}
+
 				// access->setValidNamespacePrevious(VALID_NAMESPACE_NONE, nullptr);
 				// access->setValidNamespaceSelf(VALID_NAMESPACE_NONE);
 				DataAccessStatusEffects updatedStatus(access);
@@ -4698,13 +4975,10 @@ namespace DataAccessRegistration {
 			 * on the bytes to release reaches zero. This may cause a
 			 * use-after-free in the runtime.
 			 */
-			// This is tempting, but would stop valid lmallocs inside a task.
-			// FatalErrorHandler::failIf(!isStack && (task->getParent() != nullptr),
-			// 	"nanos6_lmalloc or nanos6_dmalloc in ",
-			// 	task->getLabel(),
-			// 	" without a weakinout \"all memory\" access");
 
-			/* Create a new access */
+			/* Create a new access. It will be of NO_ACCESS_TYPE, so the
+			 * workflow will determine whether taskwaits fetch the data or not.
+			 */
 			DataAccess *newLocalAccess = createAccess(
 				task,
 				access_type,
@@ -4718,6 +4992,9 @@ namespace DataAccessRegistration {
 			newLocalAccess->setNewInstrumentationId(task->getInstrumentationTaskId());
 
 			const MemoryPlace *loc = location ? location : Directory::getDirectoryMemoryPlace();
+			if (location) {
+				newLocalAccess->setIsStrongLocalAccess();
+			}
 			newLocalAccess->setReadSatisfied(loc);
 			if (location && location->isClusterLocalMemoryPlace() && !location->isDirectoryMemoryPlace()) {
 				newLocalAccess->setNewLocalWriteID();
@@ -4752,6 +5029,42 @@ namespace DataAccessRegistration {
 				task,
 				hpDependencyData
 			);
+		} else { // foundIt
+			// There may already be fragments covering the newly registered region. This may happen
+			// if part of the access containing the region has already been split, so all of its 
+			// fragments have already been created
+			if (location) {
+				accessStructures._accessFragments.processIntersecting(
+					region,
+					/* processor: called for each task access fragment */
+					[&](TaskDataAccesses::access_fragments_t::iterator position) -> bool {
+						DataAccess *fragment = &(*position);
+						assert(fragment != nullptr);
+
+						// If the fragment has a next and the location is already wrong then there is a problem
+						assert(!fragment->hasNext() || fragment->getLocation() == location);
+
+						fragment = fragmentAccess(fragment, region, accessStructures);
+						DataAccessStatusEffects initialStatus(fragment);
+						fragment->setLocation(location);
+						if (location->isClusterLocalMemoryPlace()) {
+							fragment->setIsStrongLocalAccess();
+						}
+						DataAccessStatusEffects updatedStatus(fragment);
+						updatedStatus._allowNamespacePropagation = false;
+
+						/* Handle the above data access status changes */
+						handleDataAccessStatusChanges(
+							initialStatus,
+							updatedStatus,
+							fragment,
+							accessStructures,
+							task,
+							hpDependencyData
+						);
+						return true;
+					});
+			};
 		}
 
 		/* Do not expect any delayed operations */
@@ -4782,17 +5095,21 @@ namespace DataAccessRegistration {
 				DataAccess *access = &(*position);
 				assert(access != nullptr);
 				assert(!access->hasBeenDiscounted());
-
+				
 				/*
 				 * Fragment access, as only part inside region becomes complete.
 				 */
 				access = fragmentAccess(access, region, accessStructures);
+				
+				if (access->isStrongLocalAccess()) {
+					access->unsetIsStrongLocalAccess();
+				}
 
 				if (access->getType() != NO_ACCESS_TYPE) {
 
 					// A local access is typically registered as NO_ACCESS_TYPE. The
 					// only way it can be otherwise if the local access is part of a
-					// larger access, such as an allmemory access. In this case, we
+					// larger access, such as an auto access. In this case, we
 					// only have to change the location of the unregistered region to
 					// the directory, which indicates that the data is uninitialized.
 					// This is needed for correctness, not just performance! If we
@@ -4953,15 +5270,27 @@ namespace DataAccessRegistration {
 		{
 			std::lock_guard<TaskDataAccesses::spinlock_t> guard(accessStructures._lock);
 
+			unfragmentTaskAccesses(task, accessStructures, false);
+
 			/* Finalize all local accesses. */
 			accesses.processAll(
 				[&](TaskDataAccesses::accesses_t::iterator position) -> bool {
 					DataAccess *dataAccess = &(*position);
 					assert(dataAccess != nullptr);
 
+					bool finalizeNow =
+						(dataAccess->getType() == AUTO_ACCESS_TYPE
+							&& ClusterManager::autoOptimizeNonAccessed()
+							&& !dataAccess->isStrongLocalAccess()
+							&& accessStructures._subaccessBottomMap.empty()) // Allmemory access with no subaccesses
+							||
+						(dataAccess->hasNext()
+						&& !dataAccess->getNamespaceNextIsIn()); // or early release in namespace
+
+
 					// Do we need to finalize it?
-					if (dataAccess->hasNext() && !dataAccess->getNamespaceNextIsIn()) {
-						assert(!dataAccess->isInBottomMap());
+					if (finalizeNow) {
+						// assert(!dataAccess->isInBottomMap());
 						dataAccess->setEarlyReleaseInNamespace();
 
 						finalizeAccess(
@@ -4976,7 +5305,7 @@ namespace DataAccessRegistration {
 					}
 					return true;
 				});
-			processNoEagerSendInfo(task, hpDependencyData);
+			processAccessInfo(hpDependencyData);
 		}
 		processDelayedOperationsSatisfiedOriginatorsAndRemovableTasks(hpDependencyData, computePlace, true);
 		if (didAll) {
@@ -5054,12 +5383,13 @@ namespace DataAccessRegistration {
 				 * accesses that remain at this point are either (1) accesses
 				 * that were propagated on the remote node or (2) part of a
 				 * weakconcurrent access that was not accessed by a strong
-				 * subtask.  Otherwise they would have been set to complete by
-				 * releaseAccessRegion, which is called on receipt of
-				 * MessageReleaseAccess.  There should also be no fragments,
-				 * since the task was not executed here. All non-concurrent
-				 * accesses can therefore simply be removed, since they will
-				 * never be accessed again on the current node.
+				 * subtask or (3) unaccessed auto regions.  Otherwise they
+				 * would have been set to complete by releaseAccessRegion,
+				 * which is called on receipt of MessageReleaseAccess.  There
+				 * should also be no fragments, since the task was not executed
+				 * here. All non-concurrent accesses can therefore simply be
+				 * removed, since they will never be accessed again on the
+				 * current node.
 				 */
 				 assert(accessStructures._accessFragments.empty());
 				 accesses.processAll(
@@ -5067,16 +5397,23 @@ namespace DataAccessRegistration {
 						DataAccess *dataAccess = &(*position);
 						assert(dataAccess != nullptr);
 						if (!dataAccess->complete()) {
-							// If propagated remotely (i.e. not concurrent) there must be a next access
-							assert(dataAccess->getType() == CONCURRENT_ACCESS_TYPE
-									|| dataAccess->hasNext());
+							if (dataAccess->getType() == AUTO_ACCESS_TYPE
+										&& dataAccess->getDisableEagerSend()) {
+								DataAccessStatusEffects initialStatus(dataAccess);
+								dataAccess->setComplete();
+								DataAccessStatusEffects updatedStatus(dataAccess);
 
-							if (!dataAccess->remoteHasPseudowrite()
+								handleDataAccessStatusChanges(
+									initialStatus, updatedStatus,
+									dataAccess, accessStructures, dataAccess->getOriginator(),
+									hpDependencyData);
+							} else if (!dataAccess->remoteHasPseudowrite()
 								&& dataAccess->getType() != CONCURRENT_ACCESS_TYPE) {
 								// The remote end is propagating true write satisfiability
 								// We will only get this far if the remote task has received true
 								// write satisfiability, so we will never receive write satisfiability
 								// here if we haven't already. We can just delete the access.
+								assert(dataAccess->hasNext());
 								dataAccess->markAsDiscounted();
 								accessStructures._accesses.erase(dataAccess);
 								ObjectAllocator<DataAccess>::deleteObject(dataAccess);
@@ -5100,6 +5437,9 @@ namespace DataAccessRegistration {
 								// this node have completed. Just set the complete bit and
 								// let the normal mechanism check whether the access can be
 								// deleted already.
+								// If propagated remotely (i.e. not concurrent) there must be a next access
+								assert(dataAccess->getType() == CONCURRENT_ACCESS_TYPE
+										|| dataAccess->hasNext());
 								assert(dataAccess->getType() == READ_ACCESS_TYPE
 										|| dataAccess->getType() == CONCURRENT_ACCESS_TYPE);
 
@@ -5129,7 +5469,7 @@ namespace DataAccessRegistration {
 						// If the access is already complete, it was handled by
 						//  unregisterLocallyPropagatedTaskDataAccesses.
 						if (dataAccess->complete()) {
-							assert(dataAccess->hasNext());
+							assert(dataAccess->hasNext() || dataAccess->getType() == AUTO_ACCESS_TYPE);
 							return true;
 						}
 
@@ -5174,7 +5514,7 @@ namespace DataAccessRegistration {
 
 						return true;
 					});
-				processNoEagerSendInfo(task, hpDependencyData);
+				processAccessInfo(hpDependencyData);
 			}
 
 			if (task->isRemoteTask()) {
@@ -5373,29 +5713,43 @@ namespace DataAccessRegistration {
 			assert(!accessStructures.hasBeenDeleted());
 			std::lock_guard<TaskDataAccesses::spinlock_t> guard(accessStructures._lock);
 
-			// For tasks with wait or autowait, send NoEagerSend messages for any regions
+			// For tasks with wait or autowait, send AccessInfo messages for any regions
 			// that were never accessed by the task or a subtask
-			if (task->hasFinished() && task->isRemoteTask() && ClusterManager::getEagerSend()) {
+			if (task->hasFinished()
+				&& task->isRemoteTask()
+				&& (ClusterManager::getEagerSend() || (task->hasAllMemory() && ClusterManager::autoOptimizeNonAccessed()))) {
 				accessStructures._accesses.processAll(
 					/* processor: called for each task access */
 					[&](TaskDataAccesses::accesses_t::iterator position) -> bool {
 						DataAccess *access = &(*position);
 						assert(access != nullptr);
 						if (!access->getPropagateFromNamespace()
-							&& !access->readSatisfied()) {
+							&& !access->isAutoHasBeenAccessed()
+							&& (ClusterManager::getEagerSend() ||
+								(access->getType() == AUTO_ACCESS_TYPE && !access->isStrongLocalAccess()))
+							&& !access->getDisableEagerSend()) {
+								ClusterNode *node = task->getClusterContext()->getRemoteNode();
 								if (!access->hasSubaccesses()) {
-									hpDependencyData._noEagerSendInfoVector.emplace_back(
+									access->setDisableEagerSend();
+									hpDependencyData._accessInfoMap[node].emplace_back(
 										access->getAccessRegion(),
-										access->getOriginator()->getOffloadedTaskId());
+										access->getOriginator()->getOffloadedTaskId(),
+										/* noEagerSend */ true,
+										/* isReadOnly */ false,
+										access->getOriginator());
 								} else {
 									accessStructures._accessFragments.processIntersecting(
 										access->getAccessRegion(),
 										[&](TaskDataAccesses::access_fragments_t::iterator fragmentPosition) -> bool {
 											DataAccess *fragment = &(*fragmentPosition);
-											if (!fragment->hasNext()) {
-												hpDependencyData._noEagerSendInfoVector.emplace_back(
+											if (!fragment->hasNext() && !fragment->getDisableEagerSend()) {
+												fragment->setDisableEagerSend();
+												hpDependencyData._accessInfoMap[node].emplace_back(
 													fragment->getAccessRegion(),
-													access->getOriginator()->getOffloadedTaskId());
+													access->getOriginator()->getOffloadedTaskId(),
+													/* noEagerSend */ true,
+													/* isReadOnly */ false,
+													access->getOriginator());
 											}
 											return true;
 										}
@@ -5405,7 +5759,7 @@ namespace DataAccessRegistration {
 						return true;
 					}
 				);
-				processNoEagerSendInfo(task, hpDependencyData);
+				processAccessInfo(hpDependencyData);
 			}
 
 			/* Create a taskwait fragment for each entry in the bottom map */
@@ -5716,21 +6070,57 @@ namespace DataAccessRegistration {
 		processDelayedOperationsSatisfiedOriginatorsAndRemovableTasks(hpDependencyData, nullptr, false);
 	}
 
-	void noEagerSend(Task *task, DataAccessRegion region)
+	void accessInfo(Task *task, DataAccessRegion region, CPUDependencyData &hpDependencyData, bool noEagerSend, __attribute__((unused)) bool isReadOnly)
 	{
+		assert(noEagerSend || isReadOnly);
 		TaskDataAccesses &accessStructures = task->getDataAccesses();
-		std::lock_guard<TaskDataAccesses::spinlock_t> guard(accessStructures._lock);
+
+		accessStructures._lock.lock();
 		accessStructures._accesses.processIntersecting(
 			region,
 			[&](TaskDataAccesses::accesses_t::iterator position) -> bool {
 				DataAccess *dataAccess = &(*position);
 				assert(dataAccess != nullptr);
+				assert(!dataAccess->complete());
 				assert(!dataAccess->hasBeenDiscounted());
 				dataAccess = fragmentAccess(dataAccess, region, accessStructures);
-				dataAccess->setDisableEagerSend();
+
+				if (dataAccess->getType() == AUTO_ACCESS_TYPE && ClusterManager::autoOptimizeNonAccessed()) {
+					DataAccessStatusEffects initialStatus(dataAccess);
+					if (noEagerSend) {
+						assert(!dataAccess->getDisableEagerSend());
+						dataAccess->setDisableEagerSend();
+
+						ExecutionWorkflow::DataLinkStep *step = dataAccess->getDataLinkStep();
+						bool linksRead = !dataAccess->readSatisfied();
+						bool linksWrite = !dataAccess->writeSatisfied();
+						if (step) {
+							if (linksRead || linksWrite) {
+								step->linkRegion(dataAccess, linksRead, linksWrite, hpDependencyData._satisfiabilityMap, hpDependencyData._dataSendRegionInfoMap);
+							}
+						}
+					} else {
+						assert(isReadOnly);
+						assert(!dataAccess->isAutoReadOnly());
+						dataAccess->setAutoReadOnly();
+					}
+					DataAccessStatusEffects updatedStatus(dataAccess);
+					handleDataAccessStatusChanges(
+						initialStatus, updatedStatus,
+						dataAccess, accessStructures, task,
+						hpDependencyData);
+
+				} else {
+					if (noEagerSend) {
+						dataAccess->setDisableEagerSend();
+					}
+				}
+
 				return true;
 			}
 		);
+		accessStructures._lock.unlock();
+		processDelayedOperationsSatisfiedOriginatorsAndRemovableTasks(hpDependencyData, nullptr, true);
 	}
 
 	bool supportsDataTracking()

@@ -68,6 +68,15 @@ for type in $* ; do
 		weak_reduction)
 			registration_function="register_reduction_access<true>"
 		;;
+
+		none)
+			registration_function="register_data_access<NO_ACCESS_TYPE, true>"
+		;;
+
+		auto)
+			registration_function="register_data_access<AUTO_ACCESS_TYPE, true>"
+		;;
+
 		*)
 			echo "Warning: unimplemented access type ${type}." 1>&2
 			continue

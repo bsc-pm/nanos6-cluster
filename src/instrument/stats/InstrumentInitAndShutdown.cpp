@@ -106,7 +106,10 @@ namespace Instrument {
 
 		if (ClusterManager::inClusterMode()) {
 			output << std::endl;
-			output << "STATS\t" << "Node\t" << ClusterManager::getCurrentClusterNode()->getIndex() << std::endl;
+			output << "##################";
+			output << std::endl;
+			output << "# STATS\t" << "Node\t" << ClusterManager::getCurrentClusterNode()->getIndex() << std::endl;
+			output << "##################";
 			output << std::endl;
 		}
 

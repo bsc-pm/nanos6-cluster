@@ -86,6 +86,9 @@ private:
 		DATA_RELEASED_BIT,
 		DISABLE_EAGER_SEND_BIT,
 		NAMESPACE_NEXT_IS_IN_BIT,
+		IS_STRONG_LOCAL_ACCESS,
+		AUTO_HAS_BEEN_ACCESSED_BIT,
+		AUTO_READONLY_BIT,
 		TOTAL_STATUS_BITS
 	};
 
@@ -221,6 +224,12 @@ public:
 	inline DataAccessType getType() const
 	{
 		return _type;
+	}
+
+	inline void setType(DataAccessType newType)
+	{
+		assert(!isRegistered());
+		_type = newType;
 	}
 
 	inline bool isWeak() const
@@ -622,6 +631,9 @@ public:
 			setComplete();
 		}
 		setWriteID(other->getWriteID());
+		if (other->isStrongLocalAccess()) {
+			setIsStrongLocalAccess();
+		}
 		setValidNamespaceSelf(other->getValidNamespaceSelf());
 		setValidNamespacePrevious(VALID_NAMESPACE_NONE,
 			OffloadedTaskIdManager::InvalidOffloadedTaskId);
@@ -657,6 +669,7 @@ public:
 			return writeSatisfied()
 				&& (allocatedReductionInfo() || (receivedReductionInfo() && receivedReductionSlotSet()));
 		} else {
+			// NO_ACCESS_TYPE, WRITE_ACCESS_TYPE, READWRITE_ACCESS_TYPE or AUTO_ACCESS_TYPE
 			return readSatisfied() && writeSatisfied();
 		}
 	}
@@ -868,6 +881,43 @@ public:
 	void setNamespaceNextIsIn()
 	{
 		_status[NAMESPACE_NEXT_IS_IN_BIT] = true;
+	}
+
+	bool isStrongLocalAccess() const
+	{
+		return _status[IS_STRONG_LOCAL_ACCESS];
+	}
+
+	void setIsStrongLocalAccess()
+	{
+		_status[IS_STRONG_LOCAL_ACCESS] = true;
+	}
+
+	void unsetIsStrongLocalAccess()
+	{
+		_status[IS_STRONG_LOCAL_ACCESS] = false;
+	}
+
+	bool isAutoReadOnly() const
+	{
+		return _status[AUTO_READONLY_BIT];
+	}
+
+	void setAutoReadOnly()
+	{
+		assert(_type == AUTO_ACCESS_TYPE);
+		_status[AUTO_READONLY_BIT] = true;
+	}
+
+	bool isAutoHasBeenAccessed() const
+	{
+		return _status[AUTO_HAS_BEEN_ACCESSED_BIT];
+	}
+
+	void setAutoHasBeenAccessed()
+	{
+		assert(_type == AUTO_ACCESS_TYPE);
+		_status[AUTO_HAS_BEEN_ACCESSED_BIT] = true;
 	}
 
 	// Get and set the initial location to a group of concurrent accesses.

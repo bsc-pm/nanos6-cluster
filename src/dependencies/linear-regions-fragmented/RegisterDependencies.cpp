@@ -135,3 +135,13 @@ void nanos6_register_region_weak_reduction_depinfo1(
 	
 	register_access<REDUCTION_ACCESS_TYPE, true>(handler, base_address, dim1size, symbol_index, reduction_operation, reduction_index);
 }
+
+void nanos6_register_none_depinfo(void *handler, void *start, size_t length, int symbolIndex)
+{
+	register_access<NO_ACCESS_TYPE, true>(handler, start, length, symbolIndex);
+}
+
+void nanos6_register_auto_depinfo(void *handler, void *start, size_t length, int symbolIndex)
+{
+	register_access<AUTO_ACCESS_TYPE, true>(handler, start, length, symbolIndex);
+}

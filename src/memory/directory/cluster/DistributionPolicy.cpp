@@ -70,8 +70,9 @@ namespace ClusterDirectory {
 		NUMAManager::enableTrackingIfAuto();
 
 		if (task) {
-			// Register local access. A location of nullptr means that the data is currently
-			// uninitialized so the first access doesn't need a copy.
+			// Register local access. A location of nullptr means that:
+			// (1) the data is currently uninitialized so the first access doesn't need a copy, and
+			// (2) any subsequent taskwait does not need to fetch the data
 			DataAccessRegistration::registerLocalAccess(
 				task, dmallocInfo->_region, /* location */ nullptr, /* isStack */ false
 			);

@@ -25,7 +25,7 @@
 #include <Directory.hpp>
 #include <MessageTaskNew.hpp>
 #include "MessageSatisfiability.hpp"
-#include <MessageNoEagerSend.hpp>
+#include <MessageAccessInfo.hpp>
 #include <NodeNamespace.hpp>
 
 #include "cluster/WriteID.hpp"
@@ -35,6 +35,27 @@
 #include <LiveDataTransfers.hpp>
 
 namespace TaskOffloading {
+
+	template <class T>
+	static void mergeList(const std::vector<T> &invec, std::vector <T> &outvec)
+	{
+		assert(outvec.empty());
+		outvec.reserve(invec.size());
+		T *last = nullptr;
+		for(const T &in : invec) {
+			if (last) {
+				// Accesses must already be ordered correctly
+				assert(in._region.getStartAddress() >= last->_region.getEndAddress());
+			}
+
+			if (last && in.canMergeWith(*last)) {
+				last->_region = DataAccessRegion(last->_region.getStartAddress(), in._region.getEndAddress());
+			} else {
+				outvec.emplace_back(in);
+				last = &outvec.back();
+			}
+		}
+	}
 
 	static inline void handleEagerSend(SatisfiabilityInfo const &satInfo)
 	{
@@ -236,17 +257,18 @@ namespace TaskOffloading {
 		);
 	}
 
-	void sendNoEagerSend(Task *task, const std::vector<NoEagerSendInfo> &regions)
+	void sendAccessInfo(ClusterNode *offloader, std::vector<AccessInfo> &regions)
 	{
-		ClusterTaskContext *context = task->getClusterContext();
-		ClusterNode *offloader = context->getRemoteNode();
-		MessageNoEagerSend *msg = new MessageNoEagerSend(regions.size(), regions);
+		std::vector<AccessInfo> unfragmented;
+		std::sort(
+			regions.begin(),
+			regions.end(),
+			[](const AccessInfo &a, const AccessInfo &b) -> bool {
+				return a._region.getStartAddress() < b._region.getStartAddress();
+			});
+		mergeList(regions, unfragmented);
+		MessageAccessInfo *msg = new MessageAccessInfo(unfragmented.size(), unfragmented);
 		ClusterManager::sendMessage(msg, offloader);
-	}
-
-	void receivedNoEagerSend(Task *task, DataAccessRegion region)
-	{
-		DataAccessRegistration::noEagerSend(task, region);
 	}
 
 	void remoteTaskCreateAndSubmit(

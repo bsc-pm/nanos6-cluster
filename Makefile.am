@@ -37,7 +37,7 @@ lib_suffix = $(lib_major).$(lib_age).$(lib_revision)
 
 
 MAX_REGION_DIMENSIONS = 8
-MULTIDIMENSIONAL_REGION_API_TYPES = read write readwrite weak_read weak_write weak_readwrite concurrent commutative weak_commutative reduction weak_reduction weak_concurrent
+MULTIDIMENSIONAL_REGION_API_TYPES = read write readwrite weak_read weak_write weak_readwrite concurrent commutative weak_commutative reduction weak_reduction weak_concurrent none auto
 SUPPORTED_MULTIDIMENSIONAL_REGION_API_TYPES =
 
 LINT_MAX_REGION_DIMENSIONS = 8
@@ -471,7 +471,7 @@ cluster_sources += \
 	src/cluster/messages/MessageDataSend.cpp \
 	src/cluster/messages/MessageDfree.cpp \
 	src/cluster/messages/MessageDmalloc.cpp \
-	src/cluster/messages/MessageNoEagerSend.cpp \
+	src/cluster/messages/MessageAccessInfo.cpp \
 	src/cluster/messages/MessageReleaseAccess.cpp \
 	src/cluster/messages/MessageSatisfiability.cpp \
 	src/cluster/messages/MessageTaskNew.cpp \
@@ -556,7 +556,7 @@ discrete_dependency_flags = -I$(srcdir)/src/dependencies/linear-regions -I$(srcd
 
 dist_dependency_sources = $(regions_dependency_sources) $(discrete_dependency_sources)
 
-SUPPORTED_MULTIDIMENSIONAL_REGION_API_TYPES += read write readwrite weak_read weak_write weak_readwrite concurrent commutative weak_commutative reduction weak_reduction weak_concurrent
+SUPPORTED_MULTIDIMENSIONAL_REGION_API_TYPES += read write readwrite weak_read weak_write weak_readwrite concurrent commutative weak_commutative reduction weak_reduction weak_concurrent none auto
 
 introspection_sources = \
 	src/instrument/support/introspection/CodeAddressInfoBase.cpp \
@@ -1342,7 +1342,7 @@ noinst_HEADERS += \
 	src/cluster/messages/MessageDfree.hpp \
 	src/cluster/messages/MessageDmalloc.hpp \
 	src/cluster/messages/MessageId.hpp \
-	src/cluster/messages/MessageNoEagerSend.hpp \
+	src/cluster/messages/MessageAccessInfo.hpp \
 	src/cluster/messages/MessageReleaseAccess.hpp \
 	src/cluster/messages/MessageSatisfiability.hpp \
 	src/cluster/messages/MessageSysFinish.hpp \
@@ -1362,7 +1362,7 @@ noinst_HEADERS += \
 	src/cluster/offloading/OffloadedTasksInfoMap.hpp \
 	src/cluster/offloading/SatisfiabilityInfo.hpp \
 	src/cluster/offloading/TaskOffloading.hpp \
-	src/cluster/offloading/NoEagerSendInfo.hpp \
+	src/cluster/offloading/AccessInfo.hpp \
 	src/cluster/polling-services/ClusterServicesTask.hpp \
 	src/cluster/polling-services/ClusterServicesPolling.hpp \
 	src/cluster/polling-services/PendingQueue.hpp \
