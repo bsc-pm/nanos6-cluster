@@ -53,7 +53,16 @@ int nanos6_can_run_main(void)
 void nanos6_register_node(void (*shutdown_callback)(void *), void *callback_args)
 {
 	assert(ClusterManager::isMasterNode() || shutdown_callback != nullptr);
-	ClusterManager::initClusterNamespace(shutdown_callback, callback_args);
+	if (ClusterManager::getMessenger() != nullptr) {
+		ClusterManager::initClusterNamespace(shutdown_callback, callback_args);
+	} else {
+#ifndef NDEBUG
+		// Assert that there is not a communicator intentionally, not sue to an error
+		ConfigVariable<std::string> commType("cluster.communication");
+		assert(commType.getValue() == "disabled");
+#endif
+	}
+
 }
 
 // Before main started
