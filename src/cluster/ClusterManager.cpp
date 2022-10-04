@@ -190,7 +190,7 @@ void ClusterManager::shutdownPhase1()
 		ClusterServicesPolling::waitUntilFinished();
 	}
 
-	if (ClusterManager::isMasterNode()) {
+	if (ClusterManager::isMasterNode() && inClusterMode()) {
 		MessageSysFinish msg;
 		ClusterManager::sendMessageToAll(&msg, true);
 
