@@ -76,8 +76,10 @@ ComputePlace::ComputePlace(int index, nanos6_device_t type, bool owned) :
 	FatalErrorHandler::failIf(_preallocatedArgsBlock == nullptr,
 		"Insufficient memory for preallocatedArgsBlock");
 
-	HardwareCounters::taskCreated(_preallocatedTaskfor);
-	Monitoring::taskCreated(_preallocatedTaskfor);
+	if (_preallocatedTaskfor) {
+		HardwareCounters::taskCreated(_preallocatedTaskfor);
+		Monitoring::taskCreated(_preallocatedTaskfor);
+	}
 }
 
 ComputePlace::~ComputePlace()
