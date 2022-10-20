@@ -29,7 +29,8 @@ void TaskMonitor::taskCreated(Task *task, Task *parent) const
 	assert(taskStatistics != nullptr);
 
 	// Initialize attributes of the new task
-	const size_t cost = task->getConstraints()->cost;
+	// Careful: a preallocated taskfor does not have constraints
+	const size_t cost = task->hasConstraints() ? task->getConstraints()->cost : 1;
 	taskStatistics->setCost(cost);
 
 	if (parent != nullptr) {

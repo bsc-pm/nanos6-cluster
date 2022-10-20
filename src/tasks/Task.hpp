@@ -929,6 +929,10 @@ public:
 		}
 	}
 
+	inline bool hasConstraints() const
+	{
+		return _constraints != nullptr;
+	}
 
 	const inline nanos6_task_constraints_t * getConstraints() const
 	{
