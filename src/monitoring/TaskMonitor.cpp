@@ -202,9 +202,10 @@ void TaskMonitor::taskFinished(Task *task) const
 	// Stop timing for the task
 	taskStatistics->stopTiming();
 
-	// NOTE: Special case, for taskfor sources, when the task is finished it
-	// also completes user code execution, thus we treat it here
-	if (task->isTaskforSource()) {
+	// NOTE: Special case, for taskfor sources and offloaded tasks (executed on
+	// another node), when the task is finished it also completes user code
+	// execution, thus we treat it here
+	if (task->isTaskforSource() || task->isOffloadedTask()) {
 		taskCompletedUserCode(task);
 	}
 
