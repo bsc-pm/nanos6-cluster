@@ -45,8 +45,8 @@ void TaskMonitor::taskCreated(Task *task, Task *parent) const
 		);
 	}
 
-	// If the task is a taskfor collaborator, no need to predict anything
-	if (task->isTaskforCollaborator()) {
+	// If the task is a taskfor collaborator or node namespace, no need to predict anything
+	if (task->isTaskforCollaborator() || task->isNodeNamespace()) {
 		return;
 	}
 
@@ -118,12 +118,13 @@ void TaskMonitor::taskStarted(Task *task, monitoring_task_status_t execStatus) c
 	// Start recording time for the new execution status
 	monitoring_task_status_t oldStatus = taskStatistics->startTiming(execStatus);
 
-	// If the task is not a taskfor collaborator, and this is the first time it
+	// If the task is not a taskfor collaborator or node namespace, and this is the first time it
 	// becomes ready, increase the cost accumulations used to infer predictions.
 	// Only if this task doesn't have an ancestor that is already taken into account
-	if (!task->isTaskforCollaborator() && !taskStatistics->ancestorHasTimePrediction()) {
+	if (!task->isTaskforCollaborator() && !task->isNodeNamespace() && !taskStatistics->ancestorHasTimePrediction()) {
 		if (oldStatus == null_status && execStatus == ready_status) {
 			TasktypeStatistics *tasktypeStatistics = taskStatistics->getTasktypeStatistics();
+
 			assert(tasktypeStatistics != nullptr);
 
 			if (taskStatistics->hasTimePrediction()) {
@@ -141,7 +142,7 @@ void TaskMonitor::taskCompletedUserCode(Task *task) const
 {
 	assert(task != nullptr);
 
-	if (task->isTaskforCollaborator()) {
+	if (task->isTaskforCollaborator() || task->isNodeNamespace()) {
 		return;
 	}
 
@@ -222,7 +223,7 @@ void TaskMonitor::taskFinished(Task *task) const
 
 		// If the task is a taskfor source or a normal task, aggregate
 		// timing statistics and counters into its tasktype
-		if (!task->isTaskforCollaborator()) {
+		if (!task->isTaskforCollaborator() && !task->isNodeNamespace()) {
 			TasktypeStatistics *tasktypeStatistics = taskStatistics->getTasktypeStatistics();
 			TaskHardwareCounters &taskCounters = task->getHardwareCounters();
 			assert(tasktypeStatistics != nullptr);
