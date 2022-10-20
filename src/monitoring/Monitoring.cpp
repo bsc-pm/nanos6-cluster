@@ -19,6 +19,7 @@
 #include "support/JsonFile.hpp"
 #include "tasks/Task.hpp"
 #include "tasks/TaskInfo.hpp"
+#include "ClusterManager.hpp"
 
 
 ConfigVariable<bool> Monitoring::_enabled("monitoring.enabled");
@@ -248,7 +249,24 @@ void Monitoring::displayStatistics()
 
 	// Try opening the output file
 	std::ios_base::openmode openMode = std::ios::out;
-	std::ofstream output(_outputFile.getValue(), openMode);
+
+	// In cluster mode
+	std::string monitorFilename = _outputFile.getValue();
+	size_t idx = monitorFilename.find("%N");
+	if (idx != std::string::npos) {
+		if (ClusterManager::inClusterMode()) {
+			// Expand %N to the cluster node index
+			std::stringstream ss;
+			ss << ClusterManager::getCurrentClusterNode()->getIndex();
+			std::string nodenum = ss.str();
+			monitorFilename.replace(idx, /* length */ 2, nodenum);
+		} else {
+			// Remove %N
+			monitorFilename.replace(idx, /* length */ 2, "");
+		}
+	}
+
+	std::ofstream output(monitorFilename, openMode);
 	FatalErrorHandler::warnIf(
 		!output.is_open(),
 		"Could not create or open the verbose file: ", _outputFile.getValue(), ". Using standard output."

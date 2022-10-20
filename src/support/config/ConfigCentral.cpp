@@ -132,7 +132,7 @@ ConfigCentral::ConfigCentral() :
 	registerOption<bool_t>("monitoring.enabled", false);
 	registerOption<integer_t>("monitoring.rolling_window", 20);
 	registerOption<bool_t>("monitoring.verbose", true);
-	registerOption<string_t>("monitoring.verbose_file", "output-monitoring.txt");
+	registerOption<string_t>("monitoring.verbose_file", "output-monitoring%N.txt");
 	registerOption<bool_t>("monitoring.wisdom", false);
 
 	// NUMA support

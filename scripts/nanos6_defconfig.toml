@@ -131,8 +131,9 @@ __!require_PQOS
 	# Enable the verbose mode of Monitoring, which prints a detailed summary of task type metrics
 	# at the end of the execution. Default is true
 	verbose = true
-	# The verbose file's name. Default is "output-monitoring.txt"
-	verbose_file = "output-monitoring.txt"
+	# The verbose file's name. Default is "output-monitoring.txt".
+	# If in cluster mode, then %N is expanded to the cluster node index (otherwise it is dropped)
+	verbose_file = "output-monitoring%N.txt"
 	# The prediction rate at which CPU usage predictions are infered. Default is once every 100µs
 	cpuusage_prediction_rate = 100 # µs
 	# The number of samples (window) of the normalized exponential moving average for predictions
