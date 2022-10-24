@@ -17,6 +17,7 @@
 #include "tasks/Task.hpp"
 
 #include <InstrumentThreadManagement.hpp>
+#include "monitoring/Monitoring.hpp"
 
 
 class ComputePlace;
@@ -41,6 +42,7 @@ namespace If0Task {
 
 		// Runtime Tracking Point - Entering a taskwait through If0, the task will be blocked
 		TrackingPoints::enterWaitForIf0Task(currentTask, if0Task, currentThread, cpu);
+		Monitoring::enterWaitForIf0Task(cpu);
 
 		WorkerThread *replacementThread = ThreadManager::getIdleThread(cpu);
 		currentThread->switchTo(replacementThread);

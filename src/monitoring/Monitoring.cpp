@@ -12,6 +12,7 @@
 #include "MonitoringSupport.hpp"
 #include "TaskMonitor.hpp"
 #include "TasktypeStatistics.hpp"
+#include "RuntimeStateMonitor.hpp"
 #include "executors/threads/CPUManager.hpp"
 #include "hardware-counters/HardwareCounters.hpp"
 #include "hardware-counters/SupportedHardwareCounters.hpp"
@@ -20,6 +21,8 @@
 #include "tasks/Task.hpp"
 #include "tasks/TaskInfo.hpp"
 #include "ClusterManager.hpp"
+#include "executors/threads/CPU.hpp"
+#include "executors/threads/WorkerThread.hpp"
 
 
 ConfigVariable<bool> Monitoring::_enabled("monitoring.enabled");
@@ -27,6 +30,7 @@ ConfigVariable<bool> Monitoring::_verbose("monitoring.verbose");
 ConfigVariable<bool> Monitoring::_wisdomEnabled("monitoring.wisdom");
 bool Monitoring::_taskMonitorEnabled(false);
 bool Monitoring::_cpuMonitorEnabled(false);
+bool Monitoring::_runtimeStateEnabled(false);
 ConfigVariable<std::string> Monitoring::_outputFile("monitoring.verbose_file");
 JsonFile *Monitoring::_wisdom(nullptr);
 CPUMonitor *Monitoring::_cpuMonitor(nullptr);
@@ -39,6 +43,7 @@ size_t Monitoring::_predictedCPUUsage(0);
 void Monitoring::preinitialize()
 {
 	_taskMonitorEnabled = false;
+	_runtimeStateEnabled = false;
 	_cpuMonitorEnabled = false;
 	if (_enabled) {
 		ConfigVariableVector<std::string> monitoringAreas("monitoring.areas");
@@ -46,6 +51,7 @@ void Monitoring::preinitialize()
 			std::transform(area.begin(), area.end(), area.begin(), ::tolower);
 			if (area == "all") {
 				_taskMonitorEnabled = true;
+				_runtimeStateEnabled = true;
 				_cpuMonitorEnabled = true;
 			} else if (area == "taskmonitor") {
 				_taskMonitorEnabled = true;
@@ -55,6 +61,10 @@ void Monitoring::preinitialize()
 				_cpuMonitorEnabled = true;
 			} else if (area == "!cpumonitor") {
 				_cpuMonitorEnabled = false;
+			} else if (area == "runtimestate") {
+				_runtimeStateEnabled = true;
+			} else if (area == "!runtimestate") {
+				_runtimeStateEnabled = false;
 			} else {
 				std::cerr << "Warning: ignoring unknown '" << area << "' monitoring" << std::endl;
 			}
@@ -88,6 +98,11 @@ void Monitoring::initialize()
 		// Create the CPU monitor
 		_cpuMonitor = new CPUMonitor();
 		assert(_cpuMonitor != nullptr);
+	}
+
+	if (_runtimeStateEnabled) {
+		assert(_enabled);
+		RuntimeStateMonitor::initialize();
 	}
 }
 
@@ -161,6 +176,10 @@ void Monitoring::taskChangedStatus(Task *task, monitoring_task_status_t newStatu
 		// Start timing for the appropriate stopwatch
 		_taskMonitor->taskStarted(task, newStatus);
 	}
+	if (_runtimeStateEnabled) {
+		assert(_enabled);
+		RuntimeStateMonitor::taskChangedStatus(task, newStatus);
+	}
 }
 
 void Monitoring::taskCompletedUserCode(Task *task)
@@ -196,6 +215,9 @@ void Monitoring::cpuBecomesIdle(int cpuId)
 
 		_cpuMonitor->cpuBecomesIdle(cpuId);
 	}
+	if (_runtimeStateEnabled) {
+		RuntimeStateMonitor::cpuBecomesIdle(cpuId);
+	}
 }
 
 void Monitoring::cpuBecomesActive(int cpuId)
@@ -205,6 +227,16 @@ void Monitoring::cpuBecomesActive(int cpuId)
 		assert(_cpuMonitor != nullptr);
 
 		_cpuMonitor->cpuBecomesActive(cpuId);
+	}
+	if (_runtimeStateEnabled) {
+		RuntimeStateMonitor::cpuBecomesActive(cpuId);
+	}
+}
+
+void Monitoring::cpuHintAsIdle(int cpuId)
+{
+	if (_runtimeStateEnabled) {
+		RuntimeStateMonitor::cpuHintAsIdle(cpuId);
 	}
 }
 
@@ -320,6 +352,10 @@ void Monitoring::displayStatistics()
 	if (_cpuMonitorEnabled) {
 		assert(_cpuMonitor != nullptr);
 		_cpuMonitor->displayStatistics(outputStream);
+	}
+
+	if (_runtimeStateEnabled) {
+		RuntimeStateMonitor::displayStatistics(outputStream);
 	}
 
 	if (output.is_open()) {
@@ -444,4 +480,36 @@ void Monitoring::storeMonitoringWisdom()
 
 	// Delete the file as it is no longer needed
 	delete _wisdom;
+}
+
+void Monitoring::enterBlockCurrentTask(Task *task, bool fromUserCode)
+{
+	if (_runtimeStateEnabled) {
+		assert(_enabled);
+		RuntimeStateMonitor::enterBlockCurrentTask(task, fromUserCode);
+	}
+}
+
+void Monitoring::exitBlockCurrentTask(Task *task, bool fromUserCode)
+{
+	if (_runtimeStateEnabled) {
+		assert(_enabled);
+		RuntimeStateMonitor::exitBlockCurrentTask(task, fromUserCode);
+	}
+}
+
+void Monitoring::enterWaitFor(CPU *cpu)
+{
+	if (_runtimeStateEnabled) {
+		assert(_enabled);
+		RuntimeStateMonitor::enterWaitFor(cpu->getIndex());
+	}
+}
+
+void Monitoring::enterWaitForIf0Task(CPU *cpu)
+{
+	if (_runtimeStateEnabled) {
+		assert(_enabled);
+		RuntimeStateMonitor::enterWaitFor(cpu->getIndex());
+	}
 }

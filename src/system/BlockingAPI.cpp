@@ -16,7 +16,7 @@
 #include "ompss/TaskBlocking.hpp"
 #include "scheduling/Scheduler.hpp"
 #include "support/Chrono.hpp"
-
+#include "monitoring/Monitoring.hpp"
 
 void BlockingAPI::blockCurrentTask(bool fromUserCode)
 {
@@ -28,6 +28,7 @@ void BlockingAPI::blockCurrentTask(bool fromUserCode)
 
 	// Runtime Tracking Point - The current task is gonna be blocked
 	TrackingPoints::enterBlockCurrentTask(currentTask, fromUserCode);
+	Monitoring::enterBlockCurrentTask(currentTask, fromUserCode);
 
 	TaskBlocking::taskBlocks(currentThread, currentTask);
 
@@ -39,6 +40,7 @@ void BlockingAPI::blockCurrentTask(bool fromUserCode)
 
 	// Runtime Tracking Point - The current task resumes its execution
 	TrackingPoints::exitBlockCurrentTask(currentTask, fromUserCode);
+	Monitoring::exitBlockCurrentTask(currentTask, fromUserCode);
 }
 
 void BlockingAPI::unblockTask(Task *task, bool fromUserCode)
@@ -77,6 +79,7 @@ uint64_t BlockingAPI::waitForUs(uint64_t timeUs)
 
 	// Runtime Tracking Point - The current task is gonna be readded to the scheduler
 	TrackingPoints::enterWaitFor(currentTask);
+	Monitoring::enterWaitFor(cpu);
 
 	Task::deadline_t timeout = (Task::deadline_t) timeUs;
 

@@ -27,6 +27,7 @@
 #include "tasks/LoopGenerator.hpp"
 #include "tasks/Task.hpp"
 #include "tasks/TaskImplementation.hpp"
+#include "monitoring/Monitoring.hpp"
 
 #include <DataAccessRegistration.hpp>
 #include <ExecutionWorkflow.hpp>
@@ -129,6 +130,7 @@ void WorkerThread::body()
 #endif
 
 			// If no task is available, the CPUManager may want to idle this CPU
+			Monitoring::cpuHintAsIdle(cpu->getIndex());
 			CPUManager::executeCPUManagerPolicy(cpu, IDLE_CANDIDATE);
 		}
 		Instrument::workerThreadSpins();

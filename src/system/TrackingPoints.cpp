@@ -437,7 +437,7 @@ Instrument::task_id_t TrackingPoints::enterCreateTask(
 	bool taskRuntimeTransition = fromUserCode && (creator != nullptr);
 	if (taskRuntimeTransition) {
 		HardwareCounters::updateTaskCounters(creator);
-		Monitoring::taskChangedStatus(creator, paused_status);
+		Monitoring::taskChangedStatus(creator, addtask_status);
 	}
 
 	return Instrument::enterCreateTask(taskInfo, taskInvocationInfo, flags, taskRuntimeTransition);

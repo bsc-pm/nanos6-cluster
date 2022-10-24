@@ -135,6 +135,7 @@ namespace ExecutionWorkflow {
 				}
 			} else {
 
+				TrackingPoints::taskIsExecuting(_task);
 				if (_task->isIf0()) {
 					If0Task::executeNonInline(currentThread, _task, cpu);
 				}

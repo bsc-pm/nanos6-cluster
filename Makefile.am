@@ -398,6 +398,7 @@ common_sources = \
 	src/memory/directory/HomeNodeMap.cpp \
 	src/memory/numa/NUMAManager.cpp \
 	src/monitoring/Monitoring.cpp \
+	src/monitoring/RuntimeStateMonitor.cpp \
 	src/monitoring/TaskMonitor.cpp \
 	src/monitoring/TasktypeStatistics.cpp \
 	src/scheduling/Scheduler.cpp \
@@ -1220,6 +1221,7 @@ noinst_HEADERS = \
 	src/monitoring/CPUStatistics.hpp \
 	src/monitoring/Monitoring.hpp \
 	src/monitoring/MonitoringSupport.hpp \
+	src/monitoring/RuntimeStateMonitor.hpp \
 	src/monitoring/TaskMonitor.hpp \
 	src/monitoring/TaskStatistics.hpp \
 	src/monitoring/TasktypeStatistics.hpp \

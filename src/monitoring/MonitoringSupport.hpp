@@ -20,6 +20,7 @@ enum monitoring_task_status_t {
 	executing_status,
 	// An aggregation of runtime + pending + blocked
 	paused_status,
+	addtask_status,
 	num_status,
 	null_status = -1
 };

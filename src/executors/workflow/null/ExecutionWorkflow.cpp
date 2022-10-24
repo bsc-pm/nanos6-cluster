@@ -76,6 +76,7 @@ namespace ExecutionWorkflow {
 			}
 		} else {
 			// Runtime Tracking Point - A task has completed its execution (user code)
+			TrackingPoints::taskIsExecuting(task);
 			TrackingPoints::taskCompletedUserCode(task);
 		}
 

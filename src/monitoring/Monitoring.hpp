@@ -18,6 +18,8 @@ class CPUMonitor;
 class JsonFile;
 class Task;
 class TaskMonitor;
+class WorkerThread;
+class CPU;
 
 class Monitoring {
 
@@ -35,6 +37,7 @@ private:
 	//! Select which monitoring areas are enabled
 	static bool _taskMonitorEnabled;
 	static bool _cpuMonitorEnabled;
+	static bool _runtimeStateEnabled;
 
 	//! The file where output is saved in, if verbose mode is enabled
 	static ConfigVariable<std::string> _outputFile;
@@ -87,6 +90,10 @@ public:
 		return _enabled;
 	}
 
+	static inline bool runtimeStateIsEnabled()
+	{
+		return _runtimeStateEnabled;
+	}
 
 	//    TASKS    //
 
@@ -144,6 +151,7 @@ public:
 	//! \param[in] cpuId The identifier of the CPU
 	static void cpuBecomesActive(int cpuId);
 
+	static void cpuHintAsIdle(int cpuId);
 
 	//    PREDICTORS    //
 
@@ -157,6 +165,15 @@ public:
 	//! \return An estimation of the time to completion in microseconds
 	static double getPredictedElapsedTime();
 
+	//     THREADS    //
+	static void threadInitialized(WorkerThread *thread, CPU *cpu);
+
+	static void enterBlockCurrentTask(Task *task, bool fromUserCode);
+
+	static void exitBlockCurrentTask(Task *task, bool fromUserCode);
+
+	static void enterWaitFor(CPU *cpu);
+	static void enterWaitForIf0Task(CPU *cpu);
 };
 
 #endif // MONITORING_HPP
