@@ -386,6 +386,7 @@ Monitoring is an infrastructure composed of several modules that gather metrics 
 Monitoring is enabled at run-time through various configuration variables:
 
 * `monitoring.enabled`: To enable/disable monitoring, disabled by default.
+* `monitoring.areas`: List of monitoring areas: `TaskMonitor` and `CPUMonitor`. Default is `all`.
 * `monitoring.verbose`: To enable/disable the verbose mode for monitoring. Enabled by default if monitoring is enabled.
 * `monitoring.rolling_window`: To specify the number of metrics used for accumulators (moving average's window). By default, the latest 20 metrics.
 

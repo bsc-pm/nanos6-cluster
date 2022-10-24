@@ -124,6 +124,8 @@ __!require_PQOS
 	# Indicate whether enabling the Monitoring of tasks and CPUs, which allows the usage of
 	# prediction-based policies. Disabled by default
 	enabled = false
+	# Choose which monitoring areas to enable. Possible values are in README.md
+	areas = ["all"]
 	# Indicate whether enabling the "Wisdom" mechanism of Monitoring, saving normalized metrics for
 	# future executions and loading previously saved metrics when the runtime initializes. Default
 	# is false

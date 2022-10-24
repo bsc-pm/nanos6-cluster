@@ -130,6 +130,7 @@ ConfigCentral::ConfigCentral() :
 	// Monitoring
 	registerOption<integer_t>("monitoring.cpuusage_prediction_rate", 100);
 	registerOption<bool_t>("monitoring.enabled", false);
+	registerOption<string_t>("monitoring.areas", {"all"});
 	registerOption<integer_t>("monitoring.rolling_window", 20);
 	registerOption<bool_t>("monitoring.verbose", true);
 	registerOption<string_t>("monitoring.verbose_file", "output-monitoring%N.txt");

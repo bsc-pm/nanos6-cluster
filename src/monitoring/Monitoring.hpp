@@ -32,6 +32,10 @@ private:
 	//! Whether the wisdom mechanism is enabled
 	static ConfigVariable<bool> _wisdomEnabled;
 
+	//! Select which monitoring areas are enabled
+	static bool _taskMonitorEnabled;
+	static bool _cpuMonitorEnabled;
+
 	//! The file where output is saved in, if verbose mode is enabled
 	static ConfigVariable<std::string> _outputFile;
 

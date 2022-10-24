@@ -25,6 +25,8 @@
 ConfigVariable<bool> Monitoring::_enabled("monitoring.enabled");
 ConfigVariable<bool> Monitoring::_verbose("monitoring.verbose");
 ConfigVariable<bool> Monitoring::_wisdomEnabled("monitoring.wisdom");
+bool Monitoring::_taskMonitorEnabled(false);
+bool Monitoring::_cpuMonitorEnabled(false);
 ConfigVariable<std::string> Monitoring::_outputFile("monitoring.verbose_file");
 JsonFile *Monitoring::_wisdom(nullptr);
 CPUMonitor *Monitoring::_cpuMonitor(nullptr);
@@ -36,17 +38,43 @@ size_t Monitoring::_predictedCPUUsage(0);
 
 void Monitoring::preinitialize()
 {
+	_taskMonitorEnabled = false;
+	_cpuMonitorEnabled = false;
 	if (_enabled) {
+		ConfigVariableVector<std::string> monitoringAreas("monitoring.areas");
+		for (auto area : monitoringAreas) {
+			std::transform(area.begin(), area.end(), area.begin(), ::tolower);
+			if (area == "all") {
+				_taskMonitorEnabled = true;
+				_cpuMonitorEnabled = true;
+			} else if (area == "taskmonitor") {
+				_taskMonitorEnabled = true;
+			} else if (area == "!taskmonitor") {
+				_taskMonitorEnabled = false;
+			} else if (area == "cpumonitor") {
+				_cpuMonitorEnabled = true;
+			} else if (area == "!cpumonitor") {
+				_cpuMonitorEnabled = false;
+			} else {
+				std::cerr << "Warning: ignoring unknown '" << area << "' monitoring" << std::endl;
+			}
+		}
+	} else {
+		_wisdomEnabled.setValue(false);
+	}
+
+	if (_taskMonitorEnabled) {
+		assert(_enabled);
 		// Create the task monitor before the CPUManager is initialized.
 		// This is due to per-CPU preallocated taskfors needing task monitoring
 		// to be enabled before they are constructed
 		_taskMonitor = new TaskMonitor();
 		assert(_taskMonitor != nullptr);
+	}
 
-		if (_wisdomEnabled) {
-			// Try to load data from previous executions
-			loadMonitoringWisdom();
-		}
+	if (_wisdomEnabled) {
+		// Try to load data from previous executions
+		loadMonitoringWisdom();
 	}
 }
 
@@ -55,7 +83,8 @@ void Monitoring::initialize()
 	// Make sure the CPUManager is already preinitialized before this
 	assert(CPUManager::isPreinitialized());
 
-	if (_enabled) {
+	if (_cpuMonitorEnabled) {
+		assert(_enabled);
 		// Create the CPU monitor
 		_cpuMonitor = new CPUMonitor();
 		assert(_cpuMonitor != nullptr);
@@ -75,13 +104,16 @@ void Monitoring::shutdown()
 		}
 
 		// Delete all predictors and monitors
-		assert(_cpuMonitor != nullptr);
-		assert(_taskMonitor != nullptr);
-
-		delete _cpuMonitor;
-		delete _taskMonitor;
-		_cpuMonitor = nullptr;
-		_taskMonitor = nullptr;
+		if (_cpuMonitorEnabled) {
+			assert(_cpuMonitor != nullptr);
+			delete _cpuMonitor;
+			_cpuMonitor = nullptr;
+		}
+		if (_taskMonitorEnabled) {
+			assert(_taskMonitor != nullptr);
+			delete _taskMonitor;
+			_taskMonitor = nullptr;
+		}
 		_enabled.setValue(false);
 	}
 }
@@ -91,7 +123,8 @@ void Monitoring::shutdown()
 
 void Monitoring::taskCreated(Task *task)
 {
-	if (_enabled) {
+	if (_taskMonitorEnabled) {
+		assert(_enabled);
 		assert(task != nullptr);
 		assert(_taskMonitor != nullptr);
 
@@ -110,7 +143,8 @@ void Monitoring::taskCreated(Task *task)
 
 void Monitoring::taskReinitialized(Task *task)
 {
-	if (_enabled) {
+	if (_taskMonitorEnabled) {
+		assert(_enabled);
 		assert(_taskMonitor != nullptr);
 
 		// Reset task statistics
@@ -120,7 +154,8 @@ void Monitoring::taskReinitialized(Task *task)
 
 void Monitoring::taskChangedStatus(Task *task, monitoring_task_status_t newStatus)
 {
-	if (_enabled) {
+	if (_taskMonitorEnabled) {
+		assert(_enabled);
 		assert(_taskMonitor != nullptr);
 
 		// Start timing for the appropriate stopwatch
@@ -130,7 +165,8 @@ void Monitoring::taskChangedStatus(Task *task, monitoring_task_status_t newStatu
 
 void Monitoring::taskCompletedUserCode(Task *task)
 {
-	if (_enabled) {
+	if (_taskMonitorEnabled) {
+		assert(_enabled);
 		assert(_taskMonitor != nullptr);
 
 		// Account the task's elapsed execution for predictions
@@ -140,7 +176,8 @@ void Monitoring::taskCompletedUserCode(Task *task)
 
 void Monitoring::taskFinished(Task *task)
 {
-	if (_enabled) {
+	if (_taskMonitorEnabled) {
+		assert(_enabled);
 		assert(_taskMonitor != nullptr);
 
 		// Mark task as completely executed
@@ -153,7 +190,8 @@ void Monitoring::taskFinished(Task *task)
 
 void Monitoring::cpuBecomesIdle(int cpuId)
 {
-	if (_enabled) {
+	if (_cpuMonitorEnabled) {
+		assert(_enabled);
 		assert(_cpuMonitor != nullptr);
 
 		_cpuMonitor->cpuBecomesIdle(cpuId);
@@ -162,7 +200,8 @@ void Monitoring::cpuBecomesIdle(int cpuId)
 
 void Monitoring::cpuBecomesActive(int cpuId)
 {
-	if (_enabled) {
+	if (_cpuMonitorEnabled) {
+		assert(_enabled);
 		assert(_cpuMonitor != nullptr);
 
 		_cpuMonitor->cpuBecomesActive(cpuId);
@@ -244,8 +283,6 @@ double Monitoring::getPredictedElapsedTime()
 
 void Monitoring::displayStatistics()
 {
-	assert(_cpuMonitor != nullptr);
-	assert(_taskMonitor != nullptr);
 
 	// Try opening the output file
 	std::ios_base::openmode openMode = std::ios::out;
@@ -274,8 +311,16 @@ void Monitoring::displayStatistics()
 
 	// Retrieve statistics from every monitor
 	std::stringstream outputStream;
-	_taskMonitor->displayStatistics(outputStream);
-	_cpuMonitor->displayStatistics(outputStream);
+
+	if (_taskMonitorEnabled) {
+		assert(_taskMonitor != nullptr);
+		_taskMonitor->displayStatistics(outputStream);
+	}
+
+	if (_cpuMonitorEnabled) {
+		assert(_cpuMonitor != nullptr);
+		_cpuMonitor->displayStatistics(outputStream);
+	}
 
 	if (output.is_open()) {
 		output << outputStream.str();
