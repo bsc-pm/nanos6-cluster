@@ -263,7 +263,6 @@ class RuntimeStateMonitor {
 private:
 	static std::vector<CPUStats *> _CPUStats;
 	static CPUStatsTimer _intervalTimer;
-	static SpinLock _lock;
 	static bool _initialized;
 	static busy_cores_t _totalBusyShutdown;
 	static busy_cores_t _usefulBusyShutdown;
@@ -278,7 +277,6 @@ public:
 	// CPU becomes active
 	static void cpuBecomesActive(int virtualCPUId)
 	{
-		std::lock_guard<SpinLock> guard(_lock);
 		assert(virtualCPUId >= 0 && virtualCPUId < _numCPUs);
 		_CPUStats[virtualCPUId]->markCPURunning();
 	}
@@ -286,7 +284,6 @@ public:
 	// CPU becomes idle (sleeping)
 	static void cpuBecomesIdle(int virtualCPUId)
 	{
-		std::lock_guard<SpinLock> guard(_lock);
 		assert(virtualCPUId >= 0 && virtualCPUId < _numCPUs);
 		_CPUStats[virtualCPUId]->markCPUIdle();
 	}
@@ -294,7 +291,6 @@ public:
 	// CPU enters idle loop
 	static void cpuHintAsIdle(int virtualCPUId)
 	{
-		std::lock_guard<SpinLock> guard(_lock);
 		assert(virtualCPUId >= 0 && virtualCPUId < _numCPUs);
 		_CPUStats[virtualCPUId]->hintAsIdle();
 	}
@@ -302,7 +298,6 @@ public:
 	// Update task status
 	static void updateTaskStatus(monitoring_task_status_t newStatus, int virtualCPUId)
 	{
-		std::lock_guard<SpinLock> guard(_lock);
 		assert(virtualCPUId >= 0 && virtualCPUId < _numCPUs);
 		_CPUStats[virtualCPUId]->taskChangedStatus(newStatus);
 	}
@@ -310,7 +305,6 @@ public:
 
 	static void getAllTimes(float times[CPUStats::State::numStates], int virtualCPUId)
 	{
-		std::lock_guard<SpinLock> guard(_lock);
 		assert(virtualCPUId >= 0 && virtualCPUId < _numCPUs);
 		_CPUStats[virtualCPUId]->getAllTimes(times);
 	}
@@ -334,7 +328,6 @@ public:
 		busy_secs_t totalBusy = _totalBusyShutdown;
 		busy_secs_t usefulBusy = _usefulBusyShutdown;
 		{
-			std::lock_guard<SpinLock> guard(_lock);
 			for (CPUStats *cpuStats : _CPUStats) {
 				busy_secs_t totalBusyCore, usefulBusyCore;
 				cpuStats->clearTimeBusy(endTime, totalBusyCore, usefulBusyCore);
@@ -358,13 +351,11 @@ public:
 
 	static inline void pushBackListener(AveragedStats *listener)
 	{
-		std::lock_guard<SpinLock> guard(_lock);
 		_listeners.push_back(listener);
 	}
 
 	static inline void removeListener(AveragedStats *listener)
 	{
-		std::lock_guard<SpinLock> guard(_lock);
 		for(std::vector<AveragedStats *>::iterator it = _listeners.begin();
 			it != _listeners.end();
 			it++) {

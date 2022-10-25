@@ -12,7 +12,6 @@
 
 std::vector<CPUStats *> RuntimeStateMonitor::_CPUStats;
 CPUStatsTimer RuntimeStateMonitor::_intervalTimer;
-SpinLock RuntimeStateMonitor::_lock;
 bool RuntimeStateMonitor::_initialized = false;
 busy_cores_t RuntimeStateMonitor::_totalBusyShutdown = 0;
 busy_cores_t RuntimeStateMonitor::_usefulBusyShutdown = 0;
@@ -107,7 +106,6 @@ void RuntimeStateMonitor::initialize()
 	// clear any busy time already accumulated.
 	CPUStatsTimer::Time endTime;
 	CPUStatsTimer::getTime(endTime);
-	std::lock_guard<SpinLock> guard(_lock);
 	for(int cpu=0; cpu<_numCPUs; cpu++) {
 		_CPUStats.push_back(new CPUStats());
 	}
