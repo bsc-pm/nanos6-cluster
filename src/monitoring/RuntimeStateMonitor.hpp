@@ -157,9 +157,11 @@ public:
 	 */
 	void hintAsIdle()
 	{
-		assert(_state == State::RunningNoTask || _state == State::HintAsIdle);
-		attributeElapsedTime(_timer.restartTimer());
-		_state = State::HintAsIdle;
+		if (_state != State::HintAsIdle) {
+			assert(_state == State::RunningNoTask || _state == State::HintAsIdle);
+			attributeElapsedTime(_timer.restartTimer());
+			_state = State::HintAsIdle;
+		}
 	}
 
 	void clearTimeBusy(const CPUStatsTimer::Time &lapTime,
