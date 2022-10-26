@@ -91,8 +91,8 @@ void nanos6_preinit(int argc, char **argv)
 
 	// Pre-initialize Hardware Counters and Monitoring before hardware
 	HardwareCounters::preinitialize();
-	Monitoring::preinitialize();
 	ClusterManager::initialize(argc, argv);
+	Monitoring::preinitialize(); // needs to be after ClusterManager to turn on RuntimeStateMonitor for hybrid mode
 
 	HardwareInfo::initialize();
 	CPUManager::preinitialize();

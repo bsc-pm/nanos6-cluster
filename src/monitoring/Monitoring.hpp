@@ -35,6 +35,7 @@ private:
 	static ConfigVariable<bool> _wisdomEnabled;
 
 	//! Select which monitoring areas are enabled
+	static bool _forceRuntimeStateMonitor;
 	static bool _taskMonitorEnabled;
 	static bool _cpuMonitorEnabled;
 	static bool _runtimeStateEnabled;
@@ -83,6 +84,8 @@ public:
 
 	//! \brief Shutdown monitoring
 	static void shutdown();
+
+	static void enableRuntimeStateMonitor();
 
 	//! \brief Check whether monitoring is enabled
 	static inline bool isEnabled()

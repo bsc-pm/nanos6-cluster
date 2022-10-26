@@ -28,6 +28,7 @@
 ConfigVariable<bool> Monitoring::_enabled("monitoring.enabled");
 ConfigVariable<bool> Monitoring::_verbose("monitoring.verbose");
 ConfigVariable<bool> Monitoring::_wisdomEnabled("monitoring.wisdom");
+bool Monitoring::_forceRuntimeStateMonitor(false);
 bool Monitoring::_taskMonitorEnabled(false);
 bool Monitoring::_cpuMonitorEnabled(false);
 bool Monitoring::_runtimeStateEnabled(false);
@@ -39,6 +40,11 @@ size_t Monitoring::_predictedCPUUsage(0);
 
 
 //    MONITORING    //
+
+void Monitoring::enableRuntimeStateMonitor()
+{
+	_forceRuntimeStateMonitor = true;
+}
 
 void Monitoring::preinitialize()
 {
@@ -65,12 +71,21 @@ void Monitoring::preinitialize()
 				_runtimeStateEnabled = true;
 			} else if (area == "!runtimestate") {
 				_runtimeStateEnabled = false;
+				FatalErrorHandler::failIf(
+					_forceRuntimeStateMonitor,
+					"runtimestate monitoring is always needed for OmpSs-2@Cluster+DLB");
 			} else {
 				std::cerr << "Warning: ignoring unknown '" << area << "' monitoring" << std::endl;
 			}
 		}
 	} else {
 		_wisdomEnabled.setValue(false);
+		if (_forceRuntimeStateMonitor) {
+			// runtimestate monitoring is always needed for OmpSs-2@Cluster+DLB
+			_enabled.setValue(true);
+			_verbose.setValue(false);
+			_runtimeStateEnabled = true;
+		}
 	}
 
 	if (_taskMonitorEnabled) {

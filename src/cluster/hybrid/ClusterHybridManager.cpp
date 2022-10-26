@@ -8,6 +8,7 @@
 #include "ClusterManager.hpp"
 #include "ClusterHybridManager.hpp"
 #include "executors/threads/CPUManager.hpp"
+#include "monitoring/Monitoring.hpp"
 
 bool ClusterHybridManager::_inHybridClusterMode = false;
 ClusterHybridInterface *ClusterHybridManager::_hyb = nullptr;
@@ -29,6 +30,10 @@ void ClusterHybridManager::preinitialize(
 	 * Initialize hybrid interface: controls data distribution within the apprank
 	 */
 	_hyb->initialize(externalRank, apprankNum);
+
+	if (_inHybridClusterMode) {
+		Monitoring::enableRuntimeStateMonitor();
+	}
 }
 
 void ClusterHybridManager::initialize()

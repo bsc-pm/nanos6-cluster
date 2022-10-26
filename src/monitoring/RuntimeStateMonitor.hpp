@@ -146,6 +146,10 @@ public:
 	/* CPU goes idle */
 	void markCPUIdle()
 	{
+		if (_state == State::NotRunning) {
+			// DLB integration calls markCPUIdle sometimes when already idle
+			return;
+		}
 		assert(_state == State::RunningNoTask || _state == State::HintAsIdle);
 		attributeElapsedTime(_timer.restartTimer());
 		_state = State::NotRunning;
