@@ -15,9 +15,21 @@
 #include <DataAccessRegistration.hpp>
 
 #include "ClusterMemoryManagement.hpp"
+#include "ClusterHybridManager.hpp"
 
 namespace ClusterDirectory {
-	static void registerAllocationEqupart(DataAccessRegion const &region, size_t clusterSize)
+
+	static bool dmallocUsesNUMA(void)
+	{
+		if (ClusterHybridManager::inHybridClusterMode()) {
+			// NUMA support doesn't work properly in hybrid MPI + OmpSs-2@Cluster mode.
+			// This needs to be investigated properly.
+			return false;
+		}
+		return NUMAManager::enableTrackingIfAuto();
+	}
+
+	static void registerAllocationEqupart(DataAccessRegion const &region, size_t clusterSize, bool useNUMA)
 	{
 		assert(clusterSize > 0);
 
@@ -34,7 +46,7 @@ namespace ClusterDirectory {
 			Directory::insert(newRegion, homeNode);
 			ptr += blockSize;
 
-			if (homeNode == ClusterManager::getCurrentMemoryNode()) {
+			if (useNUMA && homeNode == ClusterManager::getCurrentMemoryNode()) {
 				// Use a blocked memory allocation for NUMA (this could be improved later)
 				nanos6_bitmask_t bitmask;
 				NUMAManager::setAnyActive(&bitmask);
@@ -67,7 +79,7 @@ namespace ClusterDirectory {
 		const ClusterMemoryManagement::DmallocDataInfo *dmallocInfo, Task *task, size_t clusterSize
 	) {
 		// If numa.tracking is set to "auto", then a dmalloc enables NUMA tracking on all nodes
-		NUMAManager::enableTrackingIfAuto();
+		bool useNUMA = dmallocUsesNUMA();
 
 		if (task) {
 			// Register local access. A location of nullptr means that:
@@ -82,7 +94,7 @@ namespace ClusterDirectory {
 			case nanos6_equpart_distribution:
 				assert(dmallocInfo->_nrDim == 0);
 
-				registerAllocationEqupart(dmallocInfo->_region, clusterSize);
+				registerAllocationEqupart(dmallocInfo->_region, clusterSize, useNUMA);
 				break;
 			case nanos6_block_distribution:
 			case nanos6_cyclic_distribution:
@@ -97,9 +109,12 @@ namespace ClusterDirectory {
 		Directory::erase(region);
 		void *ptr = region.getStartAddress();
 		size_t size = region.getSize();
-		NUMAManager::fullyIntersectPages(&ptr, &size, nullptr);
-		if (size > 0) {
-			NUMAManager::unsetNUMAAffinity(ptr, size);
+		bool useNUMA = dmallocUsesNUMA();
+		if (useNUMA) {
+			NUMAManager::fullyIntersectPages(&ptr, &size, nullptr);
+			if (size > 0) {
+				NUMAManager::unsetNUMAAffinity(ptr, size);
+			}
 		}
 	}
 }
