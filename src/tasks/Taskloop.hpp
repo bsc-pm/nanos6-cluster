@@ -150,6 +150,7 @@ public:
 	inline void setTaskloopOffloader()
 	{
 		_offloader = true;
+		_source = true;
 	}
 
 	inline bool isTaskloopOffloader() const override
