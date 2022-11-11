@@ -56,8 +56,6 @@ void Taskloop::body(nanos6_address_translation_entry_t *translationTable)
 			while (getIterationCount() > 0) {
 				LoopGenerator::createTaskloopExecutor(this, _bounds);
 			}
-		} else {
-			createTaskloopOffloaders(this);
 		}
 	}
 }
