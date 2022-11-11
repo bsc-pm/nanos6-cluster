@@ -158,39 +158,40 @@ public:
 	// Create a taskloop offloader, which should be offloaded and will
 	// cover a defined part of the iteration space
 	static inline void createTaskloopOffloader(
-		Taskloop *parent,
+		Taskloop *taskloop,
+		Task *parent,
 		Taskloop::bounds_t bounds,
 		ClusterNode *remoteNode,
 		bool fromTaskContext = true
 	) {
+		assert(taskloop != nullptr);
 		assert(parent != nullptr);
 
-		nanos6_task_info_t *parentTaskInfo = parent->getTaskInfo();
-		nanos6_task_invocation_info_t *parentTaskInvocationInfo = parent->getTaskInvokationInfo();
-		void *originalArgsBlock = parent->getArgsBlock();
-		size_t originalArgsBlockSize = parent->getArgsBlockSize();
+		nanos6_task_info_t *taskloopTaskInfo = taskloop->getTaskInfo();
+		nanos6_task_invocation_info_t *taskloopTaskInvocationInfo = taskloop->getTaskInvokationInfo();
+		void *originalArgsBlock = taskloop->getArgsBlock();
+		size_t originalArgsBlockSize = taskloop->getArgsBlockSize();
 
 		// Avoid creating a taskloop when dealing with taskloop fors
-		size_t flags = parent->getFlags();
-		if (parent->isTaskfor()) {
+		size_t flags = taskloop->getFlags();
+		if (taskloop->isTaskfor()) {
 			flags &= ~nanos6_taskloop_task;
 		}
-		// A taskfor offloader is never a remote task, even if its parent
-		// (the taskfor source) is.
+		// A taskloop offloader is never a remote task, even if its taskloop source is.
 		flags &= ~(size_t)Task::nanos6_task_runtime_flag_t::nanos6_remote_flag;
 
 		void *argsBlock = nullptr;
-		bool hasPreallocatedArgsBlock = parent->hasPreallocatedArgsBlock();
+		bool hasPreallocatedArgsBlock = taskloop->hasPreallocatedArgsBlock();
 		if (hasPreallocatedArgsBlock) {
-			assert(parentTaskInfo->duplicate_args_block != nullptr);
-			parentTaskInfo->duplicate_args_block(originalArgsBlock, &argsBlock);
+			assert(taskloopTaskInfo->duplicate_args_block != nullptr);
+			taskloopTaskInfo->duplicate_args_block(originalArgsBlock, &argsBlock);
 		}
 
-		// This number has been computed while registering the parent's dependencies
-		size_t numDeps = parent->getMaxChildDependencies();
+		// This number has been computed while registering the taskloop's dependencies
+		size_t numDeps = taskloop->getMaxChildDependencies();
 
 		Task *task = AddTask::createTask(
-			parentTaskInfo, parentTaskInvocationInfo,
+			taskloopTaskInfo, taskloopTaskInvocationInfo,
 			argsBlock, originalArgsBlockSize,
 			flags, numDeps, fromTaskContext
 		);
@@ -201,22 +202,22 @@ public:
 
 		// Copy the args block if it was not duplicated
 		if (!hasPreallocatedArgsBlock) {
-			if (parentTaskInfo->duplicate_args_block != nullptr) {
-				parentTaskInfo->duplicate_args_block(originalArgsBlock, &argsBlock);
+			if (taskloopTaskInfo->duplicate_args_block != nullptr) {
+				taskloopTaskInfo->duplicate_args_block(originalArgsBlock, &argsBlock);
 			} else {
 				memcpy(argsBlock, originalArgsBlock, originalArgsBlockSize);
 			}
 		}
 
-		assert(parent->isTaskloop());
-		Taskloop *taskloop = (Taskloop *) task;
-		Taskloop::bounds_t &childBounds = taskloop->getBounds();
+		assert(taskloop->isTaskloop());
+		Taskloop *taskloopOffloader = (Taskloop *) task;
+		Taskloop::bounds_t &childBounds = taskloopOffloader->getBounds();
 		childBounds.lower_bound = bounds.lower_bound;
 		childBounds.upper_bound = bounds.upper_bound;
 		childBounds.chunksize = bounds.chunksize;
 		childBounds.grainsize = bounds.grainsize;
 
-		taskloop->setTaskloopOffloader();
+		taskloopOffloader->setTaskloopOffloader();
 
 		assert (!task->isRemoteTask());
 

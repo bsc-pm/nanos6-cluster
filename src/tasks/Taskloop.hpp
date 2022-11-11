@@ -60,7 +60,7 @@ public:
 	{
 	}
 
-	void createTaskloopOffloaders();
+	void createTaskloopOffloaders(Task *parent);
 
 	// Calculate the grainsize for the bounds depending on the number of iterations and number of CPUs
 	static inline void calculateGrainsize(bounds_t &bounds)

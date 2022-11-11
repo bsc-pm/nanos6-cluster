@@ -8,7 +8,7 @@
 #include "tasks/LoopGenerator.hpp"
 #include "ClusterManager.hpp"
 
-void Taskloop::createTaskloopOffloaders()
+void Taskloop::createTaskloopOffloaders(Task *parent)
 {
 	// Distribute this taskloop across all of the cluster nodes. We do this
 	// by creating one "taskloop offloader" per node, which has a part of the original
@@ -33,7 +33,7 @@ void Taskloop::createTaskloopOffloaders()
 		bounds.grainsize = _bounds.grainsize;
 
 		// Create a taskloop offloader to be offloaded to node j (or executed locally)
-		LoopGenerator::createTaskloopOffloader(this, bounds, ClusterManager::getClusterNode(j));
+		LoopGenerator::createTaskloopOffloader(this, parent, bounds, ClusterManager::getClusterNode(j));
 
 		lb = bounds.upper_bound;
 	}
@@ -57,7 +57,7 @@ void Taskloop::body(nanos6_address_translation_entry_t *translationTable)
 				LoopGenerator::createTaskloopExecutor(this, _bounds);
 			}
 		} else {
-			createTaskloopOffloaders();
+			createTaskloopOffloaders(this);
 		}
 	}
 }
