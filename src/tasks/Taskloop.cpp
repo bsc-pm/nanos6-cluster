@@ -24,9 +24,7 @@ void Taskloop::createTaskloopOffloaders()
 	assert(ub > lb);
 	unsigned int itersPerNode = (ub - lb + numNodes-1) / numNodes;
 
-	// Generate one taskloop offloader per node (which will get offloaded to that node)
-	// The only exception is the part that stays on the current node, which we can just
-	// create immediately.
+	// Generate one taskloop offloader per node (which will get executed on that node)
 	for(int j = 0; j < numNodes; j++) {
 		Taskloop::bounds_t bounds;
 		bounds.lower_bound = lb;
@@ -34,18 +32,8 @@ void Taskloop::createTaskloopOffloaders()
 		bounds.chunksize = _bounds.chunksize;
 		bounds.grainsize = _bounds.grainsize;
 
-		if (j == ClusterManager::getCurrentClusterNode()->getIndex()) {
-			// Update grainsize for #iterations executed on this node
-			calculateGrainsize(bounds);
-			// Create part on current node immediately
-			while (bounds.upper_bound > bounds.lower_bound) {
-				LoopGenerator::createTaskloopExecutor(this, bounds);
-			}
-		} else {
-			// Create a taskloop offloader to be offloaded to node j
-			Task *parent = this;
-			LoopGenerator::createTaskloopOffloader(this, parent, bounds, ClusterManager::getClusterNode(j));
-		}
+		// Create a taskloop offloader to be offloaded to node j (or executed locally)
+		LoopGenerator::createTaskloopOffloader(this, bounds, ClusterManager::getClusterNode(j));
 
 		lb = bounds.upper_bound;
 	}
