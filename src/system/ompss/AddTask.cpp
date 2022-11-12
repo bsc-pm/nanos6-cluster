@@ -274,8 +274,18 @@ void AddTask::submitTask(Task *task, Task *parent, bool fromUserCode)
 	// const bool queueIfReady = (!isIf0 || executesInDevice);
 
 	if (distributedTaskloop) {
-		  Taskloop *taskloop = (Taskloop *)task;
-		  taskloop->createTaskloopOffloaders(parent);
+		// Create the TaskloopOffloaders for distributed execution (one TaskloopOffloader
+		// per node, including the local node).
+
+		// First exit the submission of the TaskloopSource (to avoid an unusual "nesting"
+		// of the task submission)
+		TrackingPoints::exitSubmitTask(creator, task, fromUserCode);
+
+		// Now create the TaskloopOffloaders. Do this before adding the TaskloopSource as
+		// a ready task (otherwise it could run and be disposed of causing a use-after-free
+		// on "task" in createTaskloopOffloaders).
+		Taskloop *taskloop = (Taskloop *)task;
+		taskloop->createTaskloopOffloaders(parent);
 	}
 
 	if (ready && queueIfReady) {
@@ -295,8 +305,10 @@ void AddTask::submitTask(Task *task, Task *parent, bool fromUserCode)
 		}
 	}
 
-	// Runtime Tracking Point - Exit the submission of a task (and thus, the creation)
-	TrackingPoints::exitSubmitTask(creator, task, fromUserCode);
+	if (!distributedTaskloop) {
+		// Runtime Tracking Point - Exit the submission of a task (and thus, the creation)
+		TrackingPoints::exitSubmitTask(creator, task, fromUserCode);
+	}
 }
 
 
