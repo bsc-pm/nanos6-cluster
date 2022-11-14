@@ -208,6 +208,16 @@ void AddTask::submitTask(Task *task, Task *parent, bool fromUserCode)
 		}
 	}
 
+	bool distributedTaskloop = false;
+
+	if (task->isTaskloopSource()
+		  && !task->isTaskloopOffloader()
+		  && !task->isRemoteTask()
+		  && (task->getConstraints()->node == nanos6_cluster_no_hint)) {
+		  // This is a distributed taskloop
+		  distributedTaskloop = true;
+	}
+
 	// Runtime Tracking Point - Enter the submission of a task to the scheduler
 	TrackingPoints::enterSubmitTask(creator, task, fromUserCode);
 
@@ -222,7 +232,10 @@ void AddTask::submitTask(Task *task, Task *parent, bool fromUserCode)
 
 	assert(taskInfo != 0);
 
-	if (taskInfo->register_depinfo != 0) {
+	// Note: don't register the accesses for the TaskloopSource if it is a distributed taskloop.
+	// The real work will be done by the TaskloopOffloaders, and registering the (weak) accesses
+	// on the TaskloopSource would only serve to disable remote namespace propagation.
+	if (taskInfo->register_depinfo != 0 && !distributedTaskloop) {
 		assert(computePlace != nullptr);
 
 		Instrument::task_id_t taskInstrumentationId = task->getInstrumentationTaskId();
@@ -260,6 +273,21 @@ void AddTask::submitTask(Task *task, Task *parent, bool fromUserCode)
 	// const bool executesInDevice = (task->getDeviceType() != nanos6_host_device);
 	// const bool queueIfReady = (!isIf0 || executesInDevice);
 
+	if (distributedTaskloop) {
+		// Create the TaskloopOffloaders for distributed execution (one TaskloopOffloader
+		// per node, including the local node).
+
+		// First exit the submission of the TaskloopSource (to avoid an unusual "nesting"
+		// of the task submission)
+		TrackingPoints::exitSubmitTask(creator, task, fromUserCode);
+
+		// Now create the TaskloopOffloaders. Do this before adding the TaskloopSource as
+		// a ready task (otherwise it could run and be disposed of causing a use-after-free
+		// on "task" in createTaskloopOffloaders).
+		Taskloop *taskloop = (Taskloop *)task;
+		taskloop->createTaskloopOffloaders(parent);
+	}
+
 	if (ready && queueIfReady) {
 		ReadyTaskHint hint = (parent != nullptr) ? CHILD_TASK_HINT : NO_HINT;
 
@@ -277,8 +305,10 @@ void AddTask::submitTask(Task *task, Task *parent, bool fromUserCode)
 		}
 	}
 
-	// Runtime Tracking Point - Exit the submission of a task (and thus, the creation)
-	TrackingPoints::exitSubmitTask(creator, task, fromUserCode);
+	if (!distributedTaskloop) {
+		// Runtime Tracking Point - Exit the submission of a task (and thus, the creation)
+		TrackingPoints::exitSubmitTask(creator, task, fromUserCode);
+	}
 }
 
 
