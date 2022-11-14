@@ -467,6 +467,7 @@ cluster_sources += \
 	src/cluster/ClusterManager.cpp \
 	src/cluster/NodeNamespace.cpp \
 	src/cluster/ClusterMemoryManagement.cpp \
+	src/cluster/ClusterMetrics.cpp \
 	src/cluster/messages/Message.cpp \
 	src/cluster/messages/MessageDataFetch.cpp \
 	src/cluster/messages/MessageDataSend.cpp \
@@ -503,6 +504,7 @@ else
 cluster_cppflags = \
 	-I$(srcdir)/src/executors/workflow/cluster/null \
 	-I$(srcdir)/src/cluster/null \
+	-I$(srcdir)/src/cluster/hybrid/null \
 	-I$(srcdir)/src/cluster/offloading/null \
 	-I$(srcdir)/src/hardware/cluster/null \
 	-I$(srcdir)/src/hardware/cluster/memory/null
@@ -721,10 +723,27 @@ cpu_manager_sources  += \
 	src/executors/threads/cpu-managers/dlb/DLBCPUActivation.cpp \
 	src/executors/threads/cpu-managers/dlb/DLBCPUManager.cpp \
 	src/executors/threads/cpu-managers/dlb/policies/GreedyPolicy.cpp \
+	src/executors/threads/cpu-managers/dlb/policies/GlobalPolicy.cpp \
+	src/executors/threads/cpu-managers/dlb/policies/LocalPolicy.cpp \
 	src/executors/threads/cpu-managers/dlb/policies/LeWIPolicy.cpp
 cpu_manager_ldflags  += $(dlb_LIBS)
 cpu_manager_cppflags += $(dlb_CPPFLAGS) -DHAVE_DLB
 cpu_manager_cppflags += -I$(srcdir)/src/executors/threads/cpu-managers/dlb
+endif
+
+# DLB + Cluster: Hybrid
+if HAVE_DLB
+cluster_sources += \
+	src/cluster/hybrid/ClusterHybridInterfaceFile.cpp \
+	src/cluster/hybrid/ClusterHybridManager.cpp \
+	src/cluster/polling-services/hybrid/HybridPolling.cpp
+cluster_cppflags += -DHAVE_DLB
+cluster_cppflags += \
+	-I$(srcdir)/src/cluster/hybrid \
+	-I$(srcdir)/src/cluster/polling-services
+else
+cluster_cppflags += \
+	-I$(srcdir)/src/cluster/hybrid/null
 endif
 
 common_sources += $(cpu_manager_sources)
@@ -815,6 +834,8 @@ noinst_HEADERS = \
 	src/executors/threads/cpu-managers/dlb/DLBCPUActivation.hpp \
 	src/executors/threads/cpu-managers/dlb/DLBCPUManager.hpp \
 	src/executors/threads/cpu-managers/dlb/policies/GreedyPolicy.hpp \
+	src/executors/threads/cpu-managers/dlb/policies/GlobalPolicy.hpp \
+	src/executors/threads/cpu-managers/dlb/policies/LocalPolicy.hpp \
 	src/executors/threads/cpu-managers/dlb/policies/LeWIPolicy.hpp \
 	src/executors/threads/kernel-level/CPUThreadingModelData.hpp \
 	src/executors/threads/kernel-level/WorkerThreadBase.hpp \
@@ -1334,6 +1355,7 @@ instrument_extrae_sources += \
 noinst_HEADERS += \
 	src/cluster/ClusterShutdownCallback.hpp \
 	src/cluster/ClusterManager.hpp \
+	src/cluster/ClusterMetrics.hpp \
 	src/cluster/ClusterUtil.hpp \
 	src/cluster/ClusterMemoryManagement.hpp \
 	src/cluster/NodeNamespace.hpp \
@@ -1395,6 +1417,13 @@ memory_default_sources = $(memory_allocator_debug_sources) $(vmm_smp_sources)
 memory_default_cppflags = $(memory_allocator_debug_cppflags) $(vmm_smp_cppflags)
 memory_debug_sources = $(memory_allocator_debug_sources) $(vmm_smp_sources)
 memory_debug_cppflags = $(memory_allocator_debug_cppflags) $(vmm_smp_cppflags)
+endif
+
+# DLB + Cluster: Hybrid
+if HAVE_DLB
+noinst_HEADERS += \
+	src/cluster/polling-services/hybrid/HybridPolling.hpp \
+	src/cluster/hybrid/ClusterHybridManager.hpp
 endif
 
 dist_memory_sources = $(memory_default_sources) $(memory_debug_sources)

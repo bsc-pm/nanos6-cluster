@@ -8,6 +8,7 @@
 #define SYNC_SCHEDULER_HPP
 
 #include <atomic>
+#include <cassert>
 
 #include <boost/lockfree/spsc_queue.hpp>
 
@@ -20,6 +21,7 @@
 #include "lowlevel/TicketArraySpinLock.hpp"
 #include "scheduling/SchedulerSupport.hpp"
 #include "InstrumentScheduler.hpp"
+#include "cluster/ClusterMetrics.hpp"
 
 
 class SyncScheduler {
@@ -128,6 +130,12 @@ public:
 
 		for (size_t t = 0; t < numTasks; t++) {
 			assert(tasks[t] != nullptr);
+
+			Task *task = tasks[t];
+			if (task->getCountAsImmovable() && !task->getCountedAsImmovable()) {
+				task->setCountedAsImmovable();
+				ClusterMetrics::incNumImmovableTasks(1);
+			}
 			// Set temporary info that is used when processing ready tasks
 			tasks[t]->setComputePlace(computePlace);
 			if (hint == SIBLING_TASK_HINT && !DataTrackingSupport::shouldEnableIS(tasks[t])) {

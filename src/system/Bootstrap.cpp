@@ -37,6 +37,7 @@
 #include "tasks/StreamManager.hpp"
 
 #include <ClusterManager.hpp>
+#include <ClusterHybridManager.hpp>
 #include <DependencySystem.hpp>
 #include <InstrumentInitAndShutdown.hpp>
 #include <InstrumentThreadManagement.hpp>
@@ -90,10 +91,12 @@ void nanos6_preinit(int argc, char **argv)
 
 	// Pre-initialize Hardware Counters and Monitoring before hardware
 	HardwareCounters::preinitialize();
-	Monitoring::preinitialize();
 	ClusterManager::initialize(argc, argv);
+	Monitoring::preinitialize(); // needs to be after ClusterManager to turn on RuntimeStateMonitor for hybrid mode
 
 	HardwareInfo::initialize();
+
+	// CPUManager::preinitialize() must be after ClusterManager::initialize() for ClusterHybridManager::getInitialCPUMask
 	CPUManager::preinitialize();
 
 	// Finish Hardware counters and Monitoring initialization after CPUManager
@@ -109,6 +112,7 @@ void nanos6_preinit(int argc, char **argv)
 	HardwareInfo::initializeDeviceServices();
 
 	Instrument::initialize();
+	ClusterHybridManager::initialize();  // must be after Instrument::initialize()
 	mainThread = new ExternalThread("main-thread");
 	mainThread->preinitializeExternalThread();
 

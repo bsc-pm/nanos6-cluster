@@ -13,6 +13,7 @@
 #include <ClusterManager.hpp>
 #include <TaskOffloading.hpp>
 #include "NodeNamespace.hpp"
+#include "cluster/ClusterMetrics.hpp"
 
 MessageTaskNew::MessageTaskNew(
 	nanos6_task_info_t *taskInfo,
@@ -75,6 +76,7 @@ bool MessageTaskNew::handleMessage()
 bool MessageTaskNew::handleMessageNamespace()
 {
 	Task *namespaceTask = NodeNamespace::getNamespaceTask();
+	ClusterMetrics::incReceivedNumNewTask();
 	TaskOffloading::remoteTaskCreateAndSubmit(this, namespaceTask, true);
 
 	// The Message will be deleted by remoteTaskCleanup;

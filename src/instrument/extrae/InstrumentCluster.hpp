@@ -18,6 +18,7 @@ namespace Instrument {
 
 #ifdef USE_CLUSTER
 	void defineClusterExtraeEvents();
+
 #else
 	inline void defineClusterExtraeEvents()
 	{

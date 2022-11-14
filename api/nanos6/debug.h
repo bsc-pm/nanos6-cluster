@@ -92,7 +92,8 @@ typedef enum {
 	nanos6_acquired_enabled_cpu,
 	nanos6_returned_cpu,
 	nanos6_shutting_down_cpu,
-	nanos6_shutdown_cpu
+	nanos6_shutdown_cpu,
+	nanos6_giving_cpu
 } nanos6_cpu_status_t;
 
 //! \brief retrieve the runtime view of a given CPU identified by the identifier given by the operating system

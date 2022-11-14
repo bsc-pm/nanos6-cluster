@@ -39,8 +39,34 @@ namespace Instrument {
 		PendingDataTransfers,
 		PendingDataTransferBytes,
 		PendingDataTransfersIncoming,
+		TotalApprankReadyTasks,
+		ImmovableTasks,
+		Unused, // was PromisedTasks,
+		OwnedCPUs,
+		LentCPUs,
+		BorrowedCPUs,
+		BusyCores,
+		UsefulBusyCores,
+		Unused2, // was CumulRequestWork,
+		AllocCores,
+		GivingCPUs,
+		OffloadLimit,
+		OffloadHeadroom,
+		ExternalRank,
+		PhysicalNodeNum,
+		ApprankNum,
 		MaxClusterEventType
 	};
+
+	//! For hybrid MPI + Nanos6@cluster + DLB, this function is called
+	//! when MPI_COMM_WORLD is split into appranks
+	void summarizeSplit(
+		int externalRank,
+		int physicalNodeNum,
+		int apprankNum,
+		InstrumentationContext const &context =
+				ThreadInstrumentationContext::getCurrent()
+	);
 
 	//! This function is called when initiating a Message sending
 	//!

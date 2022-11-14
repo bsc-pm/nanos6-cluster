@@ -66,7 +66,9 @@ inline Task::Task(
 	_nestingLevel(0),
 	_offloadedTaskId(OffloadedTaskIdManager::nextOffloadedTaskId()),
 	_offloadedTaskIdAsParent(OffloadedTaskIdManager::nextOffloadedTaskId()),
-	_constraints(nullptr)
+	_constraints(nullptr),
+	_countAsImmovable(true),
+	_countedAsImmovable(false)
 {
 	// This asserts that the interface is used properly.
 

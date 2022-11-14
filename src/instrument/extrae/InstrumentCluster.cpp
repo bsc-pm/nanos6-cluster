@@ -7,6 +7,7 @@
 #include <atomic>
 #include "InstrumentCluster.hpp"
 #include "InstrumentExtrae.hpp"
+#include "ClusterManager.hpp"
 
 #include <Message.hpp>
 
@@ -21,6 +22,22 @@ namespace Instrument {
 		(extrae_type_t) EventType::PENDING_DATA_TRANSFERS,
 		(extrae_type_t) EventType::PENDING_DATA_TRANSFER_BYTES,
 		(extrae_type_t) EventType::PENDING_DATA_TRANSFERS_INCOMING,
+		(extrae_type_t) EventType::TOTAL_APPRANK_READY_TASKS,
+		(extrae_type_t) EventType::IMMOVABLE_TASKS,
+		(extrae_type_t) EventType::PROMISED_TASKS, // deprecated
+		(extrae_type_t) EventType::OWNED_CPUS,
+		(extrae_type_t) EventType::LENT_CPUS,
+		(extrae_type_t) EventType::BORROWED_CPUS,
+		(extrae_type_t) EventType::BUSY_CORES,
+		(extrae_type_t) EventType::USEFUL_BUSY_CORES,
+		(extrae_type_t) EventType::CUMUL_REQUEST_WORK,  // deprecated
+		(extrae_type_t) EventType::ALLOC_CORES,
+		(extrae_type_t) EventType::GIVING_CORES,
+		(extrae_type_t) EventType::OFFLOAD_LIMIT,
+		(extrae_type_t) EventType::OFFLOAD_HEADROOM,
+		(extrae_type_t) EventType::EXTERNAL_RANK,
+		(extrae_type_t) EventType::PHYSICAL_NODE_NUM,
+		(extrae_type_t) EventType::APPRANK_NUM
 	};
 
 	static const char *clusterEventTypeToName[MaxClusterEventType] = {
@@ -28,7 +45,23 @@ namespace Instrument {
 		"Number of unfinished offloaded tasks",
 		"Number of data transfers being waited for",
 		"Total bytes of data transfers being waited for",
-		"Number of data transfers queued to wait for"
+		"Number of data transfers queued to wait for",
+		"Estimated total ready tasks all instances same apprank",
+		"Number of immovable tasks",
+		"Number of promised tasks", // deprecated
+		"Number of owned CPUs",
+		"Number of lent CPUs",
+		"Number of borrowed CPUs",
+		"Average number of busy cores, including overhead",
+		"Average number of useful busy cores, executing tasks",
+		"Cumulative number of outgoing request work messages",    // deprecated
+		"Number of allocated cores",
+		"Number of cores whose ownership is to be given to another instance",
+		"Offload limit: number of extra tasks could be sent",
+		"Offload headroom: number of extra above those being sent now",
+		"External rank (rank in original MPI_COMM_WORLD) [counting from 1]",
+		"Physical node number [counting from 1]",
+		"Application rank [counting from 1]"
 	};
 
 	static std::atomic<int> _totalOffloadedTasksWaiting;
@@ -107,6 +140,7 @@ namespace Instrument {
 			com.tag = (extrae_comm_tag_t)EventType::MESSAGE_SEND;
 			com.size = messageType;
 			com.partner = receiver;
+			com.partner = ClusterManager::getClusterNode(receiver)->getInstrumentationRank();
 			com.id = msg->getId();
 
 			value = (extrae_value_t)(messageType + 1);
@@ -246,7 +280,7 @@ namespace Instrument {
 			ce.Communications[0].type = EXTRAE_USER_SEND;
 			ce.Communications[0].tag = (extrae_comm_tag_t)EventType::MESSAGE_SEND;
 			ce.Communications[0].size = messageType;
-			ce.Communications[0].partner = dest;
+			ce.Communications[0].partner = ClusterManager::getClusterNode(dest)->getInstrumentationRank();
 
 			// NOTE: this assumes that the message ID is globally unique (i.e. you
 			// cannot receive a MessageDmalloc and MessageDataFetch from the same
@@ -361,5 +395,12 @@ namespace Instrument {
 	void MPIUnLock()
 	{
 		Instrument::Extrae::_lockMPI.unlock();
+	}
+
+	void summarizeSplit(int externalRank, int physicalNodeNum, int apprankNum, InstrumentationContext const &)
+	{
+		Instrument::emitClusterEvent(ClusterEventType::ExternalRank, externalRank+1);
+		Instrument::emitClusterEvent(ClusterEventType::PhysicalNodeNum, physicalNodeNum+1);
+		Instrument::emitClusterEvent(ClusterEventType::ApprankNum, apprankNum+1);
 	}
 }

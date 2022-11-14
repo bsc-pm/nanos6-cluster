@@ -7,31 +7,46 @@
 #include <cassert>
 #include <ctime>
 #include <dlb.h>
+#include <dlb_drom.h>
 
 #include "DLBCPUActivation.hpp"
 #include "DLBCPUManager.hpp"
 #include "executors/threads/WorkerThread.hpp"
 #include "executors/threads/cpu-managers/dlb/policies/GreedyPolicy.hpp"
+#include "executors/threads/cpu-managers/dlb/policies/GlobalPolicy.hpp"
+#include "executors/threads/cpu-managers/dlb/policies/LocalPolicy.hpp"
 #include "executors/threads/cpu-managers/dlb/policies/LeWIPolicy.hpp"
 #include "hardware/HardwareInfo.hpp"
 #include "hardware/places/ComputePlace.hpp"
 #include "lowlevel/FatalErrorHandler.hpp"
+#include "ClusterHybridManager.hpp"
 
 
 boost::dynamic_bitset<> DLBCPUManager::_shutdownCPUs;
 SpinLock DLBCPUManager::_shutdownCPUsLock;
 std::vector<cpu_set_t> DLBCPUManager::_collaboratorMasks;
+boost::dynamic_bitset<> DLBCPUManager::_idleCPUs;
+SpinLock DLBCPUManager::_idleCPUsLock;
+size_t DLBCPUManager::_numIdleCPUs;
 
+ConfigVariable<bool> DLBCPUManager::_dromEnabled("dlb.enable_drom");
+ConfigVariable<bool> DLBCPUManager::_lewiEnabled("dlb.enable_lewi");
 
 void DLBCPUManager::preinitialize()
 {
 	_finishedCPUInitialization = false;
 
-	// Retreive the CPU mask of this process
-	int rc = sched_getaffinity(0, sizeof(cpu_set_t), &_cpuMask);
-	FatalErrorHandler::handle(
-		rc, " when retrieving the affinity of the process"
-	);
+	// Retrieve the CPU mask of this process
+	if (ClusterManager::clusterRequested()) {
+		// Hybrid cluster mode: automatically set up initial CPU mask
+		ClusterHybridManager::getInitialCPUMask(&_cpuMask);
+	} else {
+		// Default: use taskset before calling runtime
+		int rc = sched_getaffinity(0, sizeof(cpu_set_t), &_cpuMask);
+		FatalErrorHandler::handle(
+			rc, " when retrieving the affinity of the process"
+		);
+	}
 
 	// Get the number of NUMA nodes and a list of all available CPUs
 	nanos6_device_t hostDevice = nanos6_device_t::nanos6_host_device;
@@ -45,7 +60,14 @@ void DLBCPUManager::preinitialize()
 
 	// Create the chosen policy for this CPUManager
 	std::string policyValue = _policyChosen.getValue();
-	if (policyValue == "default" || policyValue == "lewi") {
+	if ( policyValue == "default"
+		&& ClusterHybridManager::inHybridClusterMode()) {
+		if (ClusterHybridManager::getHybridPolicy() == ClusterHybridPolicy::Global) {
+			_cpuManagerPolicy = new GlobalPolicy(numCPUs);
+		} else {
+			_cpuManagerPolicy = new LocalPolicy(numCPUs);
+		}
+	} else if (policyValue == "default" || policyValue == "lewi") {
 		_cpuManagerPolicy = new LeWIPolicy(numCPUs);
 	} else if (policyValue == "greedy") {
 		_cpuManagerPolicy = new GreedyPolicy(numCPUs);
@@ -137,17 +159,23 @@ void DLBCPUManager::preinitialize()
 	_shutdownCPUs.resize(numCPUs);
 	_shutdownCPUs.reset();
 
+	// Initialize idle CPU structures
+	_idleCPUs.resize(numCPUs);
+	_idleCPUs.reset();
+	_numIdleCPUs = 0;
+
 	// Initialize the virtual CPU for the leader thread
 	_leaderThreadCPU = new CPU(numCPUs);
 	assert(_leaderThreadCPU != nullptr);
 
 
 	//    DLB RELATED    //
+	DLBCPUActivation::initialize();
 
 	// NOTE: We use the sync (or polling) version of the library. This means
 	// that when a call to DLB returns, all the required actions have been
 	// taken (i.e. all the callbacks have been triggered before returning)
-	int ret = DLB_Init(numCPUs, &_cpuMask, "--lewi --quiet=yes");
+	int ret = DLB_Init(numCPUs, &_cpuMask, "--lewi --drom --quiet=yes");
 	if (ret == DLB_ERR_PERM) {
 		FatalErrorHandler::fail(
 			"The current CPU mask collides with another process' mask\n",
@@ -174,6 +202,13 @@ void DLBCPUManager::preinitialize()
 		ret != DLB_SUCCESS,
 		"Error code ", ret, " while registering DLB callbacks"
 	);
+
+	// Enable DROM
+	ret = DLB_DROM_Attach();
+	FatalErrorHandler::failIf(
+		ret != DLB_SUCCESS,
+		"Error code ", ret, " from DROM attach"
+	);
 }
 
 void DLBCPUManager::initialize()
@@ -195,10 +230,15 @@ void DLBCPUManager::initialize()
 	}
 
 	_finishedCPUInitialization = true;
+
+	/* Now that CPUManager has been initialized, it is safe to enable DROM */
+	ClusterHybridManager::setHybridInterfaceFileInitialized(true);
 }
 
 void DLBCPUManager::shutdownPhase1()
 {
+	ClusterHybridManager::setHybridInterfaceFileInitialized(false);
+
 	CPU *cpu;
 	CPU::activation_status_t status;
 	const timespec delay = {0, 100000};
@@ -233,9 +273,16 @@ void DLBCPUManager::shutdownPhase2()
 {
 	delete _leaderThreadCPU;
 
+	// Disable DROM
+	int ret = DLB_DROM_Detach();
+	FatalErrorHandler::failIf(
+		ret != DLB_SUCCESS,
+		"Error code ", ret, " from DROM attach"
+	);
+
 	// Shutdown DLB
 	// ret != DLB_SUCCESS means it was not initialized (should never occur)
-	__attribute__((unused)) int ret = DLB_Finalize();
+	ret = DLB_Finalize();
 	assert(ret == DLB_SUCCESS);
 
 	delete _cpuManagerPolicy;
@@ -250,7 +297,8 @@ void DLBCPUManager::forcefullyResumeFirstCPU()
 	assert(firstCPU != nullptr);
 
 	// Try to reclaim the CPU (it only happens if it is lent)
-	DLBCPUActivation::reclaimCPU(firstCPU->getSystemCPUId());
+	__attribute__((unused)) bool success = DLBCPUActivation::reclaimCPU(firstCPU->getSystemCPUId());
+	assert(success); // maybe given away by DROM??
 }
 
 

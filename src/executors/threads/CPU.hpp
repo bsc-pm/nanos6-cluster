@@ -46,6 +46,8 @@ public:
 		disabling_status,		 // The CPU is being disabled
 		lent_status,			  // The CPU is lent to another runtime
 		lending_status,		   // The CPU is about to be lent to another runtime
+		giving_status,            // The CPU is about to be given away (via DROM)
+		uninitialized_given_status, // The CPU has been given to us via DROM but has not been initialized
 		acquired_status,		  // The (external) CPU is acquired but not enabled yet
 		acquired_enabled_status,  // The (external) CPU is acquired and enabled
 		returned_status,		  // The (external) CPU is returned to its original owner
@@ -123,6 +125,7 @@ public:
 			_threadingModelData.initialize(this);
 			_instrumentationId = Instrument::createdCPU(_index, _NUMANodeId);
 		} else {
+			std::cout << "Initializing new CPU: old status was " << _activationStatus << "\n";
 			assert(_activationStatus != enabling_status);
 		}
 

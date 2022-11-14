@@ -17,7 +17,12 @@ void IdlePolicy::execute(ComputePlace *cpu, CPUManagerPolicyHint hint, size_t nu
 	//   number of idle CPUs
 	// - If the hint is HANDLE_TASKFOR, we try to wake up all idle CPUs
 	//   that can collaborate executing it
+
 	if (hint == IDLE_CANDIDATE) {
+		if (cpu == nullptr) {
+			// Called by hybrid cluster manager when no stealable remote tasks
+			return;
+		}
 		assert(cpu != nullptr);
 
 		bool cpuIsIdle = DefaultCPUManager::cpuBecomesIdle((CPU *) cpu);

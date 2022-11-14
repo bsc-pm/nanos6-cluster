@@ -7,6 +7,7 @@
 #ifndef DLB_CPU_MANAGER_HPP
 #define DLB_CPU_MANAGER_HPP
 
+#include <dlb.h>
 #include <cstring>
 #include <sched.h>
 #include <vector>
@@ -23,11 +24,27 @@ private:
 	//! CPUs available to be used for shutdown purposes
 	static boost::dynamic_bitset<> _shutdownCPUs;
 
+	//! Identifies CPUs that are idle
+	static boost::dynamic_bitset<> _idleCPUs;
+
+	//! Spinlock to access idle CPUs
+	static SpinLock _idleCPUsLock;
+
+	//! The current number of idle CPUs, kept atomic through idleCPUsLock
+	static size_t _numIdleCPUs;
+
+
 	//! Spinlock to access shutdown CPUs
 	static SpinLock _shutdownCPUsLock;
 
 	//! A set of collaborator masks per CPU
 	static std::vector<cpu_set_t> _collaboratorMasks;
+
+	//! Enable or disable DROM individually
+	static ConfigVariable<bool> _dromEnabled;
+
+	//! Enable or disable LeWI individually
+	static ConfigVariable<bool> _lewiEnabled;
 
 public:
 
@@ -45,6 +62,8 @@ public:
 	void shutdownPhase1();
 
 	void shutdownPhase2();
+
+	void pollDROM();
 
 	inline void executeCPUManagerPolicy(
 		ComputePlace *cpu,
@@ -86,6 +105,16 @@ public:
 
 	bool disable(size_t systemCPUId);
 
+	/* OPTIONS */
+	static bool getDromEnabled()
+	{
+		return _dromEnabled;
+	}
+
+	static bool getLewiEnabled()
+	{
+		return _lewiEnabled;
+	}
 
 	/*    SHUTDOWN CPUS    */
 

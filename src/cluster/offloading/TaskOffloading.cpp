@@ -33,6 +33,8 @@
 #include "OffloadedTasksInfoMap.hpp"
 #include <ClusterUtil.hpp>
 #include <LiveDataTransfers.hpp>
+#include "scheduling/Scheduler.hpp"
+#include "cluster/ClusterMetrics.hpp"
 
 namespace TaskOffloading {
 
@@ -138,6 +140,7 @@ namespace TaskOffloading {
 			msg->setBounds(taskloop->getBounds());
 		}
 
+		ClusterMetrics::incSentNumNewTask();
 		ClusterManager::sendMessage(msg, remoteNode);
 
 		// Offloaded tasks do not need the "wait" clause, since any waiting will be handled
@@ -462,6 +465,7 @@ namespace TaskOffloading {
 
 			clusterContext->getOwnerTask()->getDataReleaseStep()->releasePendingAccesses(true);
 		}
+		ClusterMetrics::incSentNumTaskFinished();
 
 		// For the moment, we do not delete the Message since it includes the
 		// buffers that hold the nanos6_task_info_t and the

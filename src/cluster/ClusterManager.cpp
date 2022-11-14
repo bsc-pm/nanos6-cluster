@@ -5,6 +5,7 @@
 */
 
 #include "ClusterManager.hpp"
+#include "ClusterHybridManager.hpp"
 #include "messages/MessageSysFinish.hpp"
 #include "messages/MessageDataFetch.hpp"
 
@@ -41,12 +42,14 @@ std::atomic<size_t> ClusterServicesTask::_activeClusterTaskServices(0);
 std::atomic<bool> ClusterServicesTask::_pausedServices(false);
 
 ClusterManager::ClusterManager()
-	: _clusterNodes(1),
-	_thisNode(new ClusterNode(0, 0)),
+	: _clusterRequested(false),
+	_clusterNodes(1),
+	_thisNode(new ClusterNode(0, 0, 0, false, 0)),
 	_masterNode(_thisNode),
 	_msn(nullptr),
 	_disableRemote(false), _disableRemoteConnect(false), _disableAutowait(false)
 {
+	assert(_singleton == nullptr);
 	_clusterNodes[0] = _thisNode;
 	MessageId::initialize(0, 1);
 	WriteIDManager::initialize(0,1);
@@ -54,7 +57,8 @@ ClusterManager::ClusterManager()
 }
 
 ClusterManager::ClusterManager(std::string const &commType, int argc, char **argv)
-	: _msn(GenericFactory<std::string,Messenger*,int,char**>::getInstance().create(commType, argc, argv)),
+	: _clusterRequested(true),
+	_msn(GenericFactory<std::string,Messenger*,int,char**>::getInstance().create(commType, argc, argv)),
 	_disableRemote(false), _disableRemoteConnect(false), _disableAutowait(false)
 {
 	assert(_msn != nullptr);
@@ -124,23 +128,38 @@ void ClusterManager::internal_reset() {
 	 * indices for cluster nodes */
 
 	const size_t clusterSize = _msn->getClusterSize();
-	const int nodeIndex = _msn->getNodeIndex();
+	const int apprankNum = _msn->getApprankNum();
+	const int externalRank = _msn->getExternalRank();
+	const int internalRank = _msn->getNodeIndex();  /* internal rank */
+	const int physicalNodeNum = _msn->getPhysicalNodeNum();
+	const int indexThisPhysicalNode = _msn->getIndexThisPhysicalNode();
 	const int masterIndex = _msn->getMasterIndex();
 
 	// TODO: Check if this initialization may conflict somehow.
-	MessageId::initialize(nodeIndex, clusterSize);
-	WriteIDManager::initialize(nodeIndex, clusterSize);
-	OffloadedTaskIdManager::initialize(nodeIndex, clusterSize);
+	MessageId::initialize(internalRank, clusterSize); // only need to be unique message IDs inside an apprank
+	WriteIDManager::initialize(internalRank, clusterSize);
+	OffloadedTaskIdManager::initialize(internalRank, clusterSize);
+
+	int numAppranks = _msn->getNumAppranks();
+	bool inHybridMode = numAppranks > 1;
+
+	const std::vector<int> &internalRankToExternalRank = _msn->getInternalRankToExternalRank();
+	const std::vector<int> &instanceThisNodeToExternalRank = _msn->getInstanceThisNodeToExternalRank();
+
+	ClusterHybridManager::preinitialize(
+		inHybridMode, externalRank, apprankNum, internalRank, physicalNodeNum, indexThisPhysicalNode,
+		clusterSize, internalRankToExternalRank, instanceThisNodeToExternalRank
+		);
 
 	if (this->_clusterNodes.empty()) {
 		// Called from constructor the first time
 		this->_clusterNodes.resize(clusterSize);
 
 		for (size_t i = 0; i < clusterSize; ++i) {
-			_clusterNodes[i] = new ClusterNode(i, i);
+			_clusterNodes[i] = new ClusterNode(i, i, apprankNum, inHybridMode, _msn->internalRankToInstrumentationRank(i));
 		}
 
-		_thisNode = _clusterNodes[nodeIndex];
+		_thisNode = _clusterNodes[internalRank];
 		_masterNode = _clusterNodes[masterIndex];
 	}
 }
@@ -174,9 +193,40 @@ void ClusterManager::postinitialize()
 	assert(_singleton != nullptr);
 	assert(MemoryAllocator::isInitialized());
 
+	/* For (verbose) instrumentation, summarize the splitting of external ranks
+	 * into appranks and instances. Always do this, even if in non-cluster mode,
+	 * as useful for the "per-node" instrumentation of DLB (using num_cores).
+	 */
+	if (_singleton->_msn != nullptr) {
+		_singleton->_msn->summarizeSplit();
+	}
+
+	int allocCores = getCurrentClusterNode()->getCurrentAllocCores();
+	Instrument::emitClusterEvent(Instrument::ClusterEventType::AllocCores, allocCores);
+	Instrument::emitClusterEvent(Instrument::ClusterEventType::OwnedCPUs, ClusterHybridManager::getCurrentOwnedCPUs());
+
+	/*
+	 * Synchronization before starting polling services. This is needed only for the hybrid
+	 * polling service. We do not want the hybrid polling service to take free cores that
+	 * have not yet been claimed by their owner at startup, which would cause an error from
+	 * DLB. This synchronizes MPI_COMM_WORLD, but it would be sufficient to synchronize only
+	 * among the instances on the same node.
+	 */
+	if (_singleton->_msn) {
+		_singleton->_msn->synchronizeWorld();
+	}
+
 	if (ClusterManager::inClusterMode()) {
 		ClusterServicesPolling::initialize();
 		ClusterServicesTask::initializeWorkers(_singleton->_numMessageHandlerWorkers);
+	} else {
+#if HAVE_DLB
+		/* Enable polling services for LeWI + DROM integration even if not in clusters mode.
+		 * Ideally DROM support could be disconnected from the cluster support as it may
+		 * be useful among processes on the same node, even without clusters.
+		 */
+		ClusterServicesPolling::initialize(/* hybridOnly */ true);
+#endif
 	}
 }
 
@@ -199,12 +249,16 @@ void ClusterManager::shutdownPhase1()
 	}
 
 	if (ClusterManager::inClusterMode()) {
-
 		ClusterServicesPolling::shutdown();
+
 		ClusterServicesTask::shutdownWorkers(_singleton->_numMessageHandlerWorkers);
 
 		TaskOffloading::RemoteTasksInfoMap::shutdown();
 		TaskOffloading::OffloadedTasksInfoMap::shutdown();
+	} else {
+#if HAVE_DLB
+		ClusterServicesPolling::shutdown(/* hybridOnly */ true);
+#endif
 	}
 
 	if (_singleton->_msn != nullptr) {

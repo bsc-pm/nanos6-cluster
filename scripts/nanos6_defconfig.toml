@@ -83,6 +83,12 @@ __require_DLB
 [dlb]
 	# Enable DLB support. Default is false
 	enabled = false
+
+	# Enable DROM support (if DLB enabled). Default is true
+	enable_drom = true
+
+	# Enable LeWI support (if DLB enabled). Default is true
+	enable_lewi = true
 __!require_DLB
 
 [hardware_counters]
@@ -336,6 +342,25 @@ __require_CLUSTER
 		# Decide if mpi messenger must use a different
 		# communicator for data_raws messages. Default is true
 		comm_data_raw = true
+
+	[cluster.hybrid]
+		# For hybrid cluster, describe how to split appranks (application # ranks) across nodes
+		# Each digit is the physical node number. Appranks are separated by semicolons and internal
+		# ranks within the apprank are separated by periods.  For example, split = "0.1;1.0" runs
+		# two appranks on two nodes: apprank 0 has master on node 0 and a helper on node 1 and
+		# apprank 1 has master on node 1 and a helper on node 0. Default is "", which corresponds
+		# to a single apprank across all MPI processes.
+		split = ""
+
+		# Hybrid monitoring directory. Default is ".hybrid"
+		directory = ".hybrid"
+
+		# Choose the hybrid core allocation policy.  Default is "default"
+		# Possible values: "default", "global", "local"
+		policy = "default"
+
+		# Time period for local policy in seconds
+		local_time_period = 1
 
 __!require_CLUSTER
 

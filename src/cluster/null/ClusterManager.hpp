@@ -7,12 +7,17 @@
 #ifndef CLUSTER_MANAGER_HPP
 #define CLUSTER_MANAGER_HPP
 
+#include <cassert>
 #include <string>
 #include <vector>
 
 #include <ClusterMemoryNode.hpp>
 #include <ClusterNode.hpp>
 #include "DataAccessRegion.hpp"
+
+#pragma GCC visibility push(default)
+#include <mpi.h>
+#pragma GCC visibility pop
 
 class Message;
 class DataTransfer;
@@ -71,6 +76,11 @@ public:
 		return 1;
 	}
 
+	static inline bool clusterRequested()
+	{
+		return false;
+	}
+
 	static inline bool inClusterMode()
 	{
 		return false;
@@ -122,8 +132,34 @@ public:
 	}
 
 	static inline void synchronizeAll()
+
+	static inline ShutdownCallback *getShutdownCallback()
+	{
+		return nullptr;
+	}
+
+	//! \brief Get the application communicator
+	//!
+	//! \returns the application communicator
+	static inline MPI_Comm getAppCommunicator()
+	{
+		// Running in normal MPI mode: just return MPI_COMM_WORLD.
+		return MPI_COMM_WORLD;
+	}
+
+	static inline void summarizeSplit()
 	{
 	}
+
+	//! \brief Get the apprank number
+	//!
+	//! \returns the apprank number
+	static int getApprankNum() = 0;
+
+	//! \brief Get the external rank
+	//!
+	//! \returns the external rank (in MPI_COMM_WORLD)
+	static int getExternalRank() = 0;
 };
 
 #endif /* CLUSTER_MANAGER_HPP */

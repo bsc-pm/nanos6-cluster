@@ -21,16 +21,45 @@ private:
 	//! communication layer
 	int _commIndex;
 
+	//! Name of the node for instrumentation
+	std::string _instrumentationName;
+
+	//! For Extrae tracing of hybrid clusters+DLB
+	int _instrumentationRank;
+
+	//! The number of cores allocated (global) or wanted right now (local)
+	int _numAllocCores;
+
+	//! Number of active cores available to this instance
+	int _numEnabledCores;
+
+	//! The number of ready tasks reported in the utilization<n> file
+	size_t _numReadyTasks;
+
+	//! The number of busy cores reported in the utilization<n> file
+	float _numBusyCores;
+
 	std::atomic<int> _numOffloadedTasks; // offloaded by us
 
 public:
-	ClusterNode(int index, int commIndex)
+	ClusterNode(int index, int commIndex, int apprankNum, bool inHybridMode, int instrumentationRank)
 		: ComputePlace(index, nanos6_device_t::nanos6_cluster_device),
 		_memoryNode(new ClusterMemoryNode(index, commIndex)),
-		_commIndex(commIndex), _numOffloadedTasks(0)
+		_commIndex(commIndex), _instrumentationRank(instrumentationRank), _numAllocCores(0), _numEnabledCores(0),
+		_numOffloadedTasks(0)
 	{
 		assert(_memoryNode != nullptr);
 		assert (_commIndex >= 0);
+
+		//! Set the instrumentation name
+		std::stringstream ss;
+		if (inHybridMode) {
+			ss << "a" << apprankNum << "r" << index;
+		} else {
+			ss << index;
+		}
+
+		_instrumentationName = ss.str();
 	}
 
 	~ClusterNode()
@@ -53,6 +82,53 @@ public:
 		return _commIndex;
 	}
 
+	//! \brief Get the instrumentation name
+	std::string &getInstrumentationName()
+	{
+		return _instrumentationName;
+	}
+
+	inline void setCurrentAllocCores(int numAllocCores)
+	{
+		_numAllocCores = numAllocCores;
+	}
+
+	inline int getCurrentAllocCores() const
+	{
+		return _numAllocCores;
+	}
+
+	inline void setCurrentEnabledCores(int numEnabledCores)
+	{
+		_numEnabledCores = numEnabledCores;
+	}
+
+	inline int getCurrentEnabledCores() const
+	{
+		return _numEnabledCores;
+	}
+
+	inline void setCurrentReadyTasks(int numReadyTasks)
+	{
+		_numReadyTasks = numReadyTasks;
+	}
+
+	inline int getCurrentReadyTasks() const
+	{
+		return _numReadyTasks;
+	}
+
+	inline void setCurrentBusyCores(float numBusyCores)
+	{
+		_numBusyCores = numBusyCores;
+	}
+
+	inline float getCurrentBusyCores() const
+	{
+		return _numBusyCores;
+	}
+
+
 	//! \brief Update number of tasks offloaded from this node to the ClusterNode
 	inline void incNumOffloadedTasks(int by)
 	{
@@ -64,6 +140,11 @@ public:
 	inline int getNumOffloadedTasks() const
 	{
 		return _numOffloadedTasks;
+	}
+
+	inline int getInstrumentationRank() const
+	{
+		return _instrumentationRank;
 	}
 };
 

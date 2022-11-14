@@ -145,11 +145,11 @@ namespace Instrument {
 		// that the Extrae backend is initialized with the right number of tasks
 		// for clusters.
 		// Thread information callbacks
-		if (ClusterManager::inClusterMode()) {
+		if (ClusterManager::clusterRequested()) {
 			// Note: Extrae may call these functions after the ClusterManager
 			// has been shutdown, so take a copy of these values now.
-			numtasks = ClusterManager::clusterSize();
-			task_id = ClusterManager::getCurrentClusterNode()->getIndex();
+			numtasks = ClusterManager::getNumExternalRanks();
+			task_id = ClusterManager::getCurrentClusterNode()->getInstrumentationRank();
 			ExtraeAPI::set_taskid_function(extrae_nanos6_get_task_id);
 			ExtraeAPI::set_numtasks_function(extrae_nanos6_get_numtasks);
 		}

@@ -13,6 +13,10 @@
 
 namespace Instrument {
 
+	inline void summarizeSplit(int, int, int, InstrumentationContext const &)
+	{
+	}
+
 	void initClusterCounters();
 
 	void showClusterCounters(std::ofstream &output);

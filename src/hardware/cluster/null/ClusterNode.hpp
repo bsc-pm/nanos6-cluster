@@ -7,6 +7,7 @@
 #ifndef CLUSTER_NODE_HPP
 #define CLUSTER_NODE_HPP
 
+#include <string>
 #include "hardware/places/ComputePlace.hpp"
 
 #include <ClusterMemoryNode.hpp>
@@ -36,6 +37,11 @@ public:
 	inline int getCommIndex() const
 	{
 		return 0;
+	}
+
+	inline std::string &getInstrumentationName() const
+	{
+		assert false;
 	}
 };
 

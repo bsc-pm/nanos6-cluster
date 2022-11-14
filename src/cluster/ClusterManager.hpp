@@ -33,7 +33,11 @@ class ClusterMemoryNode;
 class ClusterManager {
 
 private:
+	bool _clusterRequested; // Built with cluster and cluster.communication is not disabled
+	int _totalReadyTasks;
+
 	static ClusterManager *_singleton;
+
 	//! A vector of all ClusterNodes in the system.
 	//!
 	//! We might need to make this a map later on, when we start
@@ -223,6 +227,15 @@ public:
 		}
 	}
 
+	//! \brief Check if OmpSs-2@Cluster was requested
+	//!
+	//! \returns True if built with Cluster support and
+	//! cluster.communication is not "disabled".
+	static inline bool clusterRequested()
+	{
+		assert(_singleton);
+		return _singleton->_clusterRequested;
+	}
 
 	//! \brief Check for incoming messages
 	//!
@@ -466,6 +479,106 @@ public:
 	{
 		assert(_singleton != nullptr);
 		return _singleton->_numMessageHandlerWorkers;
+	}
+
+	//! \brief Get the application communicator
+	//!
+	//! \returns the application communicator
+	static inline int getAppCommunicator()
+	{
+		assert(_singleton->_msn != nullptr);
+		return _singleton->_msn->getAppCommunicator();
+	}
+
+	//! \brief Get the apprank number
+	//!
+	//! \returns the apprank number
+	static inline int getApprankNum()
+	{
+		assert(_singleton);
+		assert(_singleton->_msn != nullptr);
+		return _singleton->_msn->getApprankNum();
+	}
+
+	//! \brief Get the number of physical nodes
+	//!
+	//! \returns the number of physical nodes (within the job)
+	static inline int getNumNodes()
+	{
+		assert(_singleton);
+		assert(_singleton->_msn != nullptr);
+		return _singleton->_msn->getNumNodes();
+	}
+
+	//! \brief Get the physical node number
+	//!
+	//! \returns the physical node number (within the job)
+	static inline int getPhysicalNodeNum()
+	{
+		assert(_singleton);
+		assert(_singleton->_msn != nullptr);
+		return _singleton->_msn->getPhysicalNodeNum();
+	}
+
+	//! \brief Get the external rank
+	//!
+	//! \returns the external rank (in MPI_COMM_WORLD)
+	static inline int getExternalRank()
+	{
+		assert(_singleton);
+		assert(_singleton->_msn != nullptr);
+		return _singleton->_msn->getExternalRank();
+	}
+
+	//! \brief Get the number of external ranks
+	//!
+	//! \returns the number of external ranks (in MPI_COMM_WORLD)
+	static inline int getNumExternalRanks()
+	{
+		assert(_singleton);
+		assert(_singleton->_msn != nullptr);
+		return _singleton->_msn->getNumExternalRanks();
+	}
+
+	//! \brief Get the index number of the instance on the
+	//! current physical node
+	//!
+	//! \returns The index number of this instance on the
+	//! physical node.
+	static inline int getIndexThisPhysicalNode()
+	{
+		assert(_singleton);
+		assert(_singleton->_msn != nullptr);
+		return _singleton->_msn->getIndexThisPhysicalNode();
+	}
+
+	// For now just a bool to indicate whether each instance is a master;
+	// in future it may have to return more information.
+	static const std::vector<bool> &getIsMasterThisNode()
+	{
+		assert(_singleton);
+		assert(_singleton->_msn);
+		return _singleton->_msn->getIsMasterThisNode();
+	}
+
+	static int getExternalRankThisNode(int indexThisPhysicalNode)
+	{
+		assert(_singleton);
+		assert(_singleton->_msn != nullptr);
+		return _singleton->_msn->getInstanceThisNodeToExternalRank()[indexThisPhysicalNode];
+	}
+
+	static void setTotalReadyTasks(int totalReadyTasks)
+	{
+		assert(_singleton);
+		_singleton->_totalReadyTasks = totalReadyTasks;
+		Instrument::emitClusterEvent(Instrument::ClusterEventType::TotalApprankReadyTasks, totalReadyTasks);
+	}
+
+	static int getTotalReadyTasks()
+	{
+		assert(_singleton);
+		return _singleton->_totalReadyTasks;
 	}
 
 };

@@ -15,39 +15,71 @@
 #include <DataAccessRegistration.hpp>
 
 #include "ClusterMemoryManagement.hpp"
+#include "ClusterHybridManager.hpp"
 
 namespace ClusterDirectory {
-	static void registerAllocationEqupart(DataAccessRegion const &region, size_t clusterSize)
+
+	static bool dmallocUsesNUMA(void)
+	{
+		if (ClusterHybridManager::inHybridClusterMode()) {
+			// NUMA support doesn't work properly in hybrid MPI + OmpSs-2@Cluster mode.
+			// This needs to be investigated properly.
+			return false;
+		}
+		return NUMAManager::enableTrackingIfAuto();
+	}
+
+	static void registerAllocationEqupart(DataAccessRegion const &region, size_t clusterSize, bool useNUMA)
 	{
 		assert(clusterSize > 0);
 
-		char *ptr = (char *)region.getStartAddress();
+		std::vector<int> coresPerRank;
+		coresPerRank.resize(clusterSize);
+		int totalCores = 0;
+
+		/* Get cores per rank and total number of cores */
+		for (size_t node=0; node<clusterSize; node++)
+		{
+			int numCores = ClusterManager::getClusterNode(node)->getCurrentAllocCores();
+			coresPerRank[node] = numCores;
+			totalCores += numCores;
+		}
+		assert(totalCores > 0);
+
+		/* Divide up the region by cores */
+		void *address = region.getStartAddress();
 		size_t size = region.getSize();
+		size_t blockSize = size / totalCores;
+		size_t residual = size % totalCores;
 
-		size_t blockSize = size / clusterSize;
-		size_t residual = size % clusterSize;
-		size_t numBlocks = (blockSize > 0) ? clusterSize : 0;
+		char *ptr = (char *)address;
+		if (blockSize > 0)
+		{
+			for (size_t i = 0; i < clusterSize; ++i) {
+				int numBlocks = coresPerRank[i];
+				if (numBlocks > 0)
+				{
+					DataAccessRegion newRegion((void *)ptr, numBlocks * blockSize);
+					ClusterMemoryNode *homeNode = ClusterManager::getMemoryNode(i);
+					Directory::insert(newRegion, homeNode);
+					ptr += numBlocks * blockSize;
 
-		for (size_t i = 0; i < numBlocks; ++i) {
-			DataAccessRegion newRegion((void *)ptr, blockSize);
-			ClusterMemoryNode *homeNode = ClusterManager::getMemoryNode(i);
-			Directory::insert(newRegion, homeNode);
-			ptr += blockSize;
+					if (useNUMA && homeNode == ClusterManager::getCurrentMemoryNode()) {
+						// Use a blocked memory allocation for NUMA (this could be improved later)
+						nanos6_bitmask_t bitmask;
+						NUMAManager::setAnyActive(&bitmask);
+						size_t numNumaAny = NUMAManager::countEnabledBits(&bitmask);
+						assert(numNumaAny > 0);
+						size_t blockSizeNUMA = newRegion.getSize() / numNumaAny;
 
-			if (homeNode == ClusterManager::getCurrentMemoryNode()) {
-				// Use a blocked memory allocation for NUMA (this could be improved later)
-				nanos6_bitmask_t bitmask;
-				NUMAManager::setAnyActive(&bitmask);
-				size_t numNumaAny = NUMAManager::countEnabledBits(&bitmask);
-				assert(numNumaAny > 0);
-				size_t blockSizeNUMA = newRegion.getSize() / numNumaAny;
+						void *newPtr = newRegion.getStartAddress();
+						size_t newSize = newRegion.getSize();
+						NUMAManager::fullyIntersectPages(&newPtr, &newSize, &blockSizeNUMA);
 
-				void *newPtr = newRegion.getStartAddress();
-				size_t newSize = newRegion.getSize();
-				NUMAManager::fullyIntersectPages(&newPtr, &newSize, &blockSizeNUMA);
-
-				if (newSize > 0) {
-					NUMAManager::setNUMAAffinity(newPtr, newSize, &bitmask, blockSizeNUMA);
+						if (newSize > 0) {
+							NUMAManager::setNUMAAffinity(newPtr, newSize, &bitmask, blockSizeNUMA);
+						}
+					}
 				}
 			}
 		}
@@ -60,14 +92,16 @@ namespace ClusterDirectory {
 			assert(homeNode != nullptr);
 
 			Directory::insert(newRegion, homeNode);
+			ptr += residual;
 		}
+		assert(ptr == (char*)address + size);
 	}
 
 	void registerAllocation(
 		const ClusterMemoryManagement::DmallocDataInfo *dmallocInfo, Task *task, size_t clusterSize
 	) {
 		// If numa.tracking is set to "auto", then a dmalloc enables NUMA tracking on all nodes
-		NUMAManager::enableTrackingIfAuto();
+		bool useNUMA = dmallocUsesNUMA();
 
 		if (task) {
 			// Register local access. A location of nullptr means that:
@@ -82,7 +116,7 @@ namespace ClusterDirectory {
 			case nanos6_equpart_distribution:
 				assert(dmallocInfo->_nrDim == 0);
 
-				registerAllocationEqupart(dmallocInfo->_region, clusterSize);
+				registerAllocationEqupart(dmallocInfo->_region, clusterSize, useNUMA);
 				break;
 			case nanos6_block_distribution:
 			case nanos6_cyclic_distribution:
@@ -97,9 +131,12 @@ namespace ClusterDirectory {
 		Directory::erase(region);
 		void *ptr = region.getStartAddress();
 		size_t size = region.getSize();
-		NUMAManager::fullyIntersectPages(&ptr, &size, nullptr);
-		if (size > 0) {
-			NUMAManager::unsetNUMAAffinity(ptr, size);
+		bool useNUMA = dmallocUsesNUMA();
+		if (useNUMA) {
+			NUMAManager::fullyIntersectPages(&ptr, &size, nullptr);
+			if (size > 0) {
+				NUMAManager::unsetNUMAAffinity(ptr, size);
+			}
 		}
 	}
 }

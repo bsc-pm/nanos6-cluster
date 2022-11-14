@@ -146,6 +146,10 @@ namespace ExecutionWorkflow {
 			DataAccessRegistration::combineTaskReductions(_task, cpu);
 		}
 
+		if (_task->getCountedAsImmovable()) {
+			ClusterMetrics::incNumImmovableTasks(-1);
+		}
+
 		// Release the subsequent steps
 		_task->setExecutionStep(nullptr);
 		releaseSuccessors();

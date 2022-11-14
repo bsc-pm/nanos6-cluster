@@ -15,9 +15,28 @@
 #include "ClusterSchedulerInterface.hpp"
 
 #include <ClusterManager.hpp>
+#include "ClusterHybridManager.hpp"
 #include <DataAccessRegistrationImplementation.hpp>
 #include <ExecutionWorkflow.hpp>
 #include <VirtualMemoryManagement.hpp>
+#include "ClusterMetrics.hpp"
+
+//! \brief Get the current number of usable cores at a node
+//!
+//! \brief Returns max(allocated cores, owned cores - lent cores + borrowed cores).
+//!
+//! The allocated cores is the current medium-term core allocation, which is the target
+//! for DROM. Any node should be able to reclaim cores if necessary to meet its allocation.
+//! The enabled cores, which matches owned cores - lent cores + borrowed cores is the
+//! number of cores that the node is currently using.
+static int getCurrentCores(ClusterNode *remoteNode)
+{
+	int currentEnabledCores =
+		(remoteNode == ClusterManager::getCurrentClusterNode()) ?
+		ClusterHybridManager::getCurrentOwnedOrGivingCPUs() - ClusterHybridManager::getCurrentLentOwnedCPUs() + ClusterHybridManager::getCurrentBorrowedCPUs()
+		: remoteNode->getCurrentEnabledCores();
+	return std::max<int>(remoteNode->getCurrentAllocCores(), currentEnabledCores);
+}
 
 int ClusterBalanceScheduler::getScheduledNode(
 	Task *task,
@@ -43,9 +62,11 @@ int ClusterBalanceScheduler::getScheduledNode(
 			}
 
 			DataAccessRegion region = access->getAccessRegion();
+
+			/* Cannot offload a task whose data is not all cluster memory */
 			if (!VirtualMemoryManagement::isClusterMemory(region)) {
 				canBeOffloaded = false;
-				return false;
+				return false;  /* don't continue with other accesses */
 			}
 
 			if (location->isDirectoryMemoryPlace()) {
@@ -82,43 +103,58 @@ int ClusterBalanceScheduler::getScheduledNode(
 	ClusterNode *bestNode = ClusterManager::getClusterNode(bestNodeId);
 
 	int numTasksAlready = (bestNode == ClusterManager::getCurrentClusterNode()) ?
-							getNumLocalReadyTasks() :
+							ClusterMetrics::getNumReadyTasks() :
 							bestNode->getNumOffloadedTasks();
 
-	// Schedule immediately to best node as long as queue not too long
-	int coresPerNode = CPUManager::getTotalCPUs();
-	if (numTasksAlready <= 2 * coresPerNode) {
+	// Schedule immediately to correct node as long as queue not too long
+	if (numTasksAlready <= 2 * (getCurrentCores(bestNode)-1)) {
 
+		// If it is executed remotely then it cannot be stolen any more
+		if (bestNode != ClusterManager::getCurrentClusterNode()) {
+			ClusterMetrics::incDirectOffload(1);
+		} else {
+			ClusterMetrics::incDirectSelf(1);
+		}
 		return bestNodeId;
 	}
 
 	// Otherwise schedule immediately to a non-loaded node
-	int thiefTasksAlready = INT_MAX;
+	float thiefRatio = 0.0;
 	ClusterNode *thief = nullptr;
 	for (ClusterNode *node : ClusterManager::getClusterNodes()) {
 		numTasksAlready = (node == ClusterManager::getCurrentClusterNode()) ?
-								getNumLocalReadyTasks() :
+								ClusterMetrics::getNumReadyTasks() :
 								node->getNumOffloadedTasks();
+		int currentCores = getCurrentCores(node);
+		if (currentCores > 1) {
+			float ratio = (float)numTasksAlready / (currentCores-1);
 
-		if (numTasksAlready < thiefTasksAlready) {
-			thiefTasksAlready = numTasksAlready;
-			thief = node;
+			if (!thief || ratio < thiefRatio) {
+				thiefRatio = ratio;
+				thief = node;
+			}
 		}
 	}
 
-	if (!thief) {
-		thief = ClusterManager::getCurrentClusterNode();
-	}
+	if (thief) {
+		int thiefId = thief->getIndex();
+		if (thiefRatio <= 2.0) {
+			// offload immediately
 
-	int thiefId = thief->getIndex();
-	if (thiefTasksAlready <= 2 * coresPerNode) {
-		// offload immediately
-		return thiefId;
+			// If it is executed remotely then it cannot be stolen any more
+			if (thiefId != ClusterManager::getCurrentClusterNode()->getIndex()) {
+				ClusterMetrics::incDirectThiefOffload(1);
+			} else {
+				ClusterMetrics::incDirectThiefSelf(1);
+			}
+			return thiefId;
+		}
 	}
 
 	// Otherwise put it in the queue for the best node; may schedule
 	// there or steal the task later.
 	std::lock_guard<SpinLock> guard(_readyQueueLock);
+	ClusterMetrics::incNumReadyTasks(1);
 	_readyQueues[bestNodeId].push_back( new StealableTask(task, bytes) );
 
 	// Don't schedule it yet; it is held here
@@ -136,6 +172,7 @@ Task *ClusterBalanceScheduler::stealTask(ClusterNode *targetNode)
 		_readyQueues[targetNodeId].pop_front();
 		Task *task = stealableTask->_task;
 		delete stealableTask;
+		ClusterMetrics::incNumReadyTasks(-1);
 		return task;
 	}
 
@@ -159,6 +196,7 @@ Task *ClusterBalanceScheduler::stealTask(ClusterNode *targetNode)
 	if (victim) {
 		Task *task = victim->_task;
 		_readyQueues[victimNodeId].erase(victimIt);
+		ClusterMetrics::incNumReadyTasks(-1);
 		delete victim;
 		return task;
 	}
@@ -167,19 +205,25 @@ Task *ClusterBalanceScheduler::stealTask(ClusterNode *targetNode)
 
 void ClusterBalanceScheduler::checkSendMoreAllNodes()
 {
-	int coresPerNode = CPUManager::getTotalCPUs();
 	for (ClusterNode *node : ClusterManager::getClusterNodes()) {
-		int numTasksAlready = (node == ClusterManager::getCurrentClusterNode()) ?
-								getNumLocalReadyTasks() :
-								node->getNumOffloadedTasks();
-		int toSend = 2 * coresPerNode - numTasksAlready;
-		for (int i = 0 ; i < toSend; i++) {
-			Task *task = stealTask(node);
-			if (task) {
-				Scheduler::addReadyLocalOrExecuteRemote(node->getIndex(), task, nullptr, NO_HINT);
-			} else {
-				// No more tasks to send
-				return;
+		if (node == ClusterManager::getCurrentClusterNode()) {
+			continue;
+		}
+		int alloc = getCurrentCores(node);
+		if (alloc > 0) {
+			int numTasksAlready = (node == ClusterManager::getCurrentClusterNode()) ?
+									ClusterMetrics::getNumReadyTasks() :
+									node->getNumOffloadedTasks();
+			int toSend = 2 * alloc - numTasksAlready;
+			for (int i = 0 ; i < toSend; i++) {
+				Task *task = stealTask(node);
+				if (task) {
+					ClusterMetrics::incSendMoreOffload(1);
+					Scheduler::addReadyLocalOrExecuteRemote(node->getIndex(), task, nullptr, NO_HINT);
+				} else {
+					// No more tasks to send
+					return;
+				}
 			}
 		}
 	}
@@ -189,9 +233,18 @@ Task *ClusterBalanceScheduler::stealTask(ComputePlace *)
 {
 	// Steal a task from one of the node's ready queues
 	// NOTE: steal task will decrease NumReadyTasks if successful.
+
+	// May take loads of immovable ready tasks if they all need data transfers...
+	// Don't do this
+	int alloc = getCurrentCores(ClusterManager::getCurrentClusterNode());
+	if ((int)ClusterMetrics::getNumImmovableTasks() > 2 * alloc) {
+		return nullptr;
+	}
+
 	Task *task = stealTask(ClusterManager::getCurrentClusterNode());
 	if (task) {
 		checkSendMoreAllNodes();
+		ClusterMetrics::incStealSelf(1);
 	}
 	return task;
 }
@@ -199,28 +252,54 @@ Task *ClusterBalanceScheduler::stealTask(ComputePlace *)
 void ClusterBalanceScheduler::offloadedTaskFinished(ClusterNode *remoteNode)
 {
 	int numRequestedTasks = 2;
-	int totalLocalTasksHere = getNumLocalReadyTasks();
+	int totalTasksHere = ClusterMetrics::getNumReadyTasks(); // Total number of ready and immovable tasks here
 	int alreadyOffloaded = remoteNode->getNumOffloadedTasks(); // Total number of tasks already offloaded to that node
+	int localCores = ClusterHybridManager::getCurrentActiveOwnedCPUs();
+	int remoteCores = getCurrentCores(remoteNode);                               // Their allocation
+
+	if (remoteCores <= 1) {
+		// Don't use first remote core
+		return;
+	}
 
 	// Do not give the remote node proportionally more work than we could potentially execute:
 	//
-	//       alreadyOffloaded + numSent < totalLocalTasksHere - numSent
+	//       (alreadyOffloaded + numSent)      totalTasksHere - numSent
+	//       ----------------------------   <  ------------------------
+	//             remoteCores                       localCores
 	//
-	//  i.e.
-	//
-	//                                     totalLocalTasksHere
-	//                          numSent <  --------------------
-	//                                     2 * alreadyOffloaded
+	//                /        1              1        \    totalTasksHere     alreadyOffloaded
+	//        numSent |  -----------  +   ----------   |  < --------------  -  ----------------
+	//                \  remoteCores      localCores   /      localCores          remoteCores
 
-	int	maxToSend = numRequestedTasks;
-	if (alreadyOffloaded > 0) {
-		maxToSend = std::min<int>(numRequestedTasks, totalLocalTasksHere / (2*alreadyOffloaded));
+	int maxToSend;
+	if (localCores > 1) {
+		// Assume one local core may be busy handling messages
+		double rhs = (totalTasksHere * 1.0 / (localCores-1)) - (alreadyOffloaded * 1.0 / remoteCores);
+		maxToSend = rhs / (1.0 / remoteCores + 1.0 / (localCores-1));
+		Instrument::emitClusterEvent(Instrument::ClusterEventType::OffloadLimit, maxToSend);
+		Instrument::emitClusterEvent(Instrument::ClusterEventType::OffloadHeadroom, std::max<int>(0,maxToSend-numRequestedTasks) );
+		maxToSend = std::min<int>(numRequestedTasks, maxToSend);
+	} else {
+		maxToSend = numRequestedTasks;
 	}
 
+	// std::lock_guard<SpinLock> guard(_requestLock);
+	int numSentTasks = 0;
 	for (int i=0; i < maxToSend; i++) {
+		float ratio = (float)remoteNode->getNumOffloadedTasks() / (remoteCores -1);
+		if (ratio >= 2.0) {
+			// Don't offload more than two tasks per remote core
+			return;
+		}
+
 		Task *task = stealTask(remoteNode);
+
 		if (task) {
+			numSentTasks ++;
 			Scheduler::addReadyLocalOrExecuteRemote(remoteNode->getIndex(), task, nullptr, NO_HINT);
+			assert(remoteNode != ClusterManager::getCurrentClusterNode());
+			ClusterMetrics::incCheckOffload(1);
 		} else {
 			break;
 		}

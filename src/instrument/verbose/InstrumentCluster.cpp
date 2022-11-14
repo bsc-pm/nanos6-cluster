@@ -6,6 +6,8 @@
 
 #include "InstrumentCluster.hpp"
 #include "InstrumentVerbose.hpp"
+#include "ClusterManager.hpp"
+#include "ClusterNode.hpp"
 
 #include <Message.hpp>
 #include <DataAccess.hpp>
@@ -13,6 +15,30 @@
 using namespace Instrument::Verbose;
 
 namespace Instrument {
+
+	void summarizeSplit(
+		int externalRank,
+		int physicalNodeNum,
+		int apprankNum,
+		InstrumentationContext const &context
+	) {
+		if (!_verboseClusterMessages) {
+			return;
+		}
+
+		LogEntry *logEntry = getLogEntry(context);
+		assert(logEntry != nullptr);
+
+		logEntry->appendLocation(context);
+		logEntry->_contents
+			<< " External rank: " << externalRank
+			<< " Node num: " << physicalNodeNum
+			<< " Apprank num: " << apprankNum
+			<< " Apprank rank: " << ClusterManager::getCurrentClusterNode()->getCommIndex()
+			<< " of " << ClusterManager::clusterSize();
+
+		addLogEntry(logEntry);
+	}
 
 	void clusterSendMessage(Message const *msg, int receiverId)
 	{
@@ -33,7 +59,7 @@ namespace Instrument {
 				<< msg->getName()
 				<< " id:" << msg->getId() << " "
 				<< msg->toString()
-				<< " targetNode:" << receiverId;
+				<< " targetNode:" << ClusterManager::getClusterNode(receiverId)->getInstrumentationName();
 		} else {
 			logEntry->_contents << " <-- SendClusterMessage id:" << msg->getId();
 		}
@@ -108,7 +134,7 @@ namespace Instrument {
 		if(messageId >= 0) {
 			logEntry->_contents << " --> SendingRawData size:"
 				<< dataSize
-				<< " targetNode:" << dest;
+				<< " targetNode:" << ClusterManager::getClusterNode(dest)->getInstrumentationName();
 		} else {
 			logEntry->_contents << " <-- SendingRawData id:" <<  messageId;
 		}

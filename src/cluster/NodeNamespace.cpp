@@ -56,6 +56,7 @@ NodeNamespace::NodeNamespace(SpawnFunction::function_t mainCallback, void *args)
 		this, sizeof(NodeNamespace), flags,
 		0 /* Num dependencies */, false /* from user code */
 	);
+	_namespaceTask->dontCountAsImmovable(); // don't count the namespace task
 	assert(_namespaceTask != nullptr);
 }
 

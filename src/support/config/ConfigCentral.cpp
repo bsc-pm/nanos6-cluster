@@ -38,6 +38,11 @@ ConfigCentral::ConfigCentral() :
 	registerOption<bool_t>("cluster.auto.optimize_nonaccessed", true);
 	registerOption<bool_t>("cluster.auto.optimize_readonly", true);
 
+	// Cluster hybrid
+	registerOption<string_t>("cluster.hybrid.split", "");
+	registerOption<string_t>("cluster.hybrid.directory", ".hybrid");
+	registerOption<string_t>("cluster.hybrid.policy", "default");
+	registerOption<integer_t>("cluster.hybrid.local_time_period", 1);
 
 	// CPU manager
 	registerOption<string_t>("cpumanager.policy", "default");
@@ -56,6 +61,8 @@ ConfigCentral::ConfigCentral() :
 
 	// DLB
 	registerOption<bool_t>("dlb.enabled", false);
+	registerOption<bool_t>("dlb.enable_drom", true);
+	registerOption<bool_t>("dlb.enable_lewi", true);
 
 	// Hardware counters
 	registerOption<bool_t>("hardware_counters.verbose", false);

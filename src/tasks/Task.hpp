@@ -208,6 +208,12 @@ private:
 	//! _clusterNode if set by call to setNode()
 	nanos6_task_constraints_t *_constraints; // -1 is same as nanos6_cluster_no_hint, so not overridden by runtime
 
+	//! For MPI+OmpSs-2@Cluster load balancing, an immovable task is one that is
+	//! (a) executed locally so cannot be stolen, and
+	//! (b) not the namespace, cluster worker or other task that doesn't represent real work
+	bool _countAsImmovable;
+	bool _countedAsImmovable;
+
 public:
 	inline Task(
 		void *argsBlock,
@@ -1148,6 +1154,29 @@ public:
 		return _flags[has_allmemory_flag];
 	}
 
+	//! \brief Don't later count the task in the accounting of immovable (locally executed) tasks
+	void dontCountAsImmovable(void)
+	{
+		_countAsImmovable = false;
+	}
+
+	//! \brief Check whether the task should be counted in the accounting of immovable (locally executed) tasks
+	bool getCountAsImmovable(void) const
+	{
+		return _countAsImmovable;
+	}
+
+	//! \brief Note that the task is currently included in the number of immovable (locally executed) tasks
+	void setCountedAsImmovable(void)
+	{
+		_countedAsImmovable = true;
+	}
+
+	//! \brief Check whether the task is currently included in the number of immovable (locally executed) tasks
+	bool getCountedAsImmovable(void) const
+	{
+		return _countedAsImmovable;
+	}
 };
 
 

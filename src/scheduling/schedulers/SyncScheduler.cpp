@@ -7,6 +7,7 @@
 #include "SyncScheduler.hpp"
 
 #include <InstrumentScheduler.hpp>
+#include "cluster/ClusterMetrics.hpp"
 
 Task *SyncScheduler::getTask(ComputePlace *computePlace)
 {
