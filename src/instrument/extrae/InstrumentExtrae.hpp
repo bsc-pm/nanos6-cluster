@@ -220,6 +220,9 @@ namespace Instrument {
 
 			// 97XXXXX -- Cluster specific events
 				MESSAGE_SEND = 9700000,
+				// AAAAA
+				MESSAGE_DATARAW_TAG = 9700001,
+				// AAAAA
 				MESSAGE_RECEIVE = 9700010,
 				MESSAGE_HANDLE = 9700100,
 

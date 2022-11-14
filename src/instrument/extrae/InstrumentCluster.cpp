@@ -248,7 +248,7 @@ namespace Instrument {
 	}
 
 	//! This function is called when sending raw data
-	void clusterDataSend(void *, size_t, int dest, int messageId)
+	void clusterDataSend(void *, size_t size, int dest, int messageId)
 	{
 		if (!Extrae::_extraeInstrumentCluster)
 		return;
@@ -278,8 +278,8 @@ namespace Instrument {
 				(extrae_user_communication_t *) alloca(sizeof(extrae_user_communication_t));
 
 			ce.Communications[0].type = EXTRAE_USER_SEND;
-			ce.Communications[0].tag = (extrae_comm_tag_t)EventType::MESSAGE_SEND;
-			ce.Communications[0].size = messageType;
+			ce.Communications[0].tag = (extrae_comm_tag_t)EventType::MESSAGE_DATARAW_TAG;
+			ce.Communications[0].size = size;
 			ce.Communications[0].partner = ClusterManager::getClusterNode(dest)->getInstrumentationRank();
 
 			// NOTE: this assumes that the message ID is globally unique (i.e. you
@@ -293,7 +293,7 @@ namespace Instrument {
 	}
 
 	//! This function is called when receiving raw data
-	void clusterDataReceived(void *, size_t, int source, int messageId, InstrumentationContext const &)
+	void clusterDataReceived(void *, size_t size, int source, int messageId, InstrumentationContext const &)
 	{
 		if (!Extrae::_extraeInstrumentCluster)
 		return;
@@ -322,8 +322,8 @@ namespace Instrument {
 			ce.Communications =
 				(extrae_user_communication_t *) alloca(sizeof(extrae_user_communication_t));
 			ce.Communications[0].type = EXTRAE_USER_RECV;
-			ce.Communications[0].tag = (extrae_comm_tag_t)EventType::MESSAGE_SEND;
-			ce.Communications[0].size = messageType;
+			ce.Communications[0].tag = (extrae_comm_tag_t)EventType::MESSAGE_DATARAW_TAG;
+			ce.Communications[0].size = size;
 			ce.Communications[0].partner = source;
 
 			// NOTE: this assumes that the message ID is globally unique (i.e. you
