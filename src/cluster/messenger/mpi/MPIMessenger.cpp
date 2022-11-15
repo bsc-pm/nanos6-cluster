@@ -295,10 +295,12 @@ void MPIMessenger::shutdown()
 MPIMessenger::~MPIMessenger()
 {
 #ifndef NDEBUG
+#ifndef EXTRAE_ENABLED
 	int finalized = 0;
 	int ret = MPI_Finalized(&finalized);
 	assert(ret == MPI_SUCCESS);
 	assert(finalized == 1);
+#endif // EXTRAE_ENABLED
 
 	assert(RequestContainer<Message>::isCleared());
 	assert(RequestContainer<DataTransfer>::isCleared());
