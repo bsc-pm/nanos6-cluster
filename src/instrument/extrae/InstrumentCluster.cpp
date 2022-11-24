@@ -139,7 +139,6 @@ namespace Instrument {
 			com.type = EXTRAE_USER_SEND;
 			com.tag = (extrae_comm_tag_t)EventType::MESSAGE_SEND;
 			com.size = messageType;
-			com.partner = receiver;
 			com.partner = ClusterManager::getClusterNode(receiver)->getInstrumentationRank();
 			com.id = msg->getId();
 
@@ -190,7 +189,7 @@ namespace Instrument {
 			ce.Communications[0].type = EXTRAE_USER_RECV;
 			ce.Communications[0].tag = (extrae_comm_tag_t)EventType::MESSAGE_SEND;
 			ce.Communications[0].size = msg->getType();
-			ce.Communications[0].partner = msg->getSenderId();
+			ce.Communications[0].partner = ClusterManager::getClusterNode(msg->getSenderId())->getInstrumentationRank();
 			ce.Communications[0].id = msg->getId();
 
 			ce.Communications[1].type = EXTRAE_USER_SEND;
@@ -324,7 +323,7 @@ namespace Instrument {
 			ce.Communications[0].type = EXTRAE_USER_RECV;
 			ce.Communications[0].tag = (extrae_comm_tag_t)EventType::MESSAGE_DATARAW_TAG;
 			ce.Communications[0].size = size;
-			ce.Communications[0].partner = source;
+			ce.Communications[0].partner = ClusterManager::getClusterNode(source)->getInstrumentationRank();
 
 			// NOTE: this assumes that the message ID is globally unique (i.e. you
 			// cannot have a MessageDmalloc and MessageDataFetch with the same messageId, as
