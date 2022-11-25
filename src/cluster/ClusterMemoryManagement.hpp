@@ -32,11 +32,7 @@ public:
 
 		size_t getSize() const
 		{
-			// struct padding: _policy will require sizeof(size_t)
-			assert(sizeof(nanos6_data_distribution_t) <= sizeof(size_t));
-			return sizeof(DataAccessRegion)
-				+ 4 * sizeof(size_t)
-				+ _nrDim * sizeof(size_t);
+			return sizeof(DmallocDataInfo) + _nrDim * sizeof(size_t);
 		}
 
 		DmallocDataInfo(
