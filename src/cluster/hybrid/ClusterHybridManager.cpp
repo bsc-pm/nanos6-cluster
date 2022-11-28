@@ -95,9 +95,7 @@ void ClusterHybridManager::initialize()
 	 */
 	bool inHybridMode = ClusterHybridManager::inHybridClusterMode();
 	const int nodeIndex = ClusterManager::getCurrentClusterNode()->getIndex();
-	int myNumCores = CPUManager::getTotalCPUs();
 
-	assert(myNumCores >= 1);
 	int clusterSize = ClusterManager::clusterSize();
 	for (int i = 0; i < clusterSize; i++) {
 		int numCores;
@@ -108,9 +106,9 @@ void ClusterHybridManager::initialize()
 			// This will until the global core allocator runs for the first time.
 			numCores = (i == nodeIndex) ? 1 : 0;
 		} else {
-			// Non-hybrid mode: assume every instance has the same number of cores as this instance, for fair
-			// distribution of load
-			numCores = myNumCores;
+			// Non-hybrid mode: assume just one core. This information is only needed for the distribution of
+			// dmallocs. See the comment in src/cluster/hybrid/null/ClusterHybridManager.hpp.
+			numCores = 1;
 		}
 		ClusterManager::getClusterNode(i)->setCurrentAllocCores(numCores);
 	}

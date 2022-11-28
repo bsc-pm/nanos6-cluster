@@ -31,9 +31,19 @@ public:
 	static void initialize()
 	{
 		int clusterSize = ClusterManager::clusterSize();
-		int numCores = CPUManager::getTotalCPUs();
+
+		// Without hybrid mode: set one core per ClusterNode. This allocation
+		// is only important for the dmalloc distribution policy.  The
+		// distribution policy distributes the array over the total number of
+		// cores across all ranks. If we had set the allocated number of cores
+		// to the actual number of cores from CPUManager::getTotalCPUs(), a
+		// perfect distribution across the nodes would require the number of
+		// elements to be a multiple of the total number of cores in the
+		// program.  "Faking" the number of cores to equal 1 means that a
+		// perfect distribution requires the number of elements only to be a
+		// multiple of the number of cluster nodes (processes).
 		for (int i = 0; i < clusterSize; i++) {
-			ClusterManager::getClusterNode(i)->setCurrentAllocCores(numCores);
+			ClusterManager::getClusterNode(i)->setCurrentAllocCores(1);
 		}
 	}
 
