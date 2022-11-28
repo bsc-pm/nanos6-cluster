@@ -100,11 +100,12 @@ void ClusterHybridManager::initialize()
 	for (int i = 0; i < clusterSize; i++) {
 		int numCores;
 		if (inHybridMode) {
-			// In hybrid mode: start by assuming 1 core for masters and 0 cores for slaves.
+			// In hybrid mode: start by assuming current number of owned cores for masters and 0 cores for slaves.
 			// The outcome will be that (1) all dmallocs are distributed with affinity 100% on
-			// the current node, and (2) the slaves will only request enough work to keep 1 core busy.
-			// This will until the global core allocator runs for the first time.
-			numCores = (i == nodeIndex) ? 1 : 0;
+			// the current node, (2) GlobalPolicy::execute will continue using the initial number of owned
+			// cores until the global core allocator starts running, and (3) the slaves will not be sent any
+			// tasks to execute.
+			numCores = (i == nodeIndex) ? ClusterManager::getClusterNode(i)->getCurrentAllocCores() : 0;
 		} else {
 			// Non-hybrid mode: assume just one core. This information is only needed for the distribution of
 			// dmallocs. See the comment in src/cluster/hybrid/null/ClusterHybridManager.hpp.
@@ -180,6 +181,12 @@ void ClusterHybridManager::getInitialCPUMask(cpu_set_t *set)
 	// 		  << "take CPUs " << curCoreIndex << " to " << lastCoreIndex << "\n";
 	assert(lastCoreIndex > curCoreIndex);
 	_numOwnedCPUs = lastCoreIndex - curCoreIndex;
+
+	// In case we are using the global policy, set the current allocation to match the
+	// initial number of owned CPUs. This will allow us to continue using the default
+	// core allocation until it is changed by the external solver. The initial allocation
+	// of the other cores will be set in ClusterHybridManager::initialize()
+	ClusterManager::getCurrentClusterNode()->setCurrentAllocCores(_numOwnedCPUs);
 
 	// Write out the CPU set
 	CPU_ZERO(set);
