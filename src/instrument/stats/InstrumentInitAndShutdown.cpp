@@ -19,6 +19,7 @@
 #include "system/RuntimeInfo.hpp"
 #include "ClusterManager.hpp"
 #include "cluster/messages/MessageType.hpp"
+#include "ClusterHybridManager.hpp"
 
 
 namespace Instrument {
@@ -108,7 +109,14 @@ namespace Instrument {
 			output << std::endl;
 			output << "##################";
 			output << std::endl;
-			output << "# STATS\t" << "Node\t" << ClusterManager::getCurrentClusterNode()->getIndex() << std::endl;
+			if (ClusterHybridManager::inHybridClusterMode()) {
+				output
+					<< "# STATS\t" << "Apprank\t" << ClusterManager::getApprankNum()
+					<< "\tRank\t" << ClusterManager::getCurrentClusterNode()->getIndex()
+					<< "\tPhysicalNode\t" << ClusterManager::getPhysicalNodeNum() << std::endl;
+			} else {
+				output << "# STATS\t" << "Node\t" << ClusterManager::getCurrentClusterNode()->getIndex() << std::endl;
+			}
 			output << "##################";
 			output << std::endl;
 		}
