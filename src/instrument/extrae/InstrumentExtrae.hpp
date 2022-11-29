@@ -74,6 +74,11 @@ namespace Instrument {
 					: false;  // This means they are equal.
 			}
 
+			void *getRunFunction() const
+			{
+				return _runFunction;
+			}
+
 			void registerFunction() const
 			{
 				// Remove column

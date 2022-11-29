@@ -62,12 +62,7 @@ namespace Instrument {
 		assert(taskInfo != nullptr);
 
 		ce.Types[1] = (extrae_type_t) EventType::RUNNING_CODE_LOCATION;
-		ce.Values[1] = (extrae_value_t) taskInfo->implementations[0].run;
-
-		// Use the unique taskInfo address in case it is a spawned task
-		if (SpawnFunction::isSpawned(taskInfo)) {
-			ce.Values[1] = (extrae_value_t) taskInfo;
-		}
+		ce.Values[1] = taskId._taskInfo->_runFunction;
 
 		ce.Types[2] = (extrae_type_t) EventType::NESTING_LEVEL;
 		ce.Values[2] = (extrae_value_t) taskId._taskInfo->_nestingLevel;
@@ -79,7 +74,7 @@ namespace Instrument {
 		ce.Values[4] = (extrae_value_t) taskId._taskInfo->_priority;
 
 		ce.Types[5] = (extrae_type_t) EventType::RUNNING_FUNCTION_NAME;
-		ce.Values[5] = (extrae_value_t) taskInfo->implementations[0].run;
+		ce.Values[5] = taskId._taskInfo->_runFunction;
 
 		// Generate graph information
 		if (Extrae::_detailTaskGraph) {
@@ -252,7 +247,7 @@ namespace Instrument {
 		assert(taskInfo != nullptr);
 
 		ce.Types[1] = (extrae_type_t) EventType::RUNNING_CODE_LOCATION;
-		ce.Values[1] = (extrae_value_t) taskInfo->implementations[0].run;
+		ce.Values[1] = taskforId._taskInfo->_runFunction;
 
 		// Use the unique taskInfo address in case it is a spawned task
 		if (SpawnFunction::isSpawned(taskInfo)) {
@@ -269,7 +264,7 @@ namespace Instrument {
 		ce.Values[4] = (extrae_value_t) taskforId._taskInfo->_priority;
 
 		ce.Types[5] = (extrae_type_t) EventType::RUNNING_FUNCTION_NAME;
-		ce.Values[5] = (extrae_value_t) taskInfo->implementations[0].run;
+		ce.Values[5] = taskforId._taskInfo->_runFunction;
 
 		if (first) {
 			// Generate graph information

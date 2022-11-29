@@ -10,6 +10,7 @@
 #include <cassert>
 
 #include "InstrumentExtrae.hpp"
+#include "InstrumentTaskExecution.hpp"
 
 namespace Instrument {
 
@@ -54,7 +55,7 @@ namespace Instrument {
 		assert(taskInfo != nullptr);
 
 		ce.Types[1] = (extrae_type_t) EventType::RUNNING_CODE_LOCATION;
-		ce.Values[1] = (extrae_value_t) taskInfo->implementations[0].run;
+		ce.Values[1] = taskId._taskInfo->_runFunction;
 
 		// Use the unique taskInfo address in case it is a spawned task
 		if (SpawnFunction::isSpawned(taskInfo)) {
@@ -71,7 +72,7 @@ namespace Instrument {
 		ce.Values[4] = (extrae_value_t) taskId._taskInfo->_priority;
 
 		ce.Types[5] = (extrae_type_t) EventType::RUNNING_FUNCTION_NAME;
-		ce.Values[5] = (extrae_value_t) taskInfo->implementations[0].run;
+		ce.Values[5] = taskId._taskInfo->_runFunction;
 
 		size_t readyTasks = --_readyTasks;
 

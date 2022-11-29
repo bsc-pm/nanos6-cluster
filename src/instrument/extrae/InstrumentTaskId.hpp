@@ -68,6 +68,7 @@ namespace Instrument {
 			int _nestingLevel;
 			long _priority;
 			Instrument::task_id_t _parent;
+			extrae_value_t _runFunction; // for RUNNING_FUNCTION_NAME, etc.
 
 			std::atomic<bool> _inTaskwait;
 
@@ -75,7 +76,7 @@ namespace Instrument {
 			std::set<predecessor_entry_t> _predecessors;
 
 			TaskInfo()
-				: _taskInfo(nullptr), _taskId(~0UL), _nestingLevel(-1), _priority(0), _parent(),
+				: _taskInfo(nullptr), _taskId(~0UL), _nestingLevel(-1), _priority(0), _parent(), _runFunction(0),
 				  _inTaskwait(false), _lock(), _predecessors()
 			{
 			}

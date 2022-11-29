@@ -98,6 +98,7 @@ namespace Instrument {
 			Extrae::user_fct_t user_fct(taskInfo);
 
 			std::lock_guard<SpinLock> guard(Extrae::_userFunctionMapLock);
+			_extraeTaskInfo->_runFunction = (extrae_value_t)user_fct.getRunFunction();
 			Extrae::_userFunctionMap.insert(user_fct);
 		}
 
