@@ -573,6 +573,8 @@ namespace DataAccessRegistration {
 	static void unfragmentTaskwaits(TaskDataAccesses &accessStructures)
 	{
 		DataAccess *lastAccess = nullptr;
+		bool lastAccessNeedsNewWriteId = false;
+
 		accessStructures._taskwaitFragments.processAllWithErase(
 			[&](TaskDataAccesses::accesses_t::iterator position) -> bool {
 				DataAccess *access = &(*position);
@@ -587,10 +589,14 @@ namespace DataAccessRegistration {
 					lastAccess->setAccessRegion(newrel);
 
 					if (access->getWriteID() != lastAccess->getWriteID()) {
-						lastAccess->setNewWriteID();
-						if (lastAccess->getLocation()->isClusterLocalMemoryPlace()) {
-							WriteIDManager::registerWriteIDasLocal(lastAccess->getWriteID(), newrel);
-						}
+						// The merged taskwait can only have a single WriteID, but the
+						// previous accesses had different WriteIDs. So we need to set a
+						// new write ID for this taskwait. But don't do this write away,
+						// because more than one taskwait (potentially lots) may get
+						// merged into a single taskwait. If so, we want to generate and
+						// register a single WriteID rather than doing it every time we
+						// merge in a taskwait.
+						lastAccessNeedsNewWriteId = true;
 					}
 
 #ifndef NDEBUG
@@ -603,12 +609,27 @@ namespace DataAccessRegistration {
 					// assert(accessStructures._liveTaskwaitFragmentCount > 0);
 					/* true: erase the second region */
 					return true;
+				} else {
+					if (lastAccessNeedsNewWriteId) {
+						lastAccess->setNewWriteID();
+						if (lastAccess->getLocation()->isClusterLocalMemoryPlace()) {
+							WriteIDManager::registerWriteIDasLocal(lastAccess->getWriteID(), lastAccess->getAccessRegion());
+						}
+					}
+					lastAccessNeedsNewWriteId = false;
 				}
+
 				lastAccess = access;
 				/* false: do not erase this region */
 				return false;
 			}
 		);
+		if (lastAccessNeedsNewWriteId) {
+			lastAccess->setNewWriteID();
+			if (lastAccess->getLocation()->isClusterLocalMemoryPlace()) {
+				WriteIDManager::registerWriteIDasLocal(lastAccess->getWriteID(), lastAccess->getAccessRegion());
+			}
+		}
 	}
 
 	struct BottomMapUpdateOperation {
