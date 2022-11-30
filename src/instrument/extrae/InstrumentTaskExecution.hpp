@@ -58,9 +58,6 @@ namespace Instrument {
 		ce.Types[0] = (extrae_type_t) EventType::RUNTIME_STATE;
 		ce.Values[0] = (extrae_value_t) NANOS_RUNNING;
 
-		nanos6_task_info_t *taskInfo = taskId._taskInfo->_taskInfo;
-		assert(taskInfo != nullptr);
-
 		ce.Types[1] = (extrae_type_t) EventType::RUNNING_CODE_LOCATION;
 		ce.Values[1] = taskId._taskInfo->_runFunction;
 
