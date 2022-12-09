@@ -13,7 +13,6 @@
 
 #include "system/BlockingAPI.hpp"
 #include "system/ompss/AddTask.hpp"
-#include "cluster/ClusterUtil.hpp"
 #include "cluster/offloading/TaskOffloading.hpp"
 
 

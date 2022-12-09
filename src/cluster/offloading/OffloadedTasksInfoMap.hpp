@@ -12,8 +12,6 @@
 
 #include <SatisfiabilityInfo.hpp>
 
-#include "ClusterUtil.hpp"
-
 class Task;
 class ClusterNode;
 namespace TaskOffloading {

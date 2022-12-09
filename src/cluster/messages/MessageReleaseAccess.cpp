@@ -9,7 +9,6 @@
 
 #include <ClusterManager.hpp>
 #include <TaskOffloading.hpp>
-#include <ClusterUtil.hpp>
 #include "OffloadedTaskId.hpp"
 #include "OffloadedTasksInfoMap.hpp"
 #include "scheduling/Scheduler.hpp"

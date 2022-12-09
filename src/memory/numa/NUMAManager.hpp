@@ -11,7 +11,6 @@
 #include <config.h>
 #endif
 
-#include <ClusterUtil.hpp>
 #include <cstring>
 #include <map>
 #include <numa.h>

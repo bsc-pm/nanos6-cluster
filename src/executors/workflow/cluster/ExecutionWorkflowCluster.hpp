@@ -20,7 +20,6 @@
 #include <TaskOffloading.hpp>
 #include <VirtualMemoryManagement.hpp>
 #include <tasks/Task.hpp>
-#include <ClusterUtil.hpp>
 #include <DataAccessRegistration.hpp>
 #include <InstrumentCluster.hpp>
 
