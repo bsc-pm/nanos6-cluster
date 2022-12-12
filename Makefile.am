@@ -1427,8 +1427,8 @@ noinst_HEADERS += \
 	src/cluster/hybrid/ClusterHybridInterface.hpp
 else
 noinst_HEADERS += \
-	src/cluster/null/ClusterHybridManager.hpp \
-	src/cluster/null/ClusterHybridInterface.hpp
+	src/cluster/hybrid/null/ClusterHybridManager.hpp \
+	src/cluster/hybrid/null/ClusterHybridInterface.hpp
 endif
 
 dist_memory_sources = $(memory_default_sources) $(memory_debug_sources)
