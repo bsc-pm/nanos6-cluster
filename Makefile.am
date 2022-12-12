@@ -1423,7 +1423,12 @@ endif
 if HAVE_DLB
 noinst_HEADERS += \
 	src/cluster/polling-services/hybrid/HybridPolling.hpp \
-	src/cluster/hybrid/ClusterHybridManager.hpp
+	src/cluster/hybrid/ClusterHybridManager.hpp \
+	src/cluster/hybrid/ClusterHybridInterface.hpp
+else
+noinst_HEADERS += \
+	src/cluster/null/ClusterHybridManager.hpp \
+	src/cluster/null/ClusterHybridInterface.hpp
 endif
 
 dist_memory_sources = $(memory_default_sources) $(memory_debug_sources)
